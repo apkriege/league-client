@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@layer base {
+  * {
+    @apply border-base-content/20;
+  }
+}
+
+body {
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: var(--color-base-content);
+}
+
+.btn {
+  @apply rounded-md;
+}
+
+.btn-md {
+  @apply h-[35px] text-xs rounded-md;
+}
