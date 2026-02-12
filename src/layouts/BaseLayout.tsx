@@ -201,23 +201,22 @@ export default function BaseLayout() {
                 icon={<TicketCheck size={18} />}
                 isActive={location.pathname === "/admin/leagues/:id"}
               />
-              <NavLink
+              {/* <NavLink
                 to="/admin/dashboard"
                 text="Dashboard"
                 icon={<TvMinimal size={18} />}
                 isActive={location.pathname === "/admin/dashboard"}
-              />
+              /> */}
             </>
           )}
 
-          <Section section="General" />
+          <Section section="League" />
           <NavLink
             to="/dashboard"
             text="Dashboard"
             icon={<PanelsTopLeft size={18} />}
             isActive={location.pathname === "/dashboard"}
           />
-          <Section section="League" />
           <NavLink
             to={`/league/${leagueId}/players`}
             text="Players"

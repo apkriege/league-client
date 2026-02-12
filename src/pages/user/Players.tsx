@@ -5,18 +5,16 @@ import Table from "@/components/Table";
 import type { Column } from "@/components/Table";
 import { Icon } from "@/components/layout/Icon";
 import { Users } from "lucide-react";
-import Card from "@/components/layout/Card";
 
 export default function Players() {
   const params = useParams();
   const leagueId = Number(params.leagueId);
-  console.log("Players leagueId:", leagueId);
   const { data: players } = useLeaguePlayers(leagueId);
 
   const columns: Column<any>[] = [
     { key: "id", label: "ID" },
-    { key: "first", label: "First Name" },
-    { key: "last", label: "Last Name" },
+    { key: "firstName", label: "First Name" },
+    { key: "lastName", label: "Last Name" },
     { key: "email", label: "Email" },
     {
       key: "handicap",

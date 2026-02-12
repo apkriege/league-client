@@ -25,8 +25,18 @@ export default function Event() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-white">{event.name}</h1>
-      <div>Event details and overview of scores.</div>
+      <h1 className="text-2xl font-bold">{event.name}</h1>
+      <div className=""></div>
+      <div className="scores">
+        {/* {event.type === "individual" && event.scoringFormat === "stroke" && (
+          <SingleStroke event={event} />
+        )}
+        {event.type === "individual" && event.scoringFormat === "match" && (
+          <SingleMatch event={event} />
+        )}
+        {event.type === "team" && event.scoringFormat === "match" && <TeamMatch event={event} />} */}
+        <ScoresX event={event} />
+      </div>
     </div>
   );
 }

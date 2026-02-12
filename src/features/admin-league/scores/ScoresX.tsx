@@ -38,7 +38,7 @@ const HoleInput = ({ id, value, pops, onChange }: any) => (
     <input
       id={id}
       type="text"
-      className={`input bg-neutral/50 font-bold focus:outline-none focus:ring-0 h-8 w-full min-w-14 rounded-md border py-0 text-center`}
+      className={`input font-bold focus:outline-none focus:ring-0 h-8 w-full min-w-14 rounded-md border py-0 text-center`}
       value={value}
       onChange={(e) => {
         const val = e.target.value;
@@ -48,7 +48,7 @@ const HoleInput = ({ id, value, pops, onChange }: any) => (
     {pops > 0 && (
       <div className="absolute bottom-2 right-2 flex gap-0.5">
         {Array.from({ length: pops }).map((_, i) => (
-          <div key={i} className="w-1 h-1 bg-white/80 rounded-full" />
+          <div key={i} className="w-1 h-1 bg-base-content rounded-full" />
         ))}
       </div>
     )}
@@ -57,6 +57,7 @@ const HoleInput = ({ id, value, pops, onChange }: any) => (
 
 export default function ScoresX({ event }: any) {
   const { show } = useToast();
+  const navigate = useNavigate();
   const scoreMutation = useSubmitEventScores();
 
   const startingHole = event.startSide === "front" ? 1 : 10;
@@ -103,21 +104,13 @@ export default function ScoresX({ event }: any) {
     const scores = pForm.getValues(`players.${p.id}.scores`);
     return (
       Object.values(scores).reduce((a: number, b: any) => a + (typeof b === "number" ? b : 0), 0) -
-      p.handicap
+      Math.round(p.handicap)
     );
   };
 
-  const savePlayer = (playerId: number) => {
-    // check every hole has a score and is not equal to 0
+  const isComplete = (playerId: number) => {
     const scores = pForm.getValues(`players.${playerId}.scores`);
-    const allHolesCompleted = Object.values(scores).every((score: any) => Number(score) > 0);
-
-    if (!allHolesCompleted) {
-      show("Please complete all holes before saving.", "error");
-      return;
-    }
-
-    pForm.setValue(`players.${playerId}.completed`, true);
+    return Object.values(scores).every((score: any) => Number(score) > 0);
   };
 
   const cancelScores = () => {
@@ -141,7 +134,7 @@ export default function ScoresX({ event }: any) {
       {
         onSuccess: () => {
           show("Scores submitted successfully!", "success");
-          // navigate(-1);
+          navigate(-1);
         },
         onError: (error: any) => {
           console.error("Error submitting scores:", error);
@@ -154,7 +147,7 @@ export default function ScoresX({ event }: any) {
   return (
     <div className="score-table flex flex-col gap-4">
       {event.flights.map((flight: any, idx: number) => (
-        <Card key={idx} className="p-4">
+        <Card key={idx} className="">
           <h3>Flight {idx + 1} </h3>
           <div className="overflow-x-scroll">
             <table className="table table-sm w-full horizontal-table mb-5 min-w-full whitespace-nowrap">
@@ -167,7 +160,7 @@ export default function ScoresX({ event }: any) {
                       {idx + startingHole}
                     </th>
                   ))}
-                  <LastTD>TOTAL/NET</LastTD>
+                  {/* <LastTD>TOTAL/NET</LastTD> */}
                 </tr>
 
                 {/* Par/HCP Row */}
@@ -183,7 +176,7 @@ export default function ScoresX({ event }: any) {
                 {flight.players.map((player: any) => {
                   const p = player.player;
                   const t = player.player.team;
-                  const pops = calculatePops(p.handicap, holes);
+                  const pops = calculatePops(Math.round(p.handicap), holes);
 
                   return (
                     <tr className="relative" key={p.id}>
@@ -192,10 +185,10 @@ export default function ScoresX({ event }: any) {
                           <span className="text-xs">{t.name}</span>
                           <div className="flex items-center gap-2 justify-between">
                             <span>
-                              {p.firstName} {p.lastName} ({p.handicap})
+                              {p.firstName} {p.lastName} ({Math.round(p.handicap)})
                             </span>
                             <span>
-                              {pForm.watch(`players.${p.id}.completed`) ? (
+                              {isComplete(p.id) ? (
                                 <CheckCheck className="text-green-500 w-4 h-4" />
                               ) : (
                                 <TriangleAlert className="text-yellow-500 w-4 h-4" />
@@ -219,12 +212,12 @@ export default function ScoresX({ event }: any) {
                           <span className="text-md font-bold">
                             {totalScore(p)} / {totalNet(p)}
                           </span>
-                          <button
+                          {/* <button
                             className="btn btn-xs btn-primary mt-1"
                             onClick={() => savePlayer(p.id)}
                           >
                             Save
-                          </button>
+                          </button> */}
                         </div>
                       </LastTD>
                     </tr>

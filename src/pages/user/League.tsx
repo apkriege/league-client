@@ -2,5 +2,5 @@
 // should be based on league id from params
 
 export default function League() {
-  return <div>League Page</div>;
+  return <div>Users League Page</div>;
 }

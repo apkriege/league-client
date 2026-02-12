@@ -16,7 +16,7 @@ const defaultValues = {
   holes: 9,
 
   startDate: new Date("2026-01-01"),
-  endDate: new Date("2026-02-01"),
+  endDate: new Date("2026-05-01"),
   startTime: "04:00",
   interval: 10,
   frequency: "weekly",

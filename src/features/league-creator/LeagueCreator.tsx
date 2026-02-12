@@ -32,7 +32,7 @@ const currPlayers = [
     lastName: "Door",
     email: "derrick@door.com",
     type: "player",
-    handicap: 13,
+    handicap: 2,
   },
   {
     id: 4,
@@ -64,7 +64,7 @@ const currPlayers = [
     lastName: "Garage",
     email: "garret@garage.com",
     type: "player",
-    handicap: 9,
+    handicap: 2,
   },
   {
     id: 8,
@@ -74,38 +74,6 @@ const currPlayers = [
     type: "player",
     handicap: 7,
   },
-  // {
-  //   id: 9,
-  //   first: "Jimmy",
-  //   last: "James",
-  //   email: "jimmy@james.com",
-  //   type: "player",
-  //   handicap: 10,
-  // },
-  // {
-  //   id: 10,
-  //   first: "Kelly",
-  //   last: "Kolton",
-  //   email: "kelly@kolton.com",
-  //   type: "player",
-  //   handicap: 15,
-  // },
-  // {
-  //   id: 11,
-  //   first: "Liam",
-  //   last: "Lewis",
-  //   email: "liam@lewis.com",
-  //   type: "player",
-  //   handicap: 12,
-  // },
-  // {
-  //   id: 12,
-  //   first: "Mason",
-  //   last: "Moore",
-  //   email: "mason@moore.com",
-  //   type: "player",
-  //   handicap: 8,
-  // },
 ];
 
 const currTeams = [

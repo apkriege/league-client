@@ -1,5 +1,19 @@
 import Card from "@/components/layout/Card";
 
+interface League {
+  id: number;
+  name: string;
+  description: string;
+  type: string;
+  numPlayers: number;
+  startDate: Date;
+  endDate: Date;
+  contactFirst: string;
+  contactLast: string;
+  contactEmail: string;
+  contactPhone: string;
+}
+
 export default function Info({ league }: { league: any }) {
   return (
     <Card>
