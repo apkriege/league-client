@@ -29,10 +29,16 @@
       "@assets/*": ["./src/assets/*"],
       "@components/*": ["./src/components/*"],
       "@hooks/*": ["./src/service/*"],
-      "@pages/*": ["./src/pages/*"],
+      "@pages/*": ["src/pages-old/*"],
       "@stores/*": ["./src/stores/*"],
       "@utils/*": ["./src/utils/*"]
     }
   },
-  "include": ["./src/**/*.ts", "./src/**/*.tsx", "./api/**/*.ts", "./api/**/*.tsx"]
+  "include": [
+    "./src/**/*.ts",
+    "./src/**/*.tsx",
+    "./api/**/*.ts",
+    "./api/**/*.tsx",
+    "_del/CreateLeagueOld.tsx"
+  ]
 }

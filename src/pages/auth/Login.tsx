@@ -14,18 +14,14 @@ export default function Login() {
     e.preventDefault();
     try {
       const auth: any = await login(email, password);
-      const { user } = auth.data;
+      let { user } = auth.data;
+
+      user.isAdmin = user.role === "admin";
       console.log("Logged in user:", user);
       setUser(user);
 
-      // Redirect on success
-      if (user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/dashboard");
-      }
-
-      // navigate("/admin");
+      // Redirect on successful login
+      navigate("/leagues");
     } catch (err: any) {
       setError(err.message);
     }

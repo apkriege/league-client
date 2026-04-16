@@ -3,7 +3,8 @@ export type League = {
   name: string;
   description: string;
   numPlayers: number;
-  type: "public" | "private" | string;
+  type: "season" | "tournament" | string;
+  format?: "individual" | "team" | null | string;
   contactFirstName: string;
   contactLastName: string;
   contactEmail: string;

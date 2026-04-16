@@ -3,19 +3,11 @@ import {
   getLeague,
   getLeagueEvent,
   getLeagueEvents,
-  getAdminLeagues,
   getLeagues,
   getLeaguePlayers,
   getLeagueTeams,
   getLeagueEventScores,
 } from ".";
-
-export const useAdminLeagues = () => {
-  return useQuery({
-    queryKey: ["leagues"],
-    queryFn: () => getAdminLeagues(),
-  });
-};
 
 export const useLeagues = () => {
   return useQuery({
@@ -28,6 +20,7 @@ export const useLeague = (id: number) => {
   return useQuery({
     queryKey: ["league", id],
     queryFn: () => getLeague(id),
+    enabled: !!id,
   });
 };
 

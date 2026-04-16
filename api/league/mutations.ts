@@ -6,6 +6,8 @@ import {
   createLeagueEvent,
   submitEventScores,
   createLeagueEvents,
+  updateLeagueEvent,
+  deleteLeagueEvent,
 } from ".";
 import type { League } from "@/types/league";
 
@@ -75,7 +77,7 @@ export const useDeleteLeague = () => {
 
 // ============================================
 // Events
-export const useCreateLeagueEvent = (onSuccess: any) => {
+export const useCreateLeagueEvent = (onSuccess?: any) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -111,6 +113,54 @@ export const useCreateLeagueEvents = (onSuccess: any) => {
   });
 };
 
+export const useUpdateLeagueEvent = (onSuccess: any) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      leagueId: _leagueId,
+      eventId,
+      data,
+    }: {
+      leagueId: number;
+      eventId: number;
+      data: any;
+    }) => {
+      return await updateLeagueEvent(eventId, data);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate the specific event query
+      queryClient.invalidateQueries({
+        queryKey: ["league", variables.leagueId, "events", variables.eventId],
+      });
+      // Invalidate the events list for the league
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "events"] });
+      if (onSuccess) onSuccess();
+    },
+    onError: (error) => {
+      console.error("Failed to update event:", error);
+    },
+  });
+};
+
+export const useDeleteLeagueEvent = (onSuccess: any) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ leagueId: _leagueId, eventId }: { leagueId: number; eventId: number }) => {
+      return await deleteLeagueEvent(eventId);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate the events list for the league
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "events"] });
+      if (onSuccess) onSuccess();
+    },
+    onError: (error) => {
+      console.error("Failed to delete event:", error);
+    },
+  });
+};
+
 // Scores
 export const useSubmitEventScores = () => {
   const queryClient = useQueryClient();
@@ -131,7 +181,7 @@ export const useSubmitEventScores = () => {
     onSuccess: (_, variables) => {
       // Invalidate queries related to the event scores
       queryClient.invalidateQueries({
-        queryKey: ["league", variables.leagueId, "events", variables.eventId],
+        queryKey: ["league", variables.leagueId, "events"],
       });
     },
     onError: (error) => {

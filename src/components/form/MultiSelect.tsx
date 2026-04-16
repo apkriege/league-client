@@ -54,18 +54,22 @@ export default function MultiSelect({
 
   return (
     <fieldset className={`fieldset ${className}`}>
-      {label && <legend className="fieldset-legend p-0.5">{label}</legend>}
+      {label ? (
+        <legend className="fieldset-legend p-1 uppercase text-gray-500 font-semibold text-[10px] tracking-wider">
+          {label}
+        </legend>
+      ) : null}
 
       <div className="relative" ref={containerRef}>
         <div
-          className="flex items-center gap-2 px-2 py-2 border border-base-content/20 rounded-lg cursor-pointer h-[35px] overflow-x-auto overflow-y-hidden whitespace-nowrap"
+          className="w-full min-h-[35px] rounded-md bg-base-200 border border-base-300 px-2 py-1 text-xs cursor-pointer flex items-center gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap"
           onClick={() => setIsOpen(!isOpen)}
         >
           {selectedOptions.length > 0 ? (
             selectedOptions.map((opt) => (
               <span
                 key={opt.value}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500 text-white rounded text-xs shrink-0 whitespace-nowrap"
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-base-300 text-base-content rounded text-[11px] shrink-0 whitespace-nowrap"
               >
                 {opt.label}
                 <button
@@ -74,29 +78,29 @@ export default function MultiSelect({
                     e.stopPropagation();
                     handleRemove(opt.value);
                   }}
-                  className="hover:bg-blue-600 rounded p-0.5 shrink-0"
+                  className="hover:bg-base-content/10 rounded p-0.5 shrink-0"
                 >
                   <X size={12} />
                 </button>
               </span>
             ))
           ) : (
-            <span className="text-gray-500">{placeholder}</span>
+            <span className="text-base-content/50">{placeholder}</span>
           )}
         </div>
 
         {/* Dropdown */}
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 border rounded-lg bg-base-100 shadow-lg z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 border border-base-300 rounded-md bg-base-100 shadow-lg z-10">
             <ul className="max-h-48 overflow-y-auto">
               {options.map((option) => (
                 <li key={option.value}>
-                  <label className="flex items-center gap-2 px-3 py-2 hover:bg-base-200 cursor-pointer">
+                  <label className="flex items-center gap-2 px-3 py-2 hover:bg-base-200 cursor-pointer text-xs">
                     <input
                       type="checkbox"
                       checked={value.includes(option.value)}
                       onChange={() => handleSelect(option.value)}
-                      className="w-3 h-3 accent-blue-500 cursor-pointer rounded"
+                      className="w-3 h-3 accent-primary cursor-pointer rounded"
                     />
                     <span>{option.label}</span>
                   </label>

@@ -1,9 +1,12 @@
 import { useState, useMemo } from "react";
+import { Input } from "./form";
 
 export interface Column<T> {
   key: keyof T;
   label: string;
   render?: (value: any, row: T) => React.ReactNode;
+  // Width for table body cells; falls back to width when not provided.
+  cellWidth?: string;
   width?: string;
 }
 
@@ -16,7 +19,7 @@ interface TableProps<T> {
   search?: boolean;
 }
 
-export default function Table<T extends { id?: number | string }>({
+export default function Table<T>({
   data,
   columns,
   heading = "",
@@ -96,16 +99,15 @@ export default function Table<T extends { id?: number | string }>({
   };
 
   return (
-    <div className={`${className} bg-base-100 border border-base-content/20 rounded-lg w-full`}>
-      <div className="flex justify-between items-center p-2">
-        <p className="text-xs">{heading}</p>
+    <div className={`${className} bg-base-100 border rounded-xl w-full`}>
+      <div className="flex justify-between items-center px-2 py-1 rounded-t-xl">
+        <p className="text-xs text-primary uppercase font-semibold text-[10px] ml-2">{heading}</p>
         {search && (
-          <input
-            type="text"
+          <Input
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="input input-bordered w-full max-w-xs h-8 text-xs"
+            className="w-1/3"
           />
         )}
       </div>
@@ -117,10 +119,10 @@ export default function Table<T extends { id?: number | string }>({
                 <th
                   key={`header-${idx}`}
                   onClick={() => handleSort(col.key)}
-                  style={{ width: col.width }}
+                  style={{ width: col.width ?? col.cellWidth }}
                   className="text-xs px-4 py-3 text-left cursor-pointer hover:bg-base-300 transition-colors font-semibold"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-[10px] uppercase text-gray-600">
                     {col.label}
                     {getSortIndicator(col.key)}
                   </div>
@@ -138,6 +140,7 @@ export default function Table<T extends { id?: number | string }>({
                 {columns.map((col, colIdx) => (
                   <td
                     key={`col-${colIdx}`}
+                    style={{ width: col.cellWidth ?? col.width }}
                     className={`px-4 py-2 ${sizeClasses[size]} ${paddingClasses[size]}`}
                   >
                     {col.render ? col.render(row[col.key], row) : (row[col.key] as React.ReactNode)}

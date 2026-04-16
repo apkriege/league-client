@@ -1,30 +1,33 @@
-interface InputProps {
-  type?: string;
+import { forwardRef } from "react";
+
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  value?: string;
-  placeholder?: string;
-  className?: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
 }
 
-export default function Input({
-  type = "text",
-  label,
-  value,
-  placeholder,
-  className,
-  onChange,
-}: InputProps) {
+const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { type = "text", label, placeholder, className, error, ...inputProps },
+  ref
+) {
   return (
-    <fieldset className={`fieldset ${className}`}>
-      <legend className="fieldset-legend p-1">{label}</legend>
+    <fieldset className={`fieldset ${className || ""}`}>
+      {label ? (
+        <legend className="fieldset-legend p-1 uppercase text-gray-500 font-semibold text-[10px] tracking-wider">
+          {label}
+        </legend>
+      ) : null}
       <input
+        ref={ref}
         type={type}
-        value={value || ""}
-        className={`input w-full text-xs h-[35px] rounded-md ${className}`}
+        className={`input w-full text-xs h-[35px] rounded-md bg-base-200 border-base-300 ${
+          error ? "input-error" : ""
+        }`}
         placeholder={placeholder}
-        onChange={onChange}
+        {...inputProps}
       />
+      {error ? <p className="text-error text-[10px] mt-1">{error}</p> : null}
     </fieldset>
   );
-}
+});
+
+export default Input;

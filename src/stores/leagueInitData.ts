@@ -33,7 +33,7 @@ export const events = [
     ptsPerMatch: 2,
     ptsPerTeamWin: 3,
     strokePoints: [],
-    status: "completed", // scheduled, completed, cancelled
+    status: "completed", // upcoming, completed, cancelled
     flights: [
       // these can are a list of player or team ids
       // if they are teams, the players will be auto assigned on the backend
@@ -60,7 +60,7 @@ export const events = [
     ptsPerMatch: 2,
     ptsPerTeamWin: 3,
     strokePoints: [],
-    status: "completed", // scheduled, completed, cancelled
+    status: "completed", // upcoming, completed, cancelled
     flights: [
       // these can are a list of player or team ids
       // if they are teams, the players will be auto assigned on the backend

@@ -1,20 +1,56 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
 @import "tailwindcss";
 @plugin "daisyui";
 
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-primary: #0f172a;
+  --color-primary-content: #ffffff;
+  --color-secondary: #bef264;
+  --color-secondary-content: #4b6d00;
+  --color-accent: #476800;
+  --color-accent-content: #ffffff;
+  --color-neutral: #2d2d2d;
+  --color-neutral-content: #ffffff;
+  --color-base-100: #ffffff;
+  --color-base-200: #f3f5f8;
+  --color-base-300: #e5e7eb;
+  --color-base-content: #000000;
+  --color-info: #1f7fff;
+  --color-info-content: #ffffff;
+  --color-success: #2e8b57;
+  --color-success-content: #ffffff;
+  --color-warning: #ff9800;
+  --color-warning-content: #ffffff;
+  --color-error: #d32f2f;
+  --color-error-content: #ffffff;
+  --color-danger: #d32f2f;
+  --color-danger-content: #ffffff;
+}
+
 @layer base {
   * {
-    @apply border-base-content/20;
+    @apply border-base-300;
   }
 }
 
 body {
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  /* font-family: "Inter", sans-serif; */
   color: var(--color-base-content);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Manrope", sans-serif;
+}
+
+.text-md {
+  font-size: 16px;
 }
 
 .btn {
@@ -23,4 +59,8 @@ body {
 
 .btn-md {
   @apply h-[35px] text-xs rounded-md;
+}
+
+.btn-ghost {
+  @apply bg-white/10 border-white/20 text-white;
 }

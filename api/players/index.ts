@@ -2,7 +2,6 @@
 import apiClient from "../client";
 
 // calls
-
 export async function getPlayers() {
   const response = await apiClient.get("/players");
   return response.data;

@@ -4,20 +4,20 @@
  * This file demonstrates how to use the agnostic API client
  */
 
-import apiClient from './client';
-import type { ApiResponse, ApiErrorResponse } from './client';
+import apiClient from "./client";
+import type { ApiResponse, ApiErrorResponse } from "./client";
 
 // ============================================
 // Example 1: Basic GET request
 // ============================================
 export async function getUsers() {
   try {
-    const response = await apiClient.get('/users');
-    console.log('Users:', response.data);
+    const response = await apiClient.get("/users");
+    console.log("Users:", response.data);
     return response.data;
   } catch (error) {
     const apiError = error as ApiErrorResponse;
-    console.error('Error fetching users:', apiError.message);
+    console.error("Error fetching users:", apiError.message);
     throw error;
   }
 }
@@ -31,7 +31,7 @@ export async function getUserById(id: string) {
     return response.data;
   } catch (error) {
     const apiError = error as ApiErrorResponse;
-    console.error('Error fetching user:', apiError.message);
+    console.error("Error fetching user:", apiError.message);
     throw error;
   }
 }
@@ -47,12 +47,12 @@ interface CreateUserData {
 
 export async function createUser(userData: CreateUserData) {
   try {
-    const response = await apiClient.post('/users', userData);
-    console.log('User created:', response.data);
+    const response = await apiClient.post("/users", userData);
+    console.log("User created:", response.data);
     return response.data;
   } catch (error) {
     const apiError = error as ApiErrorResponse;
-    console.error('Error creating user:', apiError.message);
+    console.error("Error creating user:", apiError.message);
     throw error;
   }
 }
@@ -71,7 +71,7 @@ export async function updateUser(id: string, userData: UpdateUserData) {
     return response.data;
   } catch (error) {
     const apiError = error as ApiErrorResponse;
-    console.error('Error updating user:', apiError.message);
+    console.error("Error updating user:", apiError.message);
     throw error;
   }
 }
@@ -85,7 +85,7 @@ export async function deleteUser(id: string) {
     return response.data;
   } catch (error) {
     const apiError = error as ApiErrorResponse;
-    console.error('Error deleting user:', apiError.message);
+    console.error("Error deleting user:", apiError.message);
     throw error;
   }
 }
@@ -96,10 +96,10 @@ export async function deleteUser(id: string) {
 export async function uploadAvatar(file: File, userId: string) {
   try {
     const formData = new FormData();
-    formData.append('avatar', file);
-    formData.append('userId', userId);
+    formData.append("avatar", file);
+    formData.append("userId", userId);
 
-    const response = await apiClient.upload('/users/avatar', formData, (progressEvent) => {
+    const response = await apiClient.upload("/users/avatar", formData, (progressEvent) => {
       const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
       console.log(`Upload progress: ${percentCompleted}%`);
     });
@@ -107,7 +107,7 @@ export async function uploadAvatar(file: File, userId: string) {
     return response.data;
   } catch (error) {
     const apiError = error as ApiErrorResponse;
-    console.error('Error uploading avatar:', apiError.message);
+    console.error("Error uploading avatar:", apiError.message);
     throw error;
   }
 }
@@ -121,7 +121,7 @@ interface LoginData {
 }
 
 interface AuthResponse {
-  token: string;
+  message: string;
   user: {
     id: string;
     email: string;
@@ -131,36 +131,32 @@ interface AuthResponse {
 
 export async function login(credentials: LoginData) {
   try {
-    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
-
-    // Store the token
-    apiClient.setToken(response.data.token);
-
+    const response = await apiClient.post<AuthResponse>("/auth/login", credentials);
     return response.data;
   } catch (error) {
     const apiError = error as ApiErrorResponse;
-    console.error('Login failed:', apiError.message);
+    console.error("Login failed:", apiError.message);
     throw error;
   }
 }
 
 export function logout() {
-  apiClient.removeToken();
-  // Optionally redirect to login page
-  window.location.href = '/login';
+  return apiClient.post("/auth/logout").then(() => {
+    window.location.href = "/login";
+  });
 }
 
 // ============================================
 // Example 8: Using with React Query / TanStack Query
 // ============================================
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // Fetch users with React Query
 export function useUsers() {
   return useQuery({
-    queryKey: ['users'],
+    queryKey: ["users"],
     queryFn: async () => {
-      const response = await apiClient.get('/users');
+      const response = await apiClient.get("/users");
       return response.data;
     },
   });
@@ -171,10 +167,11 @@ export function useCreateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userData: CreateUserData) => apiClient.post('/users', userData).then((res) => res.data),
+    mutationFn: (userData: CreateUserData) =>
+      apiClient.post("/users", userData).then((res) => res.data),
     onSuccess: () => {
       // Invalidate and refetch users
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 }
@@ -189,7 +186,7 @@ interface PaginationParams {
 
 export async function getUsersPaginated(params: PaginationParams) {
   try {
-    const response = await apiClient.get('/users', {
+    const response = await apiClient.get("/users", {
       params: {
         page: params.page,
         limit: params.limit,
@@ -198,7 +195,7 @@ export async function getUsersPaginated(params: PaginationParams) {
     return response.data;
   } catch (error) {
     const apiError = error as ApiErrorResponse;
-    console.error('Error fetching users:', apiError.message);
+    console.error("Error fetching users:", apiError.message);
     throw error;
   }
 }
@@ -208,15 +205,15 @@ export async function getUsersPaginated(params: PaginationParams) {
 // ============================================
 export async function getDataWithCustomHeaders() {
   try {
-    const response = await apiClient.get('/data', {
+    const response = await apiClient.get("/data", {
       headers: {
-        'X-Custom-Header': 'custom-value',
+        "X-Custom-Header": "custom-value",
       },
     });
     return response.data;
   } catch (error) {
     const apiError = error as ApiErrorResponse;
-    console.error('Error fetching data:', apiError.message);
+    console.error("Error fetching data:", apiError.message);
     throw error;
   }
 }
@@ -229,8 +226,8 @@ export async function advancedRequest() {
 
   // Now you have full access to axios methods
   const response = await axiosInstance.request({
-    method: 'GET',
-    url: '/advanced-endpoint',
+    method: "GET",
+    url: "/advanced-endpoint",
     // Any axios config options
   });
 

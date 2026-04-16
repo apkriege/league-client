@@ -1,5 +1,4 @@
-import { Link, Outlet, useNavigate, useLocation } from "react-router";
-import ThemeSwitcher from "../components/layout/ThemeSwitcher";
+import { Link, Outlet, useNavigate, useLocation, useParams } from "react-router";
 import { logout } from "@api/auth";
 import { useAppStore } from "@/stores/appStore";
 import { useEffect, useState } from "react";
@@ -7,22 +6,21 @@ import {
   Calendar,
   Check,
   LandPlot,
+  LayoutDashboard,
+  LogOut,
+  Menu,
   PanelsTopLeft,
   ShieldHalf,
-  ShieldPlus,
   TicketCheck,
-  TvMinimal,
   User,
   Users,
 } from "lucide-react";
-import { useAdminLeagues, useLeagueEvents, useLeagues } from "@api/league/queries";
+import { useLeague, useLeagueEvents } from "@api/league/queries";
 import dayjs from "dayjs";
-import { useUserLeagues } from "@api/users/queries";
-import { Select } from "@/components/form";
 
 const Section = ({ section }: { section: string }) => (
-  <div className="mt-5 mb-1 flex flex-col">
-    <p className="text-[10px] uppercase ml-2 font-semibold text-base-content/50">{section}</p>
+  <div className="mt-5 mb-2 flex flex-col">
+    <p className="text-[10px] uppercase ml-2 font-semibold text-gray-500">{section}</p>
   </div>
 );
 
@@ -31,21 +29,32 @@ const NavLink = ({
   text,
   icon,
   isActive,
+  collapsed,
+  disabled,
 }: {
   to: string;
   text: string;
   icon: any;
   isActive: boolean;
+  collapsed?: boolean;
+  disabled?: boolean;
 }) => {
   return (
     <Link
       to={to}
-      className={`px-2 py-1 rounded hover:bg-primary/80 hover:text-primary-content transition-colors flex items-center ${
-        isActive ? "bg-primary/80 text-primary-content" : ""
-      }`}
+      onClick={(e) => {
+        if (disabled) e.preventDefault();
+      }}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : undefined}
+      className={`px-2 py-2.5 rounded transition-colors flex items-center ${
+        disabled
+          ? "opacity-40 cursor-not-allowed pointer-events-none"
+          : "hover:bg-secondary/5 hover:text-secondary/80"
+      } ${isActive ? "border-l-2 border-secondary bg-secondary/10 text-secondary" : ""}`}
     >
-      <span className="mr-2">{icon}</span>
-      <span className="text-sm">{text}</span>
+      <span className="mr-3">{icon}</span>
+      {!collapsed && <span className="text-sm">{text}</span>}
     </Link>
   );
 };
@@ -98,7 +107,7 @@ const modelEvents = (events: any) => {
     id: event.id,
     name: event.name,
     date: event.date,
-    to: `/league/${event.leagueId}/event/${event.id}/scores`,
+    to: `/league/${event.leagueId}/event/${event.id}`,
     completed: event.completed,
     eventType: event.eventType,
   }));
@@ -107,26 +116,12 @@ const modelEvents = (events: any) => {
 export default function BaseLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { leagueId } = useParams();
+  const { user } = useAppStore();
   const [isOpen, setIsOpen] = useState(true);
-  const { user, leagueId, clearLeagueId } = useAppStore();
 
-  const { data: adminLeagues } = useAdminLeagues();
-  const { data: leagues } = useUserLeagues(user?.id || 0);
-
-  let options = [];
-  if (user.role === "ADMIN" && adminLeagues) {
-    options = adminLeagues.map((league: any) => ({
-      value: league.id,
-      label: league.name,
-    }));
-  } else if (leagues) {
-    options = leagues.map((league: any) => ({
-      value: league.id,
-      label: league.name,
-    }));
-  }
-
-  const { data: events } = useLeagueEvents(leagueId);
+  const { data: league } = useLeague(Number(leagueId)!);
+  const { data: events } = useLeagueEvents(Number(leagueId));
   const evs = events ? modelEvents(events) : [];
 
   useEffect(() => {
@@ -136,119 +131,117 @@ export default function BaseLayout() {
 
   useEffect(() => {
     if (!user) {
-      navigate("/auth/login");
+      navigate("/login");
     }
 
-    if (!leagueId) {
-      navigate("/dashboard");
-    }
+    // can't do this if the user is new a creating a fresh league
+    // if (!leagueId) {
+    //   navigate("/dashboard");
+    // }
   }, [user, leagueId, navigate, location.pathname]);
 
   const handleLogout = async () => {
     try {
       await logout();
-      window.location.href = "/auth/login";
+      window.location.href = "/login";
     } catch (error) {
       console.error("Logout failed", error);
     }
   };
 
+  const subDisabled = !leagueId || leagueId === "undefined";
+
   return (
-    <div className="flex h-screen bg-base-300">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-base-200 overflow-hidden">
       <div
-        className={`bg-base-200 border-r border-gray-300 transition-all duration-300 ${
-          isOpen ? "min-w-50" : "w-20"
+        className={`bg-primary text-gray-300 border-r transition-all duration-300 ${
+          isOpen ? "w-48 md:w-56" : "w-16 md:w-20"
         } flex flex-col`}
       >
         {/* Header */}
-        <div className="p-4 border-base-300 flex items-center justify-between">
-          {isOpen && <h1 className="text-lg font-bold text-primary">League</h1>}
+        <div className="p-3 md:p-4 border-base-300 flex items-center justify-between">
+          {isOpen && (
+            <h1 className="text-lg font-bold text-primary-content hidden md:block">
+              Midnight Links
+            </h1>
+          )}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 hover:bg-base-200 rounded-lg transition"
           >
-            {isOpen ? "✕" : "☰"}
+            <Menu size={18} />
           </button>
         </div>
 
-        <div className="px-2">
-          <Select
-            value={leagueId || ""}
-            label={isOpen ? "Select League" : ""}
-            options={options}
-            onChange={(e) => {
-              useAppStore.getState().setLeagueId(Number(e.target.value));
-            }}
-            className=""
-          />
-        </div>
-
         {/* Navigation */}
-        <nav className="flex-1 px-2 space-y-1">
-          {user.role === "ADMIN" && (
-            <>
-              <Section section="Admin" />
-              <NavLink
-                to="/admin/league/create"
-                text="Create League"
-                icon={<ShieldPlus size={18} />}
-                isActive={location.pathname === "/admin/league/create"}
-              />
-              <NavLink
-                to={`/admin/league/${leagueId}`}
-                text="League"
-                icon={<TicketCheck size={18} />}
-                isActive={location.pathname === "/admin/leagues/:id"}
-              />
-              {/* <NavLink
-                to="/admin/dashboard"
-                text="Dashboard"
-                icon={<TvMinimal size={18} />}
-                isActive={location.pathname === "/admin/dashboard"}
-              /> */}
-            </>
-          )}
-
-          <Section section="League" />
+        <nav className="flex-1 px-2 md:px-3 space-y-1 overflow-y-auto">
+          <Section section="Leagues" />
           <NavLink
-            to="/dashboard"
+            to="/leagues"
+            text="Leagues"
+            icon={<LayoutDashboard size={19} />}
+            isActive={location.pathname === "/admin/dashboard"}
+            collapsed={!isOpen}
+          />
+          <Section section={league?.name || "League"} />
+          <NavLink
+            to={`/league/${leagueId}`}
             text="Dashboard"
-            icon={<PanelsTopLeft size={18} />}
+            icon={<PanelsTopLeft size={19} />}
             isActive={location.pathname === "/dashboard"}
+            disabled={subDisabled}
           />
           <NavLink
             to={`/league/${leagueId}/players`}
             text="Players"
-            icon={<Users size={18} />}
+            icon={<Users size={19} />}
             isActive={location.pathname === `/league/${leagueId}/players`}
+            disabled={subDisabled}
           />
           <NavLink
             to={`/league/${leagueId}/teams`}
             text="Teams"
-            icon={<ShieldHalf size={18} />}
+            icon={<ShieldHalf size={19} />}
             isActive={location.pathname === `/league/${leagueId}/teams`}
+            disabled={subDisabled}
           />
           <NavLink
             to={`/league/${leagueId}/schedule`}
             text="Schedule"
-            icon={<Calendar size={18} />}
+            icon={<Calendar size={19} />}
             isActive={location.pathname === `/league/${leagueId}/schedule`}
+            disabled={subDisabled}
           />
-          <NavWithSubLinks section="Events" links={evs} icon={<LandPlot size={18} />} />
+          {!subDisabled && (
+            <NavWithSubLinks section="Events" links={evs} icon={<LandPlot size={18} />} />
+          )}
         </nav>
 
         {/* Footer */}
-        <div className="p-2 border-t border-base-300">
-          <button className="flex items-center gap-4 px-2 py-1 rounded-lg w-full text-neutral hover:bg-base-200 transition-colors">
-            {isOpen && <span className="text-sm">Logout</span>}
+        <div className="p-2 md:p-3 border-t border-slate-700">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-4 px-2 py-1 rounded-lg w-full text-gray-400 hover:bg-base-200 transition-colors"
+          >
+            {isOpen && (
+              <div className="flex flex-col gap-3">
+                {/* <div className="text-sm flex gap-3 items-center">
+                  <CircleQuestionMark size={19} />
+                  <span>Support</span>
+                </div> */}
+                <div className="text-sm flex gap-3 items-center">
+                  <LogOut size={19} />
+                  <span>Sign Out</span>
+                </div>
+              </div>
+            )}
           </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <div className="sticky top-0 z-10 bg-base-100 border-b border-gray-300 px-6 py-4 flex justify-end">
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="sticky top-0 z-10 bg-base-100 border-b border-gray-300 px-4 md:px-6 py-4 flex justify-end">
           <div className="flex items-center gap-2">
             <User size={22} className="text-blue-600 bg-gray-200 p-0.5 rounded-full" />
             <h2 className="text-sm font-bold text-neutral">
@@ -256,7 +249,7 @@ export default function BaseLayout() {
             </h2>
           </div>
         </div>
-        <div className="px-6 py-4 overflow-auto flex-1">
+        <div className="px-8 py-8 overflow-y-auto flex-1">
           <Outlet />
         </div>
       </div>

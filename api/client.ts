@@ -2,6 +2,9 @@
 
 import axios from "axios";
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
+import { useAppStore } from "@/stores/appStore";
+
+const LOGIN_ROUTE = "/login";
 
 // API Configuration
 interface ApiClientConfig {
@@ -48,11 +51,6 @@ class ApiClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
-        // Add auth token if available
-        const token = this.getToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
         return config;
       },
       (error) => {
@@ -67,27 +65,6 @@ class ApiClient {
         return this.handleError(error);
       }
     );
-  }
-
-  /**
-   * Get authentication token from storage
-   */
-  private getToken(): string | null {
-    return localStorage.getItem("token");
-  }
-
-  /**
-   * Set authentication token
-   */
-  public setToken(token: string): void {
-    localStorage.setItem("token", token);
-  }
-
-  /**
-   * Remove authentication token
-   */
-  public removeToken(): void {
-    localStorage.removeItem("token");
   }
 
   /**
@@ -108,7 +85,17 @@ class ApiClient {
       switch (error.response.status) {
         case 401:
           errorResponse.message = "Unauthorized - Please login again";
-          this.removeToken();
+          try {
+            const { clearUser, clearLeagueId } = useAppStore.getState();
+            clearUser();
+            clearLeagueId();
+          } catch {
+            // If state access fails we still force auth redirect below.
+          }
+
+          if (typeof window !== "undefined" && window.location.pathname !== LOGIN_ROUTE) {
+            window.location.href = LOGIN_ROUTE;
+          }
           break;
         case 403:
           errorResponse.message = "Forbidden - You do not have permission";

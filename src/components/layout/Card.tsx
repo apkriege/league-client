@@ -9,7 +9,7 @@ interface CardProps {
 export default function Card({ title, subtitle, className, children, onClick }: CardProps) {
   return (
     <div
-      className={`card p-4 bg-base-100 border border-base-content/20 rounded-lg w-full ${className}`}
+      className={`card p-4 bg-base-100 border rounded-xl w-full ${className} shadow-xs`}
       onClick={onClick}
     >
       {(title || subtitle) && (
@@ -18,7 +18,7 @@ export default function Card({ title, subtitle, className, children, onClick }: 
           {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
         </div>
       )}
-      <div>{children}</div>
+      {children}
     </div>
   );
 }

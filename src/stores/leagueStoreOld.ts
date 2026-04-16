@@ -68,7 +68,7 @@ type Event = {
   ptsPerMatch: number;
   ptsPerTeamWin: number;
   strokePoints: number[];
-  status: "scheduled" | "completed" | "cancelled";
+  status: "upcoming" | "completed" | "cancelled";
   flights: any[];
 };
 

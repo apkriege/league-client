@@ -15,3 +15,14 @@ export const formatCase = (str: string) => {
 export const convertTime = (time24: string) => {
   return dayjs(time24, "HH:mm").format("h:mm A");
 };
+
+// format phone
+export const formatPhone = (phone: string) => {
+  if (!phone) return "N/A";
+  const cleaned = ("" + phone).replace(/\D/g, "");
+  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+  if (match) {
+    return `(${match[1]}) ${match[2]}-${match[3]}`;
+  }
+  return phone;
+};
