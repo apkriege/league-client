@@ -25,7 +25,7 @@ export default function Stepper({
 }: StepperProps) {
   const isFirstStep = step <= 1;
   const isLastStep = step >= totalSteps;
-  const resolvedNextLabel = nextLabel ?? (isLastStep ? "Submit" : "Next");
+  const resolvedNextLabel = nextLabel ?? (isLastStep ? "Submit" : "Next →");
 
   const scrollToTop = () => {
     const scrollContainer = scrollTargetRef?.current?.closest(
@@ -48,34 +48,48 @@ export default function Stepper({
 
   return (
     <div
-      className={`step-footer mt-4 w-full bg-white/90 p-2 flex justify-end border rounded-lg ${className}`}
+      className={`step-footer mt-4 w-full bg-base-100 px-4 py-3 flex items-center justify-between border border-base-300 rounded-xl shadow-xs ${className}`}
     >
-      <button
-        className="btn btn-secondary mr-2"
-        disabled={isFirstStep || isSubmitting}
-        onClick={() => {
-          onBack?.();
+      <div className="flex items-center gap-2">
+        {Array.from({ length: totalSteps }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              i + 1 === step
+                ? "w-6 bg-primary"
+                : i + 1 < step
+                  ? "w-3 bg-primary/40"
+                  : "w-3 bg-base-300"
+            }`}
+          />
+        ))}
+        <span className="text-[10px] text-gray-400 font-medium ml-1">
+          {step} / {totalSteps}
+        </span>
+      </div>
 
-          if (smoothScroll) {
-            runAfterRender(scrollToTop);
-          }
-        }}
-      >
-        {backLabel}
-      </button>
-      <button
-        className="btn btn-primary"
-        disabled={isSubmitting}
-        onClick={() => {
-          onNext();
-
-          if (smoothScroll) {
-            runAfterRender(scrollToTop);
-          }
-        }}
-      >
-        {resolvedNextLabel}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          className="btn btn-secondary btn-md"
+          disabled={isFirstStep || isSubmitting}
+          onClick={() => {
+            onBack?.();
+            if (smoothScroll) runAfterRender(scrollToTop);
+          }}
+        >
+          {backLabel}
+        </button>
+        <button
+          className="btn btn-primary btn-md"
+          disabled={isSubmitting}
+          onClick={() => {
+            onNext();
+            if (smoothScroll) runAfterRender(scrollToTop);
+          }}
+        >
+          {isSubmitting ? "Submitting…" : resolvedNextLabel}
+        </button>
+      </div>
     </div>
   );
 }

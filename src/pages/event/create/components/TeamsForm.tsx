@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { useParams } from "react-router";
-import { ShieldHalf, SquarePen, Trash2, Users, X } from "lucide-react";
+import { SquarePen, Trash2, Users, X } from "lucide-react";
 
 import { Input, MultiSelect } from "@/components/form";
 import Card from "@/components/layout/Card";
-import PageHeader from "@/components/layout/PageHeader";
 import { useToast } from "@/context/ToastContext";
 import { useLeaguePlayers } from "@api/league/queries";
 
@@ -187,13 +186,6 @@ export default function TeamsForm() {
 
   return (
     <div>
-      <PageHeader
-        title="Create Teams"
-        subTitle="Create teams, assign available players, and edit/remove teams before building flights."
-        icon={<ShieldHalf size={14} />}
-        iconText="TEAMS"
-      />
-
       <Card className="p-2! border bg-base-100/90 mb-4">
         <div className="flex flex-col lg:flex-row lg:items-end gap-2">
           <Input

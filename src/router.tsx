@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router";
 import BaseLayout from "./layouts/BaseLayout.tsx";
+import Landing from "./pages/landing/Landing.tsx";
 
 // auth pages
 import Login from "./pages/auth/Login.tsx";
@@ -12,15 +13,24 @@ import Players from "./pages/player/Players.tsx";
 import Team from "./pages/team/Team.tsx";
 import Teams from "./pages/team/Teams.tsx";
 import Event from "./pages/event/Event.tsx";
-import Events from "./pages/event/Events.tsx";
+import Events from "./pages/league/Events.tsx";
 import Schedule from "./pages/schedule/Schedule.tsx";
 import CreateLeague from "./pages/league/CreateLeague.tsx";
-import CreateEvent from "./pages/event/CreateEvent.tsx";
-import SingleEvent from "./pages/event/builder/single/SingleEvent.tsx";
-import MultipleEvents from "./pages/event/builder/multiple/MultipleEvents.tsx";
-import ScoresForm from "./pages/scores/ScoresForm.tsx";
+import EditLeague from "./pages/league/EditLeague.tsx";
+import SingleEvent from "./pages/event/create/CreateEvent.tsx";
+import EventScores from "./pages/scores/EventScores.tsx";
+import PrintFlightScorecards from "./pages/scores/PrintFlightScorecards.tsx";
+import EventEdit from "./pages/event/EventEdit.tsx";
+import LeagueAdmin from "./pages/league/LeagueAdmin.tsx";
+import Course from "./pages/course/Course.tsx";
+import Courses from "./pages/course/Courses.tsx";
+import CoursesAdmin from "@/pages/superadmin/CoursesAdmin";
 
 export const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Landing />,
+  },
   {
     path: "/login",
     element: <Login />,
@@ -31,7 +41,11 @@ export const router = createBrowserRouter([
     children: [
       { path: "leagues", element: <Leagues /> },
       { path: "leagues/create", element: <CreateLeague /> },
+      { path: "league/:leagueId/edit", element: <EditLeague /> },
+      { path: "courses", element: <Courses /> },
+      { path: "courses/:courseId", element: <Course /> },
       { path: "league/:leagueId", element: <League /> },
+      { path: "league/:leagueId/admin", element: <LeagueAdmin /> },
       // players
       { path: "league/:leagueId/players", element: <Players /> },
       { path: "league/:leagueId/player/:playerId", element: <Player /> },
@@ -39,21 +53,18 @@ export const router = createBrowserRouter([
       { path: "league/:leagueId/teams", element: <Teams /> },
       { path: "league/:leagueId/team/:teamId", element: <Team /> },
       // events
-      { path: "league/:leagueId/events/create", element: <CreateEvent /> },
-      {
-        path: "league/:leagueId/events/create/single",
-        element: <SingleEvent />,
-      },
-      {
-        path: "league/:leagueId/events/create/multi",
-        element: <MultipleEvents />,
-      },
+      { path: "league/:leagueId/events/create", element: <SingleEvent /> },
       { path: "league/:leagueId/events", element: <Events /> }, // schedule
       { path: "league/:leagueId/events/:eventId", element: <Event /> },
-      { path: "league/:leagueId/events/:eventId/edit", element: <Event editMode /> },
-      { path: "league/:leagueId/events/:eventId/scores", element: <ScoresForm /> },
+      { path: "league/:leagueId/events/:eventId/edit", element: <EventEdit /> },
+      { path: "league/:leagueId/events/:eventId/scores", element: <EventScores /> },
       { path: "league/:leagueId/schedule", element: <Schedule /> },
+      { path: "superadmin/courses", element: <CoursesAdmin /> },
     ],
+  },
+  {
+    path: "league/:leagueId/events/:eventId/print-scorecards",
+    element: <PrintFlightScorecards />,
   },
 
   // {

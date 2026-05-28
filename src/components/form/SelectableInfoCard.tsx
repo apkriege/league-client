@@ -8,6 +8,7 @@ type SelectableInfoCardProps = {
   onClick?: () => void;
   className?: string;
   activeIndicator?: React.ReactNode;
+  disabled?: boolean;
 };
 
 export default function SelectableInfoCard({
@@ -17,13 +18,19 @@ export default function SelectableInfoCard({
   icon,
   onClick,
   className = "",
+  disabled = false,
 }: SelectableInfoCardProps) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className={`w-full px-3 py-2 flex items-center justify-between gap-2 rounded-lg border cursor-pointer text-left ${
-        active ? "bg-primary/10 border-primary" : "bg-base-100 border-base-300 hover:bg-base-200/60"
+      onClick={disabled && !active ? undefined : onClick}
+      disabled={disabled && !active}
+      className={`w-full px-3 py-2 flex items-center justify-between gap-2 rounded-lg border text-left ${
+        active
+          ? "bg-primary/10 border-primary cursor-pointer"
+          : disabled
+            ? "opacity-40 cursor-not-allowed bg-base-100 border-base-300"
+            : "bg-base-100 border-base-300 hover:bg-base-200/60 cursor-pointer"
       } ${className}`}
       aria-pressed={active}
     >

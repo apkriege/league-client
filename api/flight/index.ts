@@ -7,7 +7,7 @@ export async function getFlight(flightId: number) {
 }
 
 export async function updateFlightPlayers(flightId: number, players: any[]) {
-  const response = await apiClient.put(`/admin/flight/${flightId}/players`, { players });
+  const response = await apiClient.put(`/flights/${flightId}/players`, { players });
   return response.data;
 }
 

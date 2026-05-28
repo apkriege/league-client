@@ -9,13 +9,13 @@ export default function PageHeader({ title, subTitle, icon, iconText }: PageHead
   return (
     <>
       {icon && iconText && (
-        <div className="badge badge-secondary mb-2 font-semibold rounded-full text-[10px]">
+        <div className="badge badge-secondary mb-1.5 font-semibold rounded-full text-[10px]">
           {icon}
           <span>{iconText}</span>
         </div>
       )}
-      <h1 className="text-3xl font-extrabold mb-1">{title}</h1>
-      <p className="text-sm text-gray-500 mb-6 w-3/5">{subTitle}</p>
+      <h1 className="text-4xl font-bold mb-1">{title}</h1>
+      <p className="text-sm text-gray-500 w-3/5">{subTitle}</p>
     </>
   );
 }

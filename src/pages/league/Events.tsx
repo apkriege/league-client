@@ -5,6 +5,8 @@ import { useLeagueEvents } from "@api/league/queries";
 import dayjs from "dayjs";
 import { useNavigate, useParams } from "react-router";
 
+// NOT BEING USED CURRENTLY
+
 export default function Events() {
   const { user } = useAppStore();
   const { leagueId } = useParams();
@@ -62,24 +64,24 @@ export default function Events() {
       width: "100px",
       render: (_value: any, row: any) => (
         <div className="flex gap-2">
-          <Button
-            size="xs"
-            variant="info"
-            onClick={() => {
-              navigate(`/league/${leagueId}/events/${row.id}/edit`);
-            }}
-          >
-            View
-          </Button>
           {user.isAdmin && (
-            <Button
-              size="xs"
-              onClick={() => {
-                navigate(`/league/${leagueId}/events/${row.id}/scores`);
-              }}
-            >
-              Scores
-            </Button>
+            <>
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => navigate(`/league/${leagueId}/events/${row.id}`)}
+              >
+                View
+              </Button>
+              <Button
+                size="xs"
+                onClick={() => {
+                  navigate(`/league/${leagueId}/events/${row.id}/scores`);
+                }}
+              >
+                Scores
+              </Button>
+            </>
           )}
         </div>
       ),

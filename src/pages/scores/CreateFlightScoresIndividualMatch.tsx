@@ -1,0 +1,320 @@
+import Button from "@/components/layout/Button";
+import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
+import { Flag } from "lucide-react";
+import { Fragment } from "react";
+import { useForm } from "react-hook-form";
+import { useParams } from "react-router";
+import { calculateMatchplayPops } from "./util";
+
+export const CreateFlightScoresIndividualMatch = ({
+  flight,
+  event,
+  isEditMode,
+  onSaveSuccess,
+  onCancel,
+}: any) => {
+  const { leagueId, eventId } = useParams();
+
+  const startingHole = event.startSide === "front" ? 1 : 10;
+  const holes = event.tee.holes
+    .slice(startingHole - 1, startingHole + event.holes - 1)
+    .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
+
+  const allPlayers: any[] = flight.players ?? [];
+  const allPlayersById = new Map(allPlayers.map((p: any) => [Number(p.playerId), p]));
+
+  const getEffectiveHandicap = (playerEntry: any) => {
+    const preHandicap = Number(playerEntry?.player?.rounds?.[0]?.preHandicap);
+    if (isEditMode && Number.isFinite(preHandicap)) return preHandicap;
+    return Number(playerEntry?.player?.handicap ?? 0);
+  };
+
+  // Build pairs: in edit mode use saved opponentId; otherwise pair by position
+  const buildPairs = (): [any, any][] => {
+    if (isEditMode) {
+      const usedIds = new Set<number>();
+      const pairs: [any, any][] = [];
+      for (const player of allPlayers) {
+        if (usedIds.has(Number(player.playerId))) continue;
+        const opponentId = Number(player?.player?.rounds?.[0]?.opponentId ?? 0);
+        const opponent = allPlayersById.get(opponentId);
+        if (opponent && !usedIds.has(Number(opponent.playerId))) {
+          pairs.push([player, opponent]);
+          usedIds.add(Number(player.playerId));
+          usedIds.add(Number(opponent.playerId));
+        }
+      }
+      // Pair any remaining players by position
+      const remaining = allPlayers.filter((p: any) => !usedIds.has(Number(p.playerId)));
+      for (let i = 0; i + 1 < remaining.length; i += 2) {
+        pairs.push([remaining[i], remaining[i + 1]]);
+      }
+      return pairs;
+    }
+
+    const pairs: [any, any][] = [];
+    for (let i = 0; i + 1 < allPlayers.length; i += 2) {
+      pairs.push([allPlayers[i], allPlayers[i + 1]]);
+    }
+    return pairs;
+  };
+
+  const pairs = buildPairs();
+
+  const opponentMap = new Map<number, any>();
+  for (const [p1, p2] of pairs) {
+    opponentMap.set(Number(p1.playerId), p2);
+    opponentMap.set(Number(p2.playerId), p1);
+  }
+
+  // Pops between each matched pair
+  const popsByPlayerId = new Map<number, Map<number, number>>();
+  for (const [p1, p2] of pairs) {
+    const left = { ...p1.player, handicap: getEffectiveHandicap(p1) };
+    const right = { ...p2.player, handicap: getEffectiveHandicap(p2) };
+    const [leftPops, rightPops] = calculateMatchplayPops(left, right, holes);
+    popsByPlayerId.set(Number(p1.playerId), leftPops);
+    popsByPlayerId.set(Number(p2.playerId), rightPops);
+  }
+
+  const popsForHole = (playerId: number, holeNum: number) =>
+    popsByPlayerId.get(Number(playerId))?.get(holeNum) || 0;
+
+  const methods = useForm({
+    defaultValues: {
+      players: allPlayers.reduce((acc: any, p: any) => {
+        const playerScores = isEditMode
+          ? holes.map((hole: any, holeIdx: number) => {
+              const roundScores = p?.player?.rounds?.[0]?.scores ?? [];
+              const scoreByHole = roundScores.find(
+                (s: any) => Number(s?.hole) === Number(hole?.num)
+              );
+              const score = scoreByHole?.gross ?? roundScores?.[holeIdx]?.gross;
+              return score ? String(score) : "";
+            })
+          : Array.from({ length: holes.length }, () => "");
+        acc[p.playerId] = { scores: playerScores };
+        return acc;
+      }, {}),
+    },
+  });
+
+  const createMutation = useCreateEventScores();
+  const updateMutation = useUpdateEventScores();
+  const watchedPlayers = methods.watch("players");
+
+  const handleHoleChange = (e: any, holeIndex: number, playerId: number) => {
+    const val = e.target.value;
+    if (val === "") {
+      methods.setValue(`players.${playerId}.scores.${holeIndex}`, "", {
+        shouldDirty: true,
+        shouldTouch: true,
+      });
+      return;
+    }
+    const parsed = parseInt(val, 10);
+    methods.setValue(
+      `players.${playerId}.scores.${holeIndex}`,
+      Number.isNaN(parsed) ? "" : parsed,
+      { shouldDirty: true, shouldTouch: true }
+    );
+  };
+
+  const getPlayerTotalScore = (playerId: number) => {
+    const scores = watchedPlayers?.[playerId]?.scores;
+    if (!Array.isArray(scores)) return 0;
+    return scores.reduce((sum: number, s: any) => sum + (Number(s) || 0), 0);
+  };
+
+  const getPlayerNetScore = (playerId: number) => {
+    const playerEntry = allPlayersById.get(playerId);
+    const hcp = Math.round(getEffectiveHandicap(playerEntry));
+    return getPlayerTotalScore(playerId) - hcp;
+  };
+
+  const getMatchupPoints = (playerId: number) => {
+    const opponent = opponentMap.get(Number(playerId));
+    if (!opponent) return { holePoints: 0, matchPoints: 0 };
+
+    const opponentId = Number(opponent.playerId);
+    const ptsPerHole = Number(event?.ptsPerHole) || 0;
+    const ptsPerMatch = Number(event?.ptsPerMatch) || 0;
+
+    let holePoints = 0;
+    let playerNetTotal = 0;
+    let opponentNetTotal = 0;
+    let playedHoles = 0;
+
+    holes.forEach((hole: any, holeIdx: number) => {
+      const playerGross = Number(watchedPlayers?.[playerId]?.scores?.[holeIdx] ?? 0);
+      const opponentGross = Number(watchedPlayers?.[opponentId]?.scores?.[holeIdx] ?? 0);
+      if (!playerGross || !opponentGross) return;
+
+      const playerNet = playerGross - popsForHole(playerId, hole.num);
+      const opponentNet = opponentGross - popsForHole(opponentId, hole.num);
+      playerNetTotal += playerNet;
+      opponentNetTotal += opponentNet;
+      playedHoles++;
+
+      if (ptsPerHole > 0) {
+        if (playerNet === opponentNet) holePoints += ptsPerHole / 2;
+        else if (playerNet < opponentNet) holePoints += ptsPerHole;
+      }
+    });
+
+    let matchPoints = 0;
+    if (ptsPerMatch > 0 && playedHoles > 0) {
+      if (playerNetTotal < opponentNetTotal) matchPoints = ptsPerMatch;
+      else if (playerNetTotal === opponentNetTotal) matchPoints = ptsPerMatch / 2;
+    }
+
+    return { holePoints, matchPoints };
+  };
+
+  const saveScores = () => {
+    const scoresData = {
+      eventId: Number(eventId),
+      flightId: flight.id,
+      players: Object.entries(watchedPlayers).map(([playerId, data]: any) => {
+        const numPlayerId = Number(playerId);
+        const opponent = opponentMap.get(numPlayerId);
+        const { holePoints, matchPoints } = getMatchupPoints(numPlayerId);
+        return {
+          playerId: numPlayerId,
+          opponentId: opponent ? Number(opponent.playerId) : null,
+          scores: holes.reduce((acc: any, hole: any, idx: number) => {
+            acc[hole.num] = Number(data.scores?.[idx]) || 0;
+            return acc;
+          }, {} as any),
+          putts: [],
+          gross: getPlayerTotalScore(numPlayerId),
+          net: getPlayerNetScore(numPlayerId),
+          points: holePoints,
+          matchPoints,
+        };
+      }),
+      teams: [],
+    };
+
+    try {
+      if (isEditMode) {
+        updateMutation.mutate(
+          { leagueId: Number(leagueId), eventId: Number(eventId), data: scoresData },
+          { onSuccess: () => onSaveSuccess?.() }
+        );
+      } else {
+        createMutation.mutate(
+          { leagueId: Number(leagueId), eventId: Number(eventId), data: scoresData },
+          { onSuccess: () => onSaveSuccess?.() }
+        );
+      }
+    } catch (error) {
+      console.error("Error submitting scores:", error);
+    }
+  };
+
+  const renderPlayerRow = (player: any) => {
+    const p = player.player;
+    const displayHandicap = Math.round(getEffectiveHandicap(player));
+    const { holePoints, matchPoints } = getMatchupPoints(Number(player.playerId));
+
+    return (
+      <tr key={player.playerId} className="text-sm">
+        <td className="p-2 text-xs flex flex-col">
+          <span className="font-semibold">
+            {p.firstName} {p.lastName}
+          </span>
+          <span className="text-[10px]">Handicap: {displayHandicap}</span>
+        </td>
+        {holes.map((hole: any, holeIdx: number) => (
+          <td key={hole.num} className="p-2">
+            <div className="relative">
+              <input
+                type="number"
+                min="1"
+                max="10"
+                className="w-full min-w-10 border rounded h-8 text-center"
+                value={watchedPlayers?.[player.playerId]?.scores?.[holeIdx] ?? ""}
+                onChange={(e) => handleHoleChange(e, holeIdx, player.playerId)}
+              />
+              {popsForHole(player.playerId, hole.num) > 0 && (
+                <span className="absolute bottom-1 left-1 pointer-events-none flex items-center justify-center gap-0.5">
+                  {Array.from({ length: popsForHole(player.playerId, hole.num) }).map((_, idx) => (
+                    <span key={idx} className="h-1 w-1 rounded-full bg-black" />
+                  ))}
+                </span>
+              )}
+            </div>
+          </td>
+        ))}
+        <td className="font-bold text-center text-xs">
+          {getPlayerTotalScore(Number(player.playerId))}
+        </td>
+        <td className="font-bold text-center text-xs">
+          {getPlayerNetScore(Number(player.playerId))}
+        </td>
+        <td className="font-bold text-center text-xs">{holePoints + matchPoints}</td>
+      </tr>
+    );
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <Flag size={14} className="text-gray-400" strokeWidth={2} />
+          <h3 className="text-sm font-semibold text-gray-800">Flight {flight.startTime}</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => {
+              methods.reset();
+              onCancel?.();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button variant="primary" size="sm" onClick={saveScores}>
+            {isEditMode ? "Save Changes" : "Submit Scores"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <div className="border rounded-lg">
+          <div className="w-full overflow-x-auto">
+            <table className="min-w-max w-full text-left table-sm table-auto">
+              <thead>
+                <tr className="text-xs text-gray-700">
+                  <th>Player</th>
+                  {holes.map((hole: any) => (
+                    <th key={hole.num} className="p-2 text-center">
+                      {hole.num}
+                    </th>
+                  ))}
+                  <th className="p-2 text-center">Total</th>
+                  <th className="p-2 text-center">Net</th>
+                  <th className="p-2 text-center">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pairs.map(([p1, p2], pairIdx) => (
+                  <Fragment key={pairIdx}>
+                    {pairIdx > 0 && (
+                      <tr aria-hidden="true">
+                        <td colSpan={holes.length + 4} className="h-2 bg-gray-50" />
+                      </tr>
+                    )}
+                    {renderPlayerRow(p1)}
+                    {renderPlayerRow(p2)}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

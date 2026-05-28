@@ -2,6 +2,11 @@
 import apiClient from "../client";
 
 // calls
+export async function getLeagueMetrics(leagueId: number) {
+  const response = await apiClient.get(`/leagues/${leagueId}/metrics`);
+  return response.data;
+}
+
 export async function getLeague(id: number) {
   const response = await apiClient.get(`/leagues/${id}`);
   return response.data;
@@ -69,8 +74,8 @@ export async function createLeagueEvents(leagueId: number, eventsData: any[]) {
   return response.data;
 }
 
-export async function updateLeagueEvent(eventId: number, eventData: any) {
-  const response = await apiClient.put(`/admin/events/${eventId}`, eventData);
+export async function updateLeagueEvent(leagueId: number, eventId: number, eventData: any) {
+  const response = await apiClient.put(`/leagues/${leagueId}/events/${eventId}`, eventData);
   return response.data;
 }
 
@@ -79,10 +84,15 @@ export async function deleteLeagueEvent(eventId: number) {
   return response.data;
 }
 
-export async function submitEventScores(leagueId: number, eventId: number, scoresData: any) {
+export async function createEventScores(leagueId: number, eventId: number, scoresData: any) {
   const response = await apiClient.post(
     `/leagues/${leagueId}/events/${eventId}/scores`,
     scoresData
   );
+  return response.data;
+}
+
+export async function updateEventScores(leagueId: number, eventId: number, scoresData: any) {
+  const response = await apiClient.put(`/leagues/${leagueId}/events/${eventId}/scores`, scoresData);
   return response.data;
 }

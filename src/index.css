@@ -36,7 +36,6 @@
 }
 
 body {
-  /* font-family: "Inter", sans-serif; */
   color: var(--color-base-content);
 }
 
@@ -47,6 +46,10 @@ h4,
 h5,
 h6 {
   font-family: "Manrope", sans-serif;
+}
+
+.text-xxs {
+  font-size: 10px;
 }
 
 .text-md {

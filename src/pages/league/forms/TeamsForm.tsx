@@ -170,13 +170,16 @@ export default function TeamsForm() {
   return (
     <div>
       <PageHeader
-        title="Create Teams"
-        subTitle="Create teams, assign available players, and edit/remove teams before building flights."
+        title="Build Teams"
+        subTitle="Create teams, assign available players, and edit or remove teams before proceeding."
         icon={<ShieldHalf size={14} />}
         iconText="TEAMS"
       />
 
-      <Card className="p-2! border bg-base-100/90 mb-4">
+      <Card className="mt-6 mb-4">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+          {isEditing ? "Edit Team" : "Add Team"}
+        </p>
         <div className="flex flex-col lg:flex-row lg:items-end gap-2">
           <Input
             label="Team Name"
@@ -207,75 +210,105 @@ export default function TeamsForm() {
             />
           </div>
 
-          <div className="flex gap-2 xl:mb-1">
-            <button type="button" onClick={handleSaveTeam} className="btn btn-md">
-              {isEditing ? "Update Team" : "Add Team"}
-            </button>
-            <button type="button" onClick={resetDraft} className="btn btn-md btn-secondary">
-              Reset
-            </button>
+          <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2">
+              <button type="button" onClick={handleSaveTeam} className="btn btn-md btn-primary">
+                {isEditing ? "Update Team" : "Add Team"}
+              </button>
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={resetDraft}
+                  className="btn btn-md btn-ghost border border-base-300"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </Card>
 
       {teams.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 mt-10 justify-center text-base-content/60">
-          <Users size={18} />
-          <p className="text-sm">No teams created yet. Please create a team.</p>
+        <div className="flex flex-col items-center gap-3 mt-12 justify-center text-base-content/40">
+          <div className="bg-base-200 p-4 rounded-full">
+            <Users size={22} />
+          </div>
+          <p className="text-sm font-medium">No teams yet</p>
+          <p className="text-xs text-gray-400">Use the form above to create your first team.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-auto">
-          {teams.map((team) => (
-            <div
-              key={team.id}
-              className="border border-base-300/80 rounded-lg w-full bg-base-100 shadow-xs"
-            >
-              <div className="flex justify-between items-center bg-primary p-2 rounded-t-lg text-white">
-                <span className="font-semibold text-sm">{team.name}</span>
-                <div className="flex items-center gap-2">
-                  <SquarePen
-                    size={14}
-                    onClick={() => handleEditTeam(team)}
-                    className="cursor-pointer text-blue-400"
-                  />
-                  <Trash2
-                    size={14}
-                    onClick={() => handleDeleteTeam(team.id)}
-                    className="cursor-pointer text-red-400"
-                  />
+        <>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+            Teams · {teams.length}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-auto pb-1">
+            {teams.map((team) => (
+              <div
+                key={team.id}
+                className="border border-base-300 rounded-xl w-full bg-base-100 shadow-xs overflow-hidden"
+              >
+                <div className="flex justify-between items-center px-3 py-2 border-b border-base-300 bg-base-200/60">
+                  <div className="flex items-center gap-2">
+                    <ShieldHalf size={13} className="text-primary/60" />
+                    <span className="font-semibold text-sm text-primary">{team.name}</span>
+                    <span className="text-[10px] text-gray-400">· {team.players.length}p</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEditTeam(team)}
+                      className="text-gray-400 hover:text-primary transition-colors"
+                    >
+                      <SquarePen size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTeam(team.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-1 p-2">
+                  {team.players.map((playerId) => {
+                    const player = getPlayerById(Number(playerId));
+                    if (!player) return null;
+
+                    return (
+                      <div
+                        key={`${team.id}-${player.id}`}
+                        className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 bg-base-200/60 hover:bg-base-200 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="bg-primary text-primary-content rounded-md w-6 h-6 flex items-center justify-center text-[9px] uppercase shrink-0">
+                            {player.firstName[0]}
+                            {player.lastName[0]}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-primary truncate">
+                              {player.firstName} {player.lastName}
+                            </p>
+                            <p className="text-[9px] text-gray-400">HCP {player.handicap ?? "-"}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removePlayerFromTeam(team.id, Number(player.id))}
+                          className="text-gray-300 hover:text-red-400 transition-colors shrink-0"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 gap-1.5 p-2">
-                {team.players.map((playerId) => {
-                  const player = getPlayerById(Number(playerId));
-                  if (!player) return null;
-
-                  return (
-                    <div
-                      key={`${team.id}-${player.id}`}
-                      className="border  rounded-lg px-2 py-1 w-full text-sm flex items-center justify-between gap-2"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium text-primary text-xs">
-                          {player.firstName} {player.lastName}
-                        </span>
-                        <span className="text-[10px] text-primary/80">
-                          HCP: {player.handicap ?? "-"}
-                        </span>
-                      </div>
-                      <X
-                        size={14}
-                        onClick={() => removePlayerFromTeam(team.id, Number(player.id))}
-                        className="cursor-pointer text-red-400"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

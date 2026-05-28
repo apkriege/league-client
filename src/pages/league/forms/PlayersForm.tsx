@@ -135,22 +135,22 @@ export default function PlayersForm() {
 
   return (
     <div>
-      <div className="badge badge-secondary mb-2 font-semibold rounded-full text-[10px]">
+      <div className="badge badge-secondary mb-1.5 font-semibold rounded-full text-[10px]">
         <UserPlus size={14} />
         <span>PLAYERS</span>
       </div>
-      <h1 className="text-3xl font-extrabold mb-2">Add Players</h1>
-      <p className="text-sm text-gray-500 mb-6 w-1/2">
+      <h1 className="text-4xl font-bold mb-1">Add Players</h1>
+      <p className="text-sm text-gray-500 mb-6 w-3/5">
         Build your roster of competitors and substitutes.
         {hasTeamsStep
           ? " Add players to your league and assign them to teams in the next step."
           : " Add players to your league and continue to review."}
       </p>
-      <Card className="players-form">
-        <p className="text-gray-600 text-[11px] font-semibold tracking-[1px] mb-1">
-          QUICK ADD PLAYER
-        </p>
 
+      <Card>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+          {isEdit ? "Edit Player" : "Add Player"}
+        </p>
         <div className="grid grid-cols-3 items-end gap-2">
           <Controller
             name="firstName"
@@ -201,14 +201,19 @@ export default function PlayersForm() {
               <Input label="Handicap" placeholder="Enter handicap" {...field} />
             )}
           />
-          <div className="btn btn-primary mb-1 btn-md" onClick={playerForm.handleSubmit(onSubmit)}>
-            Save Player
-          </div>
+          <button
+            type="button"
+            className="btn btn-primary btn-md mb-1"
+            onClick={playerForm.handleSubmit(onSubmit)}
+          >
+            {isEdit ? "Update Player" : "Save Player"}
+          </button>
         </div>
       </Card>
-      <div className="player-table mt-4">
+
+      <div className="mt-4">
         <Table
-          heading={`Total Players: ${players.length}`}
+          heading={`Roster · ${players.length} ${players.length === 1 ? "player" : "players"}`}
           data={players}
           columns={columns}
           size="sm"

@@ -12,8 +12,8 @@ export async function getPlayerById(id: number) {
   return response.data;
 }
 
-export async function createPlayer(playerData: any) {
-  const response = await apiClient.post("/players", playerData);
+export async function createPlayer(leagueId: number, playerData: any) {
+  const response = await apiClient.post(`/leagues/${leagueId}/players`, playerData);
   return response.data;
 }
 
@@ -24,5 +24,10 @@ export async function updatePlayer(id: number, playerData: any) {
 
 export async function deletePlayer(id: number) {
   const response = await apiClient.delete(`/players/${id}`);
+  return response.data;
+}
+
+export async function getPlayerStats(leagueId: number, playerId: number) {
+  const response = await apiClient.get(`/leagues/${leagueId}/players/${playerId}/stats`);
   return response.data;
 }

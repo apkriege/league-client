@@ -1,16 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { getPlayerById, getPlayers } from ".";
+import { getEvent, getEvents } from ".";
 
-export const usePlayer = (id: number) => {
+export const useEvent = (id: number) => {
   return useQuery({
-    queryKey: ["player", id],
-    queryFn: () => getPlayerById(id),
+    queryKey: ["event", id],
+    queryFn: () => getEvent(id),
   });
 };
 
-export const usePlayers = () => {
+export const useEvents = (leagueId: number) => {
   return useQuery({
     queryKey: ["players"],
-    queryFn: () => getPlayers(),
+    queryFn: () => getEvents(leagueId),
   });
 };

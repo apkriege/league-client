@@ -16,7 +16,12 @@ interface TableProps<T> {
   heading?: string;
   className?: string;
   size?: "sm" | "md" | "lg";
+  variant?: "default" | "clean";
+  noBorder?: boolean;
   search?: boolean;
+  searchPlaceholder?: string;
+  headerActions?: React.ReactNode;
+  onRowClick?: (row: T) => void;
 }
 
 export default function Table<T>({
@@ -25,7 +30,12 @@ export default function Table<T>({
   heading = "",
   className = "",
   size = "md",
+  variant = "default",
+  noBorder = false,
   search = true,
+  searchPlaceholder = "Search...",
+  headerActions,
+  onRowClick,
 }: TableProps<T>) {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof T | null;
@@ -98,31 +108,73 @@ export default function Table<T>({
     lg: "px-6 py-3",
   };
 
+  const variantClasses = {
+    default: {
+      container: "bg-base-100 border rounded-xl",
+      containerNoBorder: "bg-base-100 rounded-xl",
+      header: "px-2 py-1 rounded-t-xl",
+      heading: "text-primary",
+      theadRow: "bg-base-200 border-b border-t border-base-300",
+      headerCell: "hover:bg-base-300 text-gray-600",
+      row: "border-base-300 hover:bg-base-100",
+      empty: "text-base-content/50",
+    },
+    clean: {
+      container: "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm",
+      containerNoBorder: "overflow-hidden rounded-xl bg-white shadow-sm",
+      header: "border-b border-gray-100 px-4 py-3",
+      heading: "text-primary",
+      theadRow: "bg-gray-50/80 border-b border-gray-100",
+      headerCell: "hover:bg-gray-100 text-gray-500",
+      row: "border-gray-100 hover:bg-primary/5",
+      empty: "text-gray-400",
+    },
+  };
+
+  const currentVariant = variantClasses[variant];
+  const containerClass = noBorder ? currentVariant.containerNoBorder : currentVariant.container;
+  const hasHeading = heading.trim().length > 0;
+  const hasHeaderContent = hasHeading || search || Boolean(headerActions);
+
   return (
-    <div className={`${className} bg-base-100 border rounded-xl w-full`}>
-      <div className="flex justify-between items-center px-2 py-1 rounded-t-xl">
-        <p className="text-xs text-primary uppercase font-semibold text-[10px] ml-2">{heading}</p>
-        {search && (
-          <Input
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-1/3"
-          />
-        )}
-      </div>
+    <div className={`${className} ${containerClass} w-full`}>
+      {hasHeaderContent && (
+        <div
+          className={`flex items-center gap-3 ${hasHeading ? "justify-between" : "justify-end"} ${currentVariant.header}`}
+        >
+          {hasHeading && (
+            <p
+              className={`ml-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${currentVariant.heading}`}
+            >
+              {heading}
+            </p>
+          )}
+          <div className="flex items-center gap-2">
+            {search && (
+              <Input
+                dense
+                placeholder={searchPlaceholder}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-56"
+              />
+            )}
+            {headerActions}
+          </div>
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-base-200 border-b border-t border-base-300">
+            <tr className={currentVariant.theadRow}>
               {columns.map((col, idx) => (
                 <th
                   key={`header-${idx}`}
                   onClick={() => handleSort(col.key)}
                   style={{ width: col.width ?? col.cellWidth }}
-                  className="text-xs px-4 py-3 text-left cursor-pointer hover:bg-base-300 transition-colors font-semibold"
+                  className={`cursor-pointer px-4 py-3 text-left text-xs font-semibold transition-colors ${currentVariant.headerCell}`}
                 >
-                  <div className="flex items-center gap-2 text-[10px] uppercase text-gray-600">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em]">
                     {col.label}
                     {getSortIndicator(col.key)}
                   </div>
@@ -134,8 +186,9 @@ export default function Table<T>({
             {sortedData.map((row, rowIdx) => (
               <tr
                 key={`row-${rowIdx}`}
-                className={`border-base-300 hover:bg-base-100 transition-colors 
-                  ${rowIdx === sortedData.length - 1 ? "" : "border-b"}`}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={`${currentVariant.row} transition-colors 
+                  ${rowIdx === sortedData.length - 1 ? "" : "border-b"} ${onRowClick ? "cursor-pointer" : ""}`}
               >
                 {columns.map((col, colIdx) => (
                   <td
@@ -152,7 +205,7 @@ export default function Table<T>({
         </table>
       </div>
       {sortedData.length === 0 && (
-        <div className="text-center py-8 text-base-content/50">
+        <div className={`py-8 text-center ${currentVariant.empty}`}>
           {searchTerm ? "No results found" : "No data to display"}
         </div>
       )}

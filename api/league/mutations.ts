@@ -4,10 +4,11 @@ import {
   updateLeague,
   deleteLeague,
   createLeagueEvent,
-  submitEventScores,
   createLeagueEvents,
+  createEventScores,
   updateLeagueEvent,
   deleteLeagueEvent,
+  updateEventScores,
 } from ".";
 import type { League } from "@/types/league";
 
@@ -118,7 +119,7 @@ export const useUpdateLeagueEvent = (onSuccess: any) => {
 
   return useMutation({
     mutationFn: async ({
-      leagueId: _leagueId,
+      leagueId,
       eventId,
       data,
     }: {
@@ -126,12 +127,12 @@ export const useUpdateLeagueEvent = (onSuccess: any) => {
       eventId: number;
       data: any;
     }) => {
-      return await updateLeagueEvent(eventId, data);
+      return await updateLeagueEvent(leagueId, eventId, data);
     },
     onSuccess: (_, variables) => {
       // Invalidate the specific event query
       queryClient.invalidateQueries({
-        queryKey: ["league", variables.leagueId, "events", variables.eventId],
+        queryKey: ["league", variables.leagueId, "event", variables.eventId],
       });
       // Invalidate the events list for the league
       queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "events"] });
@@ -162,7 +163,7 @@ export const useDeleteLeagueEvent = (onSuccess: any) => {
 };
 
 // Scores
-export const useSubmitEventScores = () => {
+export const useCreateEventScores = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -176,16 +177,60 @@ export const useSubmitEventScores = () => {
       data: any;
     }) => {
       // Implement the API call to submit scores
-      return await submitEventScores(leagueId, eventId, data);
+      return await createEventScores(leagueId, eventId, data);
     },
     onSuccess: (_, variables) => {
       // Invalidate queries related to the event scores
       queryClient.invalidateQueries({
         queryKey: ["league", variables.leagueId, "events"],
       });
+      queryClient.refetchQueries({
+        queryKey: ["league", variables.leagueId, "events"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["league", variables.leagueId, "event", variables.eventId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["league", variables.leagueId, "event", variables.eventId, "scores"],
+      });
     },
     onError: (error) => {
       console.error("Failed to submit event scores:", error);
+    },
+  });
+};
+
+export const useUpdateEventScores = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      leagueId,
+      eventId,
+      data,
+    }: {
+      leagueId: number;
+      eventId: number;
+      data: any;
+    }) => {
+      return await updateEventScores(leagueId, eventId, data);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["league", variables.leagueId, "events"],
+      });
+      queryClient.refetchQueries({
+        queryKey: ["league", variables.leagueId, "events"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["league", variables.leagueId, "event", variables.eventId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["league", variables.leagueId, "event", variables.eventId, "scores"],
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to update event scores:", error);
     },
   });
 };

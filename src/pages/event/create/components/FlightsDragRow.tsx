@@ -3,7 +3,6 @@ import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { Check, SquarePen, Trash2, X } from "lucide-react";
 import { FlightMatchOutput, FlightStrokeOutput, FlightTeamOutput } from "./FlightOutputs";
-import { useCourse } from "@api/courses";
 import { MultiSelect, Select } from "@/components/form";
 dayjs.extend(customParseFormat);
 
@@ -16,6 +15,8 @@ interface FlightsDragRowProps {
   flights: any[];
   players: any[];
   setFlights: (flights: any[]) => void;
+  allowDelete?: boolean;
+  highlightId?: number | null;
 }
 
 const extractId = (value: any): number | null => {
@@ -35,7 +36,20 @@ const extractId = (value: any): number | null => {
 
 // don't remove selected and use it
 // selected is for the the quick highlight of a flight that contains the selected player/team
-export const FlightsDragRow = ({ event, flights, players, setFlights }: FlightsDragRowProps) => {
+const flightContainsId = (flight: any, id: number | null | undefined): boolean => {
+  if (!id) return false;
+  const flat = [flight].flat(Infinity);
+  return flat.some((entry: any) => extractId(entry) === id);
+};
+
+export const FlightsDragRow = ({
+  event,
+  flights,
+  players,
+  setFlights,
+  allowDelete = true,
+  highlightId = null,
+}: FlightsDragRowProps) => {
   const [fs, setFs] = useState<any>(flights);
   const [editingFlightIndex, setEditingFlightIndex] = useState<number | null>(null);
   const [editStrokePlayers, setEditStrokePlayers] = useState<(string | number)[]>([]);
@@ -43,7 +57,6 @@ export const FlightsDragRow = ({ event, flights, players, setFlights }: FlightsD
   const [editPlayer2, setEditPlayer2] = useState<number | undefined>();
   const [editTeam1, setEditTeam1] = useState<number | undefined>();
   const [editTeam2, setEditTeam2] = useState<number | undefined>();
-  const { data: course } = useCourse(event.courseId);
 
   useEffect(() => {
     setFs(flights);
@@ -107,7 +120,10 @@ export const FlightsDragRow = ({ event, flights, players, setFlights }: FlightsD
       return;
     }
 
-    if (event.format === "team" && event.scoringFormat === "match") {
+    if (
+      event.format === "team" &&
+      (event.scoringFormat === "match" || event.scoringFormat === "stroke")
+    ) {
       setEditTeam1(extractId(flight?.[0]) ?? undefined);
       setEditTeam2(extractId(flight?.[1]) ?? undefined);
     }
@@ -135,7 +151,10 @@ export const FlightsDragRow = ({ event, flights, players, setFlights }: FlightsD
       newFlights[flightIdx] = [[editPlayer1, editPlayer2]];
     }
 
-    if (event.format === "team" && event.scoringFormat === "match") {
+    if (
+      event.format === "team" &&
+      (event.scoringFormat === "match" || event.scoringFormat === "stroke")
+    ) {
       if (!editTeam1 || !editTeam2 || editTeam1 === editTeam2) return;
       newFlights[flightIdx] = [editTeam1, editTeam2];
     }
@@ -222,133 +241,135 @@ export const FlightsDragRow = ({ event, flights, players, setFlights }: FlightsD
   return (
     <div className="w-full">
       <div className="flex gap-2">
-        <p className="text-xs min-w-[100px] flex flex-col bg-base-100 rounded-lg p-2 border">
+        {/* <p className="text-xs min-w-[100px] flex flex-col bg-base-100 rounded-lg p-2 border">
           <span className="font-bold mb-1">{event.name}</span>
-          <span className="text-[11px]">{course?.name}</span>
+          <span className="text-[11px] font-">{course?.name}</span>
           <span className="font-medium capitalize text-[11px]">
             {event.holes} Holes &bull; {event.startSide}
           </span>
-          <span className="text-[11px]">{dayjs(event.date).format("MMM D, YYYY")}</span>
-        </p>
+          {/* <span className="text-[11px]">{dayjs(event.date).format("MMM D, YYYY")}</span>
+        </p> */}
 
-        {fs.map((flight: any, fIdx: number) => (
-          <div
-            key={fIdx}
-            className={`min-w-[225px] bg-base-100 rounded-lg border px-3 py-2 duration-200 hover:cursor-grab ${
-              ``
-              // flight.players.map((p: any) => p.name).includes(selected)
-              //   ? "hover:-blue-200 border-blue-300 bg-blue-500/50 text-white hover:bg-blue-600"
-              //   : "text-surface-content border-surface-border hover:bg-surface-hover"
-            } ${
-              dragState.draggingOver.columnIndex === fIdx &&
-              dragState.draggingOver.isDraggingOver &&
-              dragState.dragging.rowId === "flights-row" &&
-              "border-dashed border-white bg-info/50"
-            } ${
-              dragState.activeCell.columnIndex === fIdx &&
-              "translate-x-0 translate-y-0 scale-105 transform border-white transition-transform hover:bg-info text-white"
-            } `}
-            draggable
-            onDragStart={(e) => handleDragStart(e, fIdx, "flights-row")}
-            onDragOver={(e) => handleDragOver(e, fIdx, "flights-row")}
-            onDrop={(e) => handleDrop(e, fIdx, "flights-row")}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="mb-2 flex justify-between w-full">
-              <div className="text-xs">
-                <span className="font-bold mr-2">Flight {fIdx + 1}</span>
-                {getStartTime(fIdx)}
+        {fs.map((flight: any, fIdx: number) => {
+          const isHighlighted = flightContainsId(flight, highlightId);
+          return (
+            <div
+              key={fIdx}
+              className={`min-w-[175px] bg-base-100 rounded-lg border px-2.5 py-1.5 duration-200 hover:cursor-grab ${
+                isHighlighted ? "border-blue-500 bg-blue-100 ring-1 ring-blue-500" : ""
+              } ${
+                dragState.draggingOver.columnIndex === fIdx &&
+                dragState.draggingOver.isDraggingOver &&
+                dragState.dragging.rowId === "flights-row" &&
+                "border-dashed border-white bg-info/50"
+              } ${
+                dragState.activeCell.columnIndex === fIdx &&
+                "translate-x-0 translate-y-0 scale-105 transform border-white transition-transform hover:bg-info text-white"
+              } `}
+              draggable
+              onDragStart={(e) => handleDragStart(e, fIdx, "flights-row")}
+              onDragOver={(e) => handleDragOver(e, fIdx, "flights-row")}
+              onDrop={(e) => handleDrop(e, fIdx, "flights-row")}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="mb-1.5 flex justify-between w-full">
+                <div className="text-[11px]">
+                  <span className="font-bold mr-1.5">Flight {fIdx + 1}</span>
+                  {getStartTime(fIdx)}
+                </div>
+                <div className="flex items-center gap-1">
+                  {editingFlightIndex === fIdx ? (
+                    <>
+                      <Check
+                        className="h-4 w-4 cursor-pointer text-green-400 hover:text-green-600"
+                        onClick={() => saveEditFlight(fIdx)}
+                      />
+                      <X
+                        className="h-4 w-4 cursor-pointer text-gray-400 hover:text-gray-600"
+                        onClick={cancelEditFlight}
+                      />
+                    </>
+                  ) : (
+                    <SquarePen
+                      className="h-4 w-4 cursor-pointer text-blue-400 hover:text-blue-600"
+                      onClick={() => startEditFlight(fIdx)}
+                    />
+                  )}
+                  {allowDelete && (
+                    <Trash2
+                      className="h-4 w-4 cursor-pointer text-red-400 hover:text-red-600"
+                      onClick={() => removeFlight(fIdx)}
+                    />
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                {editingFlightIndex === fIdx ? (
-                  <>
-                    <Check
-                      className="h-4 w-4 cursor-pointer text-green-400 hover:text-green-600"
-                      onClick={() => saveEditFlight(fIdx)}
+              <div className="flex flex-col text-sm">
+                {editingFlightIndex === fIdx &&
+                  event.format === "individual" &&
+                  event.scoringFormat === "stroke" && (
+                    <MultiSelect
+                      label="Edit Players"
+                      options={getPlayerOptionsForFlight(fIdx)}
+                      value={editStrokePlayers}
+                      onChange={(vals) => setEditStrokePlayers(vals)}
+                      placeholder="Select players"
                     />
-                    <X
-                      className="h-4 w-4 cursor-pointer text-gray-400 hover:text-gray-600"
-                      onClick={cancelEditFlight}
-                    />
-                  </>
-                ) : (
-                  <SquarePen
-                    className="h-4 w-4 cursor-pointer text-blue-400 hover:text-blue-600"
-                    onClick={() => startEditFlight(fIdx)}
-                  />
-                )}
-                <Trash2
-                  className="h-4 w-4 cursor-pointer text-red-400 hover:text-red-600"
-                  onClick={() => removeFlight(fIdx)}
-                />
+                  )}
+                {editingFlightIndex === fIdx &&
+                  event.format === "individual" &&
+                  event.scoringFormat === "match" && (
+                    <div className="grid grid-cols-1 gap-2">
+                      <Select
+                        label="Player 1"
+                        value={editPlayer1}
+                        options={getPlayerOptionsForFlight(fIdx)}
+                        onChange={(e) => setEditPlayer1(Number(e.target.value))}
+                      />
+                      <Select
+                        label="Player 2"
+                        value={editPlayer2}
+                        options={getPlayerOptionsForFlight(fIdx)}
+                        onChange={(e) => setEditPlayer2(Number(e.target.value))}
+                      />
+                    </div>
+                  )}
+                {editingFlightIndex === fIdx &&
+                  event.format === "team" &&
+                  (event.scoringFormat === "match" || event.scoringFormat === "stroke") && (
+                    <div className="grid grid-cols-1 gap-2">
+                      <Select
+                        label="Team 1"
+                        value={editTeam1}
+                        options={getTeamOptionsForFlight(fIdx)}
+                        onChange={(e) => setEditTeam1(Number(e.target.value))}
+                      />
+                      <Select
+                        label="Team 2"
+                        value={editTeam2}
+                        options={getTeamOptionsForFlight(fIdx)}
+                        onChange={(e) => setEditTeam2(Number(e.target.value))}
+                      />
+                    </div>
+                  )}
+                {editingFlightIndex !== fIdx &&
+                  event.format === "individual" &&
+                  event.scoringFormat === "stroke" && (
+                    <FlightStrokeOutput players={players} playerIds={flight} />
+                  )}
+                {editingFlightIndex !== fIdx &&
+                  event.format === "individual" &&
+                  event.scoringFormat === "match" && (
+                    <FlightMatchOutput players={players} matchups={flight} />
+                  )}
+                {editingFlightIndex !== fIdx &&
+                  event.format === "team" &&
+                  (event.scoringFormat === "match" || event.scoringFormat === "stroke") && (
+                    <FlightTeamOutput players={players} teams={event.teams} matchups={flight} />
+                  )}
               </div>
             </div>
-            <div className="flex flex-col text-sm">
-              {editingFlightIndex === fIdx &&
-                event.format === "individual" &&
-                event.scoringFormat === "stroke" && (
-                  <MultiSelect
-                    label="Edit Players"
-                    options={getPlayerOptionsForFlight(fIdx)}
-                    value={editStrokePlayers}
-                    onChange={(vals) => setEditStrokePlayers(vals)}
-                    placeholder="Select players"
-                  />
-                )}
-              {editingFlightIndex === fIdx &&
-                event.format === "individual" &&
-                event.scoringFormat === "match" && (
-                  <div className="grid grid-cols-1 gap-2">
-                    <Select
-                      label="Player 1"
-                      value={editPlayer1}
-                      options={getPlayerOptionsForFlight(fIdx)}
-                      onChange={(e) => setEditPlayer1(Number(e.target.value))}
-                    />
-                    <Select
-                      label="Player 2"
-                      value={editPlayer2}
-                      options={getPlayerOptionsForFlight(fIdx)}
-                      onChange={(e) => setEditPlayer2(Number(e.target.value))}
-                    />
-                  </div>
-                )}
-              {editingFlightIndex === fIdx &&
-                event.format === "team" &&
-                event.scoringFormat === "match" && (
-                  <div className="grid grid-cols-1 gap-2">
-                    <Select
-                      label="Team 1"
-                      value={editTeam1}
-                      options={getTeamOptionsForFlight(fIdx)}
-                      onChange={(e) => setEditTeam1(Number(e.target.value))}
-                    />
-                    <Select
-                      label="Team 2"
-                      value={editTeam2}
-                      options={getTeamOptionsForFlight(fIdx)}
-                      onChange={(e) => setEditTeam2(Number(e.target.value))}
-                    />
-                  </div>
-                )}
-              {editingFlightIndex !== fIdx &&
-                event.format === "individual" &&
-                event.scoringFormat === "stroke" && (
-                  <FlightStrokeOutput players={players} playerIds={flight} />
-                )}
-              {editingFlightIndex !== fIdx &&
-                event.format === "individual" &&
-                event.scoringFormat === "match" && (
-                  <FlightMatchOutput players={players} matchups={flight} />
-                )}
-              {editingFlightIndex !== fIdx &&
-                event.format === "team" &&
-                event.scoringFormat === "match" && (
-                  <FlightTeamOutput players={players} teams={event.teams} matchups={flight} />
-                )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

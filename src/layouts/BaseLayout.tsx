@@ -3,6 +3,7 @@ import { logout } from "@api/auth";
 import { useAppStore } from "@/stores/appStore";
 import { useEffect, useState } from "react";
 import {
+  BookOpen,
   Calendar,
   Check,
   LandPlot,
@@ -10,6 +11,7 @@ import {
   LogOut,
   Menu,
   PanelsTopLeft,
+  Settings,
   ShieldHalf,
   TicketCheck,
   User,
@@ -107,7 +109,7 @@ const modelEvents = (events: any) => {
     id: event.id,
     name: event.name,
     date: event.date,
-    to: `/league/${event.leagueId}/event/${event.id}`,
+    to: `/league/${event.leagueId}/events/${event.id}`,
     completed: event.completed,
     eventType: event.eventType,
   }));
@@ -120,9 +122,12 @@ export default function BaseLayout() {
   const { user } = useAppStore();
   const [isOpen, setIsOpen] = useState(true);
 
+  const playerId = user?.leagues?.find((ul: any) => Number(ul.id) === Number(leagueId))?.playerId;
+
   const { data: league } = useLeague(Number(leagueId)!);
   const { data: events } = useLeagueEvents(Number(leagueId));
   const evs = events ? modelEvents(events) : [];
+  const isSuperAdmin = String(user?.role || "").toUpperCase() === "SUPER";
 
   useEffect(() => {
     // Set the golf theme on mount
@@ -132,13 +137,19 @@ export default function BaseLayout() {
   useEffect(() => {
     if (!user) {
       navigate("/login");
+      return;
+    }
+
+    if (location.pathname.startsWith("/superadmin") && !isSuperAdmin) {
+      navigate("/leagues");
+      return;
     }
 
     // can't do this if the user is new a creating a fresh league
     // if (!leagueId) {
     //   navigate("/dashboard");
     // }
-  }, [user, leagueId, navigate, location.pathname]);
+  }, [user, leagueId, navigate, location.pathname, isSuperAdmin]);
 
   const handleLogout = async () => {
     try {
@@ -183,12 +194,35 @@ export default function BaseLayout() {
             isActive={location.pathname === "/admin/dashboard"}
             collapsed={!isOpen}
           />
+          <NavLink
+            to="/courses"
+            text="Courses"
+            icon={<BookOpen size={19} />}
+            isActive={location.pathname === "/courses" || location.pathname.startsWith("/courses/")}
+            collapsed={!isOpen}
+          />
           <Section section={league?.name || "League"} />
+          {user.isAdmin && (
+            <NavLink
+              to={`/league/${leagueId}/admin`}
+              text="Admin"
+              icon={<TicketCheck size={19} />}
+              isActive={location.pathname === `/league/${leagueId}/admin`}
+              disabled={subDisabled}
+            />
+          )}
+          <NavLink
+            to={`/league/${leagueId}/player/${playerId}`}
+            text="Player Dashboard"
+            icon={<PanelsTopLeft size={19} />}
+            isActive={location.pathname === `/league/${leagueId}/player/${playerId}`}
+            disabled={subDisabled || !playerId}
+          />
           <NavLink
             to={`/league/${leagueId}`}
-            text="Dashboard"
-            icon={<PanelsTopLeft size={19} />}
-            isActive={location.pathname === "/dashboard"}
+            text="League"
+            icon={<LayoutDashboard size={19} />}
+            isActive={location.pathname === `/league/${leagueId}`}
             disabled={subDisabled}
           />
           <NavLink
@@ -214,6 +248,19 @@ export default function BaseLayout() {
           />
           {!subDisabled && (
             <NavWithSubLinks section="Events" links={evs} icon={<LandPlot size={18} />} />
+          )}
+
+          {isSuperAdmin && (
+            <>
+              <Section section="Super Admin" />
+              <NavLink
+                to="/superadmin/courses"
+                text="Manage Courses"
+                icon={<Settings size={19} />}
+                isActive={location.pathname.startsWith("/superadmin/courses")}
+                collapsed={!isOpen}
+              />
+            </>
           )}
         </nav>
 

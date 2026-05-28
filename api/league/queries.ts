@@ -3,6 +3,7 @@ import {
   getLeague,
   getLeagueEvent,
   getLeagueEvents,
+  getLeagueMetrics,
   getLeagues,
   getLeaguePlayers,
   getLeagueTeams,
@@ -21,6 +22,14 @@ export const useLeague = (id: number) => {
     queryKey: ["league", id],
     queryFn: () => getLeague(id),
     enabled: !!id,
+  });
+};
+
+export const useLeagueMetrics = (leagueId: number) => {
+  return useQuery({
+    queryKey: ["league", leagueId, "metrics"],
+    queryFn: () => getLeagueMetrics(leagueId),
+    enabled: !!leagueId,
   });
 };
 

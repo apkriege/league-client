@@ -4,7 +4,7 @@ export const FlightStrokeOutput = ({ players, playerIds }: any) => {
     if (!player) return <div key={id}>Unknown Player</div>;
     return (
       <div key={id} className="flex items-center">
-        <p className="font-medium text-xs">
+        <p className="font-medium text-[11px]">
           {player.firstName[0]} {player.lastName} ({player.handicap})
         </p>
       </div>
@@ -20,12 +20,12 @@ export const FlightMatchOutput = ({ players, matchups }: any) => {
     const player2 = players.find((p: any) => p.id === pair[1]);
 
     return (
-      <div key={idx} className="flex items-center gap-2 justify-between">
-        <div className="font-medium text-xs">
+      <div key={idx} className="flex items-center gap-1 justify-between">
+        <div className="font-medium text-[11px]">
           {player1 ? `${player1.firstName[0]} ${player1.lastName}` : "Unknown Player"}
         </div>
-        <span className="text-xs">vs</span>
-        <div className="font-medium text-xs">
+        <span className="text-[10px] text-base-content/50">vs</span>
+        <div className="font-medium text-[11px]">
           {player2 ? `${player2.firstName[0]} ${player2.lastName}` : "Unknown Player"}
         </div>
       </div>

@@ -1,0 +1,406 @@
+import PageHeader from "@/components/layout/PageHeader";
+import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
+import dayjs from "dayjs";
+import {
+  Award,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  CircleDashed,
+  ClipboardList,
+  Clock,
+  Edit,
+  Flag,
+  MapPin,
+  Plus,
+  ShieldHalf,
+  Timer,
+  Trophy,
+  User,
+  Users,
+  Zap,
+} from "lucide-react";
+import { useNavigate, useParams } from "react-router";
+
+const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
+  upcoming: {
+    label: "Scheduled",
+    icon: <CircleDashed size={12} strokeWidth={2.5} />,
+    className: "bg-blue-50 text-blue-600 border border-blue-200",
+  },
+  active: {
+    label: "In Progress",
+    icon: <Timer size={12} strokeWidth={2.5} />,
+    className: "bg-amber-50 text-amber-600 border border-amber-200",
+  },
+  completed: {
+    label: "Complete",
+    icon: <CheckCircle2 size={12} strokeWidth={2.5} />,
+    className: "bg-green-50 text-green-600 border border-green-200",
+  },
+};
+
+export default function LeagueAdmin() {
+  const { leagueId } = useParams();
+  const navigate = useNavigate();
+
+  const { data: league, isLoading: leagueLoading } = useLeague(Number(leagueId));
+  const { data: events, isLoading: eventsLoading } = useLeagueEvents(Number(leagueId));
+  const { data: metrics } = useLeagueMetrics(Number(leagueId));
+
+  if (leagueLoading || eventsLoading) {
+    return (
+      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading...</div>
+    );
+  }
+
+  const completed = events?.filter((e: any) => e.status === "completed") ?? [];
+  const needsScores = events?.filter((e: any) => e.status === "active") ?? [];
+  const upcoming = events?.filter((e: any) => e.status === "upcoming") ?? [];
+  const totalEvents = events?.length ?? 0;
+  const totalPlayers = league?.players?.length ?? 0;
+  const totalTeams = league?.teams?.length ?? 0;
+  const nextEvent = upcoming[0] ?? null;
+
+  const leader = metrics?.standings?.[0] ?? null;
+
+  return (
+    <div>
+      <PageHeader
+        title={league?.name ?? "League"}
+        icon={<ShieldHalf size={14} />}
+        iconText="ADMIN"
+      />
+
+      <div className="mt-3 mb-2 flex justify-end">
+        <button
+          onClick={() => navigate(`/league/${leagueId}/edit`)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
+        >
+          <Edit size={12} strokeWidth={2.5} />
+          Edit League
+        </button>
+      </div>
+
+      {/* Stat cards */}
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {[
+          {
+            label: "Events",
+            value: `${completed.length} / ${totalEvents}`,
+            sub: "completed",
+            icon: <CalendarDays size={14} className="text-primary" />,
+            bg: "bg-primary/5 border-primary/10",
+          },
+          {
+            label: "Players",
+            value: totalPlayers,
+            sub: "members",
+            icon: <Users size={14} className="text-blue-400" />,
+            bg: "bg-blue-50 border-blue-100",
+          },
+          {
+            label: "Teams",
+            value: totalTeams,
+            sub: "in league",
+            icon: <ShieldHalf size={14} className="text-violet-400" />,
+            bg: "bg-violet-50 border-violet-100",
+          },
+          {
+            label: "Leader",
+            value: leader ? leader.name.split(" ")[0] : "—",
+            sub: leader ? `${leader.points} pts` : "no data yet",
+            icon: <Trophy size={14} className="text-amber-400" />,
+            bg: "bg-amber-50 border-amber-100",
+          },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className="bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm flex items-center gap-3"
+          >
+            <div className={`p-2 rounded-md border ${stat.bg}`}>{stat.icon}</div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                {stat.label}
+              </p>
+              <p className="text-lg font-bold text-gray-800 leading-tight">{stat.value}</p>
+              <p className="text-[10px] text-gray-400">{stat.sub}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-4">
+        {/* Score entry — active events first */}
+        {needsScores.length > 0 && (
+          <div className="bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-100 bg-amber-50/60">
+              <Zap size={14} className="text-amber-500" strokeWidth={2.5} />
+              <h3 className="text-sm font-semibold text-gray-800">Ready to Score</h3>
+              <span className="ml-auto text-[10px] font-bold bg-amber-100 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">
+                {needsScores.length} active
+              </span>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {needsScores.map((event: any) => (
+                <ScoreEntryRow
+                  key={event.id}
+                  event={event}
+                  onScores={() => navigate(`/league/${leagueId}/events/${event.id}/scores`)}
+                  onView={() => navigate(`/league/${leagueId}/events/${event.id}`)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Next event callout */}
+        {nextEvent && (
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+              <CalendarDays size={14} className="text-blue-400" strokeWidth={2.5} />
+              <h3 className="text-sm font-semibold text-gray-800">Next Event</h3>
+            </div>
+            <div className="px-4 py-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                {/* Date badge */}
+                <div className="flex flex-col items-center justify-center bg-primary/5 border border-primary/10 rounded-lg px-3 py-2 min-w-14 text-center">
+                  <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
+                    {dayjs(nextEvent.date).format("MMM")}
+                  </span>
+                  <span className="text-2xl font-black text-primary leading-none">
+                    {dayjs(nextEvent.date).format("D")}
+                  </span>
+                  <span className="text-[9px] text-gray-400 font-medium">
+                    {dayjs(nextEvent.date).format("ddd")}
+                  </span>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">{nextEvent.name}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <MapPin size={11} className="text-gray-400" strokeWidth={2} />
+                    <span className="text-xs text-gray-400">{nextEvent.course?.name}</span>
+                    {nextEvent.tee?.name && (
+                      <>
+                        <span className="text-gray-300">&bull;</span>
+                        <span className="text-xs text-gray-400">{nextEvent.tee.name} tees</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    {nextEvent.startTime && (
+                      <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                        <Clock size={10} className="text-gray-300" />
+                        {nextEvent.startTime}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                      <Flag size={10} className="text-gray-300" />
+                      {nextEvent.holes} holes
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => navigate(`/league/${leagueId}/events/${nextEvent.id}/edit`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  <Edit size={12} strokeWidth={2.5} />
+                  Edit
+                </button>
+                <button
+                  onClick={() => navigate(`/league/${leagueId}/events/${nextEvent.id}/scores`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  <ClipboardList size={12} strokeWidth={2.5} />
+                  Enter Scores
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* All events list */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Award size={14} className="text-gray-400" strokeWidth={2} />
+              <h3 className="text-sm font-semibold text-gray-800">All Events</h3>
+            </div>
+            <button
+              onClick={() => navigate(`/league/${leagueId}/events/create`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+            >
+              <Plus size={12} strokeWidth={2.5} />
+              New Event
+            </button>
+          </div>
+
+          {totalEvents === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
+              <CalendarDays size={32} strokeWidth={1.5} className="mb-2 opacity-40" />
+              <p className="font-medium text-gray-500 text-sm">No events yet</p>
+              <p className="text-xs mt-1">Create the first event to get started.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {[...(needsScores ?? []), ...(upcoming ?? []), ...(completed ?? [])].map(
+                (event: any) => (
+                  <AdminEventRow
+                    key={event.id}
+                    event={event}
+                    onView={() => navigate(`/league/${leagueId}/events/${event.id}`)}
+                    onEdit={() => navigate(`/league/${leagueId}/events/${event.id}/edit`)}
+                    onScores={() => navigate(`/league/${leagueId}/events/${event.id}/scores`)}
+                  />
+                )
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScoreEntryRow({
+  event,
+  onScores,
+  onView,
+}: {
+  event: any;
+  onScores: () => void;
+  onView: () => void;
+}) {
+  const date = new Date(event.date);
+  return (
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex flex-col items-center justify-center bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 min-w-12 text-center">
+        <span className="text-[9px] font-bold uppercase text-amber-400 tracking-wider">
+          {date.toLocaleDateString("en-US", { month: "short" })}
+        </span>
+        <span className="text-lg font-black text-amber-600 leading-none">{date.getDate()}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-gray-800 text-sm truncate">{event.name}</p>
+        <div className="flex items-center gap-1 mt-0.5">
+          <MapPin size={10} className="text-gray-400" strokeWidth={2} />
+          <span className="text-xs text-gray-400 truncate">{event.course?.name}</span>
+        </div>
+      </div>
+      <div className="flex gap-2 shrink-0">
+        <button
+          onClick={onView}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors"
+        >
+          <ChevronRight size={12} strokeWidth={2.5} />
+          View
+        </button>
+        <button
+          onClick={onScores}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors"
+        >
+          <ClipboardList size={12} strokeWidth={2.5} />
+          Enter Scores
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AdminEventRow({
+  event,
+  onView,
+  onEdit,
+  onScores,
+}: {
+  event: any;
+  onView: () => void;
+  onEdit: () => void;
+  onScores: () => void;
+}) {
+  const status = STATUS_CONFIG[event.status] ?? STATUS_CONFIG["upcoming"];
+  const date = new Date(event.date);
+  const isPast = event.status === "completed";
+
+  return (
+    <div
+      className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${isPast ? "opacity-60" : ""}`}
+    >
+      {/* Date */}
+      <div
+        className={`flex flex-col items-center justify-center rounded-lg px-2.5 py-1.5 min-w-12 text-center border shrink-0 ${isPast ? "bg-gray-50 border-gray-100" : "bg-primary/5 border-primary/10"}`}
+      >
+        <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
+          {date.toLocaleDateString("en-US", { month: "short" })}
+        </span>
+        <span
+          className={`text-lg font-black leading-none ${isPast ? "text-gray-400" : "text-primary"}`}
+        >
+          {date.getDate()}
+        </span>
+        <span className="text-[9px] text-gray-400 font-medium">
+          {date.toLocaleDateString("en-US", { weekday: "short" })}
+        </span>
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="font-semibold text-gray-800 text-sm truncate">{event.name}</p>
+          <div
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${status.className}`}
+          >
+            {status.icon}
+            {status.label}
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <MapPin size={10} className="text-gray-400" strokeWidth={2} />
+          <span className="text-xs text-gray-400 truncate">{event.course?.name}</span>
+          {event.tee?.name && (
+            <>
+              <span className="text-gray-300 text-xs">&bull;</span>
+              <span className="text-xs text-gray-400">{event.tee.name} tees</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Player count */}
+      {event.playerCount != null && (
+        <div className="flex items-center gap-1 text-xs text-gray-400 shrink-0">
+          <User size={11} className="text-gray-300" />
+          {event.playerCount}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-1.5 shrink-0">
+        <button
+          onClick={onView}
+          className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
+          title="View"
+        >
+          <ChevronRight size={15} strokeWidth={2} />
+        </button>
+        <button
+          onClick={onEdit}
+          className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
+          title="Edit"
+        >
+          <Edit size={13} strokeWidth={2} />
+        </button>
+        <button
+          onClick={onScores}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
+          title="Scores"
+        >
+          <ClipboardList size={12} strokeWidth={2} />
+          Scores
+        </button>
+      </div>
+    </div>
+  );
+}

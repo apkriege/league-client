@@ -221,7 +221,10 @@ export default function CreateLeague() {
   const createLeague = useCreateLeague();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("checkout") === "cancel" ? 999 : 1;
+  });
 
   const leagueForm = useForm({
     defaultValues: defaultLeagueData,

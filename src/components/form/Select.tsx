@@ -5,6 +5,7 @@ interface SelectProps {
   className?: string;
   onChange: (e: any) => void;
   placeholder?: string;
+  dense?: boolean;
 }
 
 export default function Select({
@@ -14,14 +15,21 @@ export default function Select({
   className,
   onChange,
   placeholder,
+  dense = false,
 }: SelectProps) {
   return (
     <fieldset className={`fieldset ${className} w-full`}>
-      <legend className="fieldset-legend p-1 uppercase text-gray-500 font-semibold text-[10px] tracking-wider">
+      <legend
+        className={`fieldset-legend uppercase text-gray-500 font-semibold tracking-wider ${
+          dense ? "px-1 py-0.5 text-[9px]" : "p-1 text-[10px]"
+        }`}
+      >
         {label}
       </legend>
       <select
-        className={`select w-full text-xs h-[35px] rounded-md ${className} bg-base-200 border-base-300`}
+        className={`select w-full rounded-md ${className} bg-base-200 border-base-300 ${
+          dense ? "h-[31px] text-[11px]" : "h-[35px] text-xs"
+        }`}
         value={value || ""}
         onChange={onChange}
       >

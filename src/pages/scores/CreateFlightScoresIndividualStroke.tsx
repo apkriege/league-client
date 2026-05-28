@@ -1,0 +1,240 @@
+import Button from "@/components/layout/Button";
+import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
+import { Flag } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { useParams } from "react-router";
+import { calculateStrokeplayPops } from "./util";
+
+export const CreateFlightScoresIndividualStroke = ({
+  flight,
+  event,
+  isEditMode,
+  onSaveSuccess,
+  onCancel,
+}: any) => {
+  const { leagueId, eventId } = useParams();
+
+  const startingHole = event.startSide === "front" ? 1 : 10;
+  const holes = event.tee.holes
+    .slice(startingHole - 1, startingHole + event.holes - 1)
+    .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
+
+  const players: any[] = flight.players ?? [];
+
+  const getEffectiveHandicap = (playerEntry: any) => {
+    const preHandicap = Number(playerEntry?.player?.rounds?.[0]?.preHandicap);
+    if (isEditMode && Number.isFinite(preHandicap)) return preHandicap;
+    return Number(playerEntry?.player?.handicap ?? 0);
+  };
+
+  // Per-hole handicap stroke allocation for each player
+  const popsByPlayerId = new Map<number, Map<number, number>>();
+  for (const player of players) {
+    const hcp = getEffectiveHandicap(player);
+    popsByPlayerId.set(Number(player.playerId), calculateStrokeplayPops(hcp, holes));
+  }
+
+  const popsForHole = (playerId: number, holeNum: number) =>
+    popsByPlayerId.get(Number(playerId))?.get(holeNum) || 0;
+
+  const methods = useForm({
+    defaultValues: {
+      players: players.reduce((acc: any, p: any) => {
+        const playerScores = isEditMode
+          ? holes.map((hole: any, holeIdx: number) => {
+              const roundScores = p?.player?.rounds?.[0]?.scores ?? [];
+              const scoreByHole = roundScores.find(
+                (s: any) => Number(s?.hole) === Number(hole?.num)
+              );
+              const score = scoreByHole?.gross ?? roundScores?.[holeIdx]?.gross;
+              return score ? String(score) : "";
+            })
+          : Array.from({ length: holes.length }, () => "");
+        acc[p.playerId] = { scores: playerScores };
+        return acc;
+      }, {}),
+    },
+  });
+
+  const createMutation = useCreateEventScores();
+  const updateMutation = useUpdateEventScores();
+  const watchedPlayers = methods.watch("players");
+
+  const handleHoleChange = (e: any, holeIndex: number, playerId: number) => {
+    const val = e.target.value;
+    if (val === "") {
+      methods.setValue(`players.${playerId}.scores.${holeIndex}`, "", {
+        shouldDirty: true,
+        shouldTouch: true,
+      });
+      return;
+    }
+    const parsed = parseInt(val, 10);
+    methods.setValue(
+      `players.${playerId}.scores.${holeIndex}`,
+      Number.isNaN(parsed) ? "" : parsed,
+      { shouldDirty: true, shouldTouch: true }
+    );
+  };
+
+  const getPlayerTotalScore = (playerId: number) => {
+    const scores = watchedPlayers?.[playerId]?.scores;
+    if (!Array.isArray(scores)) return 0;
+    return scores.reduce((sum: number, s: any) => sum + (Number(s) || 0), 0);
+  };
+
+  const getPlayerNetScore = (playerId: number) => {
+    const playerEntry = players.find((p: any) => Number(p.playerId) === playerId);
+    const hcp = Math.round(getEffectiveHandicap(playerEntry));
+    return getPlayerTotalScore(playerId) - hcp;
+  };
+
+  // Stableford points: net diff vs par → eagle+=4, birdie=3, par=2, bogey=1, double+=0
+  const getPlayerStablefordPoints = (playerId: number) => {
+    const scores = watchedPlayers?.[playerId]?.scores;
+    if (!Array.isArray(scores)) return 0;
+    return holes.reduce((total: number, hole: any, idx: number) => {
+      const gross = Number(scores[idx]) || 0;
+      if (!gross) return total;
+      const net = gross - popsForHole(playerId, hole.num);
+      const diff = net - (hole.par ?? 4);
+      if (diff <= -2) return total + 4;
+      if (diff === -1) return total + 3;
+      if (diff === 0) return total + 2;
+      if (diff === 1) return total + 1;
+      return total;
+    }, 0);
+  };
+
+  const saveScores = () => {
+    const scoresData = {
+      eventId: Number(eventId),
+      flightId: flight.id,
+      players: Object.entries(watchedPlayers).map(([playerId, data]: any) => ({
+        playerId: Number(playerId),
+        opponentId: null,
+        scores: holes.reduce((acc: any, hole: any, idx: number) => {
+          acc[hole.num] = Number(data.scores?.[idx]) || 0;
+          return acc;
+        }, {} as any),
+        putts: [],
+        gross: getPlayerTotalScore(Number(playerId)),
+        net: getPlayerNetScore(Number(playerId)),
+        points: getPlayerStablefordPoints(Number(playerId)),
+        matchPoints: 0,
+      })),
+      teams: [],
+    };
+
+    try {
+      if (isEditMode) {
+        updateMutation.mutate(
+          { leagueId: Number(leagueId), eventId: Number(eventId), data: scoresData },
+          { onSuccess: () => onSaveSuccess?.() }
+        );
+      } else {
+        createMutation.mutate(
+          { leagueId: Number(leagueId), eventId: Number(eventId), data: scoresData },
+          { onSuccess: () => onSaveSuccess?.() }
+        );
+      }
+    } catch (error) {
+      console.error("Error submitting scores:", error);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <Flag size={14} className="text-gray-400" strokeWidth={2} />
+          <h3 className="text-sm font-semibold text-gray-800">Flight {flight.startTime}</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => {
+              methods.reset();
+              onCancel?.();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button variant="primary" size="sm" onClick={saveScores}>
+            {isEditMode ? "Save Changes" : "Submit Scores"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <div className="border rounded-lg">
+          <div className="w-full overflow-x-auto">
+            <table className="min-w-max w-full text-left table-sm table-auto">
+              <thead>
+                <tr className="text-xs text-gray-700">
+                  <th>Player</th>
+                  {holes.map((hole: any) => (
+                    <th key={hole.num} className="p-2 text-center">
+                      {hole.num}
+                    </th>
+                  ))}
+                  <th className="p-2 text-center">Total</th>
+                  <th className="p-2 text-center">Net</th>
+                  <th className="p-2 text-center">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((player: any) => {
+                  const p = player.player;
+                  const displayHandicap = Math.round(getEffectiveHandicap(player));
+                  return (
+                    <tr key={player.playerId} className="text-sm">
+                      <td className="p-2 text-xs flex flex-col">
+                        <span className="font-semibold">
+                          {p.firstName} {p.lastName}
+                        </span>
+                        <span className="text-[10px]">Handicap: {displayHandicap}</span>
+                      </td>
+                      {holes.map((hole: any, holeIdx: number) => (
+                        <td key={hole.num} className="p-2">
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              className="w-full min-w-10 border rounded h-8 text-center"
+                              value={watchedPlayers?.[player.playerId]?.scores?.[holeIdx] ?? ""}
+                              onChange={(e) => handleHoleChange(e, holeIdx, player.playerId)}
+                            />
+                            {popsForHole(player.playerId, hole.num) > 0 && (
+                              <span className="absolute bottom-1 left-1 pointer-events-none flex items-center justify-center gap-0.5">
+                                {Array.from({
+                                  length: popsForHole(player.playerId, hole.num),
+                                }).map((_, idx) => (
+                                  <span key={idx} className="h-1 w-1 rounded-full bg-black" />
+                                ))}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      ))}
+                      <td className="font-bold text-center text-xs">
+                        {getPlayerTotalScore(Number(player.playerId))}
+                      </td>
+                      <td className="font-bold text-center text-xs">
+                        {getPlayerNetScore(Number(player.playerId))}
+                      </td>
+                      <td className="font-bold text-center text-xs">
+                        {getPlayerStablefordPoints(Number(player.playerId))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
