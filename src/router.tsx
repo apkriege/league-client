@@ -25,6 +25,8 @@ import LeagueAdmin from "./pages/league/LeagueAdmin.tsx";
 import Course from "./pages/course/Course.tsx";
 import Courses from "./pages/course/Courses.tsx";
 import CoursesAdmin from "@/pages/superadmin/CoursesAdmin";
+import LeaguesAdmin from "@/pages/superadmin/LeaguesAdmin";
+import LeagueRouteGuard from "@/components/route/LeagueRouteGuard";
 
 export const router = createBrowserRouter([
   {
@@ -41,30 +43,43 @@ export const router = createBrowserRouter([
     children: [
       { path: "leagues", element: <Leagues /> },
       { path: "leagues/create", element: <CreateLeague /> },
-      { path: "league/:leagueId/edit", element: <EditLeague /> },
       { path: "courses", element: <Courses /> },
       { path: "courses/:courseId", element: <Course /> },
-      { path: "league/:leagueId", element: <League /> },
-      { path: "league/:leagueId/admin", element: <LeagueAdmin /> },
-      // players
-      { path: "league/:leagueId/players", element: <Players /> },
-      { path: "league/:leagueId/player/:playerId", element: <Player /> },
-      // teams
-      { path: "league/:leagueId/teams", element: <Teams /> },
-      { path: "league/:leagueId/team/:teamId", element: <Team /> },
-      // events
-      { path: "league/:leagueId/events/create", element: <SingleEvent /> },
-      { path: "league/:leagueId/events", element: <Events /> }, // schedule
-      { path: "league/:leagueId/events/:eventId", element: <Event /> },
-      { path: "league/:leagueId/events/:eventId/edit", element: <EventEdit /> },
-      { path: "league/:leagueId/events/:eventId/scores", element: <EventScores /> },
-      { path: "league/:leagueId/schedule", element: <Schedule /> },
+      {
+        element: <LeagueRouteGuard />,
+        children: [
+          { path: "league/:leagueId", element: <League /> },
+          { path: "league/:leagueId/players", element: <Players /> },
+          { path: "league/:leagueId/player/:playerId", element: <Player /> },
+          { path: "league/:leagueId/teams", element: <Teams /> },
+          { path: "league/:leagueId/team/:teamId", element: <Team /> },
+          { path: "league/:leagueId/events", element: <Events /> },
+          { path: "league/:leagueId/events/:eventId", element: <Event /> },
+          { path: "league/:leagueId/schedule", element: <Schedule /> },
+        ],
+      },
+      {
+        element: <LeagueRouteGuard adminOnly />,
+        children: [
+          { path: "league/:leagueId/edit", element: <EditLeague /> },
+          { path: "league/:leagueId/admin", element: <LeagueAdmin /> },
+          { path: "league/:leagueId/events/create", element: <SingleEvent /> },
+          { path: "league/:leagueId/events/:eventId/edit", element: <EventEdit /> },
+          { path: "league/:leagueId/events/:eventId/scores", element: <EventScores /> },
+        ],
+      },
       { path: "superadmin/courses", element: <CoursesAdmin /> },
+      { path: "superadmin/leagues", element: <LeaguesAdmin /> },
     ],
   },
   {
-    path: "league/:leagueId/events/:eventId/print-scorecards",
-    element: <PrintFlightScorecards />,
+    element: <LeagueRouteGuard adminOnly />,
+    children: [
+      {
+        path: "league/:leagueId/events/:eventId/print-scorecards",
+        element: <PrintFlightScorecards />,
+      },
+    ],
   },
 
   // {

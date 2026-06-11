@@ -1,22 +1,30 @@
 import { useState } from "react";
 import Button from "@/components/layout/Button";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
-import { useLeaguePlayers } from "@api/league/queries";
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { ArrowLeftRight, Flag } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router";
+import { isSubPlayer } from "./PlayerSwapControl";
 import {
   calculateMatchplayPops,
   createTeamScoringHelpers,
   sortFlightTeamsByHandicap,
 } from "./util";
 
-export const CreateFlightScores = ({ flight, event, isEditMode, onSaveSuccess, onCancel }: any) => {
+export const CreateFlightScores = ({
+  flight,
+  event,
+  leaguePlayers = [],
+  eventPlayerIds = [],
+  isEditMode,
+  onFlightPlayersUpdated,
+  onSaveSuccess,
+  onCancel,
+}: any) => {
   const { leagueId, eventId } = useParams();
   const numericLeagueId = Number(leagueId);
   const numericEventId = Number(eventId);
-  const { data: leaguePlayers = [] } = useLeaguePlayers(numericLeagueId);
 
   const startingHole = event.startSide === "front" ? 1 : 10;
   const holes = event.tee.holes
@@ -140,6 +148,7 @@ export const CreateFlightScores = ({ flight, event, isEditMode, onSaveSuccess, o
   const activePlayerIds = new Set(
     [...activeTeam1, ...activeTeam2].map((player: any) => Number(player.playerId))
   );
+  const eventPlayerIdSet = new Set((eventPlayerIds || []).map((id: number) => Number(id)));
 
   const getSwapCandidates = (slotTeam: 1 | 2, slotIdx: number, currentPlayerId: number) => {
     const baseEntry = slotTeam === 1 ? team1[slotIdx] : team2[slotIdx];
@@ -149,9 +158,7 @@ export const CreateFlightScores = ({ flight, event, isEditMode, onSaveSuccess, o
     const sameTeamPlayers = (leaguePlayers || []).filter(
       (p: any) => Number(p?.teamId ?? 0) === baseTeamId
     );
-    const subs = (leaguePlayers || []).filter(
-      (p: any) => String(p?.type || "").toLowerCase() === "sub"
-    );
+    const subs = (leaguePlayers || []).filter((p: any) => isSubPlayer(p));
 
     const uniqueById = new Map<number, any>();
     if (currentEntry?.player) {
@@ -167,7 +174,10 @@ export const CreateFlightScores = ({ flight, event, isEditMode, onSaveSuccess, o
 
     return Array.from(uniqueById.values()).filter((candidate: any) => {
       const candidateId = Number(candidate.id);
-      return candidateId === currentPlayerId || !activePlayerIds.has(candidateId);
+      if (candidateId === currentPlayerId) return true;
+      if (activePlayerIds.has(candidateId)) return false;
+      if (isSubPlayer(candidate)) return true;
+      return !eventPlayerIdSet.has(candidateId);
     });
   };
 
@@ -229,6 +239,7 @@ export const CreateFlightScores = ({ flight, event, isEditMode, onSaveSuccess, o
 
       setSwappedPlayersBySlot(nextSwaps);
       cancelSwap();
+      await onFlightPlayersUpdated?.();
     } catch (error) {
       console.error("Failed to persist swapped flight players:", error);
     }
@@ -551,52 +562,54 @@ export const CreateFlightScores = ({ flight, event, isEditMode, onSaveSuccess, o
 
     return (
       <tr key={player.playerId} className="text-sm">
-        <td className="p-2 text-xs flex flex-col">
-          <span className="font-semibold">
-            {p.firstName} {p.lastName} ({p.id})
-          </span>
-          <span className="text-[10px]">Handicap: {displayHandicap}</span>
-          {!isEditingSwap ? (
-            <button
-              type="button"
-              className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline w-fit"
-              onClick={() => startSwap(team, idx, Number(player.playerId))}
-            >
-              <ArrowLeftRight size={10} />
-              Swap
-            </button>
-          ) : (
-            <div className="mt-1 flex flex-col gap-1.5">
-              <select
-                className="h-7 border border-gray-200 rounded px-2 text-[10px] bg-white"
-                value={swapCandidateId ?? ""}
-                onChange={(e) => setSwapCandidateId(Number(e.target.value))}
+        <td className="p-2 text-xs">
+          <div className="flex items-start justify-between gap-2">
+            <span className="font-semibold">
+              {p.firstName} {p.lastName}
+            </span>
+            {!isEditingSwap ? (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline"
+                onClick={() => startSwap(team, idx, Number(player.playerId))}
               >
-                {swapCandidates.map((candidate: any) => (
-                  <option key={candidate.id} value={candidate.id}>
-                    {candidate.firstName} {candidate.lastName} ({candidate.id})
-                    {String(candidate.type || "").toLowerCase() === "sub" ? " - Sub" : ""}
-                  </option>
-                ))}
-              </select>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className="px-2 h-6 rounded bg-primary text-white text-[10px] font-semibold"
-                  onClick={() => saveSwap(team, idx, player)}
+                <ArrowLeftRight size={10} />
+                Swap
+              </button>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <select
+                  className="h-7 min-w-36 rounded border border-gray-200 bg-white px-2 text-[10px]"
+                  value={swapCandidateId ?? ""}
+                  onChange={(e) => setSwapCandidateId(Number(e.target.value))}
                 >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  className="px-2 h-6 rounded border border-gray-200 text-gray-600 text-[10px] font-semibold"
-                  onClick={cancelSwap}
-                >
-                  Cancel
-                </button>
+                  {swapCandidates.map((candidate: any) => (
+                    <option key={candidate.id} value={candidate.id}>
+                      {candidate.firstName} {candidate.lastName}
+                      {isSubPlayer(candidate) ? " - Sub" : ""}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="h-6 rounded bg-primary px-2 text-[10px] font-semibold text-white"
+                    onClick={() => saveSwap(team, idx, player)}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="h-6 rounded border border-gray-200 px-2 text-[10px] font-semibold text-gray-600"
+                    onClick={cancelSwap}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          <span className="text-[10px]">Handicap: {displayHandicap}</span>
         </td>
         {holes.map((hole: any, holeIdx: number) => (
           <td key={hole.num} className="p-2">

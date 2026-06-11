@@ -12,6 +12,7 @@ import { useLeague } from "@api/league/queries";
 import { CircleCheck, Tally5, User, Users, Zap } from "lucide-react";
 import { useFormContext } from "react-hook-form";
 import { useParams } from "react-router";
+import { DEFAULT_STROKE_POINTS } from "../constants";
 
 export default function InfoForm() {
   const { leagueId } = useParams();
@@ -20,8 +21,6 @@ export default function InfoForm() {
   const methods = useFormContext();
 
   if (!courses) return null;
-
-  console.log(courses[0]);
 
   const courseOptions = courses.map((course: any) => ({
     value: course.id,
@@ -60,6 +59,13 @@ export default function InfoForm() {
   const isFormatLocked = isSeasonLeague && ["individual", "team"].includes(lockedSeasonFormat);
   const isTeamFormat = methods.watch("format") === "team";
   const scoringFormat = methods.watch("scoringFormat");
+  const selectScoringFormat = (nextScoringFormat: "stroke" | "match") => {
+    methods.setValue("scoringFormat", nextScoringFormat);
+
+    if (nextScoringFormat === "stroke" && !String(methods.getValues("strokePoints") || "").trim()) {
+      methods.setValue("strokePoints", DEFAULT_STROKE_POINTS, { shouldDirty: true });
+    }
+  };
 
   return (
     <div className="flex gap-4">
@@ -178,7 +184,7 @@ export default function InfoForm() {
               <div className="flex flex-col gap-2">
                 <SelectableInfoCard
                   active={scoringFormat === "stroke"}
-                  onClick={() => methods.setValue("scoringFormat", "stroke")}
+                  onClick={() => selectScoringFormat("stroke")}
                   icon={<Tally5 size={26} />}
                   title="Stroke Play"
                   description={
@@ -190,7 +196,7 @@ export default function InfoForm() {
                 />
                 <SelectableInfoCard
                   active={scoringFormat === "match"}
-                  onClick={() => methods.setValue("scoringFormat", "match")}
+                  onClick={() => selectScoringFormat("match")}
                   icon={<Zap size={26} />}
                   title="Match Play"
                   description={
@@ -209,7 +215,7 @@ export default function InfoForm() {
               <>
                 <Input
                   label="Stroke Points (CSV)"
-                  placeholder="e.g. 10,8,6,4,2"
+                  placeholder={`e.g. ${DEFAULT_STROKE_POINTS}`}
                   {...methods.register("strokePoints")}
                 />
                 <p className="text-[11px] text-base-content/60 mt-1">

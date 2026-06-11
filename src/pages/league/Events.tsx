@@ -1,7 +1,9 @@
 import Button from "@/components/layout/Button";
+import PageState from "@/components/layout/PageState";
 import Table from "@/components/Table";
 import { useAppStore } from "@/stores/appStore";
 import { useLeagueEvents } from "@api/league/queries";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import dayjs from "dayjs";
 import { useNavigate, useParams } from "react-router";
 
@@ -10,11 +12,39 @@ import { useNavigate, useParams } from "react-router";
 export default function Events() {
   const { user } = useAppStore();
   const { leagueId } = useParams();
-  const { data: events } = useLeagueEvents(Number(leagueId)!);
+  const numericLeagueId = Number(leagueId);
+  const { data: events, isLoading, isError, error } = useLeagueEvents(numericLeagueId);
   const navigate = useNavigate();
 
-  if (!events) {
+  if (isLoading) {
     return <div>Loading events...</div>;
+  }
+
+  if (isError) {
+    const status = getApiErrorStatus(error);
+    return (
+      <PageState
+        title={
+          status === 404
+            ? "League Not Found"
+            : status === 403
+              ? "Access Denied"
+              : "Unable to Load Events"
+        }
+        message={getApiErrorMessage(error, "The events page could not be loaded right now.")}
+        variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
+      />
+    );
+  }
+
+  if (!events) {
+    return (
+      <PageState
+        title="League Not Found"
+        message="The events page could not be loaded because the league was not found."
+        variant="notFound"
+      />
+    );
   }
 
   const columns = [
@@ -104,7 +134,7 @@ export default function Events() {
           <Button
             size="xs"
             variant="primary"
-            onClick={() => navigate(`/league/${leagueId}/events/create/single`)}
+            onClick={() => navigate(`/league/${leagueId}/events/create`)}
           >
             + Add Event
           </Button>

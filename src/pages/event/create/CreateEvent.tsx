@@ -1,4 +1,5 @@
 import PageHeader from "@/components/layout/PageHeader";
+import PageState from "@/components/layout/PageState";
 import { useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import InfoForm from "./components/InfoForm";
@@ -6,10 +7,12 @@ import TeamsForm from "./components/TeamsForm";
 import Flights from "./components/Flights";
 import { useCreateLeagueEvent } from "@api/league/mutations";
 import { useLeague } from "@api/league/queries";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useNavigate, useParams } from "react-router";
 import { Flag, ShieldHalf, Trophy } from "lucide-react";
 import WizardType, { type EventWizardType } from "./components/WizardType";
 import MultiSeriesBuilder from "./components/MultiSeriesBuilder";
+import { DEFAULT_STROKE_POINTS } from "./constants";
 
 const defaultValues = {
   name: "Test Event",
@@ -26,7 +29,7 @@ const defaultValues = {
   ptsPerHole: 1,
   ptsPerMatch: 2,
   ptsPerTeamWin: 2,
-  strokePoints: "",
+  strokePoints: DEFAULT_STROKE_POINTS,
   teams: [],
   flights: [],
 };
@@ -34,7 +37,7 @@ const defaultValues = {
 export default function CreateEvent() {
   const navigate = useNavigate();
   const { leagueId } = useParams();
-  const { data: league } = useLeague(Number(leagueId));
+  const { data: league, isLoading, isError, error } = useLeague(Number(leagueId));
   const [wizardType, setWizardType] = useState<EventWizardType>("multi");
 
   const mutation = useCreateLeagueEvent();
@@ -97,6 +100,41 @@ export default function CreateEvent() {
       }
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+        Loading league...
+      </div>
+    );
+  }
+
+  if (isError) {
+    const status = getApiErrorStatus(error);
+    return (
+      <PageState
+        title={
+          status === 404
+            ? "League Not Found"
+            : status === 403
+              ? "Access Denied"
+              : "Unable to Load Event Builder"
+        }
+        message={getApiErrorMessage(error, "The event builder could not be loaded right now.")}
+        variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
+      />
+    );
+  }
+
+  if (!league) {
+    return (
+      <PageState
+        title="League Not Found"
+        message="The event builder could not be loaded because the league was not found."
+        variant="notFound"
+      />
+    );
+  }
 
   return (
     <FormProvider {...eventForm}>

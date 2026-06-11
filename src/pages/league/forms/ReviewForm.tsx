@@ -1,7 +1,6 @@
-import { useCreateCheckoutSession } from "@api/payments/mutations";
 import PageHeader from "@/components/layout/PageHeader";
-import { useToast } from "@/context/ToastContext";
 import { formatPhone } from "@/utils/format";
+import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice } from "@/lib/billing";
 import dayjs from "dayjs";
 import {
   CalendarRange,
@@ -35,22 +34,30 @@ type LeagueTeam = {
 
 interface ReviewFormProps {
   leagueData: any;
-  handleBack: () => void;
+  billing?: any;
+  isBillingLoading?: boolean;
 }
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">{children}</p>
 );
 
-export default function ReviewForm({ leagueData, handleBack }: ReviewFormProps) {
-  const { show } = useToast();
-  const createCheckoutSession = useCreateCheckoutSession();
-
+export default function ReviewForm({
+  leagueData,
+  billing,
+  isBillingLoading = false,
+}: ReviewFormProps) {
   const players: LeaguePlayer[] = leagueData?.players || [];
   const teams: LeagueTeam[] = leagueData?.teams || [];
   const leagueType = String(leagueData?.type || "").toLowerCase();
   const leagueFormat = String(leagueData?.format || "").toLowerCase();
   const isTeamSeason = leagueType === "season" && leagueFormat === "team";
+  const includedGolfers = Math.max(BILLING_MIN_GOLFERS, Number(billing?.includedGolfers || 0));
+  const requestedGolfers = Math.max(BILLING_MIN_GOLFERS, players.length);
+  const additionalGolfersRequired = Math.max(0, requestedGolfers - includedGolfers);
+  const additionalCost = additionalGolfersRequired * BILLING_PRICE_PER_GOLFER;
+  const needsRegistrationPayment = !isBillingLoading && !billing?.hasCompletedRegistration;
+  const needsPayment = needsRegistrationPayment || additionalGolfersRequired > 0;
 
   const sortedPlayers = [...players].sort((a, b) =>
     `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
@@ -67,32 +74,6 @@ export default function ReviewForm({ leagueData, handleBack }: ReviewFormProps) 
   const playerName = (id: number) => {
     const p = players.find((x) => Number(x.id) === Number(id));
     return p ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : `#${id}`;
-  };
-
-  const handleStartCheckout = () => {
-    const productName = leagueData?.name
-      ? `${leagueData.name} League Setup`
-      : "League Setup Payment";
-    createCheckoutSession.mutate(
-      {
-        productName,
-        unitAmount: 2000,
-        currency: "usd",
-        quantity: 1,
-        successUrl: `${window.location.origin}/leagues/create?checkout=success`,
-        cancelUrl: `${window.location.origin}/leagues/create?checkout=cancel`,
-      },
-      {
-        onSuccess: (data) => {
-          if (!data?.url) {
-            show("Could not start checkout. Please try again.", "error");
-            return;
-          }
-          window.location.href = data.url;
-        },
-        onError: () => show("Failed to create Stripe checkout session.", "error"),
-      }
-    );
   };
 
   return (
@@ -334,55 +315,52 @@ export default function ReviewForm({ leagueData, handleBack }: ReviewFormProps) 
 
         {/* Sidebar */}
         <div className="xl:sticky xl:top-4 space-y-3">
-          <div className="rounded-xl border border-base-300 bg-base-100 shadow-xs overflow-hidden">
-            <div className="px-4 py-3 bg-primary text-primary-content">
-              <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-0.5">
-                Order Summary
-              </p>
-              <div className="flex items-end justify-between">
-                <p className="text-2xl font-extrabold">$20</p>
-                <p className="text-xs opacity-60">one-time setup</p>
+          {needsPayment && (
+            <div className="rounded-xl border border-base-300 bg-base-100 shadow-xs overflow-hidden">
+              <div className="px-4 py-3 bg-primary text-primary-content">
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-0.5">
+                  Billing Summary
+                </p>
+                <div className="flex items-end justify-between">
+                  <p className="text-2xl font-extrabold">
+                    {needsRegistrationPayment
+                      ? formatBillingPrice(BILLING_MIN_GOLFERS * BILLING_PRICE_PER_GOLFER)
+                      : formatBillingPrice(additionalCost)}
+                  </p>
+                  <p className="text-xs opacity-60">
+                    {needsRegistrationPayment
+                      ? `${BILLING_MIN_GOLFERS} golfer minimum`
+                      : `${additionalGolfersRequired} added golfers`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-4 py-3 space-y-2 text-xs border-b border-base-200">
+                {[
+                  { label: "League", value: leagueData?.name || "—" },
+                  { label: "Roster", value: `${players.length}` },
+                  { label: "Included", value: `${includedGolfers}` },
+                  {
+                    label: needsRegistrationPayment ? "Needed to Start" : "Extra Needed",
+                    value: `${needsRegistrationPayment ? BILLING_MIN_GOLFERS : additionalGolfersRequired}`,
+                  },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between gap-2">
+                    <span className="text-gray-400 font-medium">{label}</span>
+                    <span className="font-semibold text-gray-700 truncate text-right max-w-[120px]">
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="px-4 py-3">
+                <p className="text-[11px] leading-5 text-gray-500">
+                  League creation is locked until your golfer capacity covers this roster.
+                </p>
               </div>
             </div>
-
-            <div className="px-4 py-3 space-y-2 text-xs border-b border-base-200">
-              {[
-                { label: "League", value: leagueData?.name || "—" },
-                { label: "Type", value: fmt(leagueType) },
-                {
-                  label: "Format",
-                  value: leagueType === "season" ? fmt(leagueFormat, "—") : "N/A",
-                },
-                { label: "Players", value: `${players.length}` },
-                ...(isTeamSeason ? [{ label: "Teams", value: `${teams.length}` }] : []),
-              ].map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between gap-2">
-                  <span className="text-gray-400 font-medium">{label}</span>
-                  <span className="font-semibold text-gray-700 truncate text-right max-w-[120px]">
-                    {value}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="px-4 py-3 flex flex-col gap-2">
-              <button
-                type="button"
-                className="btn btn-primary btn-sm w-full"
-                onClick={handleStartCheckout}
-                disabled={createCheckoutSession.isPending}
-              >
-                {createCheckoutSession.isPending ? "Starting…" : "Pay with Stripe →"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm w-full text-gray-400"
-                onClick={handleBack}
-              >
-                ← Go Back
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

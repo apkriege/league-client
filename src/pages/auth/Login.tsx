@@ -6,6 +6,8 @@ import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import courseImage from "@/assets/course.png";
 
+const googleAuthUrl = import.meta.env.VITE_GOOGLE_AUTH_URL;
+
 export default function Login() {
   const navigate = useNavigate();
   const { setUser } = useAppStore();
@@ -133,13 +135,16 @@ export default function Login() {
 
             <button
               type="button"
+              disabled={!googleAuthUrl}
               onClick={() => {
-                window.location.href = "http://localhost:8080/api/auth/google";
+                if (googleAuthUrl) {
+                  window.location.href = googleAuthUrl;
+                }
               }}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-bold text-white transition hover:bg-white/10"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ShieldCheck size={15} />
-              Sign in with Google
+              {googleAuthUrl ? "Sign in with Google" : "Google sign-in unavailable"}
             </button>
 
             <p className="mt-5 text-sm text-white/62">

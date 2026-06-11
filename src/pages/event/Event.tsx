@@ -1,5 +1,7 @@
 import PageHeader from "@/components/layout/PageHeader";
+import PageState from "@/components/layout/PageState";
 import { useLeagueEvent } from "@api/league/queries";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import {
   BarElement,
   CategoryScale,
@@ -18,6 +20,7 @@ import {
   CheckCircle2,
   CircleDashed,
   Clock,
+  Eye,
   Flag,
   ListOrdered,
   MapPin,
@@ -29,10 +32,12 @@ import {
   TrendingUp,
   Trophy,
   User,
+  X,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
+import ViewFlightScores from "@/pages/scores/ViewFlightScores";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   scheduled: {
@@ -52,6 +57,13 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
   },
 };
 
+const normalizeStatus = (status: string) => {
+  if (status === "completed" || status === "complete") return "complete";
+  if (status === "upcoming" || status === "scheduled") return "scheduled";
+  if (status === "active") return "active";
+  return "scheduled";
+};
+
 const LEADERBOARD_TABS = [
   { id: "points", label: "Points" },
   { id: "lowGross", label: "Low Gross" },
@@ -60,10 +72,91 @@ const LEADERBOARD_TABS = [
 
 export default function Event() {
   const { leagueId, eventId } = useParams();
-  const { data: event } = useLeagueEvent(Number(leagueId), Number(eventId));
+  const {
+    data: event,
+    isLoading,
+    isError,
+    error,
+  } = useLeagueEvent(Number(leagueId), Number(eventId));
   const [activeTab, setActiveTab] = useState("points");
+  const [isScorecardDrawerMounted, setIsScorecardDrawerMounted] = useState(false);
+  const [isScorecardDrawerOpen, setIsScorecardDrawerOpen] = useState(false);
+  const [activeSkinsDrawer, setActiveSkinsDrawer] = useState<{
+    label: string;
+    skins: any[];
+    valueKey: string;
+    iconClass: string;
+    badgeClass: string;
+  } | null>(null);
+  const [isSkinsDrawerMounted, setIsSkinsDrawerMounted] = useState(false);
+  const [isSkinsDrawerOpen, setIsSkinsDrawerOpen] = useState(false);
+  const drawerCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skinsDrawerCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (!event) {
+  const openScorecardDrawer = () => {
+    if (drawerCloseTimerRef.current) {
+      clearTimeout(drawerCloseTimerRef.current);
+      drawerCloseTimerRef.current = null;
+    }
+    setIsScorecardDrawerMounted(true);
+    requestAnimationFrame(() => {
+      setIsScorecardDrawerOpen(true);
+    });
+  };
+
+  const closeScorecardDrawer = () => {
+    setIsScorecardDrawerOpen(false);
+    if (drawerCloseTimerRef.current) {
+      clearTimeout(drawerCloseTimerRef.current);
+    }
+    drawerCloseTimerRef.current = setTimeout(() => {
+      setIsScorecardDrawerMounted(false);
+      drawerCloseTimerRef.current = null;
+    }, 300);
+  };
+
+  const openSkinsDrawer = (config: {
+    label: string;
+    skins: any[];
+    valueKey: string;
+    iconClass: string;
+    badgeClass: string;
+  }) => {
+    if (skinsDrawerCloseTimerRef.current) {
+      clearTimeout(skinsDrawerCloseTimerRef.current);
+      skinsDrawerCloseTimerRef.current = null;
+    }
+    setActiveSkinsDrawer(config);
+    setIsSkinsDrawerMounted(true);
+    requestAnimationFrame(() => {
+      setIsSkinsDrawerOpen(true);
+    });
+  };
+
+  const closeSkinsDrawer = () => {
+    setIsSkinsDrawerOpen(false);
+    if (skinsDrawerCloseTimerRef.current) {
+      clearTimeout(skinsDrawerCloseTimerRef.current);
+    }
+    skinsDrawerCloseTimerRef.current = setTimeout(() => {
+      setIsSkinsDrawerMounted(false);
+      setActiveSkinsDrawer(null);
+      skinsDrawerCloseTimerRef.current = null;
+    }, 300);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (drawerCloseTimerRef.current) {
+        clearTimeout(drawerCloseTimerRef.current);
+      }
+      if (skinsDrawerCloseTimerRef.current) {
+        clearTimeout(skinsDrawerCloseTimerRef.current);
+      }
+    };
+  }, []);
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
         Loading event details...
@@ -71,10 +164,33 @@ export default function Event() {
     );
   }
 
-  const status = STATUS_CONFIG[event.status] ?? STATUS_CONFIG["scheduled"];
+  if (isError) {
+    const status = getApiErrorStatus(error);
+    return (
+      <PageState
+        title={status === 404 ? "Event Not Found" : status === 403 ? "Access Denied" : "Unable to Load Event"}
+        message={getApiErrorMessage(error, "The event page could not be loaded right now.")}
+        variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
+        actionTo={leagueId ? `/league/${leagueId}/events` : "/leagues"}
+        actionLabel="Back to Events"
+      />
+    );
+  }
+
+  if (!event) {
+    return (
+      <PageState
+        title="Event Not Found"
+        message="The event could not be found."
+        variant="notFound"
+        actionTo={leagueId ? `/league/${leagueId}/events` : "/leagues"}
+        actionLabel="Back to Events"
+      />
+    );
+  }
+
+  const status = STATUS_CONFIG[normalizeStatus(String(event.status || ""))] ?? STATUS_CONFIG["scheduled"];
   const date = new Date(event.date);
-  const totalSkins =
-    event.metrics.skins.playerSkins.length + event.metrics.skins.playerNetSkins.length;
 
   const activeLeaderboard =
     activeTab === "points"
@@ -86,6 +202,9 @@ export default function Event() {
   const activeValueLabel =
     activeTab === "points" ? "PTS" : activeTab === "lowGross" ? "GROSS" : "NET";
   const hasRounds = (event.metrics.scores?.length ?? 0) > 0;
+  const totalFlightPlayers = (event.flights ?? []).flatMap(
+    (flight: any) => flight.players ?? []
+  ).length;
 
   return (
     <div>
@@ -128,143 +247,422 @@ export default function Event() {
           {status.icon}
           {status.label}
         </div>
-        <Link
-          to={`/league/${leagueId}/events/${eventId}/print-scorecards`}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-        >
-          <Printer size={12} />
-          Print Scorecards
-        </Link>
+        {normalizeStatus(String(event.status || "")) !== "complete" && (
+          <Link
+            to={`/league/${leagueId}/events/${eventId}/print-scorecards`}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+          >
+            <Printer size={12} />
+            Print Scorecards
+          </Link>
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {[
+          {
+            label: "Players",
+            value: hasRounds ? activeLeaderboard.length : totalFlightPlayers,
+            sub: hasRounds ? "scored players" : "in flights",
+            icon: <User size={14} className="text-blue-500" />,
+            accent: "from-blue-50 to-white border-blue-100",
+          },
+          {
+            label: "Gross Skins",
+            value: event.metrics.skins.playerSkins.length,
+            sub: "winning holes",
+            icon: <Zap size={14} className="text-amber-500" />,
+            accent: "from-amber-50 to-white border-amber-100",
+          },
+          {
+            label: "Net Skins",
+            value: event.metrics.skins.playerNetSkins.length,
+            sub: "winning holes",
+            icon: <Zap size={14} className="text-violet-500" />,
+            accent: "from-violet-50 to-white border-violet-100",
+          },
+          {
+            label: "Holes",
+            value: event.holes,
+            sub: `${event.startSide === "back" ? "back" : "front"} start`,
+            icon: <Flag size={14} className="text-emerald-500" />,
+            accent: "from-emerald-50 to-white border-emerald-100",
+          },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className={`relative overflow-hidden bg-linear-to-br ${stat.accent} border rounded-xl px-4 py-3 shadow-sm flex items-start justify-between gap-3`}
+          >
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                {stat.label}
+              </p>
+              <p className="text-2xl font-black text-gray-900 leading-tight mt-1">{stat.value}</p>
+              <p className="text-[11px] font-medium text-gray-500 mt-1">{stat.sub}</p>
+            </div>
+            <div className="shrink-0 p-2.5 bg-white/70 rounded-lg border border-white/70 shadow-[0_1px_0_rgba(255,255,255,0.8)]">
+              {stat.icon}
+            </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-gray-900/5" />
+          </div>
+        ))}
       </div>
 
       <div className="flex flex-col gap-4 mt-4">
         {hasRounds ? (
           <>
-            <div className="grid grid-cols-4 gap-3">
-              {[
-                {
-                  label: "Players",
-                  value: activeLeaderboard.length,
-                  icon: <User size={14} className="text-blue-400" />,
-                },
-                {
-                  label: "Gross Skins",
-                  value: event.metrics.skins.playerSkins.length,
-                  icon: <Zap size={14} className="text-amber-400" />,
-                },
-                {
-                  label: "Net Skins",
-                  value: event.metrics.skins.playerNetSkins.length,
-                  icon: <Zap size={14} className="text-violet-400" />,
-                },
-                {
-                  label: "Holes",
-                  value: event.holes,
-                  icon: <Flag size={14} className="text-emerald-400" />,
-                },
-              ].map((stat, i) => (
-                <div
-                  key={i}
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm flex items-center gap-3"
-                >
-                  <div className="p-2 bg-gray-50 rounded-md border border-gray-100">
-                    {stat.icon}
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
-                      {stat.label}
-                    </p>
-                    <p className="text-lg font-bold text-gray-800 leading-tight">{stat.value}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-4">
-              <div className="w-2/3 flex flex-col gap-4">
-                {event.metrics.scoreDistribution && (
-                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-                      <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
-                      <h3 className="text-sm font-semibold text-gray-800">Score Distribution</h3>
-                      <span className="ml-auto text-[10px] text-gray-400">
-                        This event vs. season avg
-                      </span>
-                    </div>
-                    <div className="px-4 py-3">
-                      <ScoreDistributionChart distribution={event.metrics.scoreDistribution} />
-                    </div>
-                  </div>
-                )}
-                <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
-                      <h3 className="text-sm font-semibold text-gray-800">Leaderboard</h3>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {LEADERBOARD_TABS.map((tab) => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
-                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${activeTab === tab.id ? "bg-gray-100 text-gray-800 border border-gray-200" : "text-gray-400 hover:text-gray-600"}`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <ScoreLeaderboard leaderboard={activeLeaderboard} valueLabel={activeValueLabel} />
-                </div>
+            <div className="pt-2 border-t border-gray-100">
+              <div className="mb-3">
+                <h3 className="text-lg font-bold text-gray-800 tracking-tight">
+                  Performance and Skins
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Distribution, leaderboard, and skin winners
+                </p>
               </div>
-
-              <div className="w-1/3 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Zap size={14} className="text-amber-500" strokeWidth={2.5} />
-                    <h3 className="text-sm font-semibold text-gray-800">Skins</h3>
-                  </div>
-                  {totalSkins > 0 && (
-                    <span className="text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">
-                      {totalSkins} total
-                    </span>
+              <div className="flex gap-4">
+                <div className="w-2/3 flex flex-col gap-4">
+                  {event.metrics.scoreDistribution && (
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                        <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
+                        <h3 className="text-sm font-semibold text-gray-800">Score Distribution</h3>
+                        <span className="ml-auto text-[10px] text-gray-400">
+                          This event vs. season avg
+                        </span>
+                      </div>
+                      <div className="px-4 py-3">
+                        <ScoreDistributionChart distribution={event.metrics.scoreDistribution} />
+                      </div>
+                    </div>
                   )}
+                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
+                        <h3 className="text-sm font-semibold text-gray-800">Leaderboard</h3>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {LEADERBOARD_TABS.map((tab) => (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${activeTab === tab.id ? "bg-gray-100 text-gray-800 border border-gray-200" : "text-gray-400 hover:text-gray-600"}`}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <ScoreLeaderboard
+                      leaderboard={activeLeaderboard}
+                      valueLabel={activeValueLabel}
+                    />
+                  </div>
                 </div>
-                <div className="p-4 space-y-4">
+
+                <div className="w-1/3 flex flex-col gap-3">
                   <SkinsList
                     label="Gross"
                     skins={event.metrics.skins.playerSkins}
                     valueKey="gross"
+                    iconClass="text-amber-500"
+                    badgeClass="bg-amber-50 text-amber-600 border-amber-200"
+                    onViewAll={() =>
+                      openSkinsDrawer({
+                        label: "Gross",
+                        skins: event.metrics.skins.playerSkins,
+                        valueKey: "gross",
+                        iconClass: "text-amber-500",
+                        badgeClass: "bg-amber-50 text-amber-600 border-amber-200",
+                      })
+                    }
                   />
-                  <div className="border-t border-gray-100" />
                   <SkinsList
                     label="Net"
                     skins={event.metrics.skins.playerNetSkins}
                     valueKey="net"
+                    iconClass="text-violet-500"
+                    badgeClass="bg-violet-50 text-violet-600 border-violet-200"
+                    onViewAll={() =>
+                      openSkinsDrawer({
+                        label: "Net",
+                        skins: event.metrics.skins.playerNetSkins,
+                        valueKey: "net",
+                        iconClass: "text-violet-500",
+                        badgeClass: "bg-violet-50 text-violet-600 border-violet-200",
+                      })
+                    }
                   />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-                <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
-                <h3 className="text-sm font-semibold text-gray-800">Round Scores</h3>
+            <div className="pt-2 border-t border-gray-100">
+              <div className="mb-3">
+                <h3 className="text-lg font-bold text-gray-800 tracking-tight">Round Scores</h3>
+                <p className="text-xs text-gray-500 mt-0.5">All player scores for this event</p>
               </div>
-              <RoundsTable rounds={event.metrics.scores} />
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
+                    <h3 className="text-sm font-semibold text-gray-800">Round Scores</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openScorecardDrawer}
+                    className="flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                  >
+                    <Eye size={12} strokeWidth={2.5} />
+                    Scorecards
+                  </button>
+                </div>
+                <RoundsTable rounds={event.metrics.scores} />
+              </div>
             </div>
           </>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-              <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
-              <h3 className="text-sm font-semibold text-gray-800">Flights</h3>
-              <span className="text-[10px] text-gray-400">No rounds recorded yet</span>
+          <div className="pt-2 border-t border-gray-100">
+            <div className="mb-3">
+              <h3 className="text-lg font-bold text-gray-800 tracking-tight">Flights</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Pairings and tee time assignments</p>
             </div>
-            <FlightsPreview event={event} />
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
+                <h3 className="text-sm font-semibold text-gray-800">Flights</h3>
+                <span className="text-[10px] text-gray-400">No rounds recorded yet</span>
+              </div>
+              <FlightsPreview event={event} />
+            </div>
           </div>
         )}
       </div>
+
+      {isScorecardDrawerMounted && (
+        <div className="fixed inset-0 z-50">
+          <button
+            type="button"
+            aria-label="Close scorecards drawer"
+            onClick={closeScorecardDrawer}
+            className={`absolute inset-0 bg-black/35 backdrop-blur-[2px] transition-opacity duration-300 ${
+              isScorecardDrawerOpen ? "opacity-100" : "opacity-0"
+            }`}
+          />
+
+          <aside
+            className={`absolute right-0 top-0 h-full w-full max-w-5xl border-l border-gray-200 bg-white shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${
+              isScorecardDrawerOpen ? "translate-x-0" : "translate-x-full"
+            }`}
+          >
+            <div className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-5 py-4 backdrop-blur flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Scorecard View
+                </p>
+                <h3 className="text-lg font-bold text-gray-900 tracking-tight">
+                  Detailed Scorecards
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Admin-style score breakdown for this event
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeScorecardDrawer}
+                className="rounded-lg border border-transparent p-2 text-gray-400 hover:border-gray-200 hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {event.format === "team" ? (
+                <TeamScorecardsDrawer event={event} />
+              ) : event.scoringFormat === "match" ? (
+                <IndividualMatchScorecardsDrawer event={event} />
+              ) : (
+                <IndividualStrokeScorecardsDrawer rounds={event.metrics.scores || []} />
+              )}
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {isSkinsDrawerMounted && activeSkinsDrawer && (
+        <div className="fixed inset-0 z-50">
+          <button
+            type="button"
+            aria-label="Close skins drawer"
+            onClick={closeSkinsDrawer}
+            className={`absolute inset-0 bg-black/35 backdrop-blur-[2px] transition-opacity duration-300 ${
+              isSkinsDrawerOpen ? "opacity-100" : "opacity-0"
+            }`}
+          />
+
+          <aside
+            className={`absolute right-0 top-0 h-full w-full max-w-5xl border-l border-gray-200 bg-white shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${
+              isSkinsDrawerOpen ? "translate-x-0" : "translate-x-full"
+            }`}
+          >
+            <div className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-5 py-4 backdrop-blur flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Skins Breakdown
+                </p>
+                <h3 className="text-lg font-bold text-gray-900 tracking-tight">
+                  {activeSkinsDrawer.label} Skins
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Full round scores with skin-winning holes highlighted
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeSkinsDrawer}
+                className="rounded-lg border border-transparent p-2 text-gray-400 hover:border-gray-200 hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-5">
+              <SkinsRoundScoresDrawer
+                rounds={event.metrics.scores || []}
+                skins={activeSkinsDrawer.skins}
+                label={activeSkinsDrawer.label}
+                valueKey={activeSkinsDrawer.valueKey}
+                iconClass={activeSkinsDrawer.iconClass}
+                badgeClass={activeSkinsDrawer.badgeClass}
+              />
+            </div>
+          </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TeamScorecardsDrawer({ event }: { event: any }) {
+  const flights = [...(event.flights || [])].sort((a: any, b: any) => {
+    const aTime = String(a?.startTime || "");
+    const bTime = String(b?.startTime || "");
+    return aTime.localeCompare(bTime);
+  });
+
+  if (flights.length === 0) {
+    return <p className="text-sm text-gray-400">No flight scorecards available.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {flights.map((flight: any) => (
+        <div
+          key={flight.id}
+          className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+        >
+          <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-700">
+            Flight {flight.startTime}
+          </div>
+          <div className="p-4">
+            <ViewFlightScores event={event} flight={flight} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function IndividualStrokeScorecardsDrawer({ rounds }: { rounds: any[] }) {
+  if (!rounds?.length) {
+    return <p className="text-sm text-gray-400">No scorecards available yet.</p>;
+  }
+
+  const sorted = [...rounds].sort((a, b) => a.player.lastName.localeCompare(b.player.lastName));
+  const holes = Array.from(
+    new Set(rounds.flatMap((round) => (round.scores ?? []).map((score: any) => Number(score.hole))))
+  ).sort((a, b) => a - b);
+
+  const getRoundPoints = (round: any) =>
+    Number(round?.pointsEarned ?? round?.points ?? 0) + Number(round?.matchPoints ?? 0);
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-x-auto">
+      <table className="min-w-max w-full text-left table-sm table-auto">
+        <thead>
+          <tr className="text-xs text-gray-700">
+            <th className="p-2">Player</th>
+            {holes.map((hole: number) => (
+              <th key={hole} className="p-2 text-center">
+                {hole}
+              </th>
+            ))}
+            <th className="p-2 text-center">Total</th>
+            <th className="p-2 text-center">Net</th>
+            <th className="p-2 text-center">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((round: any) => (
+            <tr key={round.id} className="text-sm bg-slate-50/50">
+              <td className="p-2 text-xs">
+                <span className="font-semibold">
+                  {round.player.firstName} {round.player.lastName}
+                </span>
+                <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                  Handicap: {Math.round(Number(round.preHandicap ?? 0))}
+                </div>
+              </td>
+              {holes.map((hole: number) => {
+                const score = round.scores?.find((s: any) => Number(s.hole) === hole);
+                return (
+                  <td key={hole} className="p-2">
+                    <div className="relative h-8 min-w-10 border rounded flex items-center justify-center text-xs font-semibold bg-white">
+                      {score?.gross ?? "-"}
+                    </div>
+                  </td>
+                );
+              })}
+              <td className="font-bold text-center text-xs">{round.gross ?? 0}</td>
+              <td className="font-bold text-center text-xs">{round.net ?? 0}</td>
+              <td className="font-bold text-center text-xs">{getRoundPoints(round)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function IndividualMatchScorecardsDrawer({ event }: { event: any }) {
+  const flights = [...(event.flights || [])].sort((a: any, b: any) => {
+    const aTime = String(a?.startTime || "");
+    const bTime = String(b?.startTime || "");
+    return aTime.localeCompare(bTime);
+  });
+
+  if (flights.length === 0) {
+    return <p className="text-sm text-gray-400">No scorecards available yet.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {flights.map((flight: any) => (
+        <div
+          key={flight.id}
+          className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+        >
+          <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-700">
+            Flight {flight.startTime}
+          </div>
+          <div className="p-4">
+            <ViewFlightScores event={event} flight={flight} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -399,38 +797,166 @@ function StrokeFlightPreview({ flight }: { flight: any }) {
   );
 }
 
-function SkinsList({ label, skins, valueKey }: { label: string; skins: any[]; valueKey: string }) {
+function SkinsList({
+  label,
+  skins,
+  valueKey,
+  iconClass,
+  badgeClass,
+  onViewAll,
+}: {
+  label: string;
+  skins: any[];
+  valueKey: string;
+  iconClass: string;
+  badgeClass: string;
+  onViewAll: () => void;
+}) {
   return (
-    <div>
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
-      {skins.length === 0 ? (
-        <p className="text-xs text-gray-400 italic">No {label.toLowerCase()} skins yet</p>
-      ) : (
-        <div className="flex flex-col gap-1">
-          {skins.map((skin: any, i: number) => (
-            <div
-              key={i}
-              className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-md border border-gray-100"
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center w-5 h-5 rounded bg-amber-50 border border-amber-200 shrink-0">
-                  <Flag size={10} className="text-amber-500" strokeWidth={2.5} />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-800 leading-tight">{skin.name}</p>
-                  <p className="text-[10px] text-gray-400">Hole {skin.hole}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-gray-500 bg-white border border-gray-200 px-1.5 py-0.5 rounded">
-                  {skin.scoreLabel}
-                </span>
-                <span className="text-xs font-bold text-gray-700">{skin[valueKey]}</span>
-              </div>
-            </div>
-          ))}
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+        <div className="flex items-center gap-1.5">
+          <Zap size={13} className={iconClass} strokeWidth={2.5} />
+          <h3 className="text-xs font-semibold text-gray-800">{label} Skins</h3>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] font-bold border px-1.5 py-0.5 rounded-full ${badgeClass}`}>
+            {skins.length}
+          </span>
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="text-[10px] font-semibold text-gray-500 hover:text-gray-700"
+          >
+            View
+          </button>
+        </div>
+      </div>
+      <div className="p-3">
+        {skins.length === 0 ? (
+          <p className="text-[11px] text-gray-300 italic">No {label.toLowerCase()} skins yet</p>
+        ) : (
+          <div className="max-h-[180px] overflow-y-auto pr-1 divide-y divide-gray-50 border border-gray-100 rounded-md">
+            {skins.map((skin: any, i: number) => (
+              <div key={i} className="flex items-center justify-between px-2.5 py-2 bg-white">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center justify-center w-4 h-4 rounded bg-amber-50 border border-amber-200 shrink-0">
+                    <Flag size={9} className="text-amber-500" strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-gray-800 leading-tight truncate">
+                      {skin.name}
+                    </p>
+                    <p className="text-[10px] text-gray-400">Hole {skin.hole}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] text-gray-500 bg-gray-50 border border-gray-200 px-1 py-0.5 rounded">
+                    {skin.scoreLabel}
+                  </span>
+                  <span className="text-xs font-bold text-gray-700 tabular-nums">
+                    {skin[valueKey]}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SkinsRoundScoresDrawer({
+  rounds,
+  skins,
+  label,
+  valueKey,
+  iconClass,
+  badgeClass,
+}: {
+  rounds: any[];
+  skins: any[];
+  label: string;
+  valueKey: string;
+  iconClass: string;
+  badgeClass: string;
+}) {
+  if (!rounds?.length) {
+    return <p className="text-sm text-gray-400">No scorecards available yet.</p>;
+  }
+
+  const highlightedHolesByPlayer = skins.reduce((acc: Record<number, number[]>, skin: any) => {
+    const playerId = Number(skin?.playerId ?? 0);
+    const hole = Number(skin?.hole ?? 0);
+    if (!playerId || !hole) return acc;
+    acc[playerId] = [...(acc[playerId] || []), hole];
+    return acc;
+  }, {});
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <Zap size={14} className={iconClass} strokeWidth={2.5} />
+            <h3 className="text-sm font-semibold text-gray-800">{label} Skin Winners</h3>
+          </div>
+          <span className={`text-[10px] font-bold border px-2 py-0.5 rounded-full ${badgeClass}`}>
+            {skins.length} skins
+          </span>
+        </div>
+        <div className="p-3">
+          {skins.length === 0 ? (
+            <p className="text-[11px] text-gray-300 italic">No {label.toLowerCase()} skins yet</p>
+          ) : (
+            <div className="divide-y divide-gray-50 border border-gray-100 rounded-md">
+              {skins.map((skin: any, i: number) => (
+                <div key={i} className="flex items-center justify-between px-2.5 py-2 bg-white">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center justify-center w-4 h-4 rounded bg-amber-50 border border-amber-200 shrink-0">
+                      <Flag size={9} className="text-amber-500" strokeWidth={2.5} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold text-gray-800 leading-tight truncate">
+                        {skin.name}
+                      </p>
+                      <p className="text-[10px] text-gray-400">Hole {skin.hole}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] text-gray-500 bg-gray-50 border border-gray-200 px-1 py-0.5 rounded">
+                      {skin.scoreLabel}
+                    </span>
+                    <span className="text-xs font-bold text-gray-700 tabular-nums">
+                      {skin[valueKey]}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
+            <h3 className="text-sm font-semibold text-gray-800">Round Scores</h3>
+          </div>
+          <span className="text-[10px] text-amber-600 font-semibold">
+            Highlighted cells mark skin holes
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <RoundsTable
+            rounds={rounds}
+            highlightedHolesByPlayer={highlightedHolesByPlayer}
+            highlightUnderPar={false}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -444,66 +970,70 @@ function ScoreLeaderboard({ leaderboard, valueLabel }: { leaderboard: any[]; val
       .toUpperCase();
 
   return (
-    <table className="w-full text-left">
-      <thead>
-        <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 border-b border-gray-100">
-          <th className="px-4 py-2.5 w-10">#</th>
-          <th className="px-3 py-2.5">
-            <div className="flex items-center gap-1">
-              <User size={10} strokeWidth={2.5} />
-              <span>Player</span>
-            </div>
-          </th>
-          <th className="px-4 py-2.5 text-right">{valueLabel}</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-50">
-        {leaderboard.map((entry, index) => (
-          <tr
-            key={index}
-            className={`text-sm ${index === 0 ? "bg-amber-50/40" : "hover:bg-gray-50/60"}`}
-          >
-            <td className="px-4 py-3">
-              <span
-                className={`text-xs font-bold ${index === 0 ? "text-amber-600" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : "text-gray-400"}`}
-              >
-                {index < 9 ? `0${index + 1}` : index + 1}
-              </span>
-            </td>
-            <td className="px-3 py-3">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className={`h-7 w-7 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${
+    <div className="max-h-[280px] overflow-y-auto">
+      <table className="w-full text-left">
+        <thead className="sticky top-0 z-10 bg-gray-50">
+          <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+            <th className="px-3 py-2 w-8">#</th>
+            <th className="px-2.5 py-2">
+              <div className="flex items-center gap-1">
+                <User size={10} strokeWidth={2.5} />
+                <span>Player</span>
+              </div>
+            </th>
+            <th className="px-3 py-2 text-right">{valueLabel}</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {leaderboard.map((entry, index) => (
+            <tr
+              key={index}
+              className={`text-xs ${index === 0 ? "bg-amber-50/40" : "hover:bg-gray-50/60"}`}
+            >
+              <td className="px-3 py-2">
+                <span
+                  className={`text-xs font-bold ${index === 0 ? "text-amber-600" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : "text-gray-400"}`}
+                >
+                  {index < 9 ? `0${index + 1}` : index + 1}
+                </span>
+              </td>
+              <td className="px-2.5 py-2">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`h-6 w-6 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                      index === 0
+                        ? "bg-amber-100 text-amber-700 border border-amber-200"
+                        : "bg-gray-100 text-gray-500 border border-gray-200"
+                    }`}
+                  >
+                    {getInitials(entry.name)}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800 text-xs leading-tight">
+                      {entry.name}
+                    </p>
+                    <p className="text-[10px] text-gray-400">
+                      HCP {entry.handicap != null ? entry.handicap.toFixed(1) : "—"}
+                    </p>
+                  </div>
+                </div>
+              </td>
+              <td className="px-3 py-2 text-right">
+                <span
+                  className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold border ${
                     index === 0
-                      ? "bg-amber-100 text-amber-700 border border-amber-200"
-                      : "bg-gray-100 text-gray-500 border border-gray-200"
+                      ? "bg-amber-100 text-amber-700 border-amber-200"
+                      : "bg-gray-100 text-gray-600 border-gray-200"
                   }`}
                 >
-                  {getInitials(entry.name)}
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800 text-sm leading-tight">{entry.name}</p>
-                  <p className="text-[10px] text-gray-400">
-                    HCP {entry.handicap != null ? entry.handicap.toFixed(1) : "—"}
-                  </p>
-                </div>
-              </div>
-            </td>
-            <td className="px-4 py-3 text-right">
-              <span
-                className={`inline-block px-2 py-0.5 rounded text-sm font-bold border ${
-                  index === 0
-                    ? "bg-amber-100 text-amber-700 border-amber-200"
-                    : "bg-gray-100 text-gray-600 border-gray-200"
-                }`}
-              >
-                {entry.value}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+                  {entry.value}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -604,11 +1134,19 @@ function ScoreDistributionChart({
   );
 }
 
-function RoundsTable({ rounds }: { rounds: any[] }) {
+function RoundsTable({
+  rounds,
+  highlightedHolesByPlayer,
+  highlightUnderPar = true,
+}: {
+  rounds: any[];
+  highlightedHolesByPlayer?: Record<number, number[]>;
+  highlightUnderPar?: boolean;
+}) {
   const sorted = [...rounds].sort((a, b) => a.player.lastName.localeCompare(b.player.lastName));
-  const holes = rounds[0].scores
-    .map((score: any) => score.hole)
-    .sort((a: number, b: number) => a - b);
+  const holes = Array.from(
+    new Set(rounds.flatMap((round) => (round.scores ?? []).map((score: any) => Number(score.hole))))
+  ).sort((a, b) => a - b);
 
   return (
     <table className="w-full table-fixed">
@@ -669,14 +1207,19 @@ function RoundsTable({ rounds }: { rounds: any[] }) {
             </td>
             {holes.map((hole: number) => {
               const score = round.scores.find((s: any) => s.hole === hole);
+              const isHighlighted = (
+                highlightedHolesByPlayer?.[Number(round.playerId)] || []
+              ).includes(hole);
               return (
                 <td key={hole} className="py-2.5 text-center text-xs text-gray-700">
                   {score ? (
                     <span
                       className={
-                        score.gross < score.par
-                          ? "inline-flex items-center justify-center w-5 h-5 rounded bg-green-100 text-green-700 font-semibold ring-1 ring-green-200"
-                          : ""
+                        isHighlighted
+                          ? "inline-flex items-center justify-center w-6 h-6 rounded bg-amber-100 text-amber-700 font-semibold ring-2 ring-amber-300"
+                          : highlightUnderPar && score.gross < score.par
+                            ? "inline-flex items-center justify-center w-5 h-5 rounded bg-green-100 text-green-700 font-semibold ring-1 ring-green-200"
+                            : ""
                       }
                     >
                       {score.gross}

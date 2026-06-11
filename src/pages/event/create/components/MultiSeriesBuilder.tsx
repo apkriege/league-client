@@ -29,6 +29,7 @@ import { useLeague } from "@api/league/queries";
 import { useCoursesWithTees } from "@api/courses";
 import { useCreateLeagueEvents } from "@api/league/mutations";
 import { useToast } from "@/context/ToastContext";
+import { DEFAULT_STROKE_POINTS } from "../constants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -140,6 +141,13 @@ export default function MultiSeriesBuilder() {
   // Shared settings from the parent form context
   const format: string = methods.watch("format") || "team";
   const scoringFormat: string = methods.watch("scoringFormat") || "match";
+  const selectScoringFormat = (nextScoringFormat: "stroke" | "match") => {
+    methods.setValue("scoringFormat", nextScoringFormat);
+
+    if (nextScoringFormat === "stroke" && !String(methods.getValues("strokePoints") || "").trim()) {
+      methods.setValue("strokePoints", DEFAULT_STROKE_POINTS, { shouldDirty: true });
+    }
+  };
   const isTeamFormat = format === "team";
   const teams: any[] = methods.watch("teams") || [];
   const players: any[] = league?.players || [];
@@ -395,7 +403,7 @@ export default function MultiSeriesBuilder() {
                 <div className="flex flex-col gap-2">
                   <SelectableInfoCard
                     active={scoringFormat === "stroke"}
-                    onClick={() => methods.setValue("scoringFormat", "stroke")}
+                    onClick={() => selectScoringFormat("stroke")}
                     icon={<Tally5 size={26} />}
                     title="Stroke Play"
                     description={
@@ -407,7 +415,7 @@ export default function MultiSeriesBuilder() {
                   />
                   <SelectableInfoCard
                     active={scoringFormat === "match"}
-                    onClick={() => methods.setValue("scoringFormat", "match")}
+                    onClick={() => selectScoringFormat("match")}
                     icon={<Zap size={26} />}
                     title="Match Play"
                     description={
@@ -426,7 +434,7 @@ export default function MultiSeriesBuilder() {
                 <>
                   <Input
                     label="Stroke Points (CSV)"
-                    placeholder="e.g. 10,8,6,4,2"
+                    placeholder={`e.g. ${DEFAULT_STROKE_POINTS}`}
                     {...methods.register("strokePoints")}
                   />
                   <p className="text-[11px] text-base-content/60 mt-1">

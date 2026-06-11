@@ -1,14 +1,24 @@
+import { useState } from "react";
 import Button from "@/components/layout/Button";
+import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
 import { Flag } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router";
+import {
+  buildSwappedPlayerEntry,
+  getSwapCandidates,
+  PlayerSwapControl,
+} from "./PlayerSwapControl";
 import { calculateStrokeplayPops } from "./util";
 
 export const CreateFlightScoresTeamStroke = ({
   flight,
   event,
+  leaguePlayers = [],
+  eventPlayerIds = [],
   isEditMode,
+  onFlightPlayersUpdated,
   onSaveSuccess,
   onCancel,
 }: any) => {
@@ -24,8 +34,12 @@ export const CreateFlightScoresTeamStroke = ({
   const team1Name = String(flight?.teams?.[0]?.team?.name || "Team 1");
   const team2Name = String(flight?.teams?.[1]?.team?.name || "Team 2");
 
-  const team1Players = (flight.players || []).filter((p: any) => Number(p.teamId) === team1Id);
-  const team2Players = (flight.players || []).filter((p: any) => Number(p.teamId) === team2Id);
+  const [team1Players, setTeam1Players] = useState<any[]>(
+    (flight.players || []).filter((p: any) => Number(p.teamId) === team1Id)
+  );
+  const [team2Players, setTeam2Players] = useState<any[]>(
+    (flight.players || []).filter((p: any) => Number(p.teamId) === team2Id)
+  );
   const players = [...team1Players, ...team2Players];
 
   const getEffectiveHandicap = (playerEntry: any) => {
@@ -64,6 +78,7 @@ export const CreateFlightScoresTeamStroke = ({
 
   const createMutation = useCreateEventScores();
   const updateMutation = useUpdateEventScores();
+  const updateFlightPlayersMutation = useUpdateFlightPlayers();
   const watchedPlayers = methods.watch("players");
 
   const handleHoleChange = (e: any, holeIndex: number, playerId: number) => {
@@ -132,6 +147,50 @@ export const CreateFlightScoresTeamStroke = ({
     }, 0);
   };
 
+  const savePlayerSwap = async (team: 1 | 2, playerIndex: number, replacementId: number) => {
+    const teamPlayers = team === 1 ? team1Players : team2Players;
+    const currentEntry = teamPlayers[playerIndex];
+    const currentId = Number(currentEntry?.playerId);
+    const nextId = Number(replacementId);
+    if (!currentEntry || !nextId || nextId === currentId) return;
+
+    const candidates = getSwapCandidates({
+      currentEntry,
+      leaguePlayers,
+      eventPlayerIds,
+      activePlayerIds: players.map((player: any) => Number(player.playerId)),
+      teamOnly: true,
+    });
+    const replacement = candidates.find((player: any) => Number(player?.id) === nextId);
+    if (!replacement) return;
+
+    const nextTeamPlayers = teamPlayers.map((player: any, index: number) =>
+      index === playerIndex ? buildSwappedPlayerEntry(player, replacement) : player
+    );
+    const nextTeam1 = team === 1 ? nextTeamPlayers : team1Players;
+    const nextTeam2 = team === 2 ? nextTeamPlayers : team2Players;
+    const nextPlayers = [...nextTeam1, ...nextTeam2];
+
+    await updateFlightPlayersMutation.mutateAsync({
+      flightId: Number(flight.id),
+      players: nextPlayers.map((player: any) => ({
+        playerId: Number(player.playerId),
+        teamId: player?.teamId ?? player?.player?.teamId ?? null,
+        opponentId: null,
+      })),
+    });
+
+    const oldScores = methods.getValues(`players.${currentId}.scores`) ?? [];
+    methods.setValue(`players.${nextId}.scores`, oldScores, {
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+    methods.unregister(`players.${currentId}`);
+    if (team === 1) setTeam1Players(nextTeamPlayers);
+    else setTeam2Players(nextTeamPlayers);
+    await onFlightPlayersUpdated?.();
+  };
+
   const saveScores = () => {
     const scoresData = {
       eventId: Number(eventId),
@@ -177,16 +236,31 @@ export const CreateFlightScoresTeamStroke = ({
     );
   };
 
-  const renderPlayerRow = (player: any) => {
+  const renderPlayerRow = (player: any, team: 1 | 2, playerIndex: number) => {
     const p = player.player;
     const displayHandicap = Math.round(getEffectiveHandicap(player));
+    const swapCandidates = getSwapCandidates({
+      currentEntry: player,
+      leaguePlayers,
+      eventPlayerIds,
+      activePlayerIds: players.map((entry: any) => Number(entry.playerId)),
+      teamOnly: true,
+    });
 
     return (
       <tr key={player.playerId} className="text-sm">
-        <td className="p-2 text-xs flex flex-col">
-          <span className="font-semibold">
-            {p.firstName} {p.lastName}
-          </span>
+        <td className="p-2 text-xs">
+          <div className="flex items-start justify-between gap-2">
+            <span className="font-semibold">
+              {p.firstName} {p.lastName}
+            </span>
+            <PlayerSwapControl
+              currentPlayerId={Number(player.playerId)}
+              candidates={swapCandidates}
+              isSaving={updateFlightPlayersMutation.isPending}
+              onSwap={(replacementId) => savePlayerSwap(team, playerIndex, replacementId)}
+            />
+          </div>
           <span className="text-[10px]">Handicap: {displayHandicap}</span>
         </td>
         {holes.map((hole: any, holeIdx: number) => (
@@ -276,11 +350,11 @@ export const CreateFlightScoresTeamStroke = ({
                 </tr>
               </thead>
               <tbody>
-                {team1Players.map((player: any) => renderPlayerRow(player))}
+                {team1Players.map((player: any, idx: number) => renderPlayerRow(player, 1, idx))}
                 {team1Players.length > 0 &&
                   team2Players.length > 0 &&
                   renderTeamPointsRow(team1Name, 1)}
-                {team2Players.map((player: any) => renderPlayerRow(player))}
+                {team2Players.map((player: any, idx: number) => renderPlayerRow(player, 2, idx))}
                 {team1Players.length > 0 &&
                   team2Players.length > 0 &&
                   renderTeamPointsRow(team2Name, 2)}

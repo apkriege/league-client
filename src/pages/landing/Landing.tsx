@@ -1,5 +1,7 @@
 import { register } from "@api/auth";
+import { createCheckoutSession } from "@api/payments";
 import { useAppStore } from "@/stores/appStore";
+import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice } from "@/lib/billing";
 import {
   ArrowRight,
   BarChart3,
@@ -11,9 +13,9 @@ import {
   ShieldCheck,
   Trophy,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import courseImage from "@/assets/course.png";
 
 type Concept = {
@@ -451,7 +453,6 @@ function PricingSection() {
 }
 
 function RegisterPanel() {
-  const navigate = useNavigate();
   const { setUser } = useAppStore();
   const [form, setForm] = useState({
     firstName: "",
@@ -466,6 +467,20 @@ function RegisterPanel() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutStatus = params.get("checkout");
+
+    if (checkoutStatus !== "registration_cancel") return;
+
+    setStatus("error");
+    setMessage("Registration checkout was canceled.");
+    params.delete("checkout");
+    const nextQuery = params.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", nextUrl);
+  }, []);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setStatus("submitting");
@@ -478,8 +493,20 @@ function RegisterPanel() {
         setUser({ ...user, isAdmin: String(user.role).toLowerCase() === "admin" });
       }
       setStatus("success");
-      setMessage("Account created. Redirecting to leagues...");
-      window.setTimeout(() => navigate("/leagues"), 700);
+      setMessage("Account created. Redirecting to secure checkout...");
+
+      const checkout = await createCheckoutSession({
+        purpose: "registration",
+        requestedGolfers: BILLING_MIN_GOLFERS,
+        successUrl: `${window.location.origin}/leagues?checkout=registration_success`,
+        cancelUrl: `${window.location.origin}/?checkout=registration_cancel#register`,
+      });
+
+      if (!checkout?.url) {
+        throw new Error("Could not start registration checkout.");
+      }
+
+      window.location.href = checkout.url;
     } catch (error: any) {
       setStatus("error");
       setMessage(error?.response?.data?.message || "Unable to create account.");
@@ -492,9 +519,10 @@ function RegisterPanel() {
       className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-5"
     >
       <p className="text-xs font-black uppercase tracking-wide text-slate-400">Register</p>
-      <h2 className="mt-2 text-2xl font-black text-slate-950">Start with a free account.</h2>
+      <h2 className="mt-2 text-2xl font-black text-slate-950">Start your league account.</h2>
       <p className="mt-2 text-sm leading-6 text-slate-600">
-        Create an organizer account, then build your first league from the dashboard.
+        Registration includes your admin account and {BILLING_MIN_GOLFERS} golfer slots starting at{" "}
+        {formatBillingPrice(BILLING_PRICE_PER_GOLFER * BILLING_MIN_GOLFERS)}.
       </p>
 
       <form onSubmit={submit} className="mt-5 grid gap-3">

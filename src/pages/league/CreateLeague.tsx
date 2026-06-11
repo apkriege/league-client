@@ -3,200 +3,34 @@ import TeamsForm from "./forms/TeamsForm";
 import ReviewForm from "./forms/ReviewForm";
 import { FormProvider, useForm } from "react-hook-form";
 import { useCreateLeague } from "@api/league/mutations";
+import { useCreateCheckoutSession } from "@api/payments/mutations";
+import { useStripeState } from "@api/payments/queries";
 import { useNavigate } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import InfoForm from "./forms/InfoForm";
 import { useToast } from "@/context/ToastContext";
 import Stepper from "@/components/layout/Stepper";
-
-const currPlayers = [
-  {
-    id: 1,
-    firstName: "Adam",
-    lastName: "Ant",
-    email: "adam@ant.com",
-    type: "player",
-    handicap: 2,
-    phone: "1234567890",
-  },
-  {
-    id: 2,
-    firstName: "Brent",
-    lastName: "Boston",
-    email: "brent@boston.com",
-    type: "player",
-    handicap: 4,
-    phone: "1234567890",
-  },
-  {
-    id: 3,
-    firstName: "Derrick",
-    lastName: "Door",
-    email: "derrick@door.com",
-    type: "player",
-    handicap: 2,
-    phone: "1234567890",
-  },
-  {
-    id: 4,
-    firstName: "Carl",
-    lastName: "Calvin",
-    email: "carl@calvin.com",
-    type: "player",
-    handicap: 8,
-    phone: "1234567890",
-  },
-  {
-    id: 5,
-    firstName: "Ethan",
-    lastName: "Edwards",
-    email: "ethan@edwards.com",
-    type: "player",
-    handicap: 3,
-    phone: "1234567890",
-  },
-  {
-    id: 6,
-    firstName: "Fred",
-    lastName: "Franklin",
-    email: "fred@franklin.com",
-    type: "player",
-    handicap: 10,
-    phone: "1234567890",
-  },
-  {
-    id: 7,
-    firstName: "Garret",
-    lastName: "Garage",
-    email: "garret@garage.com",
-    type: "player",
-    handicap: 2,
-    phone: "1234567890",
-  },
-  {
-    id: 8,
-    firstName: "Hilary",
-    lastName: "Hiles",
-    email: "hilary@hiles.com",
-    type: "player",
-    handicap: 7,
-    phone: "1234567890",
-  },
-  {
-    id: 9,
-    firstName: "Irene",
-    lastName: "Iverson",
-    email: "i@gmail.com",
-    type: "player",
-    handicap: 12,
-    phone: "1234567890",
-  },
-  {
-    id: 10,
-    firstName: "John",
-    lastName: "Johnson",
-    email: "jon@gmail.com",
-    type: "player",
-    handicap: 15,
-    phone: "1234567890",
-  },
-  {
-    id: 11,
-    firstName: "Kevin",
-    lastName: "Klein",
-    email: "k@gmail.com",
-    type: "player",
-    handicap: 20,
-    phone: "1234567890",
-  },
-  {
-    id: 12,
-    firstName: "Larry",
-    lastName: "Long",
-    email: "larry@gmail.com",
-    type: "player",
-    handicap: 25,
-    phone: "1234567890",
-  },
-  {
-    id: 13,
-    firstName: "Megan",
-    lastName: "Miller",
-    email: "meg@gmail.com",
-    type: "player",
-    handicap: 5,
-    phone: "1234567890",
-  },
-  {
-    id: 14,
-    firstName: "Nina",
-    lastName: "Nolan",
-    email: "nina@test.com",
-    type: "sub",
-    handicap: 3,
-    phone: "1234567890",
-  },
-  {
-    id: 15,
-    firstName: "Oscar",
-    lastName: "Owens",
-    email: "oscar@gmail.com",
-    type: "sub",
-    handicap: 18,
-    phone: "1234567890",
-  },
-];
-
-const currTeams = [
-  {
-    id: 1,
-    name: "Team 1",
-    players: [1, 2, 13],
-  },
-  {
-    id: 2,
-    name: "Team 2",
-    players: [3, 4],
-  },
-  {
-    id: 3,
-    name: "Team 3",
-    players: [5, 6],
-  },
-  {
-    id: 4,
-    name: "Team 4",
-    players: [7, 8],
-  },
-  {
-    id: 5,
-    name: "Team 5",
-    players: [9, 10],
-  },
-  {
-    id: 6,
-    name: "Team 6",
-    players: [11, 12],
-  },
-];
+import { BILLING_MIN_GOLFERS } from "@/lib/billing";
+import { useAppStore } from "@/stores/appStore";
 
 const defaultLeagueData = {
-  adminId: 1,
-  name: "Bomb League",
-  description: "This is a simple description that will describe the league.",
-  numPlayers: 0,
+  name: "",
+  description: "",
+  numPlayers: BILLING_MIN_GOLFERS,
   type: "season",
   format: "team",
   access: "public",
-  contactFirstName: "Adam",
-  contactLastName: "Krieger",
-  contactEmail: "adamkrieger@gmail.com",
-  contactPhone: "1234567890",
+  contactFirstName: "",
+  contactLastName: "",
+  contactEmail: "",
+  contactPhone: "",
   startDate: new Date(),
   endDate: new Date(),
-  players: currPlayers,
-  teams: currTeams,
+  players: [],
+  teams: [],
 };
+
+const DRAFT_STORAGE_KEY = "create-league-draft";
 
 const modelLeagueData = (league: any) => {
   const { players, teams, ...info } = league;
@@ -206,6 +40,7 @@ const modelLeagueData = (league: any) => {
 
   return {
     ...info,
+    numPlayers: Math.max(BILLING_MIN_GOLFERS, (players || []).length, Number(info.numPlayers || 0)),
     format: isSeason ? info.format : null,
     players: (players || []).map((p: any) => ({
       ...p,
@@ -219,16 +54,63 @@ export default function CreateLeague() {
   const { show } = useToast();
   const topRef = useRef<HTMLDivElement>(null);
   const createLeague = useCreateLeague();
+  const createCheckoutSession = useCreateCheckoutSession();
   const navigate = useNavigate();
+  const { user } = useAppStore();
+  const {
+    data: stripeState,
+    isLoading: billingLoading,
+    refetch: refetchStripeState,
+  } = useStripeState(Boolean(user));
 
-  const [step, setStep] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("checkout") === "cancel" ? 999 : 1;
-  });
+  const [step, setStep] = useState(1);
 
   const leagueForm = useForm({
     defaultValues: defaultLeagueData,
   });
+
+  const currentType = String(leagueForm.watch("type") || "").toLowerCase();
+  const currentFormat = String(leagueForm.watch("format") || "").toLowerCase();
+  const currentSteps =
+    currentType === "season" && currentFormat === "team"
+      ? ["info", "players", "teams", "review"]
+      : ["info", "players", "review"];
+
+  useEffect(() => {
+    const draft = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!draft) {
+      if (user) {
+        leagueForm.reset({
+          ...defaultLeagueData,
+          contactFirstName: user.firstName || "",
+          contactLastName: user.lastName || "",
+          contactEmail: user.email || "",
+          contactPhone: user.phone || "",
+        });
+      }
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(draft);
+      leagueForm.reset({
+        ...defaultLeagueData,
+        ...parsed,
+        startDate: parsed?.startDate ? new Date(parsed.startDate) : defaultLeagueData.startDate,
+        endDate: parsed?.endDate ? new Date(parsed.endDate) : defaultLeagueData.endDate,
+      });
+    } catch {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  }, [leagueForm, user]);
+
+  useEffect(() => {
+    const subscription = leagueForm.watch((values) => {
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(values));
+    });
+
+    return () => subscription.unsubscribe();
+  }, [leagueForm]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -236,29 +118,98 @@ export default function CreateLeague() {
 
     if (!checkoutStatus) return;
 
-    if (checkoutStatus === "success") {
-      show("Stripe checkout completed successfully.", "success");
-    } else if (checkoutStatus === "cancel") {
-      show("Stripe checkout was canceled.", "warning");
+    if (checkoutStatus === "registration_success") {
+      refetchStripeState();
+      show("Golfer slot payment completed successfully.", "success");
+      setStep(currentSteps.length);
+    } else if (checkoutStatus === "registration_cancel") {
+      show("Golfer slot checkout was canceled.", "warning");
+      setStep(currentSteps.length);
+    } else if (checkoutStatus === "upgrade_success") {
+      refetchStripeState();
+      show("Additional golfer payment completed successfully.", "success");
+      setStep(currentSteps.length);
+    } else if (checkoutStatus === "upgrade_cancel") {
+      show("Additional golfer checkout was canceled.", "warning");
+      setStep(currentSteps.length);
     }
 
     params.delete("checkout");
     const nextQuery = params.toString();
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
     window.history.replaceState({}, "", nextUrl);
-  }, [show]);
+  }, [currentSteps.length, refetchStripeState, show]);
 
   const handleSubmit = () => {
+    if (billingLoading) {
+      show("Checking billing status. Please try again in a moment.", "warning");
+      return;
+    }
+
     const data = leagueForm.getValues();
     const modeledData = modelLeagueData(data);
+    const includedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
+    const requestedGolfers = Math.max(
+      BILLING_MIN_GOLFERS,
+      modeledData.players.length,
+      Number(modeledData.numPlayers || 0)
+    );
+
+    if (!stripeState?.billing?.hasCompletedRegistration || includedGolfers < BILLING_MIN_GOLFERS) {
+      createCheckoutSession.mutate(
+        {
+          purpose: "registration",
+          requestedGolfers: BILLING_MIN_GOLFERS,
+          successUrl: `${window.location.origin}/leagues/create?checkout=registration_success`,
+          cancelUrl: `${window.location.origin}/leagues/create?checkout=registration_cancel`,
+        },
+        {
+          onSuccess: (checkout) => {
+            if (!checkout?.url) {
+              show("Could not start registration checkout. Please try again.", "error");
+              return;
+            }
+            window.location.href = checkout.url;
+          },
+          onError: (error: any) => {
+            show(error?.message || "Failed to start registration checkout.", "error");
+          },
+        }
+      );
+      return;
+    }
+
+    if (requestedGolfers > includedGolfers) {
+      createCheckoutSession.mutate(
+        {
+          purpose: "seat_upgrade",
+          requestedGolfers,
+          successUrl: `${window.location.origin}/leagues/create?checkout=upgrade_success`,
+          cancelUrl: `${window.location.origin}/leagues/create?checkout=upgrade_cancel`,
+        },
+        {
+          onSuccess: (checkout) => {
+            if (!checkout?.url) {
+              show("Could not start golfer upgrade checkout. Please try again.", "error");
+              return;
+            }
+            window.location.href = checkout.url;
+          },
+          onError: (error: any) => {
+            show(error?.message || "Failed to start golfer upgrade checkout.", "error");
+          },
+        }
+      );
+      return;
+    }
 
     createLeague.mutate(modeledData, {
       onSuccess: (league) => {
-        console.log("League created:", league);
-        navigate(`/league/${league.id}`);
+        window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+        navigate(`/league/${league.id}/admin`);
       },
       onError: (error) => {
-        console.error("Failed to create league:", error);
+        show((error as any)?.message || "Failed to create league.", "error");
       },
     });
   };
@@ -268,6 +219,23 @@ export default function CreateLeague() {
     leagueData.type === "season" && leagueData.format === "team"
       ? ["info", "players", "teams", "review"]
       : ["info", "players", "review"];
+  const footerIncludedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
+  const footerRequestedGolfers = Math.max(
+    BILLING_MIN_GOLFERS,
+    (leagueData.players || []).length,
+    Number(leagueData.numPlayers || 0)
+  );
+  const footerNeedsRegistrationPayment =
+    !stripeState?.billing?.hasCompletedRegistration || footerIncludedGolfers < BILLING_MIN_GOLFERS;
+  const footerAdditionalGolfersRequired = Math.max(
+    0,
+    footerRequestedGolfers - footerIncludedGolfers
+  );
+  const finalActionLabel = footerNeedsRegistrationPayment
+    ? `Pay for ${BILLING_MIN_GOLFERS} Golfers`
+    : footerAdditionalGolfersRequired > 0
+      ? `Pay for ${footerAdditionalGolfersRequired} More Golfers`
+      : "Create League";
 
   const goToStep = (nextStep: number) => {
     setStep(Math.max(1, Math.min(steps.length, nextStep)));
@@ -288,10 +256,9 @@ export default function CreateLeague() {
             {steps.length === 4 && step === 3 && <TeamsForm />}
             {((steps.length === 4 && step === 4) || (steps.length === 3 && step === 3)) && (
               <ReviewForm
-                handleBack={() => {
-                  goToStep(Math.max(1, step - 1));
-                }}
                 leagueData={leagueData}
+                billing={stripeState?.billing}
+                isBillingLoading={billingLoading}
               />
             )}
           </div>
@@ -301,9 +268,16 @@ export default function CreateLeague() {
         <Stepper
           step={step}
           totalSteps={steps.length}
-          isSubmitting={createLeague.isPending}
+          isSubmitting={createLeague.isPending || createCheckoutSession.isPending || billingLoading}
           smoothScroll
           scrollTargetRef={topRef}
+          nextLabel={
+            step === steps.length
+              ? billingLoading
+                ? "Checking Billing..."
+                : finalActionLabel
+              : undefined
+          }
           onBack={() => {
             goToStep(Math.max(1, step - 1));
           }}

@@ -2,10 +2,12 @@ import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router";
 
+import PageState from "@/components/layout/PageState";
 import InfoForm from "./forms/InfoForm";
 
 import { useLeague } from "@api/league/queries";
 import { useUpdateLeague } from "@api/league/mutations";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 
 type LeagueFormData = {
   id?: number;
@@ -79,7 +81,7 @@ export default function EditLeague() {
   const numericLeagueId = Number(leagueId);
   const navigate = useNavigate();
 
-  const { data: league, isLoading } = useLeague(numericLeagueId);
+  const { data: league, isLoading, isError, error } = useLeague(numericLeagueId);
   const updateLeague = useUpdateLeague();
 
   const leagueForm = useForm<LeagueFormData>({
@@ -116,11 +118,38 @@ export default function EditLeague() {
     );
   }
 
-  if (isLoading || !league) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
         Loading league...
       </div>
+    );
+  }
+
+  if (isError) {
+    const status = getApiErrorStatus(error);
+    return (
+      <PageState
+        title={
+          status === 404
+            ? "League Not Found"
+            : status === 403
+              ? "Access Denied"
+              : "Unable to Load League"
+        }
+        message={getApiErrorMessage(error, "The league settings page could not be loaded right now.")}
+        variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
+      />
+    );
+  }
+
+  if (!league) {
+    return (
+      <PageState
+        title="League Not Found"
+        message="The league settings page could not be loaded because the league was not found."
+        variant="notFound"
+      />
     );
   }
 

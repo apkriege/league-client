@@ -1,9 +1,11 @@
 import PageHeader from "@/components/layout/PageHeader";
+import PageState from "@/components/layout/PageState";
 import Modal from "@/components/layout/Modal";
 import { MultiSelect } from "@/components/form";
 import { useToast } from "@/context/ToastContext";
 import { useAppStore } from "@/stores/appStore";
 import { useLeague } from "@api/league/queries";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useCreateTeam, useDeleteTeam, useUpdateTeam } from "@api/teams/mutations";
 import { ShieldHalf, SquarePen, Trash2, Users } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -40,7 +42,7 @@ export default function Teams() {
   const hasValidLeagueId = Number.isFinite(numericLeagueId) && numericLeagueId > 0;
   const { user } = useAppStore();
   const { show } = useToast();
-  const { data: league, isLoading } = useLeague(numericLeagueId);
+  const { data: league, isLoading, isError, error } = useLeague(numericLeagueId);
   const createTeam = useCreateTeam();
   const updateTeam = useUpdateTeam();
   const deleteTeam = useDeleteTeam();
@@ -204,6 +206,33 @@ export default function Teams() {
     const lastInitial = (player.lastName || "").trim().charAt(0);
     return `${firstInitial}${lastInitial}`.toUpperCase() || "?";
   };
+
+  if (isError) {
+    const status = getApiErrorStatus(error);
+    return (
+      <PageState
+        title={
+          status === 404
+            ? "League Not Found"
+            : status === 403
+              ? "Access Denied"
+              : "Unable to Load Teams"
+        }
+        message={getApiErrorMessage(error, "The teams page could not be loaded right now.")}
+        variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
+      />
+    );
+  }
+
+  if (!isLoading && !league) {
+    return (
+      <PageState
+        title="League Not Found"
+        message="The teams page could not be loaded because the league was not found."
+        variant="notFound"
+      />
+    );
+  }
 
   return (
     <div>

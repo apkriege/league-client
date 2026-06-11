@@ -278,15 +278,15 @@ export default function FlightBuilder({ flights, setFlights, event }: FlightBuil
             </button>
           </div>
         )}
+        <div className="mt-4 border-t border-base-300 pt-4">
+          <FlightsDragRow
+            event={event}
+            players={league.players}
+            flights={flights}
+            setFlights={setFlights}
+          />
+        </div>
       </Card>
-      <div className="mt-2">
-        <FlightsDragRow
-          event={event}
-          players={league.players}
-          flights={flights}
-          setFlights={setFlights}
-        />
-      </div>
     </div>
   );
 }

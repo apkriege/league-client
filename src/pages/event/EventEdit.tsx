@@ -1,4 +1,5 @@
 import PageHeader from "@/components/layout/PageHeader";
+import PageState from "@/components/layout/PageState";
 import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import InfoForm from "./create/components/InfoForm";
@@ -6,6 +7,7 @@ import TeamsForm from "./create/components/TeamsForm";
 import Flights from "./create/components/Flights";
 import { useUpdateLeagueEvent } from "@api/league/mutations";
 import { useLeague, useLeagueEvent } from "@api/league/queries";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useNavigate, useParams } from "react-router";
 import { Flag, Pencil, ShieldHalf } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
@@ -67,13 +69,21 @@ export default function EventEdit() {
   const { leagueId, eventId } = useParams();
   const navigate = useNavigate();
   const { show } = useToast();
-  const { data: league } = useLeague(Number(leagueId));
-  const { data: event } = useLeagueEvent(Number(leagueId), Number(eventId));
+  const { data: league, isError: leagueIsError, error: leagueError } = useLeague(Number(leagueId));
+  const {
+    data: event,
+    isLoading: eventLoading,
+    isError: eventIsError,
+    error: eventError,
+  } = useLeagueEvent(Number(leagueId), Number(eventId));
 
   const mutation = useUpdateLeagueEvent(() => {
     show("Event updated successfully", "success");
     navigate(`/league/${leagueId}/events/${eventId}`);
   });
+
+  const isCompletedEvent =
+    Boolean(event?.isComplete) || String(event?.status || "").toLowerCase() === "completed";
 
   const eventForm = useForm({
     defaultValues: {
@@ -135,6 +145,12 @@ export default function EventEdit() {
     });
   }, [event, league]);
 
+  useEffect(() => {
+    if (!event || !isCompletedEvent) return;
+    show("Completed events cannot be edited.", "error");
+    navigate(`/league/${leagueId}/events/${eventId}`);
+  }, [event, eventId, isCompletedEvent, leagueId, navigate, show]);
+
   const format = eventForm.watch("format");
   const isSeasonLeague = String(league?.type || "").toLowerCase() === "season";
   const leagueFormat = String(league?.format || "").toLowerCase();
@@ -150,12 +166,47 @@ export default function EventEdit() {
     });
   };
 
-  if (!event) {
+  const pageError = eventError || leagueError;
+  const errorStatus = getApiErrorStatus(pageError);
+
+  if (eventLoading) {
     return (
       <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
         Loading event…
       </div>
     );
+  }
+
+  if (eventIsError || leagueIsError) {
+    return (
+      <PageState
+        title={
+          errorStatus === 404
+            ? "Event Not Found"
+            : errorStatus === 403
+              ? "Access Denied"
+              : "Unable to Load Event"
+        }
+        message={getApiErrorMessage(pageError, "The event editor could not be loaded right now.")}
+        variant={errorStatus === 404 ? "notFound" : errorStatus === 403 ? "forbidden" : "error"}
+      />
+    );
+  }
+
+  if (!event || !league) {
+    return (
+      <PageState
+        title="Event Not Found"
+        message="The event editor could not be loaded because the event was not found."
+        variant="notFound"
+        actionTo={leagueId ? `/league/${leagueId}/admin` : "/leagues"}
+        actionLabel="Back to League"
+      />
+    );
+  }
+
+  if (isCompletedEvent) {
+    return null;
   }
 
   return (

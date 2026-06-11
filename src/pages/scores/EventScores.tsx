@@ -1,7 +1,17 @@
 import { useState } from "react";
 import { useParams } from "react-router";
-import { useLeagueEvent } from "@api/league/queries";
-import { CalendarDays, CheckCircle2, ClipboardList, Edit, Flag, MapPin, Users } from "lucide-react";
+import { useLeagueEvent, useLeaguePlayers } from "@api/league/queries";
+import PageState from "@/components/layout/PageState";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Edit,
+  Flag,
+  MapPin,
+  Users,
+} from "lucide-react";
 import dayjs from "dayjs";
 
 import PageHeader from "@/components/layout/PageHeader";
@@ -16,13 +26,45 @@ export default function EventScores() {
   const [editingFlightIds, setEditingFlightIds] = useState<number[]>([]);
   const [selectedFlightId, setSelectedFlightId] = useState<number | null>(null);
 
-  const { data: event } = useLeagueEvent(Number(leagueId)!, Number(eventId)!);
+  const {
+    data: event,
+    isLoading,
+    isError,
+    error,
+    refetch: refetchEvent,
+  } = useLeagueEvent(Number(leagueId)!, Number(eventId)!);
+  const { data: leaguePlayers = [] } = useLeaguePlayers(Number(leagueId), Boolean(leagueId));
 
-  if (!event) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
         Loading event...
       </div>
+    );
+  }
+
+  if (isError) {
+    const status = getApiErrorStatus(error);
+    return (
+      <PageState
+        title={status === 404 ? "Event Not Found" : status === 403 ? "Access Denied" : "Unable to Load Scores"}
+        message={getApiErrorMessage(error, "The scores page could not be loaded right now.")}
+        variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
+        actionTo={leagueId ? `/league/${leagueId}/events` : "/leagues"}
+        actionLabel="Back to Events"
+      />
+    );
+  }
+
+  if (!event) {
+    return (
+      <PageState
+        title="Event Not Found"
+        message="The scores page could not be loaded because the event was not found."
+        variant="notFound"
+        actionTo={leagueId ? `/league/${leagueId}/events` : "/leagues"}
+        actionLabel="Back to Events"
+      />
     );
   }
 
@@ -38,6 +80,7 @@ export default function EventScores() {
   const totalFlights = event.flights.length;
   const completedFlights = event.flights.filter((f: any) => f.status === "completed").length;
   const allPlayers = event.flights.flatMap((f: any) => f.players ?? []);
+  const eventPlayerIds = allPlayers.map((entry: any) => Number(entry?.playerId)).filter(Boolean);
   const totalPlayers = allPlayers.length;
   const playersWithScores = allPlayers.filter((p: any) => {
     const scores = p?.player?.rounds?.[0]?.scores;
@@ -63,6 +106,9 @@ export default function EventScores() {
   };
 
   const FlightScoresComponent = getFlightScoresComponent();
+  const canEnterScores = Boolean(event.canEnterScores);
+  const canEditScores = Boolean(event.canEditScores);
+  const isReadOnly = !canEnterScores && !canEditScores;
 
   return (
     <div>
@@ -116,6 +162,13 @@ export default function EventScores() {
         ))}
       </div>
 
+      {isReadOnly && (
+        <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Scores can only be entered in chronological order, and only the latest scored event can be
+          edited. This event is view-only.
+        </div>
+      )}
+
       {/* Flight filter tabs */}
       {totalFlights > 1 && (
         <div className="flex items-center gap-2 mb-5 flex-wrap">
@@ -162,7 +215,7 @@ export default function EventScores() {
           const isCompleted = flight.status === "completed";
           const isEditing = editingFlightIds.includes(flight.id);
 
-          if (isCompleted && !isEditing) {
+          if ((isCompleted && !isEditing) || isReadOnly) {
             return (
               <div
                 key={flight.id}
@@ -170,21 +223,33 @@ export default function EventScores() {
               >
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 size={14} className="text-green-500" strokeWidth={2.5} />
+                    <CheckCircle2
+                      size={14}
+                      className={isReadOnly && !isCompleted ? "text-amber-500" : "text-green-500"}
+                      strokeWidth={2.5}
+                    />
                     <h3 className="text-sm font-semibold text-gray-800">
                       Flight {flight.startTime}
                     </h3>
-                    <span className="text-[10px] font-bold bg-green-50 text-green-600 border border-green-200 px-2 py-0.5 rounded-full">
-                      Completed
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        isReadOnly && !isCompleted
+                          ? "bg-amber-50 text-amber-600 border-amber-200"
+                          : "bg-green-50 text-green-600 border-green-200"
+                      }`}
+                    >
+                      {isReadOnly && !isCompleted ? "View Only" : "Completed"}
                     </span>
                   </div>
-                  <button
-                    onClick={() => startEditFlight(flight.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
-                  >
-                    <Edit size={12} strokeWidth={2} />
-                    Edit Scores
-                  </button>
+                  {canEditScores && (
+                    <button
+                      onClick={() => startEditFlight(flight.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
+                    >
+                      <Edit size={12} strokeWidth={2} />
+                      Edit Scores
+                    </button>
+                  )}
                 </div>
                 <div className="p-4">
                   <ViewFlightScores flight={flight} event={event} />
@@ -194,14 +259,20 @@ export default function EventScores() {
           }
 
           return (
-            <FlightScoresComponent
-              key={flight.id}
-              flight={flight}
-              event={event}
-              isEditMode={isCompleted || isEditing}
-              onSaveSuccess={() => stopEditFlight(flight.id)}
-              onCancel={() => stopEditFlight(flight.id)}
-            />
+            canEnterScores || canEditScores ? (
+              <div key={flight.id}>
+                <FlightScoresComponent
+                  flight={flight}
+                  event={event}
+                  leaguePlayers={leaguePlayers}
+                  eventPlayerIds={eventPlayerIds}
+                  isEditMode={isCompleted || isEditing}
+                  onFlightPlayersUpdated={refetchEvent}
+                  onSaveSuccess={() => stopEditFlight(flight.id)}
+                  onCancel={() => stopEditFlight(flight.id)}
+                />
+              </div>
+            ) : null
           );
         })}
       </div>

@@ -1,8 +1,10 @@
 import PageHeader from "@/components/layout/PageHeader";
+import PageState from "@/components/layout/PageState";
 import Modal from "@/components/layout/Modal";
 import { useToast } from "@/context/ToastContext";
 import { formatPhone } from "@/utils/format";
 import { useLeague } from "@api/league/queries";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useCreatePlayer, useDeletePlayer, useUpdatePlayer } from "@api/players/mutations";
 import { SquarePen, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -24,7 +26,7 @@ export default function Players() {
   const { show } = useToast();
   const { leagueId } = useParams();
   const numericLeagueId = Number(leagueId);
-  const { data: league } = useLeague(numericLeagueId);
+  const { data: league, isLoading, isError, error } = useLeague(numericLeagueId);
   const createPlayer = useCreatePlayer();
   const updatePlayer = useUpdatePlayer();
   const deletePlayer = useDeletePlayer();
@@ -34,8 +36,29 @@ export default function Players() {
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  if (!league) {
+  if (isLoading) {
     return <div>Loading...</div>;
+  }
+
+  if (isError) {
+    const status = getApiErrorStatus(error);
+    return (
+      <PageState
+        title={status === 404 ? "League Not Found" : status === 403 ? "Access Denied" : "Unable to Load Players"}
+        message={getApiErrorMessage(error, "The players page could not be loaded right now.")}
+        variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
+      />
+    );
+  }
+
+  if (!league) {
+    return (
+      <PageState
+        title="League Not Found"
+        message="The players page could not be loaded because the league was not found."
+        variant="notFound"
+      />
+    );
   }
 
   const p = [...league.players].sort((a: any, b: any) => {

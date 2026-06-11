@@ -1,7 +1,9 @@
 import PageHeader from "@/components/layout/PageHeader";
+import PageState from "@/components/layout/PageState";
 import Table from "@/components/Table";
 import { useAppStore } from "@/stores/appStore";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,8 +22,10 @@ import {
   BarChart2,
   CalendarDays,
   CheckCircle2,
+  ChevronRight,
   CircleDashed,
   Clock,
+  Edit,
   Flag,
   MapPin,
   Medal,
@@ -90,24 +94,38 @@ export default function League() {
   const { user } = useAppStore();
   const isAdmin = user?.isAdmin;
 
-  const { data: league, isLoading: leagueLoading } = useLeague(Number(leagueId));
-  const { data: events, isLoading: eventsLoading } = useLeagueEvents(Number(leagueId));
-  const { data: metrics } = useLeagueMetrics(Number(leagueId));
+  const {
+    data: league,
+    isLoading: leagueLoading,
+    isError: leagueIsError,
+    error: leagueError,
+  } = useLeague(Number(leagueId));
+  const {
+    data: events,
+    isLoading: eventsLoading,
+    isError: eventsIsError,
+    error: eventsError,
+  } = useLeagueEvents(Number(leagueId));
+  const { data: metrics, isError: metricsIsError, error: metricsError } = useLeagueMetrics(Number(leagueId));
 
-  const completed = useMemo(
-    () =>
-      [...(events?.filter((event: any) => event.status === "completed") ?? [])].sort(
-        (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      ),
-    [events]
-  );
-  const upcoming = useMemo(
-    () =>
-      [...(events?.filter((event: any) => event.status !== "completed") ?? [])].sort(
-        (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      ),
-    [events]
-  );
+  const pageError = leagueError || eventsError || metricsError;
+  const errorStatus = getApiErrorStatus(pageError);
+
+  if (leagueIsError || eventsIsError || metricsIsError) {
+    return (
+      <PageState
+        title={errorStatus === 404 ? "League Not Found" : errorStatus === 403 ? "Access Denied" : "Unable to Load League"}
+        message={getApiErrorMessage(
+          pageError,
+          "The league page could not be loaded right now."
+        )}
+        variant={errorStatus === 404 ? "notFound" : errorStatus === 403 ? "forbidden" : "error"}
+      />
+    );
+  }
+
+  const completed = events?.filter((e: any) => e.status === "completed") ?? [];
+  const upcoming = events?.filter((e: any) => e.status !== "completed") ?? [];
   const totalEvents = events?.length ?? 0;
   const standingsMode = metrics?.standingsMode === "team" ? "team" : "player";
   const teamStandings = metrics?.teamStandings ?? [];
@@ -389,7 +407,7 @@ export default function League() {
       </div>
 
       <div className="flex flex-col gap-8">
-        {metrics && completed.length > 0 && (
+        {metrics && (
           <section className="space-y-6">
             {metrics.records && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -453,76 +471,107 @@ export default function League() {
                 <p className="text-xs text-gray-500">Weekly scoring trend and skin leaders</p>
               </div>
               <div className="flex flex-col lg:flex-row gap-4 items-start">
-                {(metrics?.playerWeeklyTrends?.labels?.length ?? 0) > 0 && (
-                  <div className="w-full lg:w-2/3 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
-                        <h3 className="text-sm font-semibold text-gray-800">Season Trend</h3>
-                      </div>
-                    </div>
-                    <div className="px-4 py-3 h-[250px]">
-                      <Line data={seasonTrendChartData} options={seasonTrendChartOptions} />
+                <div className="w-full lg:w-2/3 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
+                      <h3 className="text-sm font-semibold text-gray-800">Season Trend</h3>
                     </div>
                   </div>
-                )}
+                  <div className="px-4 py-3 h-[250px]">
+                    {(metrics?.playerWeeklyTrends?.labels?.length ?? 0) > 0 ? (
+                      <Line data={seasonTrendChartData} options={seasonTrendChartOptions} />
+                    ) : (
+                      <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50/60">
+                        <div className="text-center">
+                          <BarChart2
+                            size={22}
+                            className="mx-auto mb-2 text-gray-300"
+                            strokeWidth={2}
+                          />
+                          <p className="text-xs font-semibold text-gray-500">No trend data yet</p>
+                          <p className="mt-1 text-[11px] text-gray-400">
+                            Completed event scores will populate this chart.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {metrics.skins && (
-                  <div className="w-full lg:w-1/3 grid grid-cols-1 gap-4">
-                    {(["gross", "net"] as const).map((type) => (
-                      <div
-                        key={type}
-                        className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
-                      >
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                          <div className="flex items-center gap-2">
-                            <Zap size={14} className="text-amber-500" strokeWidth={2.5} />
-                            <h3 className="text-sm font-semibold text-gray-800">
-                              {type === "gross" ? "Gross Skins" : "Net Skins"}
-                            </h3>
+                  <div className="w-full lg:w-1/3 grid grid-cols-1 gap-3">
+                    {(
+                      [
+                        {
+                          type: "gross",
+                          label: "Gross",
+                          iconClass: "text-amber-500",
+                          badgeClass: "bg-amber-50 text-amber-600 border-amber-200",
+                        },
+                        {
+                          type: "net",
+                          label: "Net",
+                          iconClass: "text-violet-500",
+                          badgeClass: "bg-violet-50 text-violet-600 border-violet-200",
+                        },
+                      ] as const
+                    ).map(({ type, label, iconClass, badgeClass }) => {
+                      const rows = (metrics.skins[type] as any[]) ?? [];
+                      return (
+                        <div
+                          key={type}
+                          className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
+                        >
+                          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+                            <div className="flex items-center gap-1.5">
+                              <Zap size={13} className={iconClass} strokeWidth={2.5} />
+                              <h3 className="text-xs font-semibold text-gray-800">{label} Skins</h3>
+                            </div>
+                            <span
+                              className={`text-[10px] font-bold border px-1.5 py-0.5 rounded-full ${badgeClass}`}
+                            >
+                              {rows.length}
+                            </span>
                           </div>
-                          <span className="text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">
-                            {(metrics.skins[type] as any[])?.length || 0} total
-                          </span>
-                        </div>
-                        <div className="p-4">
-                          <div className="divide-y divide-gray-50 border border-gray-100 rounded-md overflow-hidden">
-                            {(metrics.skins[type] as any[]).map((p: any, i: number) => (
-                              <div
-                                key={p.playerId}
-                                className="flex items-center gap-3 px-3 py-2.5 bg-white"
-                              >
-                                <span
-                                  className={`text-[11px] font-black w-4 shrink-0 ${
-                                    i === 0 ? "text-amber-400" : "text-gray-300"
-                                  }`}
-                                >
-                                  {i + 1}
-                                </span>
-                                <span className="flex-1 text-xs font-semibold text-gray-800 truncate">
-                                  {p.name}
-                                </span>
-                                <span
-                                  className={`text-sm font-black tabular-nums ${
-                                    i === 0 ? "text-amber-500" : "text-gray-600"
-                                  }`}
-                                >
-                                  {p.skins}
-                                </span>
-                                <span className="text-[10px] text-gray-400 font-medium">
-                                  skin{p.skins !== 1 ? "s" : ""}
-                                </span>
-                              </div>
-                            ))}
-                            {(metrics.skins[type] as any[]).length === 0 && (
-                              <p className="px-3 py-3 text-[11px] text-gray-300 italic">
+
+                          <div className="p-3">
+                            {rows.length === 0 ? (
+                              <p className="text-[11px] text-gray-300 italic">
                                 No {type} skins yet
                               </p>
+                            ) : (
+                              <div className="max-h-[120px] overflow-y-auto pr-1 divide-y divide-gray-50 border border-gray-100 rounded-md">
+                                {rows.map((p: any, i: number) => (
+                                  <div
+                                    key={p.playerId}
+                                    className="flex items-center gap-2 px-2.5 py-2 bg-white"
+                                  >
+                                    <span
+                                      className={`text-[10px] font-black w-4 shrink-0 ${
+                                        i === 0 ? "text-amber-400" : "text-gray-300"
+                                      }`}
+                                    >
+                                      {i + 1}
+                                    </span>
+                                    <span className="flex-1 text-[11px] font-semibold text-gray-800 truncate">
+                                      {p.name}
+                                    </span>
+                                    <span
+                                      className={`text-xs font-black tabular-nums ${
+                                        i === 0 ? "text-amber-500" : "text-gray-600"
+                                      }`}
+                                    >
+                                      {p.skins}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             )}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -531,7 +580,7 @@ export default function League() {
             <div className="pt-2 border-t border-gray-100">
               <div className="mb-3">
                 <h3 className="text-lg font-bold text-gray-800 tracking-tight">Standings</h3>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {standingsMode === "team"
                     ? "Team leaderboard and event participation"
                     : "Season leaderboard, scoring averages, and handicap movement"}
@@ -601,7 +650,9 @@ export default function League() {
                 <EventRow
                   key={event.id}
                   event={event}
+                  isAdmin={isAdmin}
                   onView={() => navigate(`/league/${leagueId}/events/${event.id}`)}
+                  onEdit={() => navigate(`/league/${leagueId}/events/${event.id}/edit`)}
                 />
               ))}
             </div>
@@ -618,14 +669,26 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function EventRow({ event, onView }: { event: any; onView: () => void }) {
+function EventRow({
+  event,
+  isAdmin,
+  onView,
+  onEdit,
+}: {
+  event: any;
+  isAdmin: boolean;
+  onView: () => void;
+  onEdit: () => void;
+}) {
   const status = STATUS_CONFIG[event.status] ?? STATUS_CONFIG["upcoming"];
   const date = new Date(event.date);
+  const canEditEvent =
+    !event?.isComplete && String(event?.status || "").toLowerCase() !== "completed";
 
   return (
     <div
-      onClick={onView}
-      className="group cursor-pointer bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md hover:border-gray-300"
+      onClick={isAdmin ? undefined : onView}
+      className={`group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md hover:border-gray-300 ${!isAdmin ? "cursor-pointer" : ""}`}
     >
       <div className="flex items-stretch">
         {/* Date block */}
@@ -673,6 +736,42 @@ function EventRow({ event, onView }: { event: any; onView: () => void }) {
               />
             )}
           </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center pr-3 pl-1 gap-1">
+          {isAdmin ? (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onView();
+                }}
+                className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
+                title="View"
+              >
+                <ChevronRight size={15} strokeWidth={2} />
+              </button>
+              {canEditEvent && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                  className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
+                  title="Edit"
+                >
+                  <Edit size={13} strokeWidth={2} />
+                </button>
+              )}
+            </>
+          ) : (
+            <ChevronRight
+              size={15}
+              className="text-gray-300 group-hover:text-gray-500 transition-colors"
+              strokeWidth={2}
+            />
+          )}
         </div>
       </div>
     </div>

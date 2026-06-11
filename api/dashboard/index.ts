@@ -17,7 +17,6 @@ export async function getPlayerStats(leagueId: number, playerId: number) {
 }
 
 export async function getLeagueStats(leagueId: number, playerId?: number) {
-  console.log("Fetching league stats for leagueId:", leagueId, "playerId:", playerId);
   const stats = await apiClient.get(
     `/dashboard/leagues/${leagueId}/stats${playerId ? `?playerId=${playerId}` : ""}`
   );

@@ -1,6 +1,8 @@
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { useLeagueEvent, useLeaguePlayers } from "@api/league/queries";
 import { useQueryClient } from "@tanstack/react-query";
+import PageState from "@/components/layout/PageState";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { Printer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
@@ -10,8 +12,17 @@ export default function PrintFlightScorecards() {
   const numericLeagueId = Number(leagueId);
   const numericEventId = Number(eventId);
   const queryClient = useQueryClient();
-  const { data: event } = useLeagueEvent(numericLeagueId, numericEventId);
-  const { data: leaguePlayers = [] } = useLeaguePlayers(numericLeagueId);
+  const {
+    data: event,
+    isLoading: eventLoading,
+    isError: eventIsError,
+    error: eventError,
+  } = useLeagueEvent(numericLeagueId, numericEventId);
+  const {
+    data: leaguePlayers = [],
+    isError: playersIsError,
+    error: playersError,
+  } = useLeaguePlayers(numericLeagueId);
   const updateFlightPlayersMutation = useUpdateFlightPlayers();
   const [flightPlayersById, setFlightPlayersById] = useState<Record<number, any[]>>({});
 
@@ -61,11 +72,48 @@ export default function PrintFlightScorecards() {
     });
   };
 
-  if (!event) {
+  const pageError = eventError || playersError;
+  const errorStatus = getApiErrorStatus(pageError);
+
+  if (eventLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center text-sm text-gray-500">
         Loading scorecards...
       </div>
+    );
+  }
+
+  if (eventIsError || playersIsError) {
+    return (
+      <PageState
+        title={
+          errorStatus === 404
+            ? "Event Not Found"
+            : errorStatus === 403
+              ? "Access Denied"
+              : "Unable to Load Scorecards"
+        }
+        message={getApiErrorMessage(pageError, "The printable scorecards could not be loaded right now.")}
+        variant={errorStatus === 404 ? "notFound" : errorStatus === 403 ? "forbidden" : "error"}
+        actionTo={
+          numericLeagueId && numericEventId
+            ? `/league/${numericLeagueId}/events/${numericEventId}`
+            : "/leagues"
+        }
+        actionLabel="Back to Event"
+      />
+    );
+  }
+
+  if (!event) {
+    return (
+      <PageState
+        title="Event Not Found"
+        message="The printable scorecards could not be loaded because the event was not found."
+        variant="notFound"
+        actionTo={numericLeagueId ? `/league/${numericLeagueId}` : "/leagues"}
+        actionLabel="Back to League"
+      />
     );
   }
 
@@ -120,6 +168,10 @@ export default function PrintFlightScorecards() {
 
           .scorecard-total-cell {
             width: 0.24in !important;
+          }
+
+          .scorecard-footer {
+            margin-top: 0 !important;
           }
         }
       `}</style>
@@ -393,7 +445,7 @@ function FlightCard({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-700 mt-auto">
+        <div className="scorecard-footer grid grid-cols-2 gap-3 text-[11px] text-slate-700">
           <p className="border border-slate-300 p-2">Notes:</p>
           <p className="border border-slate-300 p-2">Signatures:</p>
         </div>

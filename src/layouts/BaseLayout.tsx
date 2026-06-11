@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   PanelsTopLeft,
+  ScanSearch,
   Settings,
   ShieldHalf,
   TicketCheck,
@@ -18,6 +19,7 @@ import {
   Users,
 } from "lucide-react";
 import { useLeague, useLeagueEvents } from "@api/league/queries";
+import { useAdminLeagues } from "@api/admin/queries";
 import dayjs from "dayjs";
 
 const Section = ({ section }: { section: string }) => (
@@ -85,10 +87,8 @@ const NavWithSubLinks = ({
                 className={`px-2 py-1 rounded hover:bg-primary/80 hover:text-primary-content flex items-center justify-between transition-colors text-xs`}
               >
                 <div className="">
-                  {link.name}
-                  <span className="ml-2 text-[10px] text-base-content/50">
-                    {dayjs(link.date).format("MM/DD/YY")}
-                  </span>
+                  {link.name} -
+                  <span className="ml-1 text-[10px]">{dayjs(link.date).format("MM/DD/YY")}</span>
                 </div>
                 {link.eventType !== "off" && link.completed && (
                   <div>
@@ -123,11 +123,31 @@ export default function BaseLayout() {
   const [isOpen, setIsOpen] = useState(true);
 
   const playerId = user?.leagues?.find((ul: any) => Number(ul.id) === Number(leagueId))?.playerId;
+  const role = String(user?.role || "").toUpperCase();
+  const isSuperAdmin = role === "SUPER";
+  const isAdmin = role === "ADMIN" || isSuperAdmin;
+  const numericLeagueId = Number(leagueId);
+  const isLeagueRoute = Boolean(
+    leagueId && leagueId !== "undefined" && Number.isFinite(numericLeagueId)
+  );
+  const memberLeagueIds = Array.isArray(user?.leagues)
+    ? user.leagues.map((league: any) => Number(league?.id)).filter(Boolean)
+    : [];
+  const isLeagueMember = isLeagueRoute ? memberLeagueIds.includes(numericLeagueId) : false;
+  const { data: adminLeagues = [] } = useAdminLeagues(isAdmin && isLeagueRoute);
+  const adminLeagueIds = Array.isArray(adminLeagues)
+    ? adminLeagues.map((league: any) => Number(league?.id)).filter(Boolean)
+    : [];
+  const hasLeagueAccess =
+    !isLeagueRoute ||
+    isSuperAdmin ||
+    isLeagueMember ||
+    adminLeagueIds.includes(numericLeagueId);
 
-  const { data: league } = useLeague(Number(leagueId)!);
-  const { data: events } = useLeagueEvents(Number(leagueId));
+  const { data: league } = useLeague(Number(leagueId)!, hasLeagueAccess);
+  const { data: events } = useLeagueEvents(Number(leagueId), hasLeagueAccess);
   const evs = events ? modelEvents(events) : [];
-  const isSuperAdmin = String(user?.role || "").toUpperCase() === "SUPER";
+  const isTournamentLeague = String(league?.type || "").toLowerCase() === "tournament";
 
   useEffect(() => {
     // Set the golf theme on mount
@@ -202,7 +222,7 @@ export default function BaseLayout() {
             collapsed={!isOpen}
           />
           <Section section={league?.name || "League"} />
-          {user.isAdmin && (
+          {isAdmin && (
             <NavLink
               to={`/league/${leagueId}/admin`}
               text="Admin"
@@ -232,13 +252,15 @@ export default function BaseLayout() {
             isActive={location.pathname === `/league/${leagueId}/players`}
             disabled={subDisabled}
           />
-          <NavLink
-            to={`/league/${leagueId}/teams`}
-            text="Teams"
-            icon={<ShieldHalf size={19} />}
-            isActive={location.pathname === `/league/${leagueId}/teams`}
-            disabled={subDisabled}
-          />
+          {!isTournamentLeague && (
+            <NavLink
+              to={`/league/${leagueId}/teams`}
+              text="Teams"
+              icon={<ShieldHalf size={19} />}
+              isActive={location.pathname === `/league/${leagueId}/teams`}
+              disabled={subDisabled}
+            />
+          )}
           <NavLink
             to={`/league/${leagueId}/schedule`}
             text="Schedule"
@@ -253,6 +275,13 @@ export default function BaseLayout() {
           {isSuperAdmin && (
             <>
               <Section section="Super Admin" />
+              <NavLink
+                to="/superadmin/leagues"
+                text="View Leagues"
+                icon={<ScanSearch size={19} />}
+                isActive={location.pathname.startsWith("/superadmin/leagues")}
+                collapsed={!isOpen}
+              />
               <NavLink
                 to="/superadmin/courses"
                 text="Manage Courses"

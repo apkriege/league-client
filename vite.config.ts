@@ -9,13 +9,8 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    react(),
     tailwindcss(),
-    // this fucks up the context being passed via react hook form
-    // react({
-      // babel: {
-        // plugins: [['babel-plugin-react-compiler']],
-      // },
-    // }),
   ],
   resolve: {
     alias: {

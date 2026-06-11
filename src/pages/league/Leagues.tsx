@@ -2,13 +2,34 @@ import Badge from "@/components/layout/Badge";
 import Card from "@/components/layout/Card";
 import Divider from "@/components/layout/Divider";
 import PageHeader from "@/components/layout/PageHeader";
+import { useToast } from "@/context/ToastContext";
 
 import { useAdminLeagues } from "@api/admin/queries";
 import { Shield, Plus, Globe, ChevronsRight, Lock, Edit } from "lucide-react";
+import { useEffect } from "react";
 import { Link } from "react-router";
 
 export default function Leagues() {
   const { data: leagues } = useAdminLeagues();
+  const { show } = useToast();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutStatus = params.get("checkout");
+
+    if (checkoutStatus === "registration_success") {
+      show("Registration payment completed. You can now create your league.", "success");
+    } else if (checkoutStatus === "registration_cancel") {
+      show("Registration checkout was canceled.", "warning");
+    } else {
+      return;
+    }
+
+    params.delete("checkout");
+    const nextQuery = params.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", nextUrl);
+  }, [show]);
 
   return (
     <div className="flex flex-col">

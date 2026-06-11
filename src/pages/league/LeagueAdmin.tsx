@@ -1,5 +1,7 @@
 import PageHeader from "@/components/layout/PageHeader";
+import PageState from "@/components/layout/PageState";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import dayjs from "dayjs";
 import {
   Award,
@@ -44,13 +46,41 @@ export default function LeagueAdmin() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
 
-  const { data: league, isLoading: leagueLoading } = useLeague(Number(leagueId));
-  const { data: events, isLoading: eventsLoading } = useLeagueEvents(Number(leagueId));
-  const { data: metrics } = useLeagueMetrics(Number(leagueId));
+  const {
+    data: league,
+    isLoading: leagueLoading,
+    isError: leagueIsError,
+    error: leagueError,
+  } = useLeague(Number(leagueId));
+  const {
+    data: events,
+    isLoading: eventsLoading,
+    isError: eventsIsError,
+    error: eventsError,
+  } = useLeagueEvents(Number(leagueId));
+  const { data: metrics, isError: metricsIsError, error: metricsError } = useLeagueMetrics(Number(leagueId));
+
+  const pageError = leagueError || eventsError || metricsError;
+  const errorStatus = getApiErrorStatus(pageError);
 
   if (leagueLoading || eventsLoading) {
     return (
       <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading...</div>
+    );
+  }
+
+  if (leagueIsError || eventsIsError || metricsIsError) {
+    return (
+      <PageState
+        title={errorStatus === 404 ? "League Not Found" : errorStatus === 403 ? "Access Denied" : "Unable to Load League"}
+        message={getApiErrorMessage(
+          pageError,
+          "The admin league page could not be loaded right now."
+        )}
+        variant={errorStatus === 404 ? "notFound" : errorStatus === 403 ? "forbidden" : "error"}
+        actionTo={leagueId ? `/league/${leagueId}` : "/leagues"}
+        actionLabel={errorStatus === 403 ? "Back to League" : "Back to Leagues"}
+      />
     );
   }
 
@@ -222,11 +252,11 @@ export default function LeagueAdmin() {
         )}
 
         {/* All events list */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <Award size={14} className="text-gray-400" strokeWidth={2} />
-              <h3 className="text-sm font-semibold text-gray-800">All Events</h3>
+        <section className="pt-1">
+          <div className="flex items-center justify-between mb-2">
+            <div className="space-y-1">
+              <SectionLabel>Events</SectionLabel>
+              <p className="text-sm text-gray-500">Upcoming and completed rounds</p>
             </div>
             <button
               onClick={() => navigate(`/league/${leagueId}/events/create`)}
@@ -244,7 +274,7 @@ export default function LeagueAdmin() {
               <p className="text-xs mt-1">Create the first event to get started.</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="flex flex-col gap-3">
               {[...(needsScores ?? []), ...(upcoming ?? []), ...(completed ?? [])].map(
                 (event: any) => (
                   <AdminEventRow
@@ -258,9 +288,15 @@ export default function LeagueAdmin() {
               )}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{children}</h2>
   );
 }
 
@@ -274,6 +310,8 @@ function ScoreEntryRow({
   onView: () => void;
 }) {
   const date = new Date(event.date);
+  const canEnterScores = Boolean(event.canEnterScores);
+  const canOpenScores = canEnterScores || Boolean(event.canEditScores);
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <div className="flex flex-col items-center justify-center bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 min-w-12 text-center">
@@ -299,10 +337,16 @@ function ScoreEntryRow({
         </button>
         <button
           onClick={onScores}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            canEnterScores
+              ? "bg-amber-500 text-white hover:bg-amber-600"
+              : canOpenScores
+                ? "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+          }`}
         >
           <ClipboardList size={12} strokeWidth={2.5} />
-          Enter Scores
+          {canEnterScores ? "Enter Scores" : canOpenScores ? "Edit Scores" : "View Scores"}
         </button>
       </div>
     </div>
@@ -322,85 +366,121 @@ function AdminEventRow({
 }) {
   const status = STATUS_CONFIG[event.status] ?? STATUS_CONFIG["upcoming"];
   const date = new Date(event.date);
-  const isPast = event.status === "completed";
+  const canEditEvent =
+    !event?.isComplete && String(event?.status || "").toLowerCase() !== "completed";
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${isPast ? "opacity-60" : ""}`}
+      onClick={onView}
+      className="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md hover:border-gray-300 cursor-pointer"
     >
-      {/* Date */}
-      <div
-        className={`flex flex-col items-center justify-center rounded-lg px-2.5 py-1.5 min-w-12 text-center border shrink-0 ${isPast ? "bg-gray-50 border-gray-100" : "bg-primary/5 border-primary/10"}`}
-      >
-        <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
-          {date.toLocaleDateString("en-US", { month: "short" })}
-        </span>
-        <span
-          className={`text-lg font-black leading-none ${isPast ? "text-gray-400" : "text-primary"}`}
-        >
-          {date.getDate()}
-        </span>
-        <span className="text-[9px] text-gray-400 font-medium">
-          {date.toLocaleDateString("en-US", { weekday: "short" })}
-        </span>
-      </div>
+      <div className="flex items-stretch">
+        {/* Date block */}
+        <div className="flex flex-col items-center justify-center px-3 py-3 min-w-14 border-r bg-primary/5 border-primary/10">
+          <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
+            {date.toLocaleDateString("en-US", { month: "short" })}
+          </span>
+          <span className="text-xl font-black leading-none text-primary">{date.getDate()}</span>
+          <span className="text-[9px] text-gray-400 font-medium">
+            {date.toLocaleDateString("en-US", { weekday: "short" })}
+          </span>
+        </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <p className="font-semibold text-gray-800 text-sm truncate">{event.name}</p>
-          <div
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${status.className}`}
-          >
-            {status.icon}
-            {status.label}
+        {/* Main content */}
+        <div className="flex-1 px-3 py-2.5 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-gray-800 leading-tight truncate">
+                {event.name}
+              </h3>
+              <div className="flex items-center gap-1 mt-0.5">
+                <MapPin size={10} className="text-gray-400" strokeWidth={2} />
+                <span className="text-xs text-gray-400 truncate">{event.course?.name}</span>
+                {event.tee?.name && (
+                  <>
+                    <span className="text-gray-300 text-xs">&bull;</span>
+                    <span className="text-xs text-gray-400">{event.tee.name} tees</span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${status.className}`}
+            >
+              {status.icon}
+              {status.label}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {event.startTime && <MetaChip icon={<Clock size={10} />} label={event.startTime} />}
+            <MetaChip icon={<Flag size={10} />} label={`${event.holes}h`} />
+            {event.scoringFormat && (
+              <MetaChip
+                icon={<Award size={10} />}
+                label={event.scoringFormat.charAt(0).toUpperCase() + event.scoringFormat.slice(1)}
+              />
+            )}
+            {event.playerCount != null && (
+              <MetaChip icon={<User size={10} />} label={`${event.playerCount} players`} />
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <MapPin size={10} className="text-gray-400" strokeWidth={2} />
-          <span className="text-xs text-gray-400 truncate">{event.course?.name}</span>
-          {event.tee?.name && (
-            <>
-              <span className="text-gray-300 text-xs">&bull;</span>
-              <span className="text-xs text-gray-400">{event.tee.name} tees</span>
-            </>
+
+        {/* Actions */}
+        <div className="flex items-center pr-3 pl-1 gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onView();
+            }}
+            className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
+            title="View"
+          >
+            <ChevronRight size={15} strokeWidth={2} />
+          </button>
+          {canEditEvent && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
+              title="Edit"
+            >
+              <Edit size={13} strokeWidth={2} />
+            </button>
           )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onScores();
+            }}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              event.canEnterScores || event.canEditScores
+                ? "border border-gray-200 text-gray-600 hover:bg-gray-50"
+                : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+            title="Scores"
+          >
+            <ClipboardList size={12} strokeWidth={2} />
+            {event.canEnterScores
+              ? "Scores"
+              : event.canEditScores
+                ? "Edit Scores"
+                : "View Scores"}
+          </button>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Player count */}
-      {event.playerCount != null && (
-        <div className="flex items-center gap-1 text-xs text-gray-400 shrink-0">
-          <User size={11} className="text-gray-300" />
-          {event.playerCount}
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="flex gap-1.5 shrink-0">
-        <button
-          onClick={onView}
-          className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
-          title="View"
-        >
-          <ChevronRight size={15} strokeWidth={2} />
-        </button>
-        <button
-          onClick={onEdit}
-          className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
-          title="Edit"
-        >
-          <Edit size={13} strokeWidth={2} />
-        </button>
-        <button
-          onClick={onScores}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
-          title="Scores"
-        >
-          <ClipboardList size={12} strokeWidth={2} />
-          Scores
-        </button>
-      </div>
+function MetaChip({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-1 text-[10px] text-gray-400">
+      <span className="text-gray-300">{icon}</span>
+      {label}
     </div>
   );
 }

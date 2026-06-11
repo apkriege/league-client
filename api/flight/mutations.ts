@@ -11,8 +11,8 @@ export const useUpdateFlightPlayers = () => {
     mutationFn: async ({ flightId, players }: { flightId: number; players: any[] }) => {
       return await updateFlightPlayers(flightId, players);
     },
-    onSuccess: (_, flightId) => {
-      queryClient.invalidateQueries({ queryKey: ["flight", flightId] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["flight", variables.flightId] });
     },
     onError: (error) => {
       console.error("Failed to update flight players:", error);

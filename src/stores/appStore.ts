@@ -5,8 +5,8 @@ interface AppState {
   user: any;
   setUser: (user: any) => void;
   clearUser: () => void;
-  leagueId: number;
-  playerId: number;
+  leagueId: number | null;
+  playerId: number | null;
   setLeagueId: (leagueId: number) => void;
   setPlayerId: (playerId: number) => void;
   clearLeagueId: () => void;

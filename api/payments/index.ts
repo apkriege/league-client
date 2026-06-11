@@ -1,10 +1,8 @@
 import apiClient from "../client";
 
 export type CreateCheckoutSessionPayload = {
-  productName?: string;
-  unitAmount?: number;
-  currency?: string;
-  quantity?: number;
+  purpose?: "registration" | "seat_upgrade";
+  requestedGolfers?: number;
   successUrl?: string;
   cancelUrl?: string;
 };
@@ -14,14 +12,15 @@ export const createCheckoutSession = async (payload: CreateCheckoutSessionPayloa
     sessionId: string;
     url: string;
     customerId: string;
-    productId: string;
-    defaultPriceId: string;
+    priceId: string | null;
+    quantity: number;
+    targetGolfers: number;
   }>("/payments/checkout-session", payload);
 
   return response.data;
 };
 
 export const getStripeState = async () => {
-  const response = await apiClient.get<{ stripe: any }>("/payments/stripe-state");
+  const response = await apiClient.get<{ stripe: any; billing: any }>("/payments/stripe-state");
   return response.data;
 };

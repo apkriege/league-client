@@ -1,15 +1,24 @@
 import Button from "@/components/layout/Button";
+import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
 import { Flag } from "lucide-react";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router";
+import {
+  buildSwappedPlayerEntry,
+  getSwapCandidates,
+  PlayerSwapControl,
+} from "./PlayerSwapControl";
 import { calculateMatchplayPops } from "./util";
 
 export const CreateFlightScoresIndividualMatch = ({
   flight,
   event,
+  leaguePlayers = [],
+  eventPlayerIds = [],
   isEditMode,
+  onFlightPlayersUpdated,
   onSaveSuccess,
   onCancel,
 }: any) => {
@@ -20,7 +29,7 @@ export const CreateFlightScoresIndividualMatch = ({
     .slice(startingHole - 1, startingHole + event.holes - 1)
     .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
 
-  const allPlayers: any[] = flight.players ?? [];
+  const [allPlayers, setAllPlayers] = useState<any[]>(flight.players ?? []);
   const allPlayersById = new Map(allPlayers.map((p: any) => [Number(p.playerId), p]));
 
   const getEffectiveHandicap = (playerEntry: any) => {
@@ -30,14 +39,15 @@ export const CreateFlightScoresIndividualMatch = ({
   };
 
   // Build pairs: in edit mode use saved opponentId; otherwise pair by position
-  const buildPairs = (): [any, any][] => {
+  const buildPairs = (playersToPair: any[] = allPlayers): [any, any][] => {
+    const playersById = new Map(playersToPair.map((p: any) => [Number(p.playerId), p]));
     if (isEditMode) {
       const usedIds = new Set<number>();
       const pairs: [any, any][] = [];
-      for (const player of allPlayers) {
+      for (const player of playersToPair) {
         if (usedIds.has(Number(player.playerId))) continue;
         const opponentId = Number(player?.player?.rounds?.[0]?.opponentId ?? 0);
-        const opponent = allPlayersById.get(opponentId);
+        const opponent = playersById.get(opponentId);
         if (opponent && !usedIds.has(Number(opponent.playerId))) {
           pairs.push([player, opponent]);
           usedIds.add(Number(player.playerId));
@@ -45,7 +55,7 @@ export const CreateFlightScoresIndividualMatch = ({
         }
       }
       // Pair any remaining players by position
-      const remaining = allPlayers.filter((p: any) => !usedIds.has(Number(p.playerId)));
+      const remaining = playersToPair.filter((p: any) => !usedIds.has(Number(p.playerId)));
       for (let i = 0; i + 1 < remaining.length; i += 2) {
         pairs.push([remaining[i], remaining[i + 1]]);
       }
@@ -53,8 +63,8 @@ export const CreateFlightScoresIndividualMatch = ({
     }
 
     const pairs: [any, any][] = [];
-    for (let i = 0; i + 1 < allPlayers.length; i += 2) {
-      pairs.push([allPlayers[i], allPlayers[i + 1]]);
+    for (let i = 0; i + 1 < playersToPair.length; i += 2) {
+      pairs.push([playersToPair[i], playersToPair[i + 1]]);
     }
     return pairs;
   };
@@ -101,6 +111,7 @@ export const CreateFlightScoresIndividualMatch = ({
 
   const createMutation = useCreateEventScores();
   const updateMutation = useUpdateEventScores();
+  const updateFlightPlayersMutation = useUpdateFlightPlayers();
   const watchedPlayers = methods.watch("players");
 
   const handleHoleChange = (e: any, holeIndex: number, playerId: number) => {
@@ -171,6 +182,78 @@ export const CreateFlightScoresIndividualMatch = ({
     return { holePoints, matchPoints };
   };
 
+  const getHolePointValues = (playerId: number) => {
+    const opponent = opponentMap.get(Number(playerId));
+    if (!opponent) return holes.map(() => 0);
+
+    const opponentId = Number(opponent.playerId);
+    const ptsPerHole = Number(event?.ptsPerHole) || 0;
+
+    return holes.map((hole: any, holeIdx: number) => {
+      const playerGross = Number(watchedPlayers?.[playerId]?.scores?.[holeIdx] ?? 0);
+      const opponentGross = Number(watchedPlayers?.[opponentId]?.scores?.[holeIdx] ?? 0);
+      if (!playerGross || !opponentGross || ptsPerHole <= 0) return 0;
+
+      const playerNet = playerGross - popsForHole(playerId, hole.num);
+      const opponentNet = opponentGross - popsForHole(opponentId, hole.num);
+
+      if (playerNet === opponentNet) return ptsPerHole / 2;
+      if (playerNet < opponentNet) return ptsPerHole;
+      return 0;
+    });
+  };
+
+  const buildFlightPlayersPayload = (playersToSave: any[]) => {
+    const pairList = buildPairs(playersToSave);
+    const opponentByPlayerId = new Map<number, number>();
+
+    pairList.forEach(([left, right]) => {
+      opponentByPlayerId.set(Number(left.playerId), Number(right.playerId));
+      opponentByPlayerId.set(Number(right.playerId), Number(left.playerId));
+    });
+
+    return playersToSave.map((player: any) => ({
+      playerId: Number(player.playerId),
+      teamId: player?.teamId ?? player?.player?.teamId ?? null,
+      opponentId: opponentByPlayerId.get(Number(player.playerId)) ?? null,
+    }));
+  };
+
+  const savePlayerSwap = async (playerIndex: number, replacementId: number) => {
+    const currentEntry = allPlayers[playerIndex];
+    const currentId = Number(currentEntry?.playerId);
+    const nextId = Number(replacementId);
+    if (!currentEntry || !nextId || nextId === currentId) return;
+
+    const candidates = getSwapCandidates({
+      currentEntry,
+      leaguePlayers,
+      eventPlayerIds,
+      activePlayerIds: allPlayers.map((player: any) => Number(player.playerId)),
+      teamOnly: false,
+    });
+    const replacement = candidates.find((player: any) => Number(player?.id) === nextId);
+    if (!replacement) return;
+
+    const nextPlayers = allPlayers.map((player: any, index: number) =>
+      index === playerIndex ? buildSwappedPlayerEntry(player, replacement) : player
+    );
+
+    await updateFlightPlayersMutation.mutateAsync({
+      flightId: Number(flight.id),
+      players: buildFlightPlayersPayload(nextPlayers),
+    });
+
+    const oldScores = methods.getValues(`players.${currentId}.scores`) ?? [];
+    methods.setValue(`players.${nextId}.scores`, oldScores, {
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+    methods.unregister(`players.${currentId}`);
+    setAllPlayers(nextPlayers);
+    await onFlightPlayersUpdated?.();
+  };
+
   const saveScores = () => {
     const scoresData = {
       eventId: Number(eventId),
@@ -213,48 +296,81 @@ export const CreateFlightScoresIndividualMatch = ({
     }
   };
 
-  const renderPlayerRow = (player: any) => {
+  const renderPlayerRow = (player: any, playerIndex: number) => {
     const p = player.player;
     const displayHandicap = Math.round(getEffectiveHandicap(player));
     const { holePoints, matchPoints } = getMatchupPoints(Number(player.playerId));
+    const holePointValues = getHolePointValues(Number(player.playerId));
+    const swapCandidates = getSwapCandidates({
+      currentEntry: player,
+      leaguePlayers,
+      eventPlayerIds,
+      activePlayerIds: allPlayers.map((entry: any) => Number(entry.playerId)),
+      teamOnly: false,
+    });
 
     return (
-      <tr key={player.playerId} className="text-sm">
-        <td className="p-2 text-xs flex flex-col">
-          <span className="font-semibold">
-            {p.firstName} {p.lastName}
-          </span>
-          <span className="text-[10px]">Handicap: {displayHandicap}</span>
-        </td>
-        {holes.map((hole: any, holeIdx: number) => (
-          <td key={hole.num} className="p-2">
-            <div className="relative">
-              <input
-                type="number"
-                min="1"
-                max="10"
-                className="w-full min-w-10 border rounded h-8 text-center"
-                value={watchedPlayers?.[player.playerId]?.scores?.[holeIdx] ?? ""}
-                onChange={(e) => handleHoleChange(e, holeIdx, player.playerId)}
+      <Fragment key={player.playerId}>
+        <tr className="text-sm">
+          <td className="p-2 text-xs">
+            <div className="flex items-start justify-between gap-2">
+              <span className="font-semibold">
+                {p.firstName} {p.lastName}
+              </span>
+              <PlayerSwapControl
+                currentPlayerId={Number(player.playerId)}
+                candidates={swapCandidates}
+                isSaving={updateFlightPlayersMutation.isPending}
+                onSwap={(replacementId) => savePlayerSwap(playerIndex, replacementId)}
               />
-              {popsForHole(player.playerId, hole.num) > 0 && (
-                <span className="absolute bottom-1 left-1 pointer-events-none flex items-center justify-center gap-0.5">
-                  {Array.from({ length: popsForHole(player.playerId, hole.num) }).map((_, idx) => (
-                    <span key={idx} className="h-1 w-1 rounded-full bg-black" />
-                  ))}
-                </span>
-              )}
             </div>
+            <span className="block text-[10px]">Handicap: {displayHandicap}</span>
           </td>
-        ))}
-        <td className="font-bold text-center text-xs">
-          {getPlayerTotalScore(Number(player.playerId))}
-        </td>
-        <td className="font-bold text-center text-xs">
-          {getPlayerNetScore(Number(player.playerId))}
-        </td>
-        <td className="font-bold text-center text-xs">{holePoints + matchPoints}</td>
-      </tr>
+          {holes.map((hole: any, holeIdx: number) => (
+            <td key={hole.num} className="p-2">
+              <div className="relative">
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  className="w-full min-w-10 border rounded h-8 text-center"
+                  value={watchedPlayers?.[player.playerId]?.scores?.[holeIdx] ?? ""}
+                  onChange={(e) => handleHoleChange(e, holeIdx, player.playerId)}
+                />
+                {popsForHole(player.playerId, hole.num) > 0 && (
+                  <span className="absolute bottom-1 left-1 pointer-events-none flex items-center justify-center gap-0.5">
+                    {Array.from({ length: popsForHole(player.playerId, hole.num) }).map((_, idx) => (
+                      <span key={idx} className="h-1 w-1 rounded-full bg-black" />
+                    ))}
+                  </span>
+                )}
+              </div>
+            </td>
+          ))}
+          <td className="font-bold text-center text-xs">
+            {getPlayerTotalScore(Number(player.playerId))}
+          </td>
+          <td className="font-bold text-center text-xs">
+            {getPlayerNetScore(Number(player.playerId))}
+          </td>
+          <td className="font-bold text-center text-xs">{holePoints}</td>
+          <td className="font-bold text-center text-xs">{matchPoints}</td>
+          <td className="font-bold text-center text-xs">{holePoints + matchPoints}</td>
+        </tr>
+        <tr className="bg-slate-50 text-[11px] text-gray-600">
+          <td className="p-2 font-semibold">Hole Pts</td>
+          {holePointValues.map((value: number, idx: number) => (
+            <td key={holes[idx]?.num ?? idx} className="p-2 text-center font-semibold">
+              {value || "-"}
+            </td>
+          ))}
+          <td className="w-px whitespace-nowrap" />
+          <td className="w-px whitespace-nowrap" />
+          <td className="w-px whitespace-nowrap text-center font-bold">{holePoints}</td>
+          <td className="w-px whitespace-nowrap" />
+          <td className="w-px whitespace-nowrap" />
+        </tr>
+      </Fragment>
     );
   };
 
@@ -287,15 +403,17 @@ export const CreateFlightScoresIndividualMatch = ({
             <table className="min-w-max w-full text-left table-sm table-auto">
               <thead>
                 <tr className="text-xs text-gray-700">
-                  <th>Player</th>
+                  <th className="p-2">Player</th>
                   {holes.map((hole: any) => (
                     <th key={hole.num} className="p-2 text-center">
                       {hole.num}
                     </th>
                   ))}
-                  <th className="p-2 text-center">Total</th>
-                  <th className="p-2 text-center">Net</th>
-                  <th className="p-2 text-center">Pts</th>
+                  <th className="w-px whitespace-nowrap p-2 text-center">Total</th>
+                  <th className="w-px whitespace-nowrap p-2 text-center">Net</th>
+                  <th className="w-px whitespace-nowrap p-2 text-center">Hole Pts</th>
+                  <th className="w-px whitespace-nowrap p-2 text-center">Match Pts</th>
+                  <th className="w-px whitespace-nowrap p-2 text-center">Pts</th>
                 </tr>
               </thead>
               <tbody>
@@ -303,11 +421,17 @@ export const CreateFlightScoresIndividualMatch = ({
                   <Fragment key={pairIdx}>
                     {pairIdx > 0 && (
                       <tr aria-hidden="true">
-                        <td colSpan={holes.length + 4} className="h-2 bg-gray-50" />
+                        <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
                       </tr>
                     )}
-                    {renderPlayerRow(p1)}
-                    {renderPlayerRow(p2)}
+                    <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
+                      <td className="p-2" colSpan={holes.length + 6}>
+                        Matchup {pairIdx + 1}: {p1.player.firstName} {p1.player.lastName} vs{" "}
+                        {p2.player.firstName} {p2.player.lastName}
+                      </td>
+                    </tr>
+                    {renderPlayerRow(p1, allPlayers.findIndex((p: any) => Number(p.playerId) === Number(p1.playerId)))}
+                    {renderPlayerRow(p2, allPlayers.findIndex((p: any) => Number(p.playerId) === Number(p2.playerId)))}
                   </Fragment>
                 ))}
               </tbody>

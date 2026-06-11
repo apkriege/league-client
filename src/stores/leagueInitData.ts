@@ -1,9 +1,5 @@
-import { nanoid } from "nanoid";
-console.log("Generating new league init data...");
-console.log("nanoid example:", nanoid());
-
 export const info = {
-  adminId: 1,
+  adminId: null,
   name: "Bomb League",
   description: "This is a simple description that will describe the league.",
   numPlayers: 10,
