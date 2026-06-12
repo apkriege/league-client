@@ -5,7 +5,7 @@
  */
 
 import apiClient from "./client";
-import type { ApiResponse, ApiErrorResponse } from "./client";
+import type { ApiErrorResponse } from "./client";
 
 // ============================================
 // Example 1: Basic GET request
