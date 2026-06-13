@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLeagueEvent, useLeaguePlayers } from "@api/league/queries";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
@@ -23,6 +24,8 @@ import ViewFlightScores from "./ViewFlightScores";
 
 export default function EventScores() {
   const { leagueId, eventId } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [editingFlightIds, setEditingFlightIds] = useState<number[]>([]);
   const [selectedFlightId, setSelectedFlightId] = useState<number | null>(null);
 
@@ -74,6 +77,28 @@ export default function EventScores() {
 
   const stopEditFlight = (flightId: number) => {
     setEditingFlightIds((prev) => prev.filter((id) => id !== flightId));
+  };
+
+  const handleFlightSaveSuccess = async (flightId: number) => {
+    stopEditFlight(flightId);
+
+    const allFlightsComplete = event.flights.every(
+      (flight: any) => Number(flight.id) === Number(flightId) || flight.status === "completed"
+    );
+
+    await queryClient.invalidateQueries({ queryKey: ["league", Number(leagueId)] });
+    await queryClient.invalidateQueries({ queryKey: ["league", Number(leagueId), "events"] });
+    await queryClient.invalidateQueries({
+      queryKey: ["league", Number(leagueId), "event", Number(eventId)],
+    });
+
+    if (allFlightsComplete) {
+      await queryClient.refetchQueries({ queryKey: ["league", Number(leagueId)] });
+      navigate(`/league/${leagueId}`);
+      return;
+    }
+
+    await refetchEvent();
   };
 
   // Metrics
@@ -268,7 +293,7 @@ export default function EventScores() {
                   eventPlayerIds={eventPlayerIds}
                   isEditMode={isCompleted || isEditing}
                   onFlightPlayersUpdated={refetchEvent}
-                  onSaveSuccess={() => stopEditFlight(flight.id)}
+                  onSaveSuccess={() => handleFlightSaveSuccess(flight.id)}
                   onCancel={() => stopEditFlight(flight.id)}
                 />
               </div>
