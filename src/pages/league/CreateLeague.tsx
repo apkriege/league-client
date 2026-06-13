@@ -149,11 +149,13 @@ export default function CreateLeague() {
     const data = leagueForm.getValues();
     const modeledData = modelLeagueData(data);
     const includedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
+    const allocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
     const requestedGolfers = Math.max(
       BILLING_MIN_GOLFERS,
       modeledData.players.length,
       Number(modeledData.numPlayers || 0)
     );
+    const targetIncludedGolfers = allocatedGolfers + requestedGolfers;
 
     if (!stripeState?.billing?.hasCompletedRegistration || includedGolfers < BILLING_MIN_GOLFERS) {
       createCheckoutSession.mutate(
@@ -179,11 +181,11 @@ export default function CreateLeague() {
       return;
     }
 
-    if (requestedGolfers > includedGolfers) {
+    if (targetIncludedGolfers > includedGolfers) {
       createCheckoutSession.mutate(
         {
           purpose: "seat_upgrade",
-          requestedGolfers,
+          requestedGolfers: targetIncludedGolfers,
           successUrl: `${window.location.origin}/leagues/create?checkout=upgrade_success`,
           cancelUrl: `${window.location.origin}/leagues/create?checkout=upgrade_cancel`,
         },
@@ -220,6 +222,7 @@ export default function CreateLeague() {
       ? ["info", "players", "teams", "review"]
       : ["info", "players", "review"];
   const footerIncludedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
+  const footerAllocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
   const footerRequestedGolfers = Math.max(
     BILLING_MIN_GOLFERS,
     (leagueData.players || []).length,
@@ -229,7 +232,7 @@ export default function CreateLeague() {
     !stripeState?.billing?.hasCompletedRegistration || footerIncludedGolfers < BILLING_MIN_GOLFERS;
   const footerAdditionalGolfersRequired = Math.max(
     0,
-    footerRequestedGolfers - footerIncludedGolfers
+    footerAllocatedGolfers + footerRequestedGolfers - footerIncludedGolfers
   );
   const finalActionLabel = footerNeedsRegistrationPayment
     ? `Pay for ${BILLING_MIN_GOLFERS} Golfers`

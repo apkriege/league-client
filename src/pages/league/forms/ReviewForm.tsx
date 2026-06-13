@@ -52,9 +52,18 @@ export default function ReviewForm({
   const leagueType = String(leagueData?.type || "").toLowerCase();
   const leagueFormat = String(leagueData?.format || "").toLowerCase();
   const isTeamSeason = leagueType === "season" && leagueFormat === "team";
-  const includedGolfers = Math.max(BILLING_MIN_GOLFERS, Number(billing?.includedGolfers || 0));
-  const requestedGolfers = Math.max(BILLING_MIN_GOLFERS, players.length);
-  const additionalGolfersRequired = Math.max(0, requestedGolfers - includedGolfers);
+  const includedGolfers = Number(billing?.includedGolfers || 0);
+  const allocatedGolfers = Number(billing?.allocatedGolfers || 0);
+  const availableGolfers = Math.max(0, includedGolfers - allocatedGolfers);
+  const requestedGolfers = Math.max(
+    BILLING_MIN_GOLFERS,
+    players.length,
+    Number(leagueData?.numPlayers || 0)
+  );
+  const additionalGolfersRequired = Math.max(
+    0,
+    allocatedGolfers + requestedGolfers - includedGolfers
+  );
   const additionalCost = additionalGolfersRequired * BILLING_PRICE_PER_GOLFER;
   const needsRegistrationPayment = !isBillingLoading && !billing?.hasCompletedRegistration;
   const needsPayment = needsRegistrationPayment || additionalGolfersRequired > 0;
@@ -339,9 +348,11 @@ export default function ReviewForm({
                 {[
                   { label: "League", value: leagueData?.name || "—" },
                   { label: "Roster", value: `${players.length}` },
-                  { label: "Included", value: `${includedGolfers}` },
+                  { label: "Paid Slots", value: `${includedGolfers}` },
+                  { label: "Allocated", value: `${allocatedGolfers}` },
+                  { label: "Available", value: `${availableGolfers}` },
                   {
-                    label: needsRegistrationPayment ? "Needed to Start" : "Extra Needed",
+                    label: needsRegistrationPayment ? "Needed to Start" : "Payment Required",
                     value: `${needsRegistrationPayment ? BILLING_MIN_GOLFERS : additionalGolfersRequired}`,
                   },
                 ].map(({ label, value }) => (
