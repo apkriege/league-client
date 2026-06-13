@@ -25,12 +25,12 @@ export default function SelectableInfoCard({
       type="button"
       onClick={disabled && !active ? undefined : onClick}
       disabled={disabled && !active}
-      className={`w-full px-3 py-2 flex items-center justify-between gap-2 rounded-lg border text-left ${
+      className={`w-full px-3 py-2 flex items-center justify-between gap-2 rounded-2xl border text-left transition-all ${
         active
-          ? "bg-primary/10 border-primary cursor-pointer"
+          ? "bg-sky-100/70 border-blue-700/25 cursor-pointer shadow-sm"
           : disabled
             ? "opacity-40 cursor-not-allowed bg-base-100 border-base-300"
-            : "bg-base-100 border-base-300 hover:bg-base-200/60 cursor-pointer"
+            : "bg-white/70 border-base-300 hover:bg-white cursor-pointer hover:shadow-sm"
       } ${className}`}
       aria-pressed={active}
     >
@@ -44,7 +44,7 @@ export default function SelectableInfoCard({
 
       <span className="inline-flex h-6 w-6 items-center justify-center shrink-0">
         {active ? (
-          <CircleCheck size={16} className="text-primary" />
+          <CircleCheck size={16} className="text-blue-700" />
         ) : (
           <Circle size={16} className="text-gray-300" />
         )}

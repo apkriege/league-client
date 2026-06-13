@@ -42,7 +42,7 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#07140d] text-white">
+    <div className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
       <style>{`
         @keyframes login-fade-up {
           from { opacity: 0; transform: translateY(18px); }
@@ -56,14 +56,14 @@ export default function Login() {
         .login-drift { animation: login-drift 8s ease-in-out infinite; }
       `}</style>
       <img src={heroImage} alt="" className="absolute inset-0 h-full w-full scale-105 object-cover opacity-52" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(179,255,104,.24),transparent_26%),linear-gradient(115deg,rgba(7,20,13,.98)_0%,rgba(7,20,13,.78)_48%,rgba(7,20,13,.42)_100%)]" />
-      <div className="absolute -left-24 top-32 h-80 w-80 rounded-full bg-lime-300/20 blur-3xl login-drift" />
-      <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-emerald-400/12 blur-3xl login-drift" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(125,211,252,.24),transparent_26%),linear-gradient(115deg,rgba(7,20,38,.98)_0%,rgba(7,20,38,.78)_48%,rgba(7,20,38,.42)_100%)]" />
+      <div className="absolute -left-24 top-32 h-80 w-80 rounded-full bg-sky-300/20 blur-3xl login-drift" />
+      <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-blue-400/12 blur-3xl login-drift" />
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="flex items-center justify-between px-6 py-6 md:px-8">
           <Link to="/" className="group flex items-center gap-3 text-white">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-lime-300 text-slate-950 shadow-lg shadow-lime-950/20 transition-transform group-hover:-rotate-6">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-300 text-slate-950 shadow-lg shadow-sky-950/20 transition-transform group-hover:-rotate-6">
               <Flag size={18} />
             </span>
             <div>
@@ -85,12 +85,12 @@ export default function Login() {
 
         <main className="flex flex-1 items-center justify-center px-6 py-8 md:px-8">
           <div className="login-reveal w-full max-w-md rounded-[2rem] border border-white/12 bg-white/10 p-3 shadow-2xl shadow-black/30 backdrop-blur-xl">
-            <div className="rounded-[1.5rem] bg-[#fbfaf5] p-6 text-slate-950 shadow-2xl md:p-8">
+            <div className="rounded-[1.5rem] bg-[#f8fafc] p-6 text-slate-950 shadow-2xl md:p-8">
               <div className="mb-8">
-                <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-lime-200">
+                <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-sky-200">
                   <Lock size={18} />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-800">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-800">
                 Sign in
                 </p>
                 <h1 className="mt-2 text-4xl font-black tracking-[-0.04em] text-slate-950">
@@ -110,7 +110,7 @@ export default function Login() {
 
                 <label className="grid gap-1.5">
                   <span className="text-xs font-black text-slate-600">Email</span>
-                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-emerald-700 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-800/10">
+                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-blue-700 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-800/10">
                     <Mail size={14} className="text-slate-400" />
                     <input
                       type="email"
@@ -125,7 +125,7 @@ export default function Login() {
 
                 <label className="grid gap-1.5">
                   <span className="text-xs font-black text-slate-600">Password</span>
-                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-emerald-700 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-800/10">
+                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-blue-700 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-800/10">
                     <Lock size={14} className="text-slate-400" />
                     <input
                       type="password"
@@ -141,7 +141,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-lime-300 px-5 text-sm font-black text-slate-950 transition hover:bg-lime-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-sky-300 px-5 text-sm font-black text-slate-950 transition hover:bg-sky-200 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? "Signing in..." : "Sign in"}
                   <ArrowRight size={16} />
@@ -166,7 +166,7 @@ export default function Login() {
                 }}
                 className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-black text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <ShieldCheck size={15} className="text-emerald-800" />
+                <ShieldCheck size={15} className="text-blue-800" />
                 {googleAuthUrl ? "Sign in with Google" : "Google sign-in unavailable"}
               </button>
 

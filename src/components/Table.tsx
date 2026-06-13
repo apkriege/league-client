@@ -110,23 +110,23 @@ export default function Table<T>({
 
   const variantClasses = {
     default: {
-      container: "bg-base-100 border rounded-xl",
-      containerNoBorder: "bg-base-100 rounded-xl",
-      header: "px-2 py-1 rounded-t-xl",
-      heading: "text-primary",
-      theadRow: "bg-base-200 border-b border-t border-base-300",
-      headerCell: "hover:bg-base-300 text-gray-600",
-      row: "border-base-300 hover:bg-base-100",
+      container: "bg-white/80 border rounded-3xl shadow-sm backdrop-blur-md overflow-hidden",
+      containerNoBorder: "bg-white/80 rounded-3xl shadow-sm backdrop-blur-md overflow-hidden",
+      header: "px-4 py-3 border-b border-black/5",
+      heading: "text-blue-800",
+      theadRow: "bg-[#f4f7fb]/80 border-b border-base-300",
+      headerCell: "hover:bg-sky-100/40 text-gray-600",
+      row: "border-base-300 hover:bg-sky-50/50",
       empty: "text-base-content/50",
     },
     clean: {
-      container: "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm",
-      containerNoBorder: "overflow-hidden rounded-xl bg-white shadow-sm",
+      container: "overflow-hidden rounded-3xl border border-gray-200 bg-white/80 shadow-sm backdrop-blur-md",
+      containerNoBorder: "overflow-hidden rounded-3xl bg-white/80 shadow-sm backdrop-blur-md",
       header: "border-b border-gray-100 px-4 py-3",
-      heading: "text-primary",
-      theadRow: "bg-gray-50/80 border-b border-gray-100",
-      headerCell: "hover:bg-gray-100 text-gray-500",
-      row: "border-gray-100 hover:bg-primary/5",
+      heading: "text-blue-800",
+      theadRow: "bg-[#f4f7fb]/80 border-b border-gray-100",
+      headerCell: "hover:bg-sky-100/50 text-gray-500",
+      row: "border-gray-100 hover:bg-sky-50/60",
       empty: "text-gray-400",
     },
   };
@@ -172,10 +172,10 @@ export default function Table<T>({
                   key={`header-${idx}`}
                   onClick={() => handleSort(col.key)}
                   style={{ width: col.width ?? col.cellWidth }}
-                  className={`cursor-pointer px-4 py-3 text-left text-xs font-semibold transition-colors ${currentVariant.headerCell}`}
+                  className={`cursor-pointer px-4 py-3 text-left text-xs font-black transition-colors ${currentVariant.headerCell}`}
                 >
                   <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em]">
-                    {col.label}
+                    <span>{col.label}</span>
                     {getSortIndicator(col.key)}
                   </div>
                 </th>

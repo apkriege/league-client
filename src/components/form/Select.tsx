@@ -20,14 +20,14 @@ export default function Select({
   return (
     <fieldset className={`fieldset ${className} w-full`}>
       <legend
-        className={`fieldset-legend uppercase text-gray-500 font-semibold tracking-wider ${
+        className={`fieldset-legend uppercase text-gray-500 font-black tracking-[0.18em] ${
           dense ? "px-1 py-0.5 text-[9px]" : "p-1 text-[10px]"
         }`}
       >
         {label}
       </legend>
       <select
-        className={`select w-full rounded-md ${className} bg-base-200 border-base-300 ${
+        className={`select w-full rounded-2xl ${className || ""} bg-white/70 border-base-300 font-semibold ${
           dense ? "h-[31px] text-[11px]" : "h-[35px] text-xs"
         }`}
         value={value || ""}

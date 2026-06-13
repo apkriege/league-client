@@ -14,7 +14,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     <fieldset className={`fieldset ${className || ""}`}>
       {label ? (
         <legend
-          className={`fieldset-legend uppercase text-gray-500 font-semibold tracking-wider ${
+          className={`fieldset-legend uppercase text-gray-500 font-black tracking-[0.18em] ${
             dense ? "px-1 py-0.5 text-[9px]" : "p-1 text-[10px]"
           }`}
         >
@@ -24,7 +24,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       <input
         ref={ref}
         type={type}
-        className={`input w-full rounded-md bg-base-200 border-base-300 ${
+        className={`input w-full rounded-2xl bg-white/70 border-base-300 font-semibold ${
           dense ? "h-[31px] text-[11px]" : "h-[35px] text-xs"
         } ${error ? "input-error" : ""}`}
         placeholder={placeholder}

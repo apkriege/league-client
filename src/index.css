@@ -5,27 +5,27 @@
 @plugin "daisyui/theme" {
   name: "light";
   default: true;
-  --color-primary: #0f172a;
+  --color-primary: #101828;
   --color-primary-content: #ffffff;
-  --color-secondary: #bfdbfe;
-  --color-secondary-content: #1e3a8a;
-  --color-accent: #476800;
+  --color-secondary: #7dd3fc;
+  --color-secondary-content: #101828;
+  --color-accent: #2563eb;
   --color-accent-content: #ffffff;
-  --color-neutral: #2d2d2d;
+  --color-neutral: #1f2937;
   --color-neutral-content: #ffffff;
   --color-base-100: #ffffff;
-  --color-base-200: #f3f5f8;
-  --color-base-300: #e5e7eb;
-  --color-base-content: #000000;
-  --color-info: #1f7fff;
+  --color-base-200: #f4f7fb;
+  --color-base-300: #e7dfcf;
+  --color-base-content: #101828;
+  --color-info: #0f766e;
   --color-info-content: #ffffff;
-  --color-success: #2e8b57;
+  --color-success: #2563eb;
   --color-success-content: #ffffff;
-  --color-warning: #ff9800;
-  --color-warning-content: #ffffff;
-  --color-error: #d32f2f;
+  --color-warning: #d97706;
+  --color-warning-content: #101828;
+  --color-error: #b91c1c;
   --color-error-content: #ffffff;
-  --color-danger: #d32f2f;
+  --color-danger: #b91c1c;
   --color-danger-content: #ffffff;
 }
 
@@ -37,6 +37,9 @@
 
 body {
   color: var(--color-base-content);
+  background:
+    radial-gradient(circle at top left, rgba(125, 211, 252, 0.16), transparent 32rem),
+    linear-gradient(180deg, #f8fafc 0%, #f4f7fb 42%, #ffffff 100%);
 }
 
 h1,
@@ -57,13 +60,193 @@ h6 {
 }
 
 .btn {
-  @apply rounded-md;
+  @apply rounded-full font-black tracking-tight;
 }
 
 .btn-md {
-  @apply h-[35px] text-xs rounded-md;
+  @apply h-[38px] text-xs rounded-full;
 }
 
 .btn-ghost {
   @apply bg-white/10 border-white/20 text-white;
 }
+
+/* APP STYLE OVERHAUL START
+   Reversible shell theme: remove the `app-shell` class from BaseLayout and this block to undo. */
+.app-shell {
+  --app-ink: #101828;
+  --app-muted: #647067;
+  --app-soft: #f4f7fb;
+  --app-card: rgba(255, 255, 255, 0.84);
+  --app-line: rgba(16, 24, 40, 0.1);
+  --app-accent: #7dd3fc;
+  --app-blue: #2563eb;
+  color: var(--app-ink);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(125, 211, 252, 0.28), transparent 25rem),
+    radial-gradient(circle at 92% 14%, rgba(37, 99, 235, 0.14), transparent 30rem),
+    linear-gradient(135deg, #f8fafc 0%, #f4f7fb 48%, #ffffff 100%);
+}
+
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.42;
+  background-image:
+    linear-gradient(rgba(16, 24, 40, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 24, 40, 0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, black, transparent 75%);
+}
+
+.app-shell .app-sidebar {
+  background:
+    radial-gradient(circle at top left, rgba(125, 211, 252, 0.18), transparent 17rem),
+    linear-gradient(180deg, #101828 0%, #172033 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 24px 0 60px rgba(16, 24, 40, 0.18);
+}
+
+.app-shell .app-main {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell .app-topbar {
+  background: rgba(255, 253, 248, 0.76);
+  border-color: rgba(16, 24, 40, 0.08);
+  box-shadow: 0 12px 40px rgba(16, 24, 40, 0.06);
+  backdrop-filter: blur(22px);
+}
+
+.app-shell .app-content {
+  background:
+    radial-gradient(circle at 75% 12%, rgba(125, 211, 252, 0.12), transparent 24rem),
+    transparent;
+}
+
+.app-shell .app-brand-mark {
+  background: var(--app-accent);
+  color: var(--app-ink);
+  box-shadow: 0 16px 34px rgba(125, 211, 252, 0.18);
+}
+
+.app-shell .app-nav-link {
+  border: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.68);
+  border-radius: 1rem;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease,
+    color 180ms ease;
+}
+
+.app-shell .app-nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+.app-shell .app-nav-link-active {
+  background: rgba(125, 211, 252, 0.14);
+  border-color: rgba(125, 211, 252, 0.32);
+  color: #e0f2fe;
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.08);
+}
+
+.app-shell .app-section-label {
+  color: rgba(255, 255, 255, 0.36);
+  letter-spacing: 0.2em;
+}
+
+.app-shell .app-page-card,
+.app-shell .card,
+.app-shell .modal-box {
+  border: 1px solid var(--app-line);
+  border-radius: 1.5rem;
+  background: var(--app-card);
+  box-shadow: 0 18px 48px rgba(16, 24, 40, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.app-shell :where(.bg-white) {
+  background-color: rgba(255, 255, 255, 0.84);
+}
+
+.app-shell :where(.border-gray-200, .border-slate-200, .border-base-300) {
+  border-color: var(--app-line);
+}
+
+.app-shell :where(.shadow-sm, .shadow-xs) {
+  box-shadow: 0 14px 38px rgba(16, 24, 40, 0.07);
+}
+
+.app-shell :where(.rounded-xl) {
+  border-radius: 1.25rem;
+}
+
+.app-shell :where(.rounded-lg) {
+  border-radius: 1rem;
+}
+
+.app-shell .input,
+.app-shell .select,
+.app-shell textarea,
+.app-shell input,
+.app-shell select {
+  border-color: rgba(16, 24, 40, 0.11);
+}
+
+.app-shell .input,
+.app-shell .select {
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 1rem;
+}
+
+.app-shell .input:focus,
+.app-shell .select:focus,
+.app-shell textarea:focus,
+.app-shell input:focus,
+.app-shell select:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.72);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.app-shell .badge-secondary {
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  background: rgba(125, 211, 252, 0.32);
+  color: #1e3a8a;
+}
+
+.app-shell .btn-primary {
+  border: 0;
+  background: #101828;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
+}
+
+.app-shell .btn-primary:hover {
+  background: #1e293b;
+}
+
+.app-shell .btn-secondary {
+  border: 0;
+  background: var(--app-accent);
+  color: var(--app-ink);
+}
+
+.app-shell .table :where(th) {
+  color: var(--app-muted);
+}
+
+.app-shell ::selection {
+  background: rgba(125, 211, 252, 0.55);
+  color: var(--app-ink);
+}
+/* APP STYLE OVERHAUL END */

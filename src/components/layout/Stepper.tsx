@@ -48,7 +48,7 @@ export default function Stepper({
 
   return (
     <div
-      className={`step-footer mt-4 w-full bg-base-100 px-4 py-3 flex items-center justify-between border border-base-300 rounded-xl shadow-xs ${className}`}
+      className={`step-footer mt-4 w-full bg-white/80 px-4 py-3 flex items-center justify-between border border-base-300 rounded-3xl shadow-xs backdrop-blur-md ${className}`}
     >
       <div className="flex items-center gap-2">
         {Array.from({ length: totalSteps }).map((_, i) => (

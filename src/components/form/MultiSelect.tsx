@@ -55,21 +55,21 @@ export default function MultiSelect({
   return (
     <fieldset className={`fieldset ${className}`}>
       {label ? (
-        <legend className="fieldset-legend p-1 uppercase text-gray-500 font-semibold text-[10px] tracking-wider">
+        <legend className="fieldset-legend p-1 uppercase text-gray-500 font-black text-[10px] tracking-[0.18em]">
           {label}
         </legend>
       ) : null}
 
       <div className="relative" ref={containerRef}>
         <div
-          className="w-full min-h-[35px] rounded-md bg-base-200 border border-base-300 px-2 py-1 text-xs cursor-pointer flex items-center gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap"
+          className="w-full min-h-[35px] rounded-2xl bg-white/70 border border-base-300 px-2 py-1 text-xs cursor-pointer flex items-center gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap"
           onClick={() => setIsOpen(!isOpen)}
         >
           {selectedOptions.length > 0 ? (
             selectedOptions.map((opt) => (
               <span
                 key={opt.value}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-base-300 text-base-content rounded text-[11px] shrink-0 whitespace-nowrap"
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-sky-100 text-blue-900 rounded-full text-[11px] shrink-0 whitespace-nowrap"
               >
                 {opt.label}
                 <button
@@ -91,7 +91,7 @@ export default function MultiSelect({
 
         {/* Dropdown */}
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 border border-base-300 rounded-md bg-base-100 shadow-lg z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 border border-base-300 rounded-2xl bg-base-100 shadow-lg z-10 overflow-hidden">
             <ul className="max-h-48 overflow-y-auto">
               {options.map((option) => (
                 <li key={option.value}>

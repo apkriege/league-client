@@ -24,7 +24,7 @@ import dayjs from "dayjs";
 
 const Section = ({ section }: { section: string }) => (
   <div className="mt-5 mb-2 flex flex-col">
-    <p className="text-[10px] uppercase ml-2 font-semibold text-gray-500">{section}</p>
+    <p className="app-section-label text-[10px] uppercase ml-2 font-black">{section}</p>
   </div>
 );
 
@@ -51,14 +51,16 @@ const NavLink = ({
       }}
       aria-disabled={disabled}
       tabIndex={disabled ? -1 : undefined}
-      className={`px-2 py-2.5 rounded transition-colors flex items-center ${
+      className={`app-nav-link px-2 py-2.5 flex items-center ${
         disabled
           ? "opacity-40 cursor-not-allowed pointer-events-none"
-          : "hover:bg-secondary/5 hover:text-secondary/80"
-      } ${isActive ? "border-l-2 border-secondary bg-secondary/10 text-secondary" : ""}`}
+          : ""
+      } ${isActive ? "app-nav-link-active" : ""}`}
     >
-      <span className="mr-3">{icon}</span>
-      {!collapsed && <span className="text-sm">{text}</span>}
+      <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-xl bg-white/5">
+        {icon}
+      </span>
+      {!collapsed && <span className="text-sm font-semibold">{text}</span>}
     </Link>
   );
 };
@@ -75,8 +77,10 @@ const NavWithSubLinks = ({
   <ul className="menu w-full m-0! p-0">
     <li>
       <details open>
-        <summary className="text-sm px-2 py-1">
-          <span className="mr-2">{icon}</span>
+        <summary className="app-nav-link text-sm px-2 py-2">
+          <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/5">
+            {icon}
+          </span>
           {section}
         </summary>
         <ul className="px-2 py-1">
@@ -84,7 +88,7 @@ const NavWithSubLinks = ({
             <li key={idx} className="flex">
               <Link
                 to={link.to}
-                className={`px-2 py-1 rounded hover:bg-primary/80 hover:text-primary-content flex items-center justify-between transition-colors text-xs`}
+                className={`rounded-xl px-2 py-1.5 hover:bg-white/8 hover:text-white flex items-center justify-between transition-colors text-xs text-white/60`}
               >
                 <div className="">
                   {link.name} -
@@ -92,7 +96,7 @@ const NavWithSubLinks = ({
                 </div>
                 {link.eventType !== "off" && link.completed && (
                   <div>
-                    <Check className="ml-2 text-green-500" size={16} strokeWidth={3} />
+                    <Check className="ml-2 text-sky-300" size={16} strokeWidth={3} />
                   </div>
                 )}
               </Link>
@@ -182,22 +186,30 @@ export default function BaseLayout() {
   const subDisabled = !leagueId || leagueId === "undefined";
 
   return (
-    <div className="flex h-screen bg-base-200 overflow-hidden">
+    <div className="app-shell flex h-screen overflow-hidden">
       <div
-        className={`bg-primary text-gray-300 border-r transition-all duration-300 ${
+        className={`app-sidebar text-gray-300 border-r transition-all duration-300 ${
           isOpen ? "w-48 md:w-56" : "w-16 md:w-20"
         } flex flex-col`}
       >
         {/* Header */}
-        <div className="p-3 md:p-4 border-base-300 flex items-center justify-between">
+        <div className="p-3 md:p-4 border-b border-white/10 flex items-center justify-between">
           {isOpen && (
-            <h1 className="text-lg font-bold text-primary-content hidden md:block">
-              Golf League App
-            </h1>
+            <div className="hidden items-center gap-3 md:flex">
+              <span className="app-brand-mark flex h-10 w-10 items-center justify-center rounded-2xl">
+                <LandPlot size={18} />
+              </span>
+              <div>
+                <h1 className="text-sm font-black text-white">Golf League App</h1>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/35">
+                  League Management
+                </p>
+              </div>
+            </div>
           )}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="p-2 hover:bg-base-200 rounded-lg transition"
+            className="rounded-2xl border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
           >
             <Menu size={18} />
           </button>
@@ -293,10 +305,10 @@ export default function BaseLayout() {
         </nav>
 
         {/* Footer */}
-        <div className="p-2 md:p-3 border-t border-slate-700">
+        <div className="p-2 md:p-3 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-4 px-2 py-1 rounded-lg w-full text-gray-400 hover:bg-base-200 transition-colors"
+            className="flex items-center gap-4 px-2 py-2 rounded-2xl w-full text-white/52 hover:bg-white/8 hover:text-white transition-colors"
           >
             {isOpen && (
               <div className="flex flex-col gap-3">
@@ -315,14 +327,22 @@ export default function BaseLayout() {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="sticky top-0 z-10 bg-base-100 border-b border-gray-300 px-4 md:px-6 py-4 flex justify-end">
-          <div className="flex items-center gap-2">
-            <User size={22} className="text-blue-600 bg-gray-200 p-0.5 rounded-full" />
-            <h2 className="text-sm font-bold text-neutral">{displayName}</h2>
+      <div className="app-main flex flex-col flex-1 overflow-hidden">
+        <div className="app-topbar sticky top-0 z-10 border-b px-4 md:px-6 py-4 flex justify-between">
+          <div className="hidden md:block">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
+              Command center
+            </p>
+            <p className="mt-0.5 text-sm font-black text-slate-900">
+              {league?.name || "Golf operations"}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 rounded-full border border-black/5 bg-white/70 px-3 py-1.5 shadow-sm">
+            <User size={22} className="rounded-full bg-sky-100 p-1 text-blue-800" />
+            <h2 className="text-sm font-black text-slate-900">{displayName}</h2>
           </div>
         </div>
-        <div className="px-8 py-8 overflow-y-auto flex-1">
+        <div className="app-content px-5 py-6 md:px-8 md:py-8 overflow-y-auto flex-1">
           <Outlet />
         </div>
       </div>

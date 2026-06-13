@@ -29,7 +29,7 @@ const GOLF_IMAGES = {
     "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=1800&q=85",
   aerial:
     "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=900&q=85",
-  green:
+  detail:
     "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=700&q=80",
 };
 
@@ -82,7 +82,7 @@ const features = [
 
 export default function Landing() {
   return (
-    <div className="min-h-screen overflow-hidden bg-[#f5f1e8] text-[#101713]">
+    <div className="min-h-screen overflow-hidden bg-[#f4f7fb] text-[#101828]">
       <style>{`
         @keyframes landing-fade-up {
           from { opacity: 0; transform: translateY(22px); }
@@ -126,19 +126,19 @@ export default function Landing() {
 
 function Hero() {
   return (
-    <section className="relative min-h-screen overflow-hidden bg-[#07140d] text-white">
+    <section className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
       <img
         src={GOLF_IMAGES.hero}
-        alt="Golfer finishing a drive on a green fairway"
+        alt="Golfer finishing a drive on a blue-toned golf fairway"
         className="absolute inset-0 h-full w-full scale-105 object-cover opacity-58"
       />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(179,255,104,.28),transparent_26%),linear-gradient(115deg,rgba(7,20,13,.98)_0%,rgba(7,20,13,.78)_48%,rgba(7,20,13,.34)_100%)]" />
-      <div className="absolute -left-24 top-32 h-80 w-80 rounded-full bg-lime-300/20 blur-3xl landing-drift" />
-      <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-emerald-400/12 blur-3xl landing-drift" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(125,211,252,.28),transparent_26%),linear-gradient(115deg,rgba(7,20,38,.98)_0%,rgba(7,20,38,.78)_48%,rgba(7,20,38,.34)_100%)]" />
+      <div className="absolute -left-24 top-32 h-80 w-80 rounded-full bg-sky-300/20 blur-3xl landing-drift" />
+      <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-blue-400/12 blur-3xl landing-drift" />
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8">
         <Link to="/" className="group flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-lime-300 text-slate-950 shadow-lg shadow-lime-950/20 transition-transform group-hover:-rotate-6">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-300 text-slate-950 shadow-lg shadow-sky-950/20 transition-transform group-hover:-rotate-6">
             <Flag size={18} />
           </span>
           <div>
@@ -170,7 +170,7 @@ function Hero() {
           </Link>
           <a
             href="#register"
-            className="rounded-full bg-lime-300 px-4 py-2 text-xs font-black text-slate-950 shadow-lg shadow-lime-950/20 transition hover:bg-lime-200"
+            className="rounded-full bg-sky-300 px-4 py-2 text-xs font-black text-slate-950 shadow-lg shadow-sky-950/20 transition hover:bg-sky-200"
           >
             Start
           </a>
@@ -179,7 +179,7 @@ function Hero() {
 
       <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-14 md:px-8 lg:grid-cols-[minmax(0,1fr)_520px] lg:pb-28 lg:pt-20">
         <div>
-          <div className="landing-reveal inline-flex items-center gap-2 rounded-full border border-lime-200/20 bg-lime-200/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-lime-100 backdrop-blur-md">
+          <div className="landing-reveal inline-flex items-center gap-2 rounded-full border border-sky-200/20 bg-sky-200/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-sky-100 backdrop-blur-md">
             <Sparkles size={13} />
             Premium league management for golf clubs
           </div>
@@ -197,7 +197,7 @@ function Hero() {
           <div className="landing-reveal landing-delay-3 mt-8 flex flex-wrap gap-3">
             <a
               href="#register"
-              className="group inline-flex items-center gap-2 rounded-full bg-lime-300 px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-lime-950/25 transition hover:bg-lime-200"
+              className="group inline-flex items-center gap-2 rounded-full bg-sky-300 px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-sky-950/25 transition hover:bg-sky-200"
             >
               Launch your league
               <ArrowRight size={16} className="transition group-hover:translate-x-0.5" />
@@ -235,9 +235,9 @@ function Hero() {
 function HeroProductCard() {
   return (
     <div className="landing-reveal landing-delay-2 relative">
-      <div className="absolute -inset-5 rounded-[2.5rem] bg-lime-300/18 blur-2xl" />
+      <div className="absolute -inset-5 rounded-[2.5rem] bg-sky-300/18 blur-2xl" />
       <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-white/10 p-3 shadow-2xl shadow-black/30 backdrop-blur-xl landing-scan">
-        <div className="rounded-[1.5rem] bg-[#fbfaf5] text-slate-950 shadow-2xl">
+        <div className="rounded-[1.5rem] bg-[#f8fafc] text-slate-950 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
@@ -245,7 +245,7 @@ function HeroProductCard() {
               </p>
               <h2 className="text-base font-black">Thursday Match Play</h2>
             </div>
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-800">
+            <span className="rounded-full bg-blue-100 px-3 py-1 text-[10px] font-black text-blue-800">
               scoring
             </span>
           </div>
@@ -269,7 +269,7 @@ function HeroProductCard() {
             <div className="rounded-3xl border border-slate-200 bg-slate-950 p-4 text-white">
               <div className="mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <BarChart3 size={15} className="text-lime-300" />
+                  <BarChart3 size={15} className="text-sky-300" />
                   <p className="text-sm font-black">Standings movement</p>
                 </div>
                 <p className="text-[10px] font-bold text-white/42">LIVE</p>
@@ -279,7 +279,7 @@ function HeroProductCard() {
                   <div key={index} className="flex flex-1 flex-col items-center gap-2">
                     <div
                       className={`w-full rounded-t-xl ${
-                        index === 5 ? "bg-lime-300" : "bg-white/18"
+                        index === 5 ? "bg-sky-300" : "bg-white/18"
                       }`}
                       style={{ height: `${height}%` }}
                     />
@@ -299,7 +299,7 @@ function HeroProductCard() {
                   key={title}
                   className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-lime-100 text-emerald-800">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-100 text-blue-800">
                     <Check size={15} />
                   </span>
                   <div>
@@ -318,7 +318,7 @@ function HeroProductCard() {
 
 function ProofStrip() {
   return (
-    <section className="relative border-b border-black/5 bg-[#f5f1e8]">
+    <section className="relative border-b border-black/5 bg-[#f4f7fb]">
       <div className="mx-auto grid max-w-7xl gap-3 px-5 py-6 md:grid-cols-4 md:px-8">
         {[
           "Course and tee database",
@@ -327,7 +327,7 @@ function ProofStrip() {
           "Admin-safe event sequencing",
         ].map((item) => (
           <div key={item} className="flex items-center gap-2 rounded-2xl bg-white/70 px-4 py-3">
-            <CircleCheck size={15} className="text-emerald-700" />
+            <CircleCheck size={15} className="text-blue-700" />
             <span className="text-xs font-black text-slate-700">{item}</span>
           </div>
         ))}
@@ -338,11 +338,11 @@ function ProofStrip() {
 
 function ProductSection() {
   return (
-    <section id="product" className="relative overflow-hidden bg-[#f5f1e8] px-5 py-24 md:px-8">
-      <div className="absolute right-0 top-10 h-96 w-96 rounded-full bg-lime-200/40 blur-3xl" />
+    <section id="product" className="relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
+      <div className="absolute right-0 top-10 h-96 w-96 rounded-full bg-sky-200/40 blur-3xl" />
       <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
         <div className="landing-reveal">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-800">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
             Built for real league workflows
           </p>
           <h2 className="mt-4 max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
@@ -358,11 +358,11 @@ function ProductSection() {
             {workflow.map((item, index) => (
               <div
                 key={item.title}
-                className="group rounded-3xl border border-black/5 bg-white/75 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/10"
+                className="group rounded-3xl border border-black/5 bg-white/75 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-950/10"
                 style={{ animationDelay: `${index * 120}ms` }}
               >
                 <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-lime-200 transition group-hover:rotate-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-sky-200 transition group-hover:rotate-3">
                     {item.icon}
                   </div>
                   <div>
@@ -376,16 +376,16 @@ function ProductSection() {
         </div>
 
         <div className="relative">
-          <div className="absolute -inset-6 rounded-[3rem] bg-emerald-900/10 blur-2xl" />
+          <div className="absolute -inset-6 rounded-[3rem] bg-blue-900/10 blur-2xl" />
           <div className="relative grid gap-4 lg:grid-cols-[1fr_0.74fr]">
-            <div className="overflow-hidden rounded-[2rem] bg-slate-950 p-3 shadow-2xl shadow-emerald-950/18">
+            <div className="overflow-hidden rounded-[2rem] bg-slate-950 p-3 shadow-2xl shadow-blue-950/18">
               <img
                 src={GOLF_IMAGES.aerial}
                 alt="Golf fairway and player in motion"
                 className="h-72 w-full rounded-[1.45rem] object-cover opacity-90"
               />
               <div className="p-5 text-white">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-200">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-200">
                   Event command center
                 </p>
                 <h3 className="mt-2 text-2xl font-black tracking-tight">
@@ -408,8 +408,8 @@ function ProductSection() {
 
 function MetricCard({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
   return (
-    <div className="rounded-[1.5rem] border border-black/5 bg-white p-5 shadow-xl shadow-emerald-950/8">
-      <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-2xl bg-lime-100 text-emerald-800">
+    <div className="rounded-[1.5rem] border border-black/5 bg-white p-5 shadow-xl shadow-blue-950/8">
+      <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-blue-800">
         {icon}
       </div>
       <p className="text-2xl font-black tracking-tight text-slate-950">{value}</p>
@@ -420,11 +420,11 @@ function MetricCard({ label, value, icon }: { label: string; value: string; icon
 
 function WorkflowSection() {
   return (
-    <section id="workflow" className="bg-[#101713] px-5 py-24 text-white md:px-8">
+    <section id="workflow" className="bg-[#101828] px-5 py-24 text-white md:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-lime-300">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-300">
               Modern league ops
             </p>
             <h2 className="mt-4 max-w-3xl text-5xl font-black leading-[0.95] tracking-[-0.055em]">
@@ -448,8 +448,8 @@ function WorkflowSection() {
               key={step}
               className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.06] p-5 transition hover:-translate-y-1 hover:bg-white/[0.09]"
             >
-              <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-lime-300/10 blur-2xl transition group-hover:bg-lime-300/20" />
-              <p className="text-[10px] font-black text-lime-300">{step}</p>
+              <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-sky-300/10 blur-2xl transition group-hover:bg-sky-300/20" />
+              <p className="text-[10px] font-black text-sky-300">{step}</p>
               <h3 className="mt-10 text-xl font-black">{title}</h3>
               <p className="mt-3 text-sm leading-6 text-white/58">{body}</p>
             </div>
@@ -465,7 +465,7 @@ function FeatureSection() {
     <section className="relative overflow-hidden bg-white px-5 py-24 md:px-8">
       <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <div className="lg:sticky lg:top-8">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-800">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
             Product depth
           </p>
           <h2 className="mt-4 text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
@@ -482,10 +482,10 @@ function FeatureSection() {
           {features.map((feature, index) => (
             <div
               key={feature.title}
-              className="rounded-[1.75rem] border border-slate-200 bg-[#fbfaf5] p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-950/8"
+              className="rounded-[1.75rem] border border-slate-200 bg-[#f8fafc] p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-950/8"
               style={{ animationDelay: `${index * 90}ms` }}
             >
-              <div className="mb-12 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-lime-200">
+              <div className="mb-12 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-sky-200">
                 {feature.icon}
               </div>
               <h3 className="text-lg font-black text-slate-950">{feature.title}</h3>
@@ -500,13 +500,13 @@ function FeatureSection() {
 
 function ConversionSection() {
   return (
-    <section className="relative overflow-hidden bg-[#f5f1e8] px-5 py-24 md:px-8">
+    <section className="relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
       <div className="absolute inset-x-0 top-0 h-px bg-black/5" />
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
-        <div className="overflow-hidden rounded-[2.25rem] bg-slate-950 p-3 shadow-2xl shadow-emerald-950/15">
+        <div className="overflow-hidden rounded-[2.25rem] bg-slate-950 p-3 shadow-2xl shadow-blue-950/15">
           <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
             <img
-              src={GOLF_IMAGES.green}
+              src={GOLF_IMAGES.detail}
               alt="Golf course fairway used as product atmosphere"
               className="h-full min-h-80 rounded-[1.65rem] object-cover opacity-90"
             />
@@ -546,7 +546,7 @@ function PricingSection() {
     <section id="pricing" className="bg-white px-5 py-24 md:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-800">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
             Simple launch pricing
           </p>
           <h2 className="mt-4 text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
@@ -559,7 +559,7 @@ function PricingSection() {
         </div>
 
         <div className="mx-auto mt-12 grid max-w-5xl gap-4 lg:grid-cols-[0.82fr_1.18fr]">
-          <div className="rounded-[2rem] border border-slate-200 bg-[#fbfaf5] p-6">
+          <div className="rounded-[2rem] border border-slate-200 bg-[#f8fafc] p-6">
             <p className="text-sm font-black text-slate-950">Included launch pack</p>
             <div className="mt-6 flex items-end gap-2">
               <span className="text-6xl font-black tracking-tight">{includedTotal}</span>
@@ -575,7 +575,7 @@ function PricingSection() {
                 "Upgrade only for extra golfers",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm font-semibold">
-                  <Check size={15} className="text-emerald-700" />
+                  <Check size={15} className="text-blue-700" />
                   {item}
                 </div>
               ))}
@@ -591,7 +591,7 @@ function PricingSection() {
                   so it can be changed later without redesigning the flow.
                 </p>
               </div>
-              <div className="shrink-0 rounded-3xl bg-lime-300 px-6 py-5 text-slate-950">
+              <div className="shrink-0 rounded-3xl bg-sky-300 px-6 py-5 text-slate-950">
                 <p className="text-5xl font-black tracking-tight">
                   {formatBillingPrice(BILLING_PRICE_PER_GOLFER)}
                 </p>
@@ -601,7 +601,7 @@ function PricingSection() {
 
             <a
               href="#register"
-              className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-lime-100"
+              className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-100"
             >
               Create account and checkout
               <ArrowRight size={16} />
@@ -683,12 +683,12 @@ function RegisterPanel() {
       <div className="rounded-[1.5rem] bg-slate-950 p-5 text-white">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-300">
               Register
             </p>
             <h2 className="mt-2 text-3xl font-black tracking-tight">Start Golf League App.</h2>
           </div>
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-300 text-slate-950">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-300 text-slate-950">
             <LockKeyhole size={18} />
           </span>
         </div>
@@ -735,7 +735,7 @@ function RegisterPanel() {
             className={`rounded-2xl px-4 py-3 text-xs font-bold ${
               status === "error"
                 ? "bg-red-50 text-red-700"
-                : "bg-emerald-50 text-emerald-700"
+                : "bg-blue-50 text-blue-700"
             }`}
           >
             {message}
@@ -745,7 +745,7 @@ function RegisterPanel() {
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-lime-300 px-5 text-sm font-black text-slate-950 transition hover:bg-lime-200 disabled:opacity-60"
+          className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-sky-300 px-5 text-sm font-black text-slate-950 transition hover:bg-sky-200 disabled:opacity-60"
         >
           {status === "submitting" ? "Creating account..." : "Create account"}
           <ArrowRight size={16} />
@@ -787,7 +787,7 @@ function TextField({
         value={value}
         autoComplete={autoComplete}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-700 focus:bg-white focus:ring-4 focus:ring-emerald-800/10"
+        className="h-11 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-800/10"
       />
     </label>
   );

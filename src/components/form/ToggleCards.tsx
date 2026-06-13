@@ -24,7 +24,7 @@ export default function ToggleCards({
   const widthClass = `w-1/${options.length}`;
 
   return (
-    <div className={`bg-gray-200 p-1 rounded-lg gap-2 text-gray-700 grid ${gridCols} ${className}`}>
+    <div className={`bg-white/70 border border-black/5 p-1 rounded-2xl gap-2 text-gray-700 grid ${gridCols} ${className}`}>
       {options.map((option) => {
         const isSelected = value === option.value;
 
@@ -32,8 +32,8 @@ export default function ToggleCards({
           <button
             key={option.value}
             type="button"
-            className={`w-full flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer ${widthClass} transition-all duration-200 ease-out ${
-              isSelected ? "bg-primary text-primary-content shadow-sm" : "hover:bg-primary/10"
+            className={`w-full flex flex-col items-center justify-center p-2 rounded-xl cursor-pointer ${widthClass} transition-all duration-200 ease-out ${
+              isSelected ? "bg-primary text-primary-content shadow-sm" : "hover:bg-sky-100/70"
             } ${optionClassName}`}
             onClick={() => onChange(option.value)}
             aria-pressed={isSelected}

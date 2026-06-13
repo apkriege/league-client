@@ -112,7 +112,7 @@ export default function AutocompleteSelect({
   return (
     <fieldset className={`fieldset ${className}`}>
       {label ? (
-        <legend className="fieldset-legend p-1 uppercase text-gray-500 font-semibold text-[10px] tracking-wider">
+        <legend className="fieldset-legend p-1 uppercase text-gray-500 font-black text-[10px] tracking-[0.18em]">
           {label}
         </legend>
       ) : null}
@@ -120,7 +120,7 @@ export default function AutocompleteSelect({
       <div className="relative" ref={containerRef}>
         <input
           type="text"
-          className="input w-full text-xs h-[35px] rounded-md bg-base-200 border-base-300 pr-14"
+          className="input w-full text-xs h-[35px] rounded-2xl bg-white/70 border-base-300 pr-14 font-semibold"
           placeholder={placeholder}
           value={query}
           disabled={disabled}
@@ -149,7 +149,7 @@ export default function AutocompleteSelect({
         ) : null}
 
         {isOpen && !disabled ? (
-          <div className="absolute top-full left-0 right-0 mt-1 z-20 border border-base-300 rounded-md bg-base-100 shadow-lg">
+          <div className="absolute top-full left-0 right-0 mt-1 z-20 border border-base-300 rounded-2xl bg-base-100 shadow-lg overflow-hidden">
             {filteredOptions.length === 0 ? (
               <p className="px-3 py-2 text-xs text-gray-500">{noResultsText}</p>
             ) : (

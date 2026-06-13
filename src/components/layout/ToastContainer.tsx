@@ -11,12 +11,12 @@ export default function ToastContainer() {
           key={toast.id}
           className={`
             relative max-w-sm animate-fade-in
-            backdrop-blur-md bg-white/10 border border-white/20
-            rounded-lg shadow-lg p-4
-            ${toast.type === "success" ? "bg-green-500/10 border-green-400/30" : ""}
-            ${toast.type === "error" ? "bg-red-500/10 border-red-400/30" : ""}
-            ${toast.type === "warning" ? "bg-yellow-500/10 border-yellow-400/30" : ""}
-            ${toast.type === "info" ? "bg-blue-500/10 border-blue-400/30" : ""}
+            backdrop-blur-md bg-slate-950/90 border border-white/10
+            rounded-2xl shadow-2xl p-4
+            ${toast.type === "success" ? "border-sky-300/40" : ""}
+            ${toast.type === "error" ? "border-red-400/40" : ""}
+            ${toast.type === "warning" ? "border-yellow-400/40" : ""}
+            ${toast.type === "info" ? "border-sky-400/40" : ""}
           `}
         >
           <div className="flex items-center justify-between gap-4 w-full">
