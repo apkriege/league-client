@@ -22,9 +22,9 @@ import { useLeague, useLeagueEvents } from "@api/league/queries";
 import { useAdminLeagues } from "@api/admin/queries";
 import dayjs from "dayjs";
 
-const Section = ({ section }: { section: string }) => (
+const Section = ({ section, collapsed }: { section: string; collapsed?: boolean }) => (
   <div className="mt-5 mb-2 flex flex-col">
-    <p className="app-section-label text-[10px] uppercase ml-2 font-black">{section}</p>
+    {!collapsed && <p className="app-section-label text-[10px] uppercase ml-2 font-black">{section}</p>}
   </div>
 );
 
@@ -69,40 +69,44 @@ const NavWithSubLinks = ({
   section,
   links,
   icon,
+  collapsed,
 }: {
   section: string;
   links: { to: string; name: string; date: Date; completed: boolean; eventType: string }[];
   icon: any;
+  collapsed?: boolean;
 }) => (
   <ul className="menu w-full m-0! p-0">
     <li>
       <details open>
         <summary className="app-nav-link text-sm px-2 py-2">
-          <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/5">
+          <span className={`${collapsed ? "" : "mr-2"} inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/5`}>
             {icon}
           </span>
-          {section}
+          {!collapsed && section}
         </summary>
-        <ul className="px-2 py-1">
-          {links.map((link, idx) => (
-            <li key={idx} className="flex">
-              <Link
-                to={link.to}
-                className={`rounded-xl px-2 py-1.5 hover:bg-white/8 hover:text-white flex items-center justify-between transition-colors text-xs text-white/60`}
-              >
-                <div className="">
-                  {link.name} -
-                  <span className="ml-1 text-[10px]">{dayjs(link.date).format("MM/DD/YY")}</span>
-                </div>
-                {link.eventType !== "off" && link.completed && (
-                  <div>
-                    <Check className="ml-2 text-sky-300" size={16} strokeWidth={3} />
+        {!collapsed && (
+          <ul className="px-2 py-1">
+            {links.map((link, idx) => (
+              <li key={idx} className="flex">
+                <Link
+                  to={link.to}
+                  className={`rounded-xl px-2 py-1.5 hover:bg-white/8 hover:text-white flex items-center justify-between transition-colors text-xs text-white/60`}
+                >
+                  <div className="">
+                    {link.name} -
+                    <span className="ml-1 text-[10px]">{dayjs(link.date).format("MM/DD/YY")}</span>
                   </div>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
+                  {link.eventType !== "off" && link.completed && (
+                    <div>
+                      <Check className="ml-2 text-sky-300" size={16} strokeWidth={3} />
+                    </div>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </details>
     </li>
   </ul>
@@ -217,7 +221,7 @@ export default function BaseLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 px-2 md:px-3 space-y-1 overflow-y-auto">
-          <Section section="Leagues" />
+          <Section section="Leagues" collapsed={!isOpen} />
           <NavLink
             to="/leagues"
             text="Leagues"
@@ -232,7 +236,7 @@ export default function BaseLayout() {
             isActive={location.pathname === "/courses" || location.pathname.startsWith("/courses/")}
             collapsed={!isOpen}
           />
-          <Section section={league?.name || "League"} />
+          <Section section={league?.name || "League"} collapsed={!isOpen} />
           {isAdmin && (
             <NavLink
               to={`/league/${leagueId}/admin`}
@@ -240,6 +244,7 @@ export default function BaseLayout() {
               icon={<TicketCheck size={19} />}
               isActive={location.pathname === `/league/${leagueId}/admin`}
               disabled={subDisabled}
+              collapsed={!isOpen}
             />
           )}
           <NavLink
@@ -248,6 +253,7 @@ export default function BaseLayout() {
             icon={<PanelsTopLeft size={19} />}
             isActive={location.pathname === `/league/${leagueId}/player/${playerId}`}
             disabled={subDisabled || !playerId}
+            collapsed={!isOpen}
           />
           <NavLink
             to={`/league/${leagueId}`}
@@ -255,6 +261,7 @@ export default function BaseLayout() {
             icon={<LayoutDashboard size={19} />}
             isActive={location.pathname === `/league/${leagueId}`}
             disabled={subDisabled}
+            collapsed={!isOpen}
           />
           <NavLink
             to={`/league/${leagueId}/players`}
@@ -262,6 +269,7 @@ export default function BaseLayout() {
             icon={<Users size={19} />}
             isActive={location.pathname === `/league/${leagueId}/players`}
             disabled={subDisabled}
+            collapsed={!isOpen}
           />
           {!isTournamentLeague && (
             <NavLink
@@ -270,6 +278,7 @@ export default function BaseLayout() {
               icon={<ShieldHalf size={19} />}
               isActive={location.pathname === `/league/${leagueId}/teams`}
               disabled={subDisabled}
+              collapsed={!isOpen}
             />
           )}
           <NavLink
@@ -278,14 +287,20 @@ export default function BaseLayout() {
             icon={<Calendar size={19} />}
             isActive={location.pathname === `/league/${leagueId}/schedule`}
             disabled={subDisabled}
+            collapsed={!isOpen}
           />
           {!subDisabled && (
-            <NavWithSubLinks section="Events" links={evs} icon={<LandPlot size={18} />} />
+            <NavWithSubLinks
+              section="Events"
+              links={evs}
+              icon={<LandPlot size={18} />}
+              collapsed={!isOpen}
+            />
           )}
 
           {isSuperAdmin && (
             <>
-              <Section section="Super Admin" />
+              <Section section="Super Admin" collapsed={!isOpen} />
               <NavLink
                 to="/superadmin/leagues"
                 text="View Leagues"
@@ -308,20 +323,13 @@ export default function BaseLayout() {
         <div className="p-2 md:p-3 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-4 px-2 py-2 rounded-2xl w-full text-white/52 hover:bg-white/8 hover:text-white transition-colors"
+            className={`flex items-center rounded-2xl w-full text-white/52 hover:bg-white/8 hover:text-white transition-colors ${
+              isOpen ? "gap-4 px-2 py-2" : "justify-center p-2"
+            }`}
+            aria-label="Sign out"
           >
-            {isOpen && (
-              <div className="flex flex-col gap-3">
-                {/* <div className="text-sm flex gap-3 items-center">
-                  <CircleQuestionMark size={19} />
-                  <span>Support</span>
-                </div> */}
-                <div className="text-sm flex gap-3 items-center">
-                  <LogOut size={19} />
-                  <span>Sign Out</span>
-                </div>
-              </div>
-            )}
+            <LogOut size={19} />
+            {isOpen && <span className="text-sm">Sign Out</span>}
           </button>
         </div>
       </div>
