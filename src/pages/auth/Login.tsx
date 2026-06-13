@@ -1,21 +1,23 @@
 import { login } from "@api/auth";
 import { useAppStore } from "@/stores/appStore";
+import { normalizeAuthUser } from "@/lib/authUser";
 import { ArrowRight, ChevronRight, Flag, Lock, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import { Link /* useNavigate*/ } from "react-router";
+import type { FormEvent } from "react";
+import { Link, useNavigate } from "react-router";
 import courseImage from "@/assets/course.png";
 
 const googleAuthUrl = import.meta.env.VITE_GOOGLE_AUTH_URL;
 
 export default function Login() {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
   const { setUser } = useAppStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (event: any) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError("");
@@ -23,17 +25,18 @@ export default function Login() {
     try {
       const auth: any = await login(email, password);
       const { user } = auth.data;
+      const normalizedUser = normalizeAuthUser(user);
 
-      console.log("Logged in user:", user);
-      setUser(user);
+      if (!normalizedUser) {
+        throw new Error("Login response did not include a user.");
+      }
 
-      // user.isAdmin = String(user.role).toLowerCase() === "admin";
-      // setUser(user);
-      // navigate("/leagues");
+      setUser(normalizedUser);
+      navigate("/leagues");
     } catch (err: any) {
-      // setError(err?.response?.data?.message || err?.message || "Unable to sign in.");
+      setError(err?.response?.data?.message || err?.message || "Unable to sign in.");
     } finally {
-      // setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 

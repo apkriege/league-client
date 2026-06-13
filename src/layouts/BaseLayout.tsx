@@ -145,6 +145,10 @@ export default function BaseLayout() {
   const { data: events } = useLeagueEvents(Number(leagueId), hasLeagueAccess);
   const evs = events ? modelEvents(events) : [];
   const isTournamentLeague = String(league?.type || "").toLowerCase() === "tournament";
+  const displayName =
+    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
+    user?.email ||
+    "Account";
 
   useEffect(() => {
     // Set the golf theme on mount
@@ -152,14 +156,14 @@ export default function BaseLayout() {
   }, []);
 
   useEffect(() => {
-    // if (!user) {
-    //   navigate("/login");
-    //   return;
-    // }
-    // if (location.pathname.startsWith("/superadmin") && !isSuperAdmin) {
-    //   navigate("/leagues");
-    //   return;
-    // }
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    if (location.pathname.startsWith("/superadmin") && !isSuperAdmin) {
+      navigate("/leagues");
+      return;
+    }
     // can't do this if the user is new a creating a fresh league
     // if (!leagueId) {
     //   navigate("/dashboard");
@@ -315,9 +319,7 @@ export default function BaseLayout() {
         <div className="sticky top-0 z-10 bg-base-100 border-b border-gray-300 px-4 md:px-6 py-4 flex justify-end">
           <div className="flex items-center gap-2">
             <User size={22} className="text-blue-600 bg-gray-200 p-0.5 rounded-full" />
-            <h2 className="text-sm font-bold text-neutral">
-              {user.firstName} {user.lastName}
-            </h2>
+            <h2 className="text-sm font-bold text-neutral">{displayName}</h2>
           </div>
         </div>
         <div className="px-8 py-8 overflow-y-auto flex-1">

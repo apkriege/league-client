@@ -2,6 +2,7 @@ import { register } from "@api/auth";
 import { createCheckoutSession } from "@api/payments";
 import { useAppStore } from "@/stores/appStore";
 import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice } from "@/lib/billing";
+import { normalizeAuthUser } from "@/lib/authUser";
 import {
   ArrowRight,
   BarChart3,
@@ -489,8 +490,9 @@ function RegisterPanel() {
     try {
       const response = await register(form);
       const user = response.data?.user;
-      if (user) {
-        setUser({ ...user, isAdmin: String(user.role).toLowerCase() === "admin" });
+      const normalizedUser = normalizeAuthUser(user);
+      if (normalizedUser) {
+        setUser(normalizedUser);
       }
       setStatus("success");
       setMessage("Account created. Redirecting to secure checkout...");
