@@ -78,6 +78,7 @@ type TeamStandingsRow = {
 
 type PlayerStandingsRow = {
   rank: number;
+  playerId: number;
   name: string;
   points: number;
   avgGross: number;
@@ -145,6 +146,7 @@ export default function League() {
     () =>
       (metrics?.standings ?? []).map((player: any, idx: number) => ({
         rank: idx + 1,
+        playerId: Number(player.playerId),
         name: player.name,
         points: Number(player.points ?? 0),
         avgGross: Number(player.avgGross ?? 0),
@@ -197,8 +199,14 @@ export default function League() {
       {
         key: "name",
         label: "Player",
-        render: (value: string) => (
-          <span className="text-xs font-semibold text-gray-800">{value}</span>
+        render: (value: string, row: PlayerStandingsRow) => (
+          <button
+            type="button"
+            onClick={() => navigate(`/league/${leagueId}/player/${row.playerId}`)}
+            className="text-left text-xs font-semibold text-gray-800 hover:text-primary hover:underline"
+          >
+            {value}
+          </button>
         ),
       },
       {
@@ -256,7 +264,7 @@ export default function League() {
           ),
       },
     ],
-    []
+    [leagueId, navigate]
   );
 
   const formatDate = (d: string | Date) => dayjs(d).format("MMM D, YYYY");

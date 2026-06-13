@@ -1,10 +1,38 @@
 import { Fragment } from "react";
+import { Link, useParams } from "react-router";
 import {
   createTeamBestBallScoringHelpers,
   calculateMatchplayPops,
   createTeamScoringHelpers,
   sortFlightTeamsByHandicap,
 } from "./util";
+
+function PlayerNameLink({
+  playerId,
+  children,
+  className = "font-semibold text-gray-800 hover:text-primary hover:underline",
+}: {
+  playerId?: number | string | null;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { leagueId } = useParams();
+  const numericPlayerId = Number(playerId);
+
+  if (!leagueId || !Number.isFinite(numericPlayerId) || numericPlayerId <= 0) {
+    return <span className={className}>{children}</span>;
+  }
+
+  return (
+    <Link
+      to={`/league/${leagueId}/player/${numericPlayerId}`}
+      className={className}
+      onClick={(event) => event.stopPropagation()}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export default function ViewFlightScores({ event, flight }: any) {
   const startingHole = event.startSide === "front" ? 1 : 10;
@@ -183,9 +211,9 @@ const PlayerRow = ({ player, holes }: any) => {
   return (
     <tr key={player.id} className="text-sm bg-slate-50/50">
       <td className="p-2 text-xs">
-        <span className="font-semibold">
+        <PlayerNameLink playerId={player.playerId}>
           {p.firstName} {p.lastName}
-        </span>
+        </PlayerNameLink>
         <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
           Handicap: {Math.round(hcp)}
         </div>
@@ -318,9 +346,9 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
       <Fragment key={playerEntry.playerId}>
         <tr className="text-sm bg-slate-50/50">
           <td className="p-2 text-xs">
-            <span className="block font-semibold">
+            <PlayerNameLink playerId={playerEntry.playerId} className="block font-semibold text-gray-800 hover:text-primary hover:underline">
               {player.firstName} {player.lastName}
-            </span>
+            </PlayerNameLink>
             <span className="block text-[10px]">
               Handicap: {Math.round(getEffectiveHandicap(playerEntry))}
             </span>
@@ -396,8 +424,14 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
                 )}
                 <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
                   <td className="p-2" colSpan={holes.length + 6}>
-                    Matchup {pairIdx + 1}: {p1.player.firstName} {p1.player.lastName} vs{" "}
-                    {p2.player.firstName} {p2.player.lastName}
+                    Matchup {pairIdx + 1}:{" "}
+                    <PlayerNameLink playerId={p1.playerId} className="font-semibold text-gray-600 hover:text-primary hover:underline">
+                      {p1.player.firstName} {p1.player.lastName}
+                    </PlayerNameLink>{" "}
+                    vs{" "}
+                    <PlayerNameLink playerId={p2.playerId} className="font-semibold text-gray-600 hover:text-primary hover:underline">
+                      {p2.player.firstName} {p2.player.lastName}
+                    </PlayerNameLink>
                   </td>
                 </tr>
                 {renderPlayerRow(p1)}

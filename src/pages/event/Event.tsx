@@ -70,6 +70,33 @@ const LEADERBOARD_TABS = [
   { id: "lowNet", label: "Low Net" },
 ];
 
+function PlayerNameLink({
+  playerId,
+  children,
+  className = "font-semibold text-gray-800 hover:text-primary hover:underline",
+}: {
+  playerId?: number | string | null;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { leagueId } = useParams();
+  const numericPlayerId = Number(playerId);
+
+  if (!leagueId || !Number.isFinite(numericPlayerId) || numericPlayerId <= 0) {
+    return <span className={className}>{children}</span>;
+  }
+
+  return (
+    <Link
+      to={`/league/${leagueId}/player/${numericPlayerId}`}
+      className={className}
+      onClick={(event) => event.stopPropagation()}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export default function Event() {
   const { leagueId, eventId } = useParams();
   const {
@@ -609,9 +636,9 @@ function IndividualStrokeScorecardsDrawer({ rounds }: { rounds: any[] }) {
           {sorted.map((round: any) => (
             <tr key={round.id} className="text-sm bg-slate-50/50">
               <td className="p-2 text-xs">
-                <span className="font-semibold">
+                <PlayerNameLink playerId={round.playerId}>
                   {round.player.firstName} {round.player.lastName}
-                </span>
+                </PlayerNameLink>
                 <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
                   Handicap: {Math.round(Number(round.preHandicap ?? 0))}
                 </div>
@@ -715,9 +742,9 @@ function TeamFlightPreview({ flight }: { flight: any }) {
         <p className="font-semibold text-gray-800">{left?.name || "Team 1"}</p>
         <div className="mt-1 flex flex-col gap-0.5 text-gray-600">
           {(left?.players || []).map((p: any) => (
-            <span key={p.id}>
-              {p.firstName} {p.lastName}
-            </span>
+          <PlayerNameLink key={p.id} playerId={p.id} className="font-medium text-gray-600 hover:text-primary hover:underline">
+            {p.firstName} {p.lastName}
+          </PlayerNameLink>
           ))}
         </div>
       </div>
@@ -726,9 +753,9 @@ function TeamFlightPreview({ flight }: { flight: any }) {
         <p className="font-semibold text-gray-800">{right?.name || "Team 2"}</p>
         <div className="mt-1 flex flex-col gap-0.5 text-gray-600">
           {(right?.players || []).map((p: any) => (
-            <span key={p.id}>
-              {p.firstName} {p.lastName}
-            </span>
+          <PlayerNameLink key={p.id} playerId={p.id} className="font-medium text-gray-600 hover:text-primary hover:underline">
+            {p.firstName} {p.lastName}
+          </PlayerNameLink>
           ))}
         </div>
       </div>
@@ -767,13 +794,17 @@ function IndividualMatchFlightPreview({ flight }: { flight: any }) {
     <div className="flex flex-col gap-1.5 text-xs">
       {pairs.map(([left, right], idx) => (
         <div key={`${left.playerId}-${right?.playerId ?? idx}`} className="flex items-center gap-2">
-          <span className="font-medium text-gray-700">
+          <PlayerNameLink playerId={left.playerId} className="font-medium text-gray-700 hover:text-primary hover:underline">
             {left.player.firstName} {left.player.lastName}
-          </span>
+          </PlayerNameLink>
           <span className="text-gray-400">vs</span>
-          <span className="font-medium text-gray-700">
-            {right ? `${right.player.firstName} ${right.player.lastName}` : "TBD"}
-          </span>
+          {right ? (
+            <PlayerNameLink playerId={right.playerId} className="font-medium text-gray-700 hover:text-primary hover:underline">
+              {right.player.firstName} {right.player.lastName}
+            </PlayerNameLink>
+          ) : (
+            <span className="font-medium text-gray-700">TBD</span>
+          )}
         </div>
       ))}
     </div>
@@ -789,9 +820,9 @@ function StrokeFlightPreview({ flight }: { flight: any }) {
   return (
     <div className="flex flex-col gap-1 text-xs text-gray-700">
       {players.map((entry: any) => (
-        <span key={entry.playerId} className="font-medium">
+        <PlayerNameLink key={entry.playerId} playerId={entry.playerId} className="font-medium text-gray-700 hover:text-primary hover:underline">
           {entry.player.firstName} {entry.player.lastName}
-        </span>
+        </PlayerNameLink>
       ))}
     </div>
   );
@@ -844,9 +875,12 @@ function SkinsList({
                     <Flag size={9} className="text-amber-500" strokeWidth={2.5} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold text-gray-800 leading-tight truncate">
+                    <PlayerNameLink
+                      playerId={skin.playerId}
+                      className="text-[11px] font-semibold text-gray-800 leading-tight truncate hover:text-primary hover:underline"
+                    >
                       {skin.name}
-                    </p>
+                    </PlayerNameLink>
                     <p className="text-[10px] text-gray-400">Hole {skin.hole}</p>
                   </div>
                 </div>
@@ -1009,9 +1043,12 @@ function ScoreLeaderboard({ leaderboard, valueLabel }: { leaderboard: any[]; val
                     {getInitials(entry.name)}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800 text-xs leading-tight">
+                    <PlayerNameLink
+                      playerId={entry.playerId}
+                      className="font-semibold text-gray-800 text-xs leading-tight hover:text-primary hover:underline"
+                    >
                       {entry.name}
-                    </p>
+                    </PlayerNameLink>
                     <p className="text-[10px] text-gray-400">
                       HCP {entry.handicap != null ? entry.handicap.toFixed(1) : "—"}
                     </p>
@@ -1175,7 +1212,12 @@ function RoundsTable({
           <tr key={index} className="hover:bg-gray-50/60 transition-colors">
             <td className="pl-4 py-2">
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-semibold text-gray-800 truncate">{`${round.player.firstName} ${round.player.lastName}`}</span>
+                <PlayerNameLink
+                  playerId={round.playerId}
+                  className="text-xs font-semibold text-gray-800 truncate hover:text-primary hover:underline"
+                >
+                  {round.player.firstName} {round.player.lastName}
+                </PlayerNameLink>
                 {round.preHandicap != null &&
                   round.postHandicap != null &&
                   (() => {
