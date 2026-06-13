@@ -46,7 +46,7 @@ export default function NewAdmin() {
               FIRST ROUND
             </div>
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-8">
-              Welcome to <span className="text-secondary">Midnight Links!</span>
+              Welcome to <span className="text-secondary">Golf League App!</span>
             </h1>
             <p className="text-gray-300 mb-8">
               Your championshp starts here. Organize your club, track live scores, and mangage your

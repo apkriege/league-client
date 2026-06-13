@@ -192,7 +192,7 @@ export default function BaseLayout() {
         <div className="p-3 md:p-4 border-base-300 flex items-center justify-between">
           {isOpen && (
             <h1 className="text-lg font-bold text-primary-content hidden md:block">
-              Midnight Links
+              Golf League App
             </h1>
           )}
           <button
