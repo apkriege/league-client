@@ -5,6 +5,7 @@ import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
 import { useToast } from "@/context/ToastContext";
 import { useClubs } from "@api/clubs";
+import { useCreateClub } from "@api/clubs/mutations";
 import { useCoursesWithTees, type CoursePayload, type CourseTeePayload } from "@api/courses";
 import { useCreateCourse, useDeleteCourse, useUpdateCourse } from "@api/courses/mutations";
 import { Flag, Plus, ShieldCheck } from "lucide-react";
@@ -19,6 +20,15 @@ type CourseFormData = {
   accessType: string;
   numHoles: string;
   par: string;
+};
+
+type ClubFormData = {
+  name: string;
+  description: string;
+  location: string;
+  phone: string;
+  link: string;
+  accessType: string;
 };
 
 type HoleFormData = {
@@ -97,6 +107,15 @@ const emptyForm: CourseFormData = {
   par: "72",
 };
 
+const emptyClubForm: ClubFormData = {
+  name: "",
+  description: "",
+  location: "",
+  phone: "",
+  link: "",
+  accessType: "public",
+};
+
 const buildEmptyHoles = (count: number): HoleFormData[] =>
   Array.from({ length: count }, (_, index) => ({
     num: index + 1,
@@ -151,9 +170,12 @@ export default function CoursesAdmin() {
   const createCourse = useCreateCourse();
   const updateCourse = useUpdateCourse();
   const deleteCourse = useDeleteCourse();
+  const createClub = useCreateClub();
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<CourseFormData>(emptyForm);
+  const [clubForm, setClubForm] = useState<ClubFormData>(emptyClubForm);
+  const [showClubForm, setShowClubForm] = useState(false);
   const [tees, setTees] = useState<TeeFormData[]>([]);
 
   const isSuperAdmin = String(user?.role || "").toUpperCase() === "SUPER";
@@ -181,6 +203,10 @@ export default function CoursesAdmin() {
         }))
       );
     }
+  };
+
+  const handleClubChange = (field: keyof ClubFormData, value: string) => {
+    setClubForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleTeeChange = (teeIndex: number, field: keyof TeeFormData, value: string) => {
@@ -292,6 +318,34 @@ export default function CoursesAdmin() {
       },
       onError: () => show("Failed to delete course.", "error"),
     });
+  };
+
+  const handleCreateClub = () => {
+    const name = clubForm.name.trim();
+    if (!name) {
+      show("Club name is required.", "error");
+      return;
+    }
+
+    createClub.mutate(
+      {
+        name,
+        description: clubForm.description.trim(),
+        location: clubForm.location.trim(),
+        phone: clubForm.phone.trim(),
+        link: clubForm.link.trim(),
+        accessType: clubForm.accessType,
+      },
+      {
+        onSuccess: (club: any) => {
+          setForm((prev) => ({ ...prev, clubId: String(club.id) }));
+          setClubForm(emptyClubForm);
+          setShowClubForm(false);
+          show("Club created. You can now add courses to it.", "success");
+        },
+        onError: () => show("Failed to create club.", "error"),
+      }
+    );
   };
 
   useEffect(() => {
@@ -528,6 +582,95 @@ export default function CoursesAdmin() {
                 Delete Course
               </button>
             </div>
+          </div>
+
+          <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                  Club Setup
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Create a club first, then assign one or more courses to it.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm border-slate-300 bg-white"
+                onClick={() => setShowClubForm((prev) => !prev)}
+              >
+                <Plus size={14} /> {showClubForm ? "Hide Club Form" : "Add New Club"}
+              </button>
+            </div>
+
+            {showClubForm && (
+              <div className="mt-4 border-t border-slate-200 pt-4">
+                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-4">
+                  <Input
+                    dense
+                    label="Club Name"
+                    value={clubForm.name}
+                    onChange={(e) => handleClubChange("name", e.target.value)}
+                  />
+                  <Input
+                    dense
+                    label="Location"
+                    value={clubForm.location}
+                    onChange={(e) => handleClubChange("location", e.target.value)}
+                  />
+                  <Input
+                    dense
+                    label="Phone"
+                    value={clubForm.phone}
+                    onChange={(e) => handleClubChange("phone", e.target.value)}
+                  />
+                  <Input
+                    dense
+                    label="Website"
+                    value={clubForm.link}
+                    onChange={(e) => handleClubChange("link", e.target.value)}
+                  />
+                  <Input
+                    dense
+                    label="Description"
+                    className="md:col-span-2"
+                    value={clubForm.description}
+                    onChange={(e) => handleClubChange("description", e.target.value)}
+                  />
+                  <Select
+                    dense
+                    label="Access"
+                    value={clubForm.accessType}
+                    options={[
+                      { value: "public", label: "Public" },
+                      { value: "private", label: "Private" },
+                    ]}
+                    onChange={(e) => handleClubChange("accessType", e.target.value)}
+                  />
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleCreateClub}
+                    disabled={createClub.isPending}
+                  >
+                    {createClub.isPending ? "Creating Club..." : "Create Club"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setClubForm(emptyClubForm);
+                      setShowClubForm(false);
+                    }}
+                    disabled={createClub.isPending}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-4">
