@@ -2,21 +2,20 @@ import { login } from "@api/auth";
 import { useAppStore } from "@/stores/appStore";
 import { ArrowRight, ChevronRight, Flag, Lock, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link /* useNavigate*/ } from "react-router";
 import courseImage from "@/assets/course.png";
 
 const googleAuthUrl = import.meta.env.VITE_GOOGLE_AUTH_URL;
 
 export default function Login() {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const { setUser } = useAppStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: any) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError("");
@@ -25,13 +24,16 @@ export default function Login() {
       const auth: any = await login(email, password);
       const { user } = auth.data;
 
-      user.isAdmin = String(user.role).toLowerCase() === "admin";
+      console.log("Logged in user:", user);
       setUser(user);
-      navigate("/leagues");
+
+      // user.isAdmin = String(user.role).toLowerCase() === "admin";
+      // setUser(user);
+      // navigate("/leagues");
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Unable to sign in.");
+      // setError(err?.response?.data?.message || err?.message || "Unable to sign in.");
     } finally {
-      setIsSubmitting(false);
+      // setIsSubmitting(false);
     }
   };
 
