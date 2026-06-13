@@ -9,332 +9,395 @@ import {
   CalendarDays,
   Check,
   ChevronRight,
+  CircleCheck,
+  ClipboardList,
   Flag,
-  ListChecks,
+  Gauge,
+  LineChart,
+  LockKeyhole,
   ShieldCheck,
+  Sparkles,
   Trophy,
+  Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Link } from "react-router";
-import courseImage from "@/assets/course.png";
 
-type Concept = {
-  eyebrow: string;
-  headline: string;
-  subhead: string;
-  image: string;
-  tone: string;
-  primary: string;
-  features: Array<{ title: string; body: string; icon: ReactNode }>;
-  proof: string[];
-  workflow: string[];
+const GOLF_IMAGES = {
+  hero:
+    "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=1800&q=85",
+  aerial:
+    "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=900&q=85",
+  green:
+    "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=700&q=80",
 };
 
-const active: Concept = {
-  eyebrow: "Club Ready",
-  headline: "Professional league software for clubs, captains, and recurring events.",
-  subhead:
-    "A polished system for courses and organizers who need reliable setup, clean records, and a better experience for every league.",
-  image: courseImage,
-  tone: "Premium league operations for modern golf programs",
-  primary: "Launch your league",
-  features: [
-    {
-      title: "Course management",
-      body: "Manage courses, tees, hole data, distances, pars, handicaps, and event-ready score layouts.",
-      icon: <Flag size={16} />,
-    },
-    {
-      title: "Season structure",
-      body: "Support individual or team seasons, recurring schedules, flexible scoring, and organized event records.",
-      icon: <CalendarDays size={16} />,
-    },
-    {
-      title: "Clean operations",
-      body: "Give admins a quiet, professional workspace built for repeated use and fast decisions.",
-      icon: <ShieldCheck size={16} />,
-    },
-  ],
-  proof: ["Course database", "Team leagues", "Season standings", "Admin controls"],
-  workflow: ["Add courses", "Configure league", "Run events", "Keep records"],
-};
+const stats = [
+  { value: "18", label: "hole scorecards" },
+  { value: "4", label: "scoring formats" },
+  { value: "Live", label: "standings & skins" },
+];
+
+const workflow = [
+  {
+    title: "Build the league",
+    body: "Create players, teams, flights, events, courses, and tees from one admin workspace.",
+    icon: <Flag size={18} />,
+  },
+  {
+    title: "Run the night",
+    body: "Print scorecards, enter scores by flight, swap players, and lock completed events.",
+    icon: <ClipboardList size={18} />,
+  },
+  {
+    title: "Publish results",
+    body: "Show standings, skins, player trends, scorecards, and round history immediately.",
+    icon: <Trophy size={18} />,
+  },
+];
+
+const features = [
+  {
+    title: "League operations",
+    body: "Season setup, recurring schedules, team formats, individual formats, flights, and admin controls.",
+    icon: <CalendarDays size={18} />,
+  },
+  {
+    title: "Scoring engine",
+    body: "Gross, net, match play, stableford-style points, skins, scorecards, and handicap movement.",
+    icon: <Gauge size={18} />,
+  },
+  {
+    title: "Player intelligence",
+    body: "Every player gets history, trends, differentials, handicap detail, and round-by-round context.",
+    icon: <LineChart size={18} />,
+  },
+  {
+    title: "Club-ready course data",
+    body: "Manage clubs, courses, tees, hole pars, distances, handicaps, ratings, and slopes.",
+    icon: <Flag size={18} />,
+  },
+];
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-white text-slate-950">
-      <section className="relative min-h-[86vh] overflow-hidden">
-        <img src={active.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-slate-950/68" />
+    <div className="min-h-screen overflow-hidden bg-[#f5f1e8] text-[#101713]">
+      <style>{`
+        @keyframes landing-fade-up {
+          from { opacity: 0; transform: translateY(22px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes landing-drift {
+          0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+          50% { transform: translate3d(18px, -18px, 0) rotate(1deg); }
+        }
+        @keyframes landing-scan {
+          0% { transform: translateX(-100%); opacity: 0; }
+          20%, 80% { opacity: 1; }
+          100% { transform: translateX(100%); opacity: 0; }
+        }
+        .landing-reveal { animation: landing-fade-up 780ms cubic-bezier(.2,.8,.2,1) both; }
+        .landing-delay-1 { animation-delay: 120ms; }
+        .landing-delay-2 { animation-delay: 240ms; }
+        .landing-delay-3 { animation-delay: 360ms; }
+        .landing-drift { animation: landing-drift 9s ease-in-out infinite; }
+        .landing-scan::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+          animation: landing-scan 4.8s ease-in-out infinite;
+        }
+      `}</style>
 
-        <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
-          <Link to="/" className="flex items-center gap-2 text-white">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-white text-slate-950">
-              <Flag size={16} />
-            </span>
-            <span className="text-sm font-black tracking-wide">LeagueLoop</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/login"
-              className="rounded-md border border-white/25 px-3 py-2 text-xs font-bold text-white hover:bg-white/10"
-            >
-              Sign in
-            </Link>
-            <a
-              href="#register"
-              className="rounded-md bg-white px-3 py-2 text-xs font-black text-slate-950 hover:bg-lime-100"
-            >
-              Register
-            </a>
-          </div>
-        </header>
-
-        <div className="relative z-10 mx-auto grid max-w-7xl gap-8 px-5 pb-16 pt-16 lg:grid-cols-[minmax(0,1fr)_430px] lg:pt-20">
-          <div className="max-w-3xl text-white">
-            <p className="mb-4 inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wide">
-              {active.eyebrow} / {active.tone}
-            </p>
-            <h1 className="max-w-4xl text-5xl font-black leading-[0.98] md:text-7xl">
-              {active.headline}
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/78 md:text-lg">
-              {active.subhead}
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <a
-                href="#register"
-                className="inline-flex items-center gap-2 rounded-md bg-lime-300 px-4 py-3 text-sm font-black text-slate-950 hover:bg-lime-200"
-              >
-                {active.primary}
-                <ArrowRight size={16} />
-              </a>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 rounded-md border border-white/25 px-4 py-3 text-sm font-bold text-white hover:bg-white/10"
-              >
-                Sign in
-                <ChevronRight size={16} />
-              </Link>
-            </div>
-          </div>
-
-          <div className="self-end rounded-lg border border-white/15 bg-white/10 p-4 backdrop-blur-md">
-            <p className="text-xs font-bold uppercase tracking-wide text-white/65">
-              Built for organized league operations
-            </p>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              {[
-                ["18", "hole scorecards"],
-                ["Team", "and individual play"],
-                ["Live", "season records"],
-              ].map(([value, label]) => (
-                <div key={label} className="rounded-md border border-white/15 bg-white/10 p-3">
-                  <p className="text-lg font-black text-white">{value}</p>
-                  <p className="mt-1 text-[11px] leading-4 text-white/60">{label}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 grid gap-2">
-              {active.proof.map((item) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-xs font-bold text-slate-800"
-                >
-                  <Check size={14} className="text-emerald-600" />
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
+      <Hero />
       <main>
-        <section className="border-b border-slate-200 bg-slate-50">
-          <div className="mx-auto grid max-w-7xl gap-4 px-5 py-10 md:grid-cols-4">
-            {active.workflow.map((step, index) => (
-              <div key={step} className="flex items-center gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-950 text-xs font-black text-white">
-                  {index + 1}
-                </span>
-                <span className="text-sm font-bold text-slate-800">{step}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <ProductShowcase />
-
-        <section id="workflow" className="border-y border-slate-200 bg-slate-50">
-          <div className="mx-auto max-w-7xl px-5 py-24">
-            <div className="max-w-2xl">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-                Built around the league lifecycle
-              </p>
-              <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">
-                A clean workflow from course setup to final standings.
-              </h2>
-            </div>
-            <div className="mt-12 grid gap-5 lg:grid-cols-4">
-              {[
-                {
-                  title: "Set the course",
-                  body: "Store tees, pars, distances, handicaps, and hole layouts once.",
-                  icon: <Flag size={18} />,
-                },
-                {
-                  title: "Build the event",
-                  body: "Choose format, scoring, holes, start side, teams, and flights.",
-                  icon: <CalendarDays size={18} />,
-                },
-                {
-                  title: "Score the round",
-                  body: "Capture gross, net, skins, points, match results, and putts.",
-                  icon: <ListChecks size={18} />,
-                },
-                {
-                  title: "Review the season",
-                  body: "Track standings, player history, score trends, and records.",
-                  icon: <Trophy size={18} />,
-                },
-              ].map((item) => (
-                <div key={item.title} className="rounded-lg bg-white p-5 shadow-sm">
-                  <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-md bg-slate-950 text-white">
-                    {item.icon}
-                  </div>
-                  <h3 className="text-base font-black text-slate-950">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">{item.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto grid max-w-7xl gap-12 px-5 py-24 lg:grid-cols-[minmax(0,1fr)_390px]">
-          <div>
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-                  Feature Set
-                </p>
-                <h2 className="mt-2 text-3xl font-black text-slate-950">
-                  Everything needed to run the season.
-                </h2>
-              </div>
-            </div>
-
-            <div className="mt-7 grid gap-3 md:grid-cols-3">
-              {active.features.map((feature) => (
-                <div
-                  key={feature.title}
-                  className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-                >
-                  <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-md bg-slate-100 text-slate-800">
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-sm font-black text-slate-950">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{feature.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <RegisterPanel />
-        </section>
-
+        <ProofStrip />
+        <ProductSection />
+        <WorkflowSection />
+        <FeatureSection />
+        <ConversionSection />
         <PricingSection />
       </main>
     </div>
   );
 }
 
-function ProductShowcase() {
+function Hero() {
   return (
-    <section className="mx-auto max-w-7xl px-5 py-24">
-      <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+    <section className="relative min-h-screen overflow-hidden bg-[#07140d] text-white">
+      <img
+        src={GOLF_IMAGES.hero}
+        alt="Golfer finishing a drive on a green fairway"
+        className="absolute inset-0 h-full w-full scale-105 object-cover opacity-58"
+      />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(179,255,104,.28),transparent_26%),linear-gradient(115deg,rgba(7,20,13,.98)_0%,rgba(7,20,13,.78)_48%,rgba(7,20,13,.34)_100%)]" />
+      <div className="absolute -left-24 top-32 h-80 w-80 rounded-full bg-lime-300/20 blur-3xl landing-drift" />
+      <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-emerald-400/12 blur-3xl landing-drift" />
+
+      <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8">
+        <Link to="/" className="group flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-lime-300 text-slate-950 shadow-lg shadow-lime-950/20 transition-transform group-hover:-rotate-6">
+            <Flag size={18} />
+          </span>
+          <div>
+            <p className="text-sm font-black tracking-wide">Golf League App</p>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-white/45">
+              League Management
+            </p>
+          </div>
+        </Link>
+
+        <nav className="hidden items-center gap-6 rounded-full border border-white/10 bg-white/8 px-5 py-2 text-xs font-bold text-white/70 backdrop-blur-md md:flex">
+          <a href="#product" className="hover:text-white">
+            Product
+          </a>
+          <a href="#workflow" className="hover:text-white">
+            Workflow
+          </a>
+          <a href="#pricing" className="hover:text-white">
+            Pricing
+          </a>
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <Link
+            to="/login"
+            className="rounded-full border border-white/15 px-4 py-2 text-xs font-black text-white/80 backdrop-blur-md transition hover:bg-white/10 hover:text-white"
+          >
+            Sign in
+          </Link>
+          <a
+            href="#register"
+            className="rounded-full bg-lime-300 px-4 py-2 text-xs font-black text-slate-950 shadow-lg shadow-lime-950/20 transition hover:bg-lime-200"
+          >
+            Start
+          </a>
+        </div>
+      </header>
+
+      <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-14 md:px-8 lg:grid-cols-[minmax(0,1fr)_520px] lg:pb-28 lg:pt-20">
         <div>
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-            Product preview
+          <div className="landing-reveal inline-flex items-center gap-2 rounded-full border border-lime-200/20 bg-lime-200/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-lime-100 backdrop-blur-md">
+            <Sparkles size={13} />
+            Premium league management for golf clubs
+          </div>
+
+          <h1 className="landing-reveal landing-delay-1 mt-6 max-w-5xl text-6xl font-black leading-[0.88] tracking-[-0.065em] text-white md:text-8xl">
+            Run league night like a professional operation.
+          </h1>
+
+          <p className="landing-reveal landing-delay-2 mt-7 max-w-2xl text-base leading-8 text-white/72 md:text-lg">
+            Golf League App gives captains and clubs a complete golf league operating system:
+            scheduling, scorecards, teams, flights, skins, standings, handicap tracking, and
+            player history.
           </p>
-          <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">
-            The app feels organized because the work is organized.
-          </h2>
-          <p className="mt-5 text-base leading-8 text-slate-600">
-            LeagueLoop keeps the admin surface quiet and dense: schedules are scannable, player
-            pages show useful history, and event pages surface the details that matter on league
-            night.
-          </p>
-          <div className="mt-8 grid gap-3">
-            {[
-              ["Events", "Flights, tee times, scoring settings, scorecards, and event metrics."],
-              ["Players", "Handicaps, averages, score distribution, and full round history."],
-              ["Leagues", "Standings, records, season trends, team results, and schedules."],
-            ].map(([label, body]) => (
-              <div key={label} className="rounded-lg border border-slate-200 p-4">
-                <p className="text-sm font-black text-slate-950">{label}</p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">{body}</p>
+
+          <div className="landing-reveal landing-delay-3 mt-8 flex flex-wrap gap-3">
+            <a
+              href="#register"
+              className="group inline-flex items-center gap-2 rounded-full bg-lime-300 px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-lime-950/25 transition hover:bg-lime-200"
+            >
+              Launch your league
+              <ArrowRight size={16} className="transition group-hover:translate-x-0.5" />
+            </a>
+            <a
+              href="#product"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-5 py-3 text-sm font-black text-white backdrop-blur-md transition hover:bg-white/12"
+            >
+              See the system
+              <ChevronRight size={16} />
+            </a>
+          </div>
+
+          <div className="landing-reveal landing-delay-3 mt-10 grid max-w-2xl grid-cols-3 gap-3">
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-3xl border border-white/10 bg-white/8 p-4 backdrop-blur-md"
+              >
+                <p className="text-2xl font-black text-white">{stat.value}</p>
+                <p className="mt-1 text-[11px] font-semibold leading-4 text-white/52">
+                  {stat.label}
+                </p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-950 p-3 shadow-xl">
-          <div className="rounded-lg bg-white">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
-                  League dashboard
-                </p>
-                <p className="text-sm font-black text-slate-950">Thursday Night League</p>
-              </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">
-                Active season
-              </span>
+        <HeroProductCard />
+      </div>
+    </section>
+  );
+}
+
+function HeroProductCard() {
+  return (
+    <div className="landing-reveal landing-delay-2 relative">
+      <div className="absolute -inset-5 rounded-[2.5rem] bg-lime-300/18 blur-2xl" />
+      <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-white/10 p-3 shadow-2xl shadow-black/30 backdrop-blur-xl landing-scan">
+        <div className="rounded-[1.5rem] bg-[#fbfaf5] text-slate-950 shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                Live event
+              </p>
+              <h2 className="text-base font-black">Thursday Match Play</h2>
             </div>
-            <div className="grid gap-3 p-4 md:grid-cols-3">
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-800">
+              scoring
+            </span>
+          </div>
+
+          <div className="grid gap-3 p-4">
+            <div className="grid grid-cols-3 gap-2">
               {[
-                ["12", "Events"],
-                ["48", "Players"],
-                ["624", "Scores"],
+                ["6/8", "Flights"],
+                ["42", "Players"],
+                ["12", "Skins"],
               ].map(([value, label]) => (
-                <div key={label} className="rounded-md border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-2xl font-black text-slate-950">{value}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                <div key={label} className="rounded-2xl border border-slate-200 bg-white p-3">
+                  <p className="text-2xl font-black tracking-tight">{value}</p>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
                     {label}
                   </p>
                 </div>
               ))}
             </div>
-            <div className="grid gap-3 px-4 pb-4 lg:grid-cols-[1fr_0.8fr]">
-              <div className="rounded-md border border-slate-200 p-4">
-                <div className="mb-4 flex items-center gap-2">
-                  <BarChart3 size={15} className="text-slate-400" />
-                  <p className="text-sm font-black text-slate-950">Score distribution</p>
+
+            <div className="rounded-3xl border border-slate-200 bg-slate-950 p-4 text-white">
+              <div className="mb-5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 size={15} className="text-lime-300" />
+                  <p className="text-sm font-black">Standings movement</p>
                 </div>
-                <div className="flex h-32 items-end gap-3">
-                  {[18, 34, 76, 58, 31, 12].map((height, index) => (
-                    <div key={index} className="flex flex-1 flex-col justify-end gap-2">
-                      <div
-                        className="rounded-t bg-slate-900"
-                        style={{ height: `${height}%` }}
-                      />
-                      <div className="h-1 rounded bg-slate-200" />
-                    </div>
-                  ))}
+                <p className="text-[10px] font-bold text-white/42">LIVE</p>
+              </div>
+              <div className="flex h-32 items-end gap-3">
+                {[42, 58, 35, 74, 64, 88, 53, 78].map((height, index) => (
+                  <div key={index} className="flex flex-1 flex-col items-center gap-2">
+                    <div
+                      className={`w-full rounded-t-xl ${
+                        index === 5 ? "bg-lime-300" : "bg-white/18"
+                      }`}
+                      style={{ height: `${height}%` }}
+                    />
+                    <span className="h-1 w-3 rounded-full bg-white/18" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              {[
+                ["Scorecards printed", "18-hole team scorecards"],
+                ["Handicaps locked", "pre-round values preserved"],
+                ["Skins calculated", "ties excluded automatically"],
+              ].map(([title, body]) => (
+                <div
+                  key={title}
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-lime-100 text-emerald-800">
+                    <Check size={15} />
+                  </span>
+                  <div>
+                    <p className="text-xs font-black">{title}</p>
+                    <p className="text-[10px] text-slate-500">{body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProofStrip() {
+  return (
+    <section className="relative border-b border-black/5 bg-[#f5f1e8]">
+      <div className="mx-auto grid max-w-7xl gap-3 px-5 py-6 md:grid-cols-4 md:px-8">
+        {[
+          "Course and tee database",
+          "Team and individual seasons",
+          "Match play and stroke scoring",
+          "Admin-safe event sequencing",
+        ].map((item) => (
+          <div key={item} className="flex items-center gap-2 rounded-2xl bg-white/70 px-4 py-3">
+            <CircleCheck size={15} className="text-emerald-700" />
+            <span className="text-xs font-black text-slate-700">{item}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ProductSection() {
+  return (
+    <section id="product" className="relative overflow-hidden bg-[#f5f1e8] px-5 py-24 md:px-8">
+      <div className="absolute right-0 top-10 h-96 w-96 rounded-full bg-lime-200/40 blur-3xl" />
+      <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
+        <div className="landing-reveal">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-800">
+            Built for real league workflows
+          </p>
+          <h2 className="mt-4 max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
+            Less spreadsheet chaos. More control from first tee to final standings.
+          </h2>
+          <p className="mt-5 max-w-xl text-base leading-8 text-slate-600">
+            The app is structured around the way golf leagues actually operate: weekly events,
+            flights, scorecards, player substitutions, matchups, skins, standings, and player
+            history that updates as the season progresses.
+          </p>
+
+          <div className="mt-8 grid gap-3">
+            {workflow.map((item, index) => (
+              <div
+                key={item.title}
+                className="group rounded-3xl border border-black/5 bg-white/75 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/10"
+                style={{ animationDelay: `${index * 120}ms` }}
+              >
+                <div className="flex gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-lime-200 transition group-hover:rotate-3">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-950">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">{item.body}</p>
+                  </div>
                 </div>
               </div>
-              <div className="rounded-md border border-slate-200 p-4">
-                <p className="text-sm font-black text-slate-950">Next event</p>
-                <div className="mt-4 space-y-3">
-                  {["Back nine", "Team match", "8:30 AM start", "18 scorecards"].map((item) => (
-                    <div key={item} className="flex items-center gap-2 text-sm text-slate-600">
-                      <Check size={14} className="text-emerald-600" />
-                      {item}
-                    </div>
-                  ))}
-                </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative">
+          <div className="absolute -inset-6 rounded-[3rem] bg-emerald-900/10 blur-2xl" />
+          <div className="relative grid gap-4 lg:grid-cols-[1fr_0.74fr]">
+            <div className="overflow-hidden rounded-[2rem] bg-slate-950 p-3 shadow-2xl shadow-emerald-950/18">
+              <img
+                src={GOLF_IMAGES.aerial}
+                alt="Golf fairway and player in motion"
+                className="h-72 w-full rounded-[1.45rem] object-cover opacity-90"
+              />
+              <div className="p-5 text-white">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-200">
+                  Event command center
+                </p>
+                <h3 className="mt-2 text-2xl font-black tracking-tight">
+                  Every flight, card, score, and matchup in one flow.
+                </h3>
               </div>
+            </div>
+
+            <div className="grid gap-4">
+              <MetricCard label="Avg setup time" value="4 min" icon={<Zap size={16} />} />
+              <MetricCard label="Score views" value="5" icon={<BarChart3 size={16} />} />
+              <MetricCard label="Data model" value="Club-ready" icon={<ShieldCheck size={16} />} />
             </div>
           </div>
         </div>
@@ -343,110 +406,207 @@ function ProductShowcase() {
   );
 }
 
-function PricingSection() {
+function MetricCard({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
   return (
-    <section className="border-t border-slate-200 bg-slate-950 text-white">
-      <div className="mx-auto max-w-7xl px-5 py-24">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-black uppercase tracking-wide text-lime-300">Pricing</p>
-          <h2 className="mt-3 text-4xl font-black tracking-tight">
-            Pick the plan that matches your league size.
-          </h2>
-          <p className="mt-5 text-base leading-7 text-white/65">
-            Start simple, then grow into multi-league operations when the program expands.
-          </p>
-          <div className="mx-auto mt-8 inline-flex rounded-md border border-white/15 bg-white/10 p-1">
-            <span className="rounded px-4 py-2 text-xs font-black text-white">Monthly</span>
-            <span className="rounded bg-lime-300 px-4 py-2 text-xs font-black text-slate-950">
-              Annual / 2 months free
-            </span>
+    <div className="rounded-[1.5rem] border border-black/5 bg-white p-5 shadow-xl shadow-emerald-950/8">
+      <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-2xl bg-lime-100 text-emerald-800">
+        {icon}
+      </div>
+      <p className="text-2xl font-black tracking-tight text-slate-950">{value}</p>
+      <p className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p>
+    </div>
+  );
+}
+
+function WorkflowSection() {
+  return (
+    <section id="workflow" className="bg-[#101713] px-5 py-24 text-white md:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-lime-300">
+              Modern league ops
+            </p>
+            <h2 className="mt-4 max-w-3xl text-5xl font-black leading-[0.95] tracking-[-0.055em]">
+              A calm control room for a messy weekly operation.
+            </h2>
           </div>
+          <p className="max-w-md text-sm leading-7 text-white/58">
+            Keep your workflow clear even when players swap late, formats change, and multiple
+            flights need scores entered fast.
+          </p>
         </div>
 
-        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+        <div className="mt-12 grid gap-4 lg:grid-cols-4">
           {[
-            {
-              name: "Starter",
-              price: "$19",
-              body: "For one captain running a small recurring group.",
-              features: ["1 league", "Up to 32 players", "Events and scorecards", "Player stats"],
-            },
-            {
-              name: "Club",
-              price: "$49",
-              body: "For active leagues that need teams, seasons, and deeper reporting.",
-              featured: true,
-              features: [
-                "Unlimited events",
-                "Up to 150 players",
-                "Team and individual seasons",
-                "League metrics and standings",
-              ],
-            },
-            {
-              name: "Program",
-              price: "$129",
-              body: "For clubs and organizers managing multiple leagues or programs.",
-              features: [
-                "Multiple leagues",
-                "Course and tee management",
-                "Advanced admin controls",
-                "Priority setup support",
-              ],
-            },
-          ].map((plan) => (
+            ["01", "Configure", "Courses, tees, teams, players, event rules, and point tables."],
+            ["02", "Print", "Two-per-page scorecards with player handicaps and event details."],
+            ["03", "Score", "Enter by flight, preserve order, calculate points, net, and skins."],
+            ["04", "Review", "Publish event scorecards, standings, player pages, and trends."],
+          ].map(([step, title, body]) => (
             <div
-              key={plan.name}
-              className={`rounded-xl border p-6 ${
-                plan.featured
-                  ? "border-lime-300 bg-white text-slate-950"
-                  : "border-white/15 bg-white/5"
-              }`}
+              key={step}
+              className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.06] p-5 transition hover:-translate-y-1 hover:bg-white/[0.09]"
             >
-              {plan.featured && (
-                <p className="mb-4 inline-flex rounded-full bg-lime-300 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-950">
-                  Most popular
-                </p>
-              )}
-              <h3 className="text-xl font-black">{plan.name}</h3>
-              <p
-                className={`mt-2 text-sm leading-6 ${
-                  plan.featured ? "text-slate-600" : "text-white/60"
-                }`}
-              >
-                {plan.body}
-              </p>
-              <div className="mt-6 flex items-end gap-1">
-                <span className="text-5xl font-black">{plan.price}</span>
-                <span className={plan.featured ? "mb-2 text-slate-500" : "mb-2 text-white/45"}>
-                  /mo
-                </span>
+              <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-lime-300/10 blur-2xl transition group-hover:bg-lime-300/20" />
+              <p className="text-[10px] font-black text-lime-300">{step}</p>
+              <h3 className="mt-10 text-xl font-black">{title}</h3>
+              <p className="mt-3 text-sm leading-6 text-white/58">{body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FeatureSection() {
+  return (
+    <section className="relative overflow-hidden bg-white px-5 py-24 md:px-8">
+      <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+        <div className="lg:sticky lg:top-8">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-800">
+            Product depth
+          </p>
+          <h2 className="mt-4 text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
+            Serious functionality without a heavy admin experience.
+          </h2>
+          <p className="mt-5 text-base leading-8 text-slate-600">
+            Golf League App is designed to feel premium, but the real value is operational depth:
+            correct sequencing, clean route protection, accurate score breakdowns, and league data
+            that updates when scores are finalized.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {features.map((feature, index) => (
+            <div
+              key={feature.title}
+              className="rounded-[1.75rem] border border-slate-200 bg-[#fbfaf5] p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-950/8"
+              style={{ animationDelay: `${index * 90}ms` }}
+            >
+              <div className="mb-12 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-lime-200">
+                {feature.icon}
               </div>
-              <a
-                href="#register"
-                className={`mt-6 inline-flex w-full items-center justify-center rounded-md px-4 py-3 text-sm font-black ${
-                  plan.featured
-                    ? "bg-slate-950 text-white"
-                    : "border border-white/20 text-white hover:bg-white/10"
-                }`}
-              >
-                Get started
-              </a>
-              <div className="mt-6 space-y-3">
-                {plan.features.map((feature) => (
-                  <div key={feature} className="flex items-center gap-2 text-sm">
-                    <Check
-                      size={15}
-                      className={plan.featured ? "text-emerald-600" : "text-lime-300"}
-                    />
-                    <span className={plan.featured ? "text-slate-700" : "text-white/75"}>
-                      {feature}
-                    </span>
+              <h3 className="text-lg font-black text-slate-950">{feature.title}</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{feature.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ConversionSection() {
+  return (
+    <section className="relative overflow-hidden bg-[#f5f1e8] px-5 py-24 md:px-8">
+      <div className="absolute inset-x-0 top-0 h-px bg-black/5" />
+      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+        <div className="overflow-hidden rounded-[2.25rem] bg-slate-950 p-3 shadow-2xl shadow-emerald-950/15">
+          <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
+            <img
+              src={GOLF_IMAGES.green}
+              alt="Golf course fairway used as product atmosphere"
+              className="h-full min-h-80 rounded-[1.65rem] object-cover opacity-90"
+            />
+            <div className="rounded-[1.65rem] bg-white p-6 text-slate-950">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                What admins see
+              </p>
+              <h2 className="mt-3 text-4xl font-black leading-[0.95] tracking-[-0.04em]">
+                The whole season, not just tonight’s score.
+              </h2>
+              <div className="mt-8 grid gap-3">
+                {[
+                  ["Current event", "Score entry, scorecards, skins, and leaderboards."],
+                  ["League page", "Standings, trends, records, schedule, and top performers."],
+                  ["Player page", "Round history, handicap detail, charts, and score breakdowns."],
+                ].map(([title, body]) => (
+                  <div key={title} className="rounded-2xl border border-slate-200 p-4">
+                    <p className="text-sm font-black">{title}</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">{body}</p>
                   </div>
                 ))}
               </div>
             </div>
-          ))}
+          </div>
+        </div>
+
+        <RegisterPanel />
+      </div>
+    </section>
+  );
+}
+
+function PricingSection() {
+  const includedTotal = formatBillingPrice(BILLING_PRICE_PER_GOLFER * BILLING_MIN_GOLFERS);
+
+  return (
+    <section id="pricing" className="bg-white px-5 py-24 md:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-800">
+            Simple launch pricing
+          </p>
+          <h2 className="mt-4 text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
+            Start with your first golfers. Add more when your league grows.
+          </h2>
+          <p className="mt-5 text-base leading-8 text-slate-600">
+            Registration starts with {BILLING_MIN_GOLFERS} golfer slots for {includedTotal}. If you
+            add more golfers during league creation, the app charges only the difference.
+          </p>
+        </div>
+
+        <div className="mx-auto mt-12 grid max-w-5xl gap-4 lg:grid-cols-[0.82fr_1.18fr]">
+          <div className="rounded-[2rem] border border-slate-200 bg-[#fbfaf5] p-6">
+            <p className="text-sm font-black text-slate-950">Included launch pack</p>
+            <div className="mt-6 flex items-end gap-2">
+              <span className="text-6xl font-black tracking-tight">{includedTotal}</span>
+              <span className="mb-2 text-sm font-bold text-slate-500">
+                / first {BILLING_MIN_GOLFERS}
+              </span>
+            </div>
+            <div className="mt-8 grid gap-3">
+              {[
+                "Admin account setup",
+                `${BILLING_MIN_GOLFERS} included golfer slots`,
+                "League creation workflow",
+                "Upgrade only for extra golfers",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2 text-sm font-semibold">
+                  <Check size={15} className="text-emerald-700" />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] bg-slate-950 p-6 text-white">
+            <div className="flex flex-col justify-between gap-8 md:flex-row">
+              <div>
+                <p className="text-sm font-black">Per additional golfer</p>
+                <p className="mt-2 max-w-md text-sm leading-7 text-white/58">
+                  Keep pricing flexible while you decide the final model. The rate is centralized
+                  so it can be changed later without redesigning the flow.
+                </p>
+              </div>
+              <div className="shrink-0 rounded-3xl bg-lime-300 px-6 py-5 text-slate-950">
+                <p className="text-5xl font-black tracking-tight">
+                  {formatBillingPrice(BILLING_PRICE_PER_GOLFER)}
+                </p>
+                <p className="text-xs font-black uppercase tracking-wide">per golfer</p>
+              </div>
+            </div>
+
+            <a
+              href="#register"
+              className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-lime-100"
+            >
+              Create account and checkout
+              <ArrowRight size={16} />
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -518,63 +678,61 @@ function RegisterPanel() {
   return (
     <aside
       id="register"
-      className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-5"
+      className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-950/10 lg:sticky lg:top-6"
     >
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">Register</p>
-      <h2 className="mt-2 text-2xl font-black text-slate-950">Start your league account.</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600">
-        Registration includes your admin account and {BILLING_MIN_GOLFERS} golfer slots starting at{" "}
-        {formatBillingPrice(BILLING_PRICE_PER_GOLFER * BILLING_MIN_GOLFERS)}.
-      </p>
+      <div className="rounded-[1.5rem] bg-slate-950 p-5 text-white">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300">
+              Register
+            </p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight">Start Golf League App.</h2>
+          </div>
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-300 text-slate-950">
+            <LockKeyhole size={18} />
+          </span>
+        </div>
+        <p className="mt-4 text-sm leading-7 text-white/62">
+          Includes your admin account and {BILLING_MIN_GOLFERS} golfer slots starting at{" "}
+          {formatBillingPrice(BILLING_PRICE_PER_GOLFER * BILLING_MIN_GOLFERS)}.
+        </p>
+      </div>
 
       <form onSubmit={submit} className="mt-5 grid gap-3">
         <div className="grid grid-cols-2 gap-3">
-          <label className="grid gap-1.5">
-            <span className="text-xs font-bold text-slate-600">First name</span>
-            <input
-              required
-              value={form.firstName}
-              onChange={(event) => update("firstName", event.target.value)}
-              className="h-10 rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
-            />
-          </label>
-          <label className="grid gap-1.5">
-            <span className="text-xs font-bold text-slate-600">Last name</span>
-            <input
-              required
-              value={form.lastName}
-              onChange={(event) => update("lastName", event.target.value)}
-              className="h-10 rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
-            />
-          </label>
+          <TextField
+            label="First name"
+            value={form.firstName}
+            onChange={(value) => update("firstName", value)}
+            autoComplete="given-name"
+          />
+          <TextField
+            label="Last name"
+            value={form.lastName}
+            onChange={(value) => update("lastName", value)}
+            autoComplete="family-name"
+          />
         </div>
 
-        <label className="grid gap-1.5">
-          <span className="text-xs font-bold text-slate-600">Email</span>
-          <input
-            required
-            type="email"
-            value={form.email}
-            onChange={(event) => update("email", event.target.value)}
-            className="h-10 rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
-          />
-        </label>
-
-        <label className="grid gap-1.5">
-          <span className="text-xs font-bold text-slate-600">Password</span>
-          <input
-            required
-            type="password"
-            minLength={6}
-            value={form.password}
-            onChange={(event) => update("password", event.target.value)}
-            className="h-10 rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-slate-950"
-          />
-        </label>
+        <TextField
+          label="Email"
+          type="email"
+          value={form.email}
+          onChange={(value) => update("email", value)}
+          autoComplete="email"
+        />
+        <TextField
+          label="Password"
+          type="password"
+          minLength={6}
+          value={form.password}
+          onChange={(value) => update("password", value)}
+          autoComplete="new-password"
+        />
 
         {message && (
           <p
-            className={`rounded-md px-3 py-2 text-xs font-semibold ${
+            className={`rounded-2xl px-4 py-3 text-xs font-bold ${
               status === "error"
                 ? "bg-red-50 text-red-700"
                 : "bg-emerald-50 text-emerald-700"
@@ -587,19 +745,50 @@ function RegisterPanel() {
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="mt-1 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-950 px-4 text-sm font-black text-white disabled:opacity-60"
+          className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-lime-300 px-5 text-sm font-black text-slate-950 transition hover:bg-lime-200 disabled:opacity-60"
         >
           {status === "submitting" ? "Creating account..." : "Create account"}
-          <ArrowRight size={15} />
+          <ArrowRight size={16} />
         </button>
       </form>
 
-      <p className="mt-4 text-xs text-slate-500">
+      <p className="mt-4 text-center text-xs text-slate-500">
         Already have an account?{" "}
-        <Link to="/login" className="font-bold text-slate-950 underline">
+        <Link to="/login" className="font-black text-slate-950 underline">
           Sign in
         </Link>
       </p>
     </aside>
+  );
+}
+
+function TextField({
+  label,
+  value,
+  onChange,
+  type = "text",
+  minLength,
+  autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  minLength?: number;
+  autoComplete?: string;
+}) {
+  return (
+    <label className="grid gap-1.5">
+      <span className="text-xs font-black text-slate-600">{label}</span>
+      <input
+        required
+        type={type}
+        minLength={minLength}
+        value={value}
+        autoComplete={autoComplete}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-700 focus:bg-white focus:ring-4 focus:ring-emerald-800/10"
+      />
+    </label>
   );
 }
