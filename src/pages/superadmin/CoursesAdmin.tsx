@@ -759,7 +759,7 @@ export default function CoursesAdmin() {
           ) : (
             tees.map((tee, teeIndex) => (
               <section
-                key={`${teeIndex}-${tee.name}`}
+                key={tee.id ?? `new-tee-${teeIndex}`}
                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
               >
                 <div className="border-b border-slate-200 bg-slate-50/80 px-5 py-4">
