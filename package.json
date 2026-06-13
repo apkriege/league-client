@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && git add . && git commit -m 'Deploy' && git push"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^5.6.1",

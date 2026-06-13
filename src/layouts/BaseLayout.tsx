@@ -139,10 +139,7 @@ export default function BaseLayout() {
     ? adminLeagues.map((league: any) => Number(league?.id)).filter(Boolean)
     : [];
   const hasLeagueAccess =
-    !isLeagueRoute ||
-    isSuperAdmin ||
-    isLeagueMember ||
-    adminLeagueIds.includes(numericLeagueId);
+    !isLeagueRoute || isSuperAdmin || isLeagueMember || adminLeagueIds.includes(numericLeagueId);
 
   const { data: league } = useLeague(Number(leagueId)!, hasLeagueAccess);
   const { data: events } = useLeagueEvents(Number(leagueId), hasLeagueAccess);
@@ -155,16 +152,14 @@ export default function BaseLayout() {
   }, []);
 
   useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-
-    if (location.pathname.startsWith("/superadmin") && !isSuperAdmin) {
-      navigate("/leagues");
-      return;
-    }
-
+    // if (!user) {
+    //   navigate("/login");
+    //   return;
+    // }
+    // if (location.pathname.startsWith("/superadmin") && !isSuperAdmin) {
+    //   navigate("/leagues");
+    //   return;
+    // }
     // can't do this if the user is new a creating a fresh league
     // if (!leagueId) {
     //   navigate("/dashboard");
