@@ -119,6 +119,7 @@ export default function Landing() {
         <FeatureSection />
         <ConversionSection />
         <PricingSection />
+        <LandingFooter />
       </main>
     </div>
   );
@@ -790,5 +791,20 @@ function TextField({
         className="h-11 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-800/10"
       />
     </label>
+  );
+}
+
+function LandingFooter() {
+  const year = new Date().getFullYear();
+
+  return (
+    <footer className="border-t border-white/10 bg-[#071426] px-5 py-6 md:px-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-2 text-xs text-white/55 md:flex-row md:items-center md:justify-between">
+        <p>© {year} Golf League App. All rights reserved.</p>
+        <Link to="/login" className="font-bold text-sky-200 transition hover:text-white">
+          Sign in
+        </Link>
+      </div>
+    </footer>
   );
 }
