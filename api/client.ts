@@ -2,10 +2,6 @@
 
 import axios from "axios";
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
-import { useAppStore } from "@/stores/appStore";
-
-const LOGIN_ROUTE = "/login";
-
 // API Configuration
 interface ApiClientConfig {
   baseURL?: string;
@@ -85,17 +81,6 @@ class ApiClient {
       switch (error.response.status) {
         case 401:
           errorResponse.message = "Unauthorized - Please login again";
-          try {
-            const { clearUser, clearLeagueId } = useAppStore.getState();
-            clearUser();
-            clearLeagueId();
-          } catch {
-            // If state access fails we still force auth redirect below.
-          }
-
-          if (typeof window !== "undefined" && window.location.pathname !== LOGIN_ROUTE) {
-            window.location.href = LOGIN_ROUTE;
-          }
           break;
         case 403:
           errorResponse.message = "Forbidden - You do not have permission";

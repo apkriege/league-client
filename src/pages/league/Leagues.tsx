@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import { Link } from "react-router";
 
 export default function Leagues() {
-  const { data: leagues } = useAdminLeagues();
+  const { data: leagues, isLoading, isError, error } = useAdminLeagues();
   const { show } = useToast();
 
   useEffect(() => {
@@ -39,6 +39,16 @@ export default function Leagues() {
         icon={<Shield size={14} />}
         iconText="DASHBOARD"
       />
+      {isError && (
+        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {(error as any)?.message || "Unable to load leagues."}
+        </div>
+      )}
+      {isLoading && (
+        <div className="mt-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500">
+          Loading leagues...
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-3 mt-2 auto-rows-fr items-stretch">
         <Link to="/leagues/create" className="block h-full">
           <Card className="bg-primary h-full flex items-center justify-center cursor-pointer hover:bg-primary/95 transition-colors">
