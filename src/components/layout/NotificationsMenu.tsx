@@ -10,8 +10,8 @@ export default function NotificationsMenu() {
 
   return (
     <details className="dropdown dropdown-end">
-      <summary className="btn btn-ghost btn-sm relative rounded-full text-blue-700 hover:bg-blue-50 hover:text-blue-800">
-        <Bell size={16} strokeWidth={2.5} />
+      <summary className="btn btn-ghost btn-sm relative rounded-full !border !border-black/5 !bg-white !text-blue-700 shadow-sm hover:!bg-blue-50 hover:!text-blue-800">
+        <Bell size={16} strokeWidth={2.5} className="!text-blue-700" />
         {unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 rounded-full bg-blue-700 px-1.5 text-[10px] font-black text-white">
             {unreadCount}
