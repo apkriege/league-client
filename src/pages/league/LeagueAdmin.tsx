@@ -186,11 +186,11 @@ export default function LeagueAdmin() {
       <div className="flex flex-col gap-4">
         {/* Score entry — active events first */}
         {needsScores.length > 0 && (
-          <div className="bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-100 bg-amber-50/60">
-              <Zap size={14} className="text-amber-500" strokeWidth={2.5} />
+          <div className="bg-white border border-blue-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-blue-100 bg-blue-50/70">
+              <Zap size={14} className="text-blue-600" strokeWidth={2.5} />
               <h3 className="text-sm font-semibold text-gray-800">Ready to Score</h3>
-              <span className="ml-auto text-[10px] font-bold bg-amber-100 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">
+              <span className="ml-auto rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
                 {needsScores.length} active
               </span>
             </div>
@@ -341,11 +341,11 @@ function ScoreEntryRow({
   const canOpenScores = canEnterScores || Boolean(event.canEditScores);
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <div className="flex flex-col items-center justify-center bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 min-w-12 text-center">
-        <span className="text-[9px] font-bold uppercase text-amber-400 tracking-wider">
+      <div className="flex flex-col items-center justify-center bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5 min-w-12 text-center">
+        <span className="text-[9px] font-bold uppercase text-blue-400 tracking-wider">
           {date.toLocaleDateString("en-US", { month: "short" })}
         </span>
-        <span className="text-lg font-black text-amber-600 leading-none">{date.getDate()}</span>
+        <span className="text-lg font-black text-blue-600 leading-none">{date.getDate()}</span>
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-gray-800 text-sm truncate">{event.name}</p>
@@ -366,7 +366,7 @@ function ScoreEntryRow({
           onClick={onScores}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
             canEnterScores
-              ? "bg-amber-500 text-white hover:bg-amber-600"
+              ? "bg-blue-600 text-white hover:bg-blue-700"
               : canOpenScores
                 ? "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
