@@ -1,6 +1,12 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
+import {
+  AuditLogPanel,
+  InvitePlayersPanel,
+  LeagueNotificationComposer,
+  OnboardingChecklist,
+} from "@/components/league/AdminOpsPanels";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import dayjs from "dayjs";
 import {
@@ -112,6 +118,8 @@ export default function LeagueAdmin() {
         </button>
       </div>
 
+      <OnboardingChecklist leagueId={Number(leagueId)} />
+
       {/* Stat cards */}
       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
@@ -158,6 +166,21 @@ export default function LeagueAdmin() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+            Admin tools
+          </p>
+          <p className="text-xs font-semibold text-gray-600">
+            Invite players or send a quick league-wide update.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <InvitePlayersPanel leagueId={Number(leagueId)} players={league?.players ?? []} />
+          <LeagueNotificationComposer leagueId={Number(leagueId)} />
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -289,6 +312,10 @@ export default function LeagueAdmin() {
             </div>
           )}
         </section>
+      </div>
+
+      <div className="mt-6">
+        <AuditLogPanel leagueId={Number(leagueId)} />
       </div>
     </div>
   );

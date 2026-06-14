@@ -25,8 +25,7 @@ import type { FormEvent, ReactNode } from "react";
 import { Link } from "react-router";
 
 const GOLF_IMAGES = {
-  hero:
-    "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=1800&q=85",
+  hero: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=1800&q=85",
   aerial:
     "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=900&q=85",
   detail:
@@ -185,14 +184,14 @@ function Hero() {
             Premium league management for golf clubs
           </div>
 
-          <h1 className="landing-reveal landing-delay-1 mt-6 max-w-5xl text-6xl font-black leading-[0.88] tracking-[-0.065em] text-white md:text-8xl">
+          <h1 className="landing-reveal landing-delay-1 mt-6 max-w-5xl text-6xl font-black leading-[0.88] tracking-[-0.065em] text-white md:text-7xl">
             Run league night like a professional operation.
           </h1>
 
           <p className="landing-reveal landing-delay-2 mt-7 max-w-2xl text-base leading-8 text-white/72 md:text-lg">
             Golf League App gives captains and clubs a complete golf league operating system:
-            scheduling, scorecards, teams, flights, skins, standings, handicap tracking, and
-            player history.
+            scheduling, scorecards, teams, flights, skins, standings, handicap tracking, and player
+            history.
           </p>
 
           <div className="landing-reveal landing-delay-3 mt-8 flex flex-wrap gap-3">
@@ -588,8 +587,8 @@ function PricingSection() {
               <div>
                 <p className="text-sm font-black">Per additional golfer</p>
                 <p className="mt-2 max-w-md text-sm leading-7 text-white/58">
-                  Keep pricing flexible while you decide the final model. The rate is centralized
-                  so it can be changed later without redesigning the flow.
+                  Keep pricing flexible while you decide the final model. The rate is centralized so
+                  it can be changed later without redesigning the flow.
                 </p>
               </div>
               <div className="shrink-0 rounded-3xl bg-sky-300 px-6 py-5 text-slate-950">
@@ -734,9 +733,7 @@ function RegisterPanel() {
         {message && (
           <p
             className={`rounded-2xl px-4 py-3 text-xs font-bold ${
-              status === "error"
-                ? "bg-red-50 text-red-700"
-                : "bg-blue-50 text-blue-700"
+              status === "error" ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"
             }`}
           >
             {message}

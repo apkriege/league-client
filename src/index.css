@@ -178,6 +178,14 @@ h6 {
   background-color: rgba(255, 255, 255, 0.84);
 }
 
+.app-shell :where(.app-slideout-drawer) {
+  background-color: #ffffff;
+}
+
+.app-shell :where(.app-slideout-drawer .bg-white, .app-slideout-drawer .bg-white\/95) {
+  background-color: #ffffff;
+}
+
 .app-shell :where(.border-gray-200, .border-slate-200, .border-base-300) {
   border-color: var(--app-line);
 }

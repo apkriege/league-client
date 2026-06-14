@@ -1,32 +1,39 @@
 import { createBrowserRouter } from "react-router";
-import BaseLayout from "./layouts/BaseLayout.tsx";
+import { lazy, Suspense, type ReactNode } from "react";
 import Landing from "./pages/landing/Landing.tsx";
 
 // auth pages
 import Login from "./pages/auth/Login.tsx";
-
-// league pages
-import League from "./pages/league/League.tsx";
-import Leagues from "./pages/league/Leagues.tsx";
-import Player from "./pages/player/Player.tsx";
-import Players from "./pages/player/Players.tsx";
-import Team from "./pages/team/Team.tsx";
-import Teams from "./pages/team/Teams.tsx";
-import Event from "./pages/event/Event.tsx";
-import Events from "./pages/league/Events.tsx";
-import Schedule from "./pages/schedule/Schedule.tsx";
-import CreateLeague from "./pages/league/CreateLeague.tsx";
-import EditLeague from "./pages/league/EditLeague.tsx";
-import SingleEvent from "./pages/event/create/CreateEvent.tsx";
-import EventScores from "./pages/scores/EventScores.tsx";
-import PrintFlightScorecards from "./pages/scores/PrintFlightScorecards.tsx";
-import EventEdit from "./pages/event/EventEdit.tsx";
-import LeagueAdmin from "./pages/league/LeagueAdmin.tsx";
-import Course from "./pages/course/Course.tsx";
-import Courses from "./pages/course/Courses.tsx";
-import CoursesAdmin from "@/pages/superadmin/CoursesAdmin";
-import LeaguesAdmin from "@/pages/superadmin/LeaguesAdmin";
 import LeagueRouteGuard from "@/components/route/LeagueRouteGuard";
+
+const BaseLayout = lazy(() => import("./layouts/BaseLayout.tsx"));
+const League = lazy(() => import("./pages/league/League.tsx"));
+const Leagues = lazy(() => import("./pages/league/Leagues.tsx"));
+const Player = lazy(() => import("./pages/player/Player.tsx"));
+const Players = lazy(() => import("./pages/player/Players.tsx"));
+const Team = lazy(() => import("./pages/team/Team.tsx"));
+const Teams = lazy(() => import("./pages/team/Teams.tsx"));
+const Event = lazy(() => import("./pages/event/Event.tsx"));
+const Events = lazy(() => import("./pages/league/Events.tsx"));
+const Schedule = lazy(() => import("./pages/schedule/Schedule.tsx"));
+const CreateLeague = lazy(() => import("./pages/league/CreateLeague.tsx"));
+const EditLeague = lazy(() => import("./pages/league/EditLeague.tsx"));
+const SingleEvent = lazy(() => import("./pages/event/create/CreateEvent.tsx"));
+const EventScores = lazy(() => import("./pages/scores/EventScores.tsx"));
+const PrintFlightScorecards = lazy(() => import("./pages/scores/PrintFlightScorecards.tsx"));
+const EventEdit = lazy(() => import("./pages/event/EventEdit.tsx"));
+const LeagueAdmin = lazy(() => import("./pages/league/LeagueAdmin.tsx"));
+const Course = lazy(() => import("./pages/course/Course.tsx"));
+const Courses = lazy(() => import("./pages/course/Courses.tsx"));
+const CoursesAdmin = lazy(() => import("@/pages/superadmin/CoursesAdmin"));
+const LeaguesAdmin = lazy(() => import("@/pages/superadmin/LeaguesAdmin"));
+const InviteClaim = lazy(() => import("./pages/invite/InviteClaim.tsx"));
+
+const withSuspense = (element: ReactNode) => (
+  <Suspense fallback={<div className="p-6 text-sm text-slate-400">Loading...</div>}>
+    {element}
+  </Suspense>
+);
 
 export const router = createBrowserRouter([
   {
@@ -38,38 +45,42 @@ export const router = createBrowserRouter([
     element: <Login />,
   },
   {
+    path: "/invite/:token",
+    element: withSuspense(<InviteClaim />),
+  },
+  {
     path: "",
-    element: <BaseLayout />,
+    element: withSuspense(<BaseLayout />),
     children: [
-      { path: "leagues", element: <Leagues /> },
-      { path: "leagues/create", element: <CreateLeague /> },
-      { path: "courses", element: <Courses /> },
-      { path: "courses/:courseId", element: <Course /> },
+      { path: "leagues", element: withSuspense(<Leagues />) },
+      { path: "leagues/create", element: withSuspense(<CreateLeague />) },
+      { path: "courses", element: withSuspense(<Courses />) },
+      { path: "courses/:courseId", element: withSuspense(<Course />) },
       {
         element: <LeagueRouteGuard />,
         children: [
-          { path: "league/:leagueId", element: <League /> },
-          { path: "league/:leagueId/players", element: <Players /> },
-          { path: "league/:leagueId/player/:playerId", element: <Player /> },
-          { path: "league/:leagueId/teams", element: <Teams /> },
-          { path: "league/:leagueId/team/:teamId", element: <Team /> },
-          { path: "league/:leagueId/events", element: <Events /> },
-          { path: "league/:leagueId/events/:eventId", element: <Event /> },
-          { path: "league/:leagueId/schedule", element: <Schedule /> },
+          { path: "league/:leagueId", element: withSuspense(<League />) },
+          { path: "league/:leagueId/players", element: withSuspense(<Players />) },
+          { path: "league/:leagueId/player/:playerId", element: withSuspense(<Player />) },
+          { path: "league/:leagueId/teams", element: withSuspense(<Teams />) },
+          { path: "league/:leagueId/team/:teamId", element: withSuspense(<Team />) },
+          { path: "league/:leagueId/events", element: withSuspense(<Events />) },
+          { path: "league/:leagueId/events/:eventId", element: withSuspense(<Event />) },
+          { path: "league/:leagueId/schedule", element: withSuspense(<Schedule />) },
         ],
       },
       {
         element: <LeagueRouteGuard adminOnly />,
         children: [
-          { path: "league/:leagueId/edit", element: <EditLeague /> },
-          { path: "league/:leagueId/admin", element: <LeagueAdmin /> },
-          { path: "league/:leagueId/events/create", element: <SingleEvent /> },
-          { path: "league/:leagueId/events/:eventId/edit", element: <EventEdit /> },
-          { path: "league/:leagueId/events/:eventId/scores", element: <EventScores /> },
+          { path: "league/:leagueId/edit", element: withSuspense(<EditLeague />) },
+          { path: "league/:leagueId/admin", element: withSuspense(<LeagueAdmin />) },
+          { path: "league/:leagueId/events/create", element: withSuspense(<SingleEvent />) },
+          { path: "league/:leagueId/events/:eventId/edit", element: withSuspense(<EventEdit />) },
+          { path: "league/:leagueId/events/:eventId/scores", element: withSuspense(<EventScores />) },
         ],
       },
-      { path: "superadmin/courses", element: <CoursesAdmin /> },
-      { path: "superadmin/leagues", element: <LeaguesAdmin /> },
+      { path: "superadmin/courses", element: withSuspense(<CoursesAdmin />) },
+      { path: "superadmin/leagues", element: withSuspense(<LeaguesAdmin />) },
     ],
   },
   {
@@ -77,7 +88,7 @@ export const router = createBrowserRouter([
     children: [
       {
         path: "league/:leagueId/events/:eventId/print-scorecards",
-        element: <PrintFlightScorecards />,
+        element: withSuspense(<PrintFlightScorecards />),
       },
     ],
   },

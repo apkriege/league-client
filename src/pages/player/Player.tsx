@@ -490,7 +490,7 @@ export default function Player() {
           />
 
           <aside
-            className={`absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 overflow-y-auto transition-transform duration-300 ease-out ${
+            className={`app-slideout-drawer absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 overflow-y-auto transition-transform duration-300 ease-out ${
               isHandicapDrawerOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >

@@ -479,7 +479,7 @@ export default function Event() {
           />
 
           <aside
-            className={`absolute right-0 top-0 h-full w-full max-w-5xl border-l border-gray-200 bg-white shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${
+            className={`app-slideout-drawer absolute right-0 top-0 h-full w-full max-w-5xl border-l border-gray-200 bg-white shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${
               isScorecardDrawerOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >
@@ -530,7 +530,7 @@ export default function Event() {
           />
 
           <aside
-            className={`absolute right-0 top-0 h-full w-full max-w-5xl border-l border-gray-200 bg-white shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${
+            className={`app-slideout-drawer absolute right-0 top-0 h-full w-full max-w-5xl border-l border-gray-200 bg-white shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${
               isSkinsDrawerOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >

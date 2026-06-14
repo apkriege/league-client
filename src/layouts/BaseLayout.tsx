@@ -21,6 +21,7 @@ import {
 import { useLeague, useLeagueEvents } from "@api/league/queries";
 import { useAdminLeagues } from "@api/admin/queries";
 import dayjs from "dayjs";
+import NotificationsMenu from "@/components/layout/NotificationsMenu";
 
 const Section = ({ section, collapsed }: { section: string; collapsed?: boolean }) => (
   <div className="mt-5 mb-2 flex flex-col">
@@ -127,7 +128,7 @@ export default function BaseLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { leagueId } = useParams();
-  const { user } = useAppStore();
+  const { user, clearUser, clearLeagueId } = useAppStore();
   const [isOpen, setIsOpen] = useState(true);
 
   const playerId = user?.leagues?.find((ul: any) => Number(ul.id) === Number(leagueId))?.playerId;
@@ -181,9 +182,12 @@ export default function BaseLayout() {
   const handleLogout = async () => {
     try {
       await logout();
-      window.location.href = "/login";
     } catch (error) {
       console.error("Logout failed", error);
+    } finally {
+      clearUser();
+      clearLeagueId();
+      window.location.href = "/login";
     }
   };
 
@@ -345,9 +349,12 @@ export default function BaseLayout() {
               {league?.name || "Golf operations"}
             </p>
           </div>
-          <div className="flex items-center gap-3 rounded-full border border-black/5 bg-white/70 px-3 py-1.5 shadow-sm">
-            <User size={22} className="rounded-full bg-sky-100 p-1 text-blue-800" />
-            <h2 className="text-sm font-black text-slate-900">{displayName}</h2>
+          <div className="flex items-center gap-2">
+            <NotificationsMenu />
+            <div className="flex items-center gap-3 rounded-full border border-black/5 bg-white/70 px-3 py-1.5 shadow-sm">
+              <User size={22} className="rounded-full bg-sky-100 p-1 text-blue-800" />
+              <h2 className="text-sm font-black text-slate-900">{displayName}</h2>
+            </div>
           </div>
         </div>
         <div className="app-content px-5 py-6 md:px-8 md:py-8 overflow-y-auto flex-1">

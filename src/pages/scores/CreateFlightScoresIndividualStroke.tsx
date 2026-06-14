@@ -11,6 +11,7 @@ import {
   PlayerSwapControl,
 } from "./PlayerSwapControl";
 import { calculateStrokeplayPops } from "./util";
+import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
 
 export const CreateFlightScoresIndividualStroke = ({
   flight,
@@ -70,6 +71,13 @@ export const CreateFlightScoresIndividualStroke = ({
   const updateMutation = useUpdateEventScores();
   const updateFlightPlayersMutation = useUpdateFlightPlayers();
   const watchedPlayers = methods.watch("players");
+  const scoreDraft = useScoreDraft({
+    methods,
+    leagueId,
+    eventId,
+    flightId: flight.id,
+    enabled: !isEditMode,
+  });
 
   const handleHoleChange = (e: any, holeIndex: number, playerId: number) => {
     const val = e.target.value;
@@ -181,12 +189,22 @@ export const CreateFlightScoresIndividualStroke = ({
       if (isEditMode) {
         updateMutation.mutate(
           { leagueId: Number(leagueId), eventId: Number(eventId), data: scoresData },
-          { onSuccess: () => onSaveSuccess?.() }
+          {
+            onSuccess: () => {
+              scoreDraft.clearDraft();
+              onSaveSuccess?.();
+            },
+          }
         );
       } else {
         createMutation.mutate(
           { leagueId: Number(leagueId), eventId: Number(eventId), data: scoresData },
-          { onSuccess: () => onSaveSuccess?.() }
+          {
+            onSuccess: () => {
+              scoreDraft.clearDraft();
+              onSaveSuccess?.();
+            },
+          }
         );
       }
     } catch (error) {
@@ -218,6 +236,13 @@ export const CreateFlightScoresIndividualStroke = ({
       </div>
 
       <div className="p-4">
+        <div className="mb-3">
+          <ScoreDraftStatus
+            hasDraft={scoreDraft.hasDraft}
+            savedAt={scoreDraft.savedAt}
+            onClear={scoreDraft.clearDraft}
+          />
+        </div>
         <div className="border rounded-lg">
           <div className="w-full overflow-x-auto">
             <table className="min-w-max w-full text-left table-sm table-auto">
