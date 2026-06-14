@@ -1,5 +1,6 @@
 import { register } from "@api/auth";
 import { createCheckoutSession } from "@api/payments";
+import { useToast } from "@/context/ToastContext";
 import { useAppStore } from "@/stores/appStore";
 import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice } from "@/lib/billing";
 import { normalizeAuthUser } from "@/lib/authUser";
@@ -614,6 +615,7 @@ function PricingSection() {
 }
 
 function RegisterPanel() {
+  const { show } = useToast();
   const { setUser } = useAppStore();
   const [form, setForm] = useState({
     firstName: "",
@@ -670,8 +672,10 @@ function RegisterPanel() {
 
       window.location.href = checkout.url;
     } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || "Unable to create account.";
       setStatus("error");
-      setMessage(error?.response?.data?.message || "Unable to create account.");
+      setMessage(errorMessage);
+      show(errorMessage, "error");
     }
   };
 

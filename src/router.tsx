@@ -14,7 +14,6 @@ const Players = lazy(() => import("./pages/player/Players.tsx"));
 const Team = lazy(() => import("./pages/team/Team.tsx"));
 const Teams = lazy(() => import("./pages/team/Teams.tsx"));
 const Event = lazy(() => import("./pages/event/Event.tsx"));
-const Events = lazy(() => import("./pages/league/Events.tsx"));
 const Schedule = lazy(() => import("./pages/schedule/Schedule.tsx"));
 const CreateLeague = lazy(() => import("./pages/league/CreateLeague.tsx"));
 const EditLeague = lazy(() => import("./pages/league/EditLeague.tsx"));
@@ -64,7 +63,6 @@ export const router = createBrowserRouter([
           { path: "league/:leagueId/player/:playerId", element: withSuspense(<Player />) },
           { path: "league/:leagueId/teams", element: withSuspense(<Teams />) },
           { path: "league/:leagueId/team/:teamId", element: withSuspense(<Team />) },
-          { path: "league/:leagueId/events", element: withSuspense(<Events />) },
           { path: "league/:leagueId/events/:eventId", element: withSuspense(<Event />) },
           { path: "league/:leagueId/schedule", element: withSuspense(<Schedule />) },
         ],
@@ -76,7 +74,10 @@ export const router = createBrowserRouter([
           { path: "league/:leagueId/admin", element: withSuspense(<LeagueAdmin />) },
           { path: "league/:leagueId/events/create", element: withSuspense(<SingleEvent />) },
           { path: "league/:leagueId/events/:eventId/edit", element: withSuspense(<EventEdit />) },
-          { path: "league/:leagueId/events/:eventId/scores", element: withSuspense(<EventScores />) },
+          {
+            path: "league/:leagueId/events/:eventId/scores",
+            element: withSuspense(<EventScores />),
+          },
         ],
       },
       { path: "superadmin/courses", element: withSuspense(<CoursesAdmin />) },

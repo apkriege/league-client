@@ -92,7 +92,7 @@ export default function CreateEvent() {
       { leagueId: parsedLeagueId, data },
       {
         onSuccess: () => {
-          navigate(`/league/${leagueId}`);
+          navigate(`/league/${leagueId}/admin`);
         },
         onError: (error) => {
           console.error("Failed to create event:", error);
@@ -189,7 +189,7 @@ export default function CreateEvent() {
               <button
                 type="button"
                 className="btn btn-sm"
-                onClick={() => navigate(`/league/${leagueId}/events`)}
+                onClick={() => navigate(`/league/${leagueId}/admin`)}
               >
                 Cancel
               </button>

@@ -189,7 +189,7 @@ export default function MultiSeriesBuilder() {
 
   const mutation = useCreateLeagueEvents(() => {
     show(`${schedule.length} events created!`, "success");
-    navigate(`/league/${leagueId}/events`);
+    navigate(`/league/${leagueId}/admin`);
   });
 
   // Course / tee options
@@ -712,7 +712,7 @@ export default function MultiSeriesBuilder() {
           <button
             type="button"
             className="btn btn-sm"
-            onClick={() => navigate(`/league/${leagueId}/events`)}
+            onClick={() => navigate(`/league/${leagueId}/admin`)}
           >
             Cancel
           </button>

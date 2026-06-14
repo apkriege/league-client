@@ -1,9 +1,11 @@
 import { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router/dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@/context/ToastContext";
 import ToastContainer from "@/components/layout/ToastContainer";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { emitToast } from "@/lib/toastEvents";
 import { router } from "./router";
 import "./index.css";
 
@@ -18,6 +20,11 @@ const ReactQueryDevtools = import.meta.env.DEV
 
 // Create a TanStack Query client
 const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      emitToast(getApiErrorMessage(error, "Unable to save changes. Please try again."), "error");
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes

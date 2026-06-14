@@ -1,4 +1,5 @@
 import { login } from "@api/auth";
+import { useToast } from "@/context/ToastContext";
 import { useAppStore } from "@/stores/appStore";
 import { normalizeAuthUser } from "@/lib/authUser";
 import { ArrowRight, ChevronRight, Flag, Lock, Mail, ShieldCheck } from "lucide-react";
@@ -12,6 +13,7 @@ const heroImage =
 
 export default function Login() {
   const navigate = useNavigate();
+  const { show } = useToast();
   const { setUser } = useAppStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +37,9 @@ export default function Login() {
       setUser(normalizedUser);
       navigate("/leagues");
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Unable to sign in.");
+      const message = err?.response?.data?.message || err?.message || "Unable to sign in.";
+      setError(message);
+      show(message, "error");
     } finally {
       setIsSubmitting(false);
     }

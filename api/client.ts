@@ -67,6 +67,11 @@ class ApiClient {
    * Handle API errors
    */
   private handleError(error: AxiosError): Promise<ApiErrorResponse> {
+    const responseData = error.response?.data as any;
+    const serverMessage =
+      typeof responseData === "string"
+        ? responseData
+        : responseData?.message || responseData?.error || responseData?.name;
     const errorResponse: ApiErrorResponse = {
       message: "An unexpected error occurred",
       status: error.response?.status,
@@ -74,22 +79,22 @@ class ApiClient {
 
     if (error.response) {
       // Server responded with error
-      errorResponse.message = (error.response.data as any)?.message || error.message;
-      errorResponse.errors = (error.response.data as any)?.errors;
+      errorResponse.message = serverMessage || error.message;
+      errorResponse.errors = responseData?.errors;
 
       // Handle specific status codes
       switch (error.response.status) {
         case 401:
-          errorResponse.message = "Unauthorized - Please login again";
+          errorResponse.message = serverMessage || "Unauthorized - Please login again";
           break;
         case 403:
-          errorResponse.message = "Forbidden - You do not have permission";
+          errorResponse.message = serverMessage || "Forbidden - You do not have permission";
           break;
         case 404:
-          errorResponse.message = "Resource not found";
+          errorResponse.message = serverMessage || "Resource not found";
           break;
         case 500:
-          errorResponse.message = "Server error - Please try again later";
+          errorResponse.message = serverMessage || "Server error - Please try again later";
           break;
       }
     } else if (error.request) {
