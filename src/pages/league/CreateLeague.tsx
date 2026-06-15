@@ -13,6 +13,7 @@ import Stepper from "@/components/layout/Stepper";
 import { BILLING_MIN_GOLFERS } from "@/lib/billing";
 import { useAppStore } from "@/stores/appStore";
 import PageState from "@/components/layout/PageState";
+import { validateLeagueForm } from "./validation";
 
 const defaultLeagueData = {
   name: "",
@@ -150,6 +151,18 @@ export default function CreateLeague() {
     }
 
     const data = leagueForm.getValues();
+    const isTeamSeason =
+      String(data.type || "").toLowerCase() === "season" &&
+      String(data.format || "").toLowerCase() === "team";
+    const validationMessage = validateLeagueForm(data, {
+      requirePlayers: true,
+      requireTeams: isTeamSeason,
+    });
+    if (validationMessage) {
+      show(validationMessage, "error");
+      return;
+    }
+
     const modeledData = modelLeagueData(data);
     const includedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
     const allocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);

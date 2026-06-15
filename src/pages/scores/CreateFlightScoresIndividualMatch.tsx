@@ -12,6 +12,8 @@ import {
 } from "./PlayerSwapControl";
 import { calculateMatchplayPops } from "./util";
 import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
+import { useToast } from "@/context/ToastContext";
+import { validateHoleScores } from "./scoreValidation";
 
 export const CreateFlightScoresIndividualMatch = ({
   flight,
@@ -24,6 +26,7 @@ export const CreateFlightScoresIndividualMatch = ({
   onCancel,
 }: any) => {
   const { leagueId, eventId } = useParams();
+  const { show } = useToast();
 
   const startingHole = event.startSide === "front" ? 1 : 10;
   const holes = event.tee.holes
@@ -263,6 +266,12 @@ export const CreateFlightScoresIndividualMatch = ({
   };
 
   const saveScores = () => {
+    const validationMessage = validateHoleScores({ watchedPlayers, players: allPlayers, holes });
+    if (validationMessage) {
+      show(validationMessage, "error");
+      return;
+    }
+
     const scoresData = {
       eventId: Number(eventId),
       flightId: flight.id,

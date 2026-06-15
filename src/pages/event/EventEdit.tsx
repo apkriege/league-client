@@ -11,6 +11,7 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useNavigate, useParams } from "react-router";
 import { Flag, Pencil, ShieldHalf } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
+import { validateEventForm } from "./create/validation";
 
 // Transform Prisma relational flight data into the flat ID-array format the components expect.
 function transformFlights(event: any): { flights: any[]; teams: any[] } {
@@ -157,14 +158,22 @@ export default function EventEdit() {
   const isSeasonTeamLeague = isSeasonLeague && leagueFormat === "team";
   const showTeamsSection = format === "team" && !isSeasonTeamLeague;
 
-  const handleSubmit = () => {
-    const data = eventForm.getValues();
+  const handleSubmit = eventForm.handleSubmit((data) => {
+    const validationMessage = validateEventForm(data, { showTeamsSection });
+    if (validationMessage) {
+      show(validationMessage, "error");
+      return;
+    }
+
     mutation.mutate({
       leagueId: Number(leagueId),
       eventId: Number(eventId),
       data,
     });
-  };
+  }, (errors) => {
+    const firstError = Object.values(errors)[0] as any;
+    show(firstError?.message || "Please fix the required event fields.", "error");
+  });
 
   const pageError = eventError || leagueError;
   const errorStatus = getApiErrorStatus(pageError);

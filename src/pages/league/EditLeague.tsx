@@ -8,6 +8,8 @@ import InfoForm from "./forms/InfoForm";
 import { useLeague } from "@api/league/queries";
 import { useUpdateLeague } from "@api/league/mutations";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import { useToast } from "@/context/ToastContext";
+import { validateLeagueForm } from "./validation";
 
 type LeagueFormData = {
   id?: number;
@@ -80,6 +82,7 @@ export default function EditLeague() {
   const { leagueId } = useParams();
   const numericLeagueId = Number(leagueId);
   const navigate = useNavigate();
+  const { show } = useToast();
 
   const { data: league, isLoading, isError, error } = useLeague(numericLeagueId);
   const updateLeague = useUpdateLeague();
@@ -95,6 +98,12 @@ export default function EditLeague() {
 
   const handleSubmit = () => {
     const values = leagueForm.getValues();
+    const validationMessage = validateLeagueForm(values);
+    if (validationMessage) {
+      show(validationMessage, "error");
+      return;
+    }
+
     const payload = modelLeagueDataForSave(values);
 
     updateLeague.mutate(

@@ -8,11 +8,13 @@ import Flights from "./components/Flights";
 import { useCreateLeagueEvent } from "@api/league/mutations";
 import { useLeague } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import { useToast } from "@/context/ToastContext";
 import { useNavigate, useParams } from "react-router";
 import { Flag, ShieldHalf, Trophy } from "lucide-react";
 import WizardType, { type EventWizardType } from "./components/WizardType";
 import MultiSeriesBuilder from "./components/MultiSeriesBuilder";
 import { DEFAULT_STROKE_POINTS } from "./constants";
+import { validateEventForm } from "./validation";
 
 const defaultValues = {
   name: "Test Event",
@@ -37,6 +39,7 @@ const defaultValues = {
 export default function CreateEvent() {
   const navigate = useNavigate();
   const { leagueId } = useParams();
+  const { show } = useToast();
   const { data: league, isLoading, isError, error } = useLeague(Number(leagueId));
   const [wizardType, setWizardType] = useState<EventWizardType>("multi");
 
@@ -79,12 +82,16 @@ export default function CreateEvent() {
     }
   }, [league, eventForm]);
 
-  const handleSubmit = () => {
-    const data = eventForm.getValues();
-
+  const handleSubmit = eventForm.handleSubmit((data) => {
     const parsedLeagueId = Number(leagueId);
     if (!parsedLeagueId) {
-      console.error("Missing or invalid leagueId route param.");
+      show("Missing or invalid league ID. Reload and try again.", "error");
+      return;
+    }
+
+    const validationMessage = validateEventForm(data, { showTeamsSection });
+    if (validationMessage) {
+      show(validationMessage, "error");
       return;
     }
 
@@ -99,7 +106,10 @@ export default function CreateEvent() {
         },
       }
     );
-  };
+  }, (errors) => {
+    const firstError = Object.values(errors)[0] as any;
+    show(firstError?.message || "Please fix the required event fields.", "error");
+  });
 
   if (isLoading) {
     return (

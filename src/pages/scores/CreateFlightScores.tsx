@@ -12,6 +12,8 @@ import {
   sortFlightTeamsByHandicap,
 } from "./util";
 import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
+import { useToast } from "@/context/ToastContext";
+import { validateHoleScores } from "./scoreValidation";
 
 export const CreateFlightScores = ({
   flight,
@@ -24,6 +26,7 @@ export const CreateFlightScores = ({
   onCancel,
 }: any) => {
   const { leagueId, eventId } = useParams();
+  const { show } = useToast();
   const numericLeagueId = Number(leagueId);
   const numericEventId = Number(eventId);
 
@@ -339,6 +342,11 @@ export const CreateFlightScores = ({
 
   const saveScores = () => {
     const playersInFlight = [...activeTeam1, ...activeTeam2];
+    const validationMessage = validateHoleScores({ watchedPlayers, players: playersInFlight, holes });
+    if (validationMessage) {
+      show(validationMessage, "error");
+      return;
+    }
 
     const scoresData = {
       eventId: numericEventId,
