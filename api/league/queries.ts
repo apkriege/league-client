@@ -10,10 +10,11 @@ import {
   getLeagueEventScores,
 } from ".";
 
-export const useLeagues = () => {
+export const useLeagues = (enabled = true) => {
   return useQuery({
     queryKey: ["leagues"],
     queryFn: () => getLeagues(),
+    enabled,
   });
 };
 

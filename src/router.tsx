@@ -4,6 +4,7 @@ import Landing from "./pages/landing/Landing.tsx";
 
 // auth pages
 import Login from "./pages/auth/Login.tsx";
+import AppErrorBoundary from "@/components/route/AppErrorBoundary";
 import LeagueRouteGuard from "@/components/route/LeagueRouteGuard";
 
 const BaseLayout = lazy(() => import("./layouts/BaseLayout.tsx"));
@@ -38,25 +39,30 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <Landing />,
+    errorElement: <AppErrorBoundary />,
   },
   {
     path: "/login",
     element: <Login />,
+    errorElement: <AppErrorBoundary />,
   },
   {
     path: "/invite/:token",
     element: withSuspense(<InviteClaim />),
+    errorElement: <AppErrorBoundary />,
   },
   {
     path: "",
     element: withSuspense(<BaseLayout />),
+    errorElement: <AppErrorBoundary />,
     children: [
-      { path: "leagues", element: withSuspense(<Leagues />) },
-      { path: "leagues/create", element: withSuspense(<CreateLeague />) },
-      { path: "courses", element: withSuspense(<Courses />) },
-      { path: "courses/:courseId", element: withSuspense(<Course />) },
+      { path: "leagues", element: withSuspense(<Leagues />), errorElement: <AppErrorBoundary /> },
+      { path: "leagues/create", element: withSuspense(<CreateLeague />), errorElement: <AppErrorBoundary /> },
+      { path: "courses", element: withSuspense(<Courses />), errorElement: <AppErrorBoundary /> },
+      { path: "courses/:courseId", element: withSuspense(<Course />), errorElement: <AppErrorBoundary /> },
       {
         element: <LeagueRouteGuard />,
+        errorElement: <AppErrorBoundary />,
         children: [
           { path: "league/:leagueId", element: withSuspense(<League />) },
           { path: "league/:leagueId/players", element: withSuspense(<Players />) },
@@ -69,6 +75,7 @@ export const router = createBrowserRouter([
       },
       {
         element: <LeagueRouteGuard adminOnly />,
+        errorElement: <AppErrorBoundary />,
         children: [
           { path: "league/:leagueId/edit", element: withSuspense(<EditLeague />) },
           { path: "league/:leagueId/admin", element: withSuspense(<LeagueAdmin />) },
@@ -86,6 +93,7 @@ export const router = createBrowserRouter([
   },
   {
     element: <LeagueRouteGuard adminOnly />,
+    errorElement: <AppErrorBoundary />,
     children: [
       {
         path: "league/:leagueId/events/:eventId/print-scorecards",

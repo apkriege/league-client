@@ -4,6 +4,7 @@ import { RouterProvider } from "react-router/dom";
 import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@/context/ToastContext";
 import ToastContainer from "@/components/layout/ToastContainer";
+import RootErrorBoundary from "@/components/route/RootErrorBoundary";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { emitToast } from "@/lib/toastEvents";
 import { router } from "./router";
@@ -41,13 +42,15 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   // <StrictMode>
   <ToastProvider>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <ToastContainer />
-      <Suspense fallback={null}>
-        <ReactQueryDevtools initialIsOpen={false} />
-      </Suspense>
-    </QueryClientProvider>
+    <RootErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <ToastContainer />
+        <Suspense fallback={null}>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </Suspense>
+      </QueryClientProvider>
+    </RootErrorBoundary>
   </ToastProvider>
   // </StrictMode>
 );

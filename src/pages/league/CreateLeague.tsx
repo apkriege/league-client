@@ -12,6 +12,7 @@ import { useToast } from "@/context/ToastContext";
 import Stepper from "@/components/layout/Stepper";
 import { BILLING_MIN_GOLFERS } from "@/lib/billing";
 import { useAppStore } from "@/stores/appStore";
+import PageState from "@/components/layout/PageState";
 
 const defaultLeagueData = {
   name: "",
@@ -57,6 +58,8 @@ export default function CreateLeague() {
   const createCheckoutSession = useCreateCheckoutSession();
   const navigate = useNavigate();
   const { user } = useAppStore();
+  const role = String(user?.role || "").toUpperCase();
+  const canCreateLeague = role === "ADMIN" || role === "SUPER";
   const {
     data: stripeState,
     isLoading: billingLoading,
@@ -247,6 +250,18 @@ export default function CreateLeague() {
   useEffect(() => {
     setStep((prev) => Math.max(1, Math.min(steps.length, prev)));
   }, [steps.length]);
+
+  if (user && !canCreateLeague) {
+    return (
+      <PageState
+        title="Access Denied"
+        message="Only league admins can create new leagues."
+        variant="forbidden"
+        actionTo="/leagues"
+        actionLabel="Back to Leagues"
+      />
+    );
+  }
 
   return (
     <div>
