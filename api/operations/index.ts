@@ -10,6 +10,11 @@ export async function markNotificationRead(id: number) {
   return response.data;
 }
 
+export async function clearNotification(id: number) {
+  const response = await apiClient.delete(`/notifications/${id}`);
+  return response.data;
+}
+
 export async function getInvitation(token: string) {
   const response = await apiClient.get(`/invitations/${token}`);
   return response.data;

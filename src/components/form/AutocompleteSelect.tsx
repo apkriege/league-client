@@ -149,7 +149,7 @@ export default function AutocompleteSelect({
         ) : null}
 
         {isOpen && !disabled ? (
-          <div className="absolute top-full left-0 right-0 mt-1 z-20 border border-base-300 rounded-2xl bg-base-100 shadow-lg overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-1 z-20 border border-base-300 rounded-2xl bg-white shadow-lg overflow-hidden">
             {filteredOptions.length === 0 ? (
               <p className="px-3 py-2 text-xs text-gray-500">{noResultsText}</p>
             ) : (
@@ -163,7 +163,7 @@ export default function AutocompleteSelect({
                       <button
                         type="button"
                         className={`w-full text-left px-3 py-2 text-xs transition-colors ${
-                          isHighlighted ? "bg-base-200" : ""
+                          isHighlighted ? "bg-base-200" : "bg-white"
                         } ${isSelected ? "text-primary font-medium" : "text-base-content"}`}
                         onMouseEnter={() => setHighlightedIndex(index)}
                         onClick={() => handleSelect(option)}

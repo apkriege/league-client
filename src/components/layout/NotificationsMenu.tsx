@@ -1,11 +1,12 @@
-import { useMarkNotificationRead } from "@api/operations/mutations";
+import { useClearNotification, useMarkNotificationRead } from "@api/operations/mutations";
 import { useNotifications } from "@api/operations/queries";
 import dayjs from "dayjs";
-import { Bell } from "lucide-react";
+import { Bell, X } from "lucide-react";
 
 export default function NotificationsMenu() {
   const { data: notifications = [] } = useNotifications();
   const markRead = useMarkNotificationRead();
+  const clearNotification = useClearNotification();
   const unreadCount = notifications.filter((notification: any) => !notification.readAt).length;
 
   return (
@@ -27,23 +28,41 @@ export default function NotificationsMenu() {
             <p className="px-3 py-4 text-sm text-slate-400">No notifications yet.</p>
           ) : (
             notifications.map((notification: any) => (
-              <button
+              <div
                 key={notification.id}
-                type="button"
                 onClick={() => markRead.mutate(Number(notification.id))}
-                className={`w-full rounded-xl px-3 py-2 text-left transition hover:bg-slate-50 ${
+                className={`group w-full cursor-pointer rounded-xl px-3 py-2 text-left transition hover:bg-slate-50 ${
                   notification.readAt ? "opacity-60" : ""
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-bold text-slate-800">{notification.title}</p>
-                  {!notification.readAt && <span className="mt-1 h-2 w-2 rounded-full bg-blue-600" />}
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800">{notification.title}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{notification.body}</p>
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      {dayjs(notification.createdAt).format("MMM D, h:mm A")}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-start gap-2">
+                    {!notification.readAt && (
+                      <span className="mt-1.5 h-2 w-2 rounded-full bg-blue-600" />
+                    )}
+                    <button
+                      type="button"
+                      aria-label="Clear notification"
+                      className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      disabled={clearNotification.isPending}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        clearNotification.mutate(Number(notification.id));
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 </div>
-                <p className="mt-0.5 text-xs text-slate-500">{notification.body}</p>
-                <p className="mt-1 text-[10px] text-slate-400">
-                  {dayjs(notification.createdAt).format("MMM D, h:mm A")}
-                </p>
-              </button>
+              </div>
             ))
           )}
         </div>

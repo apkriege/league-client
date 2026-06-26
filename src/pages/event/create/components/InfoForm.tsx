@@ -41,17 +41,20 @@ export default function InfoForm() {
     const selectedCourse = courses.find((course: any) => course.id === methods.watch("courseId"));
     if (!selectedCourse) return [];
 
-    return selectedCourse.tees.map((tee: any) => ({
-      value: tee.id,
-      body: (
-        <div className="flex flex-col">
-          <span>{tee.name}</span>
-          <span className="text-[10px] text-gray-500">
-            {tee.par} &bull; {tee.distance} yards
-          </span>
-        </div>
-      ),
-    }));
+    return selectedCourse.tees
+      .slice()
+      .sort((a: any, b: any) => Number(b.distance || 0) - Number(a.distance || 0))
+      .map((tee: any) => ({
+        value: tee.id,
+        body: (
+          <div className="flex flex-col">
+            <span>{tee.name}</span>
+            <span className="text-[10px] text-gray-500">
+              {tee.par} &bull; {tee.distance} yards
+            </span>
+          </div>
+        ),
+      }));
   };
 
   const isSeasonLeague = String(league?.type || "").toLowerCase() === "season";

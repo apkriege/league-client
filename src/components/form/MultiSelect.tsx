@@ -62,7 +62,7 @@ export default function MultiSelect({
 
       <div className="relative" ref={containerRef}>
         <div
-          className="w-full min-h-[35px] rounded-2xl bg-white/70 border border-base-300 px-2 py-1 text-xs cursor-pointer flex items-center gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap"
+          className="w-full min-h-[35px] rounded-2xl !bg-white border border-base-300 px-2 py-1 text-xs cursor-pointer flex items-center gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap"
           onClick={() => setIsOpen(!isOpen)}
         >
           {selectedOptions.length > 0 ? (
@@ -91,11 +91,11 @@ export default function MultiSelect({
 
         {/* Dropdown */}
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 border border-base-300 rounded-2xl bg-base-100 shadow-lg z-10 overflow-hidden">
-            <ul className="max-h-48 overflow-y-auto">
+          <div className="absolute top-full left-0 right-0 mt-1 border border-base-300 rounded-2xl !bg-white shadow-lg z-50 overflow-hidden">
+            <ul className="max-h-48 overflow-y-auto !bg-white">
               {options.map((option) => (
-                <li key={option.value}>
-                  <label className="flex items-center gap-2 px-3 py-2 hover:bg-base-200 cursor-pointer text-xs">
+                <li key={option.value} className="!bg-white">
+                  <label className="flex items-center gap-2 !bg-white px-3 py-2 hover:!bg-base-200 cursor-pointer text-xs">
                     <input
                       type="checkbox"
                       checked={value.includes(option.value)}

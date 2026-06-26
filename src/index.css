@@ -216,6 +216,18 @@ h6 {
   border-radius: 1rem;
 }
 
+.app-shell select option {
+  background: #ffffff;
+  color: var(--app-text);
+}
+
+.app-shell select option:hover,
+.app-shell select option:focus,
+.app-shell select option:checked {
+  background: #e5e7eb;
+  color: var(--app-text);
+}
+
 .app-shell .input:focus,
 .app-shell .select:focus,
 .app-shell textarea:focus,

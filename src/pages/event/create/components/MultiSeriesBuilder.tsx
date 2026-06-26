@@ -176,6 +176,13 @@ export default function MultiSeriesBuilder() {
   const [customDays, setCustomDays] = useState<number[]>([]);
   const [schedule, setSchedule] = useState<ScheduleRound[]>([]);
   const [highlightId, setHighlightId] = useState<number | null>(null);
+  const [alternateStartSides, setAlternateStartSides] = useState(false);
+
+  const sharedStartSide = methods.watch("startSide") === "back" ? "back" : "front";
+  const getEventStartSide = (index: number) => {
+    if (!alternateStartSides) return sharedStartSide;
+    return index % 2 === 0 ? sharedStartSide : sharedStartSide === "front" ? "back" : "front";
+  };
 
   const gapDays = frequency === "weekly" ? 7 : 14;
   const derivedRounds = Math.max(
@@ -212,17 +219,20 @@ export default function MultiSeriesBuilder() {
   const selectedTee = (selectedCourse?.tees || []).find(
     (t: any) => t.id === methods.watch("teeId")
   );
-  const teeOptions = (selectedCourse?.tees || []).map((t: any) => ({
-    value: t.id,
-    body: (
-      <div className="flex flex-col">
-        <span>{t.name}</span>
-        <span className="text-[10px] text-gray-500">
-          {t.par} &bull; {t.distance} yards
-        </span>
-      </div>
-    ),
-  }));
+  const teeOptions = (selectedCourse?.tees || [])
+    .slice()
+    .sort((a: any, b: any) => Number(b.distance || 0) - Number(a.distance || 0))
+    .map((t: any) => ({
+      value: t.id,
+      body: (
+        <div className="flex flex-col">
+          <span>{t.name}</span>
+          <span className="text-[10px] text-gray-500">
+            {t.par} &bull; {t.distance} yards
+          </span>
+        </div>
+      ),
+    }));
 
   // ---------------------------------------------------------------------------
   // Schedule generation
@@ -287,7 +297,7 @@ export default function MultiSeriesBuilder() {
         interval: shared.interval,
         courseId: shared.courseId,
         teeId: shared.teeId,
-        startSide: shared.startSide,
+        startSide: getEventStartSide(i),
         holes: shared.holes,
         format: shared.format,
         scoringFormat: shared.scoringFormat,
@@ -367,6 +377,23 @@ export default function MultiSeriesBuilder() {
                     { value: "back", label: "BACK" },
                   ]}
                 />
+                <label className="mt-2 flex items-start gap-2 rounded-lg border border-base-300 bg-base-100 px-3 py-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={alternateStartSides}
+                    onChange={(e) => setAlternateStartSides(e.target.checked)}
+                    className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                  />
+                  <span>
+                    <span className="block font-semibold text-base-content">
+                      Alternate front/back each event
+                    </span>
+                    <span className="block text-base-content/60">
+                      Event 1 starts on {sharedStartSide}; event 2 starts on{" "}
+                      {sharedStartSide === "front" ? "back" : "front"}, then repeats.
+                    </span>
+                  </span>
+                </label>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -653,7 +680,12 @@ export default function MultiSeriesBuilder() {
           {/* Scrollable rounds */}
           <div className="flex-1 min-w-0 flex flex-col gap-3">
             {schedule.map((round, i) => {
-              const eventForRow = { ...methods.getValues(), date: round.date };
+              const eventStartSide = getEventStartSide(i);
+              const eventForRow = {
+                ...methods.getValues(),
+                date: round.date,
+                startSide: eventStartSide,
+              };
               return (
                 <div key={i} className="border rounded-xl bg-base-100 shadow-xs overflow-hidden">
                   {/* Row header */}
@@ -677,6 +709,10 @@ export default function MultiSeriesBuilder() {
                           <span className="text-xs text-base-content/30">&bull;</span>
                         </>
                       )}
+                      <span className="text-xs text-base-content/50 capitalize">
+                        {eventStartSide}
+                      </span>
+                      <span className="text-xs text-base-content/30">&bull;</span>
                       <span className="text-xs text-base-content/50">
                         {dayjs(round.date).format("ddd, MMM D, YYYY")}
                       </span>

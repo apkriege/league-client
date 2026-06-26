@@ -27,15 +27,23 @@ export default function Select({
         {label}
       </legend>
       <select
-        className={`select w-full rounded-2xl ${className || ""} bg-white/70 border-base-300 font-semibold ${
+        className={`select w-full rounded-2xl ${className || ""} !bg-white border-base-300 font-semibold ${
           dense ? "h-[31px] text-[11px]" : "h-[35px] text-xs"
         }`}
         value={value || ""}
         onChange={onChange}
       >
-        {placeholder && <option value="">{placeholder}</option>}
+        {placeholder && (
+          <option value="" className="!bg-white bg-white text-base-content hover:!bg-base-200 focus:!bg-base-200">
+            {placeholder}
+          </option>
+        )}
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option
+            key={option.value}
+            value={option.value}
+            className="!bg-white bg-white text-base-content hover:!bg-base-200 focus:!bg-base-200"
+          >
             {option.label}
           </option>
         ))}

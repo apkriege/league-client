@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   claimInvitation,
+  clearNotification,
   createLeagueInvitations,
   createLeagueNotification,
   markNotificationRead,
@@ -12,6 +13,14 @@ export const useMarkNotificationRead = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => markNotificationRead(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+};
+
+export const useClearNotification = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => clearNotification(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 };
