@@ -12,6 +12,7 @@ import { useNavigate, useParams } from "react-router";
 import { Flag, Pencil, ShieldHalf } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { validateEventForm } from "./create/validation";
+import { getEventDateInputValue } from "@/utils/eventDate";
 
 // Transform Prisma relational flight data into the flat ID-array format the components expect.
 function transformFlights(event: any): { flights: any[]; teams: any[] } {
@@ -103,6 +104,7 @@ export default function EventEdit() {
       ptsPerMatch: 2,
       ptsPerTeamWin: 2,
       strokePoints: "",
+      pointsEnabled: true,
       teams: [],
       flights: [],
     },
@@ -124,7 +126,7 @@ export default function EventEdit() {
     eventForm.reset({
       name: event.name ?? "",
       type: event.type ?? "regular",
-      date: event.date ? event.date.split("T")[0] : "",
+      date: getEventDateInputValue(event.date),
       startTime: event.startTime ?? "",
       interval: event.interval ?? 10,
       courseId: event.courseId ?? undefined,
@@ -136,6 +138,7 @@ export default function EventEdit() {
       ptsPerHole: event.ptsPerHole ?? 1,
       ptsPerMatch: event.ptsPerMatch ?? 2,
       ptsPerTeamWin: event.ptsPerTeamWin ?? 2,
+      pointsEnabled: event.pointsEnabled !== false,
       strokePoints: Array.isArray(event.strokePoints)
         ? event.strokePoints.join(",")
         : typeof event.strokePoints === "string"

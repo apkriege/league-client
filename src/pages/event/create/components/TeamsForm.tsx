@@ -187,7 +187,7 @@ export default function TeamsForm() {
   return (
     <div>
       <Card className="p-2! border !bg-white mb-4">
-        <div className="flex flex-col lg:flex-row lg:items-end gap-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,220px)] lg:items-end">
           <Input
             label="Team Name"
             placeholder="Enter team name"
@@ -197,10 +197,10 @@ export default function TeamsForm() {
               if (teamNameError) setTeamNameError("");
             }}
             error={teamNameError}
-            className="w-full xl:w-1/4"
+            className="w-full min-w-0"
           />
 
-          <div className="w-full lg:w-1/2">
+          <div className="w-full min-w-0">
             <MultiSelect
               label={`Players (${remainingCount} remaining)`}
               options={playerOptions}
@@ -217,11 +217,19 @@ export default function TeamsForm() {
             />
           </div>
 
-          <div className="flex gap-2 xl:mb-1">
-            <button type="button" onClick={handleSaveTeam} className="btn btn-md">
+          <div className="grid w-full min-w-0 grid-cols-2 gap-2 lg:grid-cols-1 xl:grid-cols-2">
+            <button
+              type="button"
+              onClick={handleSaveTeam}
+              className="btn btn-md w-full min-w-0 px-3 text-center leading-tight"
+            >
               {isEditing ? "Update Team" : "Add Team"}
             </button>
-            <button type="button" onClick={resetDraft} className="btn btn-md btn-secondary">
+            <button
+              type="button"
+              onClick={resetDraft}
+              className="btn btn-md btn-secondary w-full min-w-0 px-3 text-center leading-tight"
+            >
               Reset
             </button>
           </div>

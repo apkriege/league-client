@@ -55,11 +55,7 @@ export default function ReviewForm({
   const includedGolfers = Number(billing?.includedGolfers || 0);
   const allocatedGolfers = Number(billing?.allocatedGolfers || 0);
   const availableGolfers = Math.max(0, includedGolfers - allocatedGolfers);
-  const requestedGolfers = Math.max(
-    BILLING_MIN_GOLFERS,
-    players.length,
-    Number(leagueData?.numPlayers || 0)
-  );
+  const requestedGolfers = players.length;
   const additionalGolfersRequired = Math.max(
     0,
     allocatedGolfers + requestedGolfers - includedGolfers

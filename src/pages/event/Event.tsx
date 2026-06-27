@@ -1,7 +1,11 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
+import { useDeleteLeagueEvent } from "@api/league/mutations";
 import { useLeagueEvent } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import { getEventLocalDate } from "@/utils/eventDate";
+import { useAppStore } from "@/stores/appStore";
+import { useToast } from "@/context/ToastContext";
 import {
   BarElement,
   CategoryScale,
@@ -28,6 +32,7 @@ import {
   Printer,
   ShieldHalf,
   Timer,
+  Trash2,
   TrendingDown,
   TrendingUp,
   Trophy,
@@ -36,7 +41,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import ViewFlightScores from "@/pages/scores/ViewFlightScores";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
@@ -99,12 +104,19 @@ function PlayerNameLink({
 
 export default function Event() {
   const { leagueId, eventId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAppStore();
+  const { show } = useToast();
   const {
     data: event,
     isLoading,
     isError,
     error,
   } = useLeagueEvent(Number(leagueId), Number(eventId));
+  const deleteEvent = useDeleteLeagueEvent(() => {
+    show("Event deleted.", "success");
+    navigate(`/league/${leagueId}/admin`);
+  });
   const [activeTab, setActiveTab] = useState("points");
   const [isScorecardDrawerMounted, setIsScorecardDrawerMounted] = useState(false);
   const [isScorecardDrawerOpen, setIsScorecardDrawerOpen] = useState(false);
@@ -195,7 +207,13 @@ export default function Event() {
     const status = getApiErrorStatus(error);
     return (
       <PageState
-        title={status === 404 ? "Event Not Found" : status === 403 ? "Access Denied" : "Unable to Load Event"}
+        title={
+          status === 404
+            ? "Event Not Found"
+            : status === 403
+              ? "Access Denied"
+              : "Unable to Load Event"
+        }
         message={getApiErrorMessage(error, "The event page could not be loaded right now.")}
         variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
         actionTo={leagueId ? `/league/${leagueId}/events` : "/leagues"}
@@ -216,22 +234,55 @@ export default function Event() {
     );
   }
 
-  const status = STATUS_CONFIG[normalizeStatus(String(event.status || ""))] ?? STATUS_CONFIG["scheduled"];
-  const date = new Date(event.date);
+  const status =
+    STATUS_CONFIG[normalizeStatus(String(event.status || ""))] ?? STATUS_CONFIG["scheduled"];
+  const date = getEventLocalDate(event.date);
+  const pointsEnabled = event.pointsEnabled !== false;
+  const leaderboardTabs = pointsEnabled
+    ? LEADERBOARD_TABS
+    : LEADERBOARD_TABS.filter((tab) => tab.id !== "points");
+  const resolvedActiveTab = pointsEnabled
+    ? activeTab
+    : activeTab === "points"
+      ? "lowNet"
+      : activeTab;
 
   const activeLeaderboard =
-    activeTab === "points"
+    resolvedActiveTab === "points"
       ? event.metrics.leaderboards.playerPoints
-      : activeTab === "lowGross"
+      : resolvedActiveTab === "lowGross"
         ? event.metrics.leaderboards.playerLowGross
         : event.metrics.leaderboards.playerLowNet;
 
   const activeValueLabel =
-    activeTab === "points" ? "PTS" : activeTab === "lowGross" ? "GROSS" : "NET";
+    resolvedActiveTab === "points" ? "PTS" : resolvedActiveTab === "lowGross" ? "GROSS" : "NET";
   const hasRounds = (event.metrics.scores?.length ?? 0) > 0;
   const totalFlightPlayers = (event.flights ?? []).flatMap(
     (flight: any) => flight.players ?? []
   ).length;
+  const pointsLeaderboard = event.metrics.leaderboards.playerPoints || [];
+  const lowNetLeaderboard = event.metrics.leaderboards.playerLowNet || [];
+  const hasPointValues =
+    pointsEnabled && pointsLeaderboard.some((entry: any) => Number(entry?.value || 0) > 0);
+  const topThreeMode = hasPointValues ? "points" : "net";
+  const topThree = (hasPointValues ? pointsLeaderboard : lowNetLeaderboard).slice(0, 3);
+  const role = String(user?.role || "").toUpperCase();
+  const canDeleteEvent = role === "ADMIN" || role === "SUPER";
+  const handleDeleteEvent = () => {
+    const confirmed = window.confirm(
+      `Delete "${event.name}"? This removes it from the schedule and league event lists.`
+    );
+    if (!confirmed) return;
+
+    deleteEvent.mutate(
+      { leagueId: Number(leagueId), eventId: Number(eventId) },
+      {
+        onError: (error: any) => {
+          show(error?.message || "Failed to delete event.", "error");
+        },
+      }
+    );
+  };
 
   return (
     <div>
@@ -282,6 +333,17 @@ export default function Event() {
             <Printer size={12} />
             Print Scorecards
           </Link>
+        )}
+        {canDeleteEvent && (
+          <button
+            type="button"
+            onClick={handleDeleteEvent}
+            disabled={deleteEvent.isPending}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border border-red-200 bg-white text-red-600 hover:bg-red-50 disabled:opacity-60"
+          >
+            <Trash2 size={12} />
+            {deleteEvent.isPending ? "Deleting..." : "Delete Event"}
+          </button>
         )}
       </div>
 
@@ -338,7 +400,7 @@ export default function Event() {
       <div className="flex flex-col gap-4 mt-4">
         {hasRounds ? (
           <>
-            <div className="pt-2 border-t border-gray-100">
+            <div className="pt-2">
               <div className="mb-3">
                 <h3 className="text-lg font-bold text-gray-800 tracking-tight">
                   Performance and Skins
@@ -348,10 +410,50 @@ export default function Event() {
                 </p>
               </div>
               <div className="flex gap-4">
-                <div className="w-2/3 flex flex-col gap-4">
+                <div className="w-1/3 flex flex-col gap-4">
+                  {topThree.length > 0 && (
+                    <TopThreePlayers players={topThree} mode={topThreeMode} />
+                  )}
+                  <div className="flex flex-col gap-3">
+                    <SkinsList
+                      label="Gross"
+                      skins={event.metrics.skins.playerSkins}
+                      valueKey="gross"
+                      iconClass="text-amber-500"
+                      badgeClass="bg-amber-50 text-amber-600 border-amber-200"
+                      onViewAll={() =>
+                        openSkinsDrawer({
+                          label: "Gross",
+                          skins: event.metrics.skins.playerSkins,
+                          valueKey: "gross",
+                          iconClass: "text-amber-500",
+                          badgeClass: "bg-amber-50 text-amber-600 border-amber-200",
+                        })
+                      }
+                    />
+                    <SkinsList
+                      label="Net"
+                      skins={event.metrics.skins.playerNetSkins}
+                      valueKey="net"
+                      iconClass="text-violet-500"
+                      badgeClass="bg-violet-50 text-violet-600 border-violet-200"
+                      onViewAll={() =>
+                        openSkinsDrawer({
+                          label: "Net",
+                          skins: event.metrics.skins.playerNetSkins,
+                          valueKey: "net",
+                          iconClass: "text-violet-500",
+                          badgeClass: "bg-violet-50 text-violet-600 border-violet-200",
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="w-2/3 flex flex-col gap-3">
                   {event.metrics.scoreDistribution && (
                     <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                      <div className="flex items-center gap-2 px-4 py-3">
                         <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
                         <h3 className="text-sm font-semibold text-gray-800">Score Distribution</h3>
                         <span className="ml-auto text-[10px] text-gray-400">
@@ -364,17 +466,17 @@ export default function Event() {
                     </div>
                   )}
                   <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
                         <h3 className="text-sm font-semibold text-gray-800">Leaderboard</h3>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {LEADERBOARD_TABS.map((tab) => (
+                      <div className="flex flex-wrap items-center gap-1">
+                        {leaderboardTabs.map((tab) => (
                           <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${activeTab === tab.id ? "bg-gray-100 text-gray-800 border border-gray-200" : "text-gray-400 hover:text-gray-600"}`}
+                            className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${resolvedActiveTab === tab.id ? "bg-gray-100 text-gray-800 border border-gray-200" : "text-gray-400 hover:text-gray-600"}`}
                           >
                             {tab.label}
                           </button>
@@ -387,51 +489,16 @@ export default function Event() {
                     />
                   </div>
                 </div>
-
-                <div className="w-1/3 flex flex-col gap-3">
-                  <SkinsList
-                    label="Gross"
-                    skins={event.metrics.skins.playerSkins}
-                    valueKey="gross"
-                    iconClass="text-amber-500"
-                    badgeClass="bg-amber-50 text-amber-600 border-amber-200"
-                    onViewAll={() =>
-                      openSkinsDrawer({
-                        label: "Gross",
-                        skins: event.metrics.skins.playerSkins,
-                        valueKey: "gross",
-                        iconClass: "text-amber-500",
-                        badgeClass: "bg-amber-50 text-amber-600 border-amber-200",
-                      })
-                    }
-                  />
-                  <SkinsList
-                    label="Net"
-                    skins={event.metrics.skins.playerNetSkins}
-                    valueKey="net"
-                    iconClass="text-violet-500"
-                    badgeClass="bg-violet-50 text-violet-600 border-violet-200"
-                    onViewAll={() =>
-                      openSkinsDrawer({
-                        label: "Net",
-                        skins: event.metrics.skins.playerNetSkins,
-                        valueKey: "net",
-                        iconClass: "text-violet-500",
-                        badgeClass: "bg-violet-50 text-violet-600 border-violet-200",
-                      })
-                    }
-                  />
-                </div>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-gray-100">
+            <div className="pt-2">
               <div className="mb-3">
                 <h3 className="text-lg font-bold text-gray-800 tracking-tight">Round Scores</h3>
                 <p className="text-xs text-gray-500 mt-0.5">All player scores for this event</p>
               </div>
               <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between gap-2 px-4 py-3">
                   <div className="flex items-center gap-2">
                     <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
                     <h3 className="text-sm font-semibold text-gray-800">Round Scores</h3>
@@ -450,13 +517,13 @@ export default function Event() {
             </div>
           </>
         ) : (
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-2">
             <div className="mb-3">
               <h3 className="text-lg font-bold text-gray-800 tracking-tight">Flights</h3>
               <p className="text-xs text-gray-500 mt-0.5">Pairings and tee time assignments</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2 px-4 py-3">
                 <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
                 <h3 className="text-sm font-semibold text-gray-800">Flights</h3>
                 <span className="text-[10px] text-gray-400">No rounds recorded yet</span>
@@ -742,9 +809,13 @@ function TeamFlightPreview({ flight }: { flight: any }) {
         <p className="font-semibold text-gray-800">{left?.name || "Team 1"}</p>
         <div className="mt-1 flex flex-col gap-0.5 text-gray-600">
           {(left?.players || []).map((p: any) => (
-          <PlayerNameLink key={p.id} playerId={p.id} className="font-medium text-gray-600 hover:text-primary hover:underline">
-            {p.firstName} {p.lastName}
-          </PlayerNameLink>
+            <PlayerNameLink
+              key={p.id}
+              playerId={p.id}
+              className="font-medium text-gray-600 hover:text-primary hover:underline"
+            >
+              {p.firstName} {p.lastName}
+            </PlayerNameLink>
           ))}
         </div>
       </div>
@@ -753,9 +824,13 @@ function TeamFlightPreview({ flight }: { flight: any }) {
         <p className="font-semibold text-gray-800">{right?.name || "Team 2"}</p>
         <div className="mt-1 flex flex-col gap-0.5 text-gray-600">
           {(right?.players || []).map((p: any) => (
-          <PlayerNameLink key={p.id} playerId={p.id} className="font-medium text-gray-600 hover:text-primary hover:underline">
-            {p.firstName} {p.lastName}
-          </PlayerNameLink>
+            <PlayerNameLink
+              key={p.id}
+              playerId={p.id}
+              className="font-medium text-gray-600 hover:text-primary hover:underline"
+            >
+              {p.firstName} {p.lastName}
+            </PlayerNameLink>
           ))}
         </div>
       </div>
@@ -794,12 +869,18 @@ function IndividualMatchFlightPreview({ flight }: { flight: any }) {
     <div className="flex flex-col gap-1.5 text-xs">
       {pairs.map(([left, right], idx) => (
         <div key={`${left.playerId}-${right?.playerId ?? idx}`} className="flex items-center gap-2">
-          <PlayerNameLink playerId={left.playerId} className="font-medium text-gray-700 hover:text-primary hover:underline">
+          <PlayerNameLink
+            playerId={left.playerId}
+            className="font-medium text-gray-700 hover:text-primary hover:underline"
+          >
             {left.player.firstName} {left.player.lastName}
           </PlayerNameLink>
           <span className="text-gray-400">vs</span>
           {right ? (
-            <PlayerNameLink playerId={right.playerId} className="font-medium text-gray-700 hover:text-primary hover:underline">
+            <PlayerNameLink
+              playerId={right.playerId}
+              className="font-medium text-gray-700 hover:text-primary hover:underline"
+            >
               {right.player.firstName} {right.player.lastName}
             </PlayerNameLink>
           ) : (
@@ -820,7 +901,11 @@ function StrokeFlightPreview({ flight }: { flight: any }) {
   return (
     <div className="flex flex-col gap-1 text-xs text-gray-700">
       {players.map((entry: any) => (
-        <PlayerNameLink key={entry.playerId} playerId={entry.playerId} className="font-medium text-gray-700 hover:text-primary hover:underline">
+        <PlayerNameLink
+          key={entry.playerId}
+          playerId={entry.playerId}
+          className="font-medium text-gray-700 hover:text-primary hover:underline"
+        >
           {entry.player.firstName} {entry.player.lastName}
         </PlayerNameLink>
       ))}
@@ -867,7 +952,7 @@ function SkinsList({
         {skins.length === 0 ? (
           <p className="text-[11px] text-gray-300 italic">No {label.toLowerCase()} skins yet</p>
         ) : (
-          <div className="max-h-[180px] overflow-y-auto pr-1 divide-y divide-gray-50 border border-gray-100 rounded-md">
+          <div className="max-h-45 overflow-y-auto pr-1 divide-y divide-gray-50 border border-gray-100 rounded-md">
             {skins.map((skin: any, i: number) => (
               <div key={i} className="flex items-center justify-between px-2.5 py-2 bg-white">
                 <div className="flex items-center gap-2 min-w-0">
@@ -1004,7 +1089,7 @@ function ScoreLeaderboard({ leaderboard, valueLabel }: { leaderboard: any[]; val
       .toUpperCase();
 
   return (
-    <div className="max-h-[280px] overflow-y-auto">
+    <div className="max-h-70 overflow-y-auto">
       <table className="w-full text-left">
         <thead className="sticky top-0 z-10 bg-gray-50">
           <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
@@ -1071,6 +1156,106 @@ function ScoreLeaderboard({ leaderboard, valueLabel }: { leaderboard: any[]; val
         </tbody>
       </table>
     </div>
+  );
+}
+
+function TopThreePlayers({ players, mode }: { players: any[]; mode: "points" | "net" }) {
+  const label = mode === "points" ? "Top Points" : "Low Net Leaders";
+  const valueLabel = mode === "points" ? "PTS" : "NET";
+
+  const getInitials = (name: string) =>
+    String(name || "")
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+  const podiumStyles = [
+    {
+      rank: "1",
+      medal: "bg-amber-100 text-amber-700 border-amber-200",
+      card: "border-amber-200 bg-linear-to-br from-amber-50 to-white",
+      icon: "text-amber-500",
+    },
+    {
+      rank: "2",
+      medal: "bg-slate-100 text-slate-600 border-slate-200",
+      card: "border-slate-200 bg-linear-to-br from-slate-50 to-white",
+      icon: "text-slate-400",
+    },
+    {
+      rank: "3",
+      medal: "bg-orange-100 text-orange-700 border-orange-200",
+      card: "border-orange-200 bg-linear-to-br from-orange-50 to-white",
+      icon: "text-orange-500",
+    },
+  ];
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <Trophy size={13} className="text-amber-500" strokeWidth={2.5} />
+          <h3 className="text-xs font-semibold text-gray-800">{label}</h3>
+        </div>
+        <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-bold text-gray-500">
+          Top 3
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-2 p-3">
+        {players.map((player, index) => {
+          const style = podiumStyles[index] || podiumStyles[2];
+          const value = Number(player?.value ?? 0);
+          const displayValue = mode === "points" ? value : Math.round(value);
+
+          return (
+            <div
+              key={`${player.playerId}-${index}`}
+              className={`relative overflow-hidden rounded-lg border px-3 py-2.5 shadow-xs ${style.card}`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-black ${style.medal}`}
+                  >
+                    {getInitials(player.name) || style.rank}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Medal size={13} className={style.icon} strokeWidth={2.5} />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        #{style.rank}
+                      </span>
+                    </div>
+                    <PlayerNameLink
+                      playerId={player.playerId}
+                      className="mt-0.5 block truncate text-xs font-bold text-gray-900 hover:text-primary hover:underline"
+                    >
+                      {player.name}
+                    </PlayerNameLink>
+                    <p className="text-[11px] font-medium text-gray-400">
+                      HCP{" "}
+                      {player.handicap != null && Number.isFinite(Number(player.handicap))
+                        ? Number(player.handicap).toFixed(1)
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                    {valueLabel}
+                  </p>
+                  <p className="text-xl font-black leading-none text-gray-950">{displayValue}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

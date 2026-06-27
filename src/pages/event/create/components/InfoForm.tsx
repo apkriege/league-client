@@ -9,7 +9,9 @@ import { Label } from "@/components/form/Label";
 import Card from "@/components/layout/Card";
 import { useCoursesWithTees } from "@api/courses";
 import { useLeague } from "@api/league/queries";
+import { getEventDateInputValue } from "@/utils/eventDate";
 import { CircleCheck, Tally5, User, Users, Zap } from "lucide-react";
+import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { useParams } from "react-router";
 import { DEFAULT_STROKE_POINTS } from "../constants";
@@ -19,6 +21,22 @@ export default function InfoForm() {
   const { data: courses } = useCoursesWithTees();
   const { data: league } = useLeague(Number(leagueId));
   const methods = useFormContext();
+  const leagueStartDate = getEventDateInputValue(league?.startDate);
+  const leagueEndDate = getEventDateInputValue(league?.endDate);
+
+  useEffect(() => {
+    if (!leagueStartDate || !leagueEndDate) return;
+
+    const eventDate = methods.getValues("date");
+    if (!eventDate || eventDate < leagueStartDate) {
+      methods.setValue("date", leagueStartDate, { shouldDirty: true });
+      return;
+    }
+
+    if (eventDate > leagueEndDate) {
+      methods.setValue("date", leagueEndDate, { shouldDirty: true });
+    }
+  }, [leagueStartDate, leagueEndDate, methods]);
 
   if (!courses) return null;
 
@@ -62,6 +80,7 @@ export default function InfoForm() {
   const isFormatLocked = isSeasonLeague && ["individual", "team"].includes(lockedSeasonFormat);
   const isTeamFormat = methods.watch("format") === "team";
   const scoringFormat = methods.watch("scoringFormat");
+  const pointsEnabled = methods.watch("pointsEnabled") !== false;
   const selectScoringFormat = (nextScoringFormat: "stroke" | "match") => {
     methods.setValue("scoringFormat", nextScoringFormat);
 
@@ -87,6 +106,8 @@ export default function InfoForm() {
               />
               <DateInput
                 label="Event Date"
+                min={leagueStartDate || undefined}
+                max={leagueEndDate || undefined}
                 {...methods.register("date", { required: "Event date is required" })}
               />
             </div>
@@ -216,13 +237,32 @@ export default function InfoForm() {
           <div className="mt-4">
             {scoringFormat === "stroke" && (
               <>
+                <label className="mb-3 flex items-start gap-2 rounded-lg border border-base-300 bg-white px-3 py-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={pointsEnabled}
+                    onChange={(event) =>
+                      methods.setValue("pointsEnabled", event.target.checked, { shouldDirty: true })
+                    }
+                    className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                  />
+                  <span>
+                    <span className="block font-semibold text-base-content">Award points</span>
+                    <span className="block text-base-content/60">
+                      Turn this off for tournament events where the leaderboard should rank by net score only.
+                    </span>
+                  </span>
+                </label>
                 <Input
                   label="Stroke Points (CSV)"
                   placeholder={`e.g. ${DEFAULT_STROKE_POINTS}`}
+                  disabled={!pointsEnabled}
                   {...methods.register("strokePoints")}
                 />
                 <p className="text-[11px] text-base-content/60 mt-1">
-                  Optional. Leave blank to use Stableford scoring.
+                  {pointsEnabled
+                    ? "Optional. Leave blank to use Stableford scoring."
+                    : "Points are disabled; this event leaderboard will use low net."}
                 </p>
               </>
             )}

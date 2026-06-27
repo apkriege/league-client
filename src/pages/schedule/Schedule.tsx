@@ -2,6 +2,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { useLeagueEvents } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import { getEventLocalDate } from "@/utils/eventDate";
 import {
   Calendar,
   CalendarDays,
@@ -117,7 +118,7 @@ export default function Schedule() {
 function EventCard({ event, onClick }: { event: any; leagueId: string; onClick: () => void }) {
   const normalizedStatus = normalizeEventStatus(event.status);
   const status = STATUS_CONFIG[normalizedStatus] ?? STATUS_CONFIG["scheduled"];
-  const date = new Date(event.date);
+  const date = getEventLocalDate(event.date);
 
   return (
     <div

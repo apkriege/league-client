@@ -1,3 +1,5 @@
+import { getEventDateInputValue } from "@/utils/eventDate";
+
 const isBlank = (value: unknown) => value == null || String(value).trim() === "";
 const isPositiveNumber = (value: unknown) => Number.isFinite(Number(value)) && Number(value) > 0;
 const isNonNegativeNumber = (value: unknown) => Number.isFinite(Number(value)) && Number(value) >= 0;
@@ -13,9 +15,21 @@ function parseStrokePoints(value: unknown) {
     .filter((point) => Number.isFinite(point) && point >= 0);
 }
 
-export function validateEventForm(data: any, options: { showTeamsSection: boolean }) {
+export function validateEventForm(
+  data: any,
+  options: { showTeamsSection: boolean; leagueStartDate?: unknown; leagueEndDate?: unknown }
+) {
   if (isBlank(data.name)) return "Event name is required.";
   if (isBlank(data.date)) return "Event date is required.";
+  const eventDate = getEventDateInputValue(data.date);
+  const leagueStartDate = getEventDateInputValue(options.leagueStartDate);
+  const leagueEndDate = getEventDateInputValue(options.leagueEndDate);
+  if (leagueStartDate && eventDate < leagueStartDate) {
+    return "Event date cannot be before the league start date.";
+  }
+  if (leagueEndDate && eventDate > leagueEndDate) {
+    return "Event date cannot be after the league end date.";
+  }
   if (isBlank(data.startTime)) return "Start time is required.";
   if (!isPositiveNumber(data.interval)) return "Interval must be at least 1 minute.";
   if (!isPositiveNumber(data.courseId)) return "Please select a course.";
@@ -36,7 +50,7 @@ export function validateEventForm(data: any, options: { showTeamsSection: boolea
     if (!isNonNegativeNumber(data.ptsPerTeamWin)) return "Points per team win must be 0 or higher.";
   }
 
-  if (scoringFormat === "stroke" && !isBlank(data.strokePoints)) {
+  if (scoringFormat === "stroke" && data.pointsEnabled !== false && !isBlank(data.strokePoints)) {
     if (parseStrokePoints(data.strokePoints).length === 0) {
       return "Stroke points must be comma-separated numbers, or left blank.";
     }

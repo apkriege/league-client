@@ -359,7 +359,7 @@ export default function Player() {
             </div>
           </div>
 
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-2">
             <div className="mb-3">
               <h3 className="text-lg font-bold text-gray-800 tracking-tight">Performance</h3>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -368,7 +368,7 @@ export default function Player() {
             </div>
             <aside className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
               <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2 px-4 py-3">
                   <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
                   <h2 className="text-sm font-semibold text-gray-900">Score Distribution</h2>
                   <span className="ml-auto text-[10px] text-gray-400">Player vs league avg</span>
@@ -384,7 +384,7 @@ export default function Player() {
               </section>
 
               <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100">
+                <div className="px-4 py-3">
                   <h2 className="text-sm font-semibold text-gray-900">Scoring Detail</h2>
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-y divide-gray-100">
@@ -408,13 +408,13 @@ export default function Player() {
             </aside>
           </div>
 
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-2">
             <div className="mb-3">
               <h3 className="text-lg font-bold text-gray-800 tracking-tight">Round History</h3>
               <p className="text-xs text-gray-500 mt-0.5">Chronological log of completed rounds</p>
             </div>
             <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
                   <h2 className="text-sm font-semibold text-gray-900">Full Round History</h2>
@@ -427,7 +427,7 @@ export default function Player() {
             </section>
           </div>
 
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-2">
             <div className="mb-3">
               <h3 className="text-lg font-bold text-gray-800 tracking-tight">Round Breakdown</h3>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -435,7 +435,7 @@ export default function Player() {
               </p>
             </div>
             <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Flag size={14} className="text-emerald-500" strokeWidth={2.5} />
                   <h2 className="text-sm font-semibold text-gray-900">Round Score Breakdown</h2>

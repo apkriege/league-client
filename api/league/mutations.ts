@@ -106,6 +106,8 @@ export const useCreateLeagueEvents = (onSuccess: any) => {
     onSuccess: (_, variables) => {
       // Invalidate the events list for the league
       queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "events"] });
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId] });
       if (onSuccess) onSuccess();
     },
     onError: (error) => {
@@ -136,6 +138,8 @@ export const useUpdateLeagueEvent = (onSuccess: any) => {
       });
       // Invalidate the events list for the league
       queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "events"] });
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId] });
       if (onSuccess) onSuccess();
     },
     onError: (error) => {
@@ -144,16 +148,21 @@ export const useUpdateLeagueEvent = (onSuccess: any) => {
   });
 };
 
-export const useDeleteLeagueEvent = (onSuccess: any) => {
+export const useDeleteLeagueEvent = (onSuccess?: any) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ leagueId: _leagueId, eventId }: { leagueId: number; eventId: number }) => {
-      return await deleteLeagueEvent(eventId);
+    mutationFn: async ({ leagueId, eventId }: { leagueId: number; eventId: number }) => {
+      return await deleteLeagueEvent(leagueId, eventId);
     },
     onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["league", variables.leagueId, "event", variables.eventId],
+      });
       // Invalidate the events list for the league
       queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "events"] });
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId] });
       if (onSuccess) onSuccess();
     },
     onError: (error) => {

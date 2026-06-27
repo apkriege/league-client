@@ -3,6 +3,7 @@ import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
 import dayjs from "dayjs";
 import { Globe, Info, Lock, Trophy, User, Users, CalendarRange } from "lucide-react";
+import { useEffect } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
@@ -11,6 +12,16 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 
 export default function InfoForm() {
   const leagueForm = useFormContext();
+  const startDate = leagueForm.watch("startDate");
+  const maxEndDate = dayjs(startDate).add(1, "year").format("YYYY-MM-DD");
+
+  useEffect(() => {
+    if (!startDate || !dayjs(startDate).isValid()) return;
+    const expectedEndDate = dayjs(startDate).add(1, "year");
+    if (!dayjs(leagueForm.getValues("endDate")).isSame(expectedEndDate, "day")) {
+      leagueForm.setValue("endDate", expectedEndDate.toDate(), { shouldDirty: true });
+    }
+  }, [leagueForm, startDate]);
 
   return (
     <>
@@ -60,7 +71,13 @@ export default function InfoForm() {
                     label="Start Date"
                     placeholder="YYYY-MM-DD"
                     value={dayjs(field.value).format("YYYY-MM-DD")}
-                    onChange={(e) => field.onChange(new Date(e.target.value))}
+                    onChange={(e) => {
+                      const nextStartDate = dayjs(e.target.value).toDate();
+                      field.onChange(nextStartDate);
+                      leagueForm.setValue("endDate", dayjs(nextStartDate).add(1, "year").toDate(), {
+                        shouldDirty: true,
+                      });
+                    }}
                   />
                 )}
               />
@@ -72,8 +89,10 @@ export default function InfoForm() {
                     type="date"
                     label="End Date"
                     placeholder="YYYY-MM-DD"
+                    max={maxEndDate}
+                    disabled
                     value={dayjs(field.value).format("YYYY-MM-DD")}
-                    onChange={(e) => field.onChange(new Date(e.target.value))}
+                    onChange={() => field.onChange(dayjs(maxEndDate).toDate())}
                   />
                 )}
               />

@@ -32,6 +32,7 @@ const defaultValues = {
   ptsPerMatch: 2,
   ptsPerTeamWin: 2,
   strokePoints: DEFAULT_STROKE_POINTS,
+  pointsEnabled: true,
   teams: [],
   flights: [],
 };
@@ -89,7 +90,11 @@ export default function CreateEvent() {
       return;
     }
 
-    const validationMessage = validateEventForm(data, { showTeamsSection });
+    const validationMessage = validateEventForm(data, {
+      showTeamsSection,
+      leagueStartDate: league?.startDate,
+      leagueEndDate: league?.endDate,
+    });
     if (validationMessage) {
       show(validationMessage, "error");
       return;

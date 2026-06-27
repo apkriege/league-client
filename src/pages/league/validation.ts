@@ -2,13 +2,17 @@ const isBlank = (value: unknown) => value == null || String(value).trim() === ""
 const isPositiveNumber = (value: unknown) => Number.isFinite(Number(value)) && Number(value) > 0;
 
 export function validateLeagueForm(data: any, options: { requirePlayers?: boolean; requireTeams?: boolean } = {}) {
+  const players = Array.isArray(data.players) ? data.players : [];
+
   if (isBlank(data.name)) return "League name is required.";
   if (isBlank(data.type)) return "League type is required.";
   if (String(data.type).toLowerCase() === "season" && isBlank(data.format)) {
     return "Season leagues require a format.";
   }
   if (isBlank(data.access)) return "League access is required.";
-  if (!isPositiveNumber(data.numPlayers)) return "Number of players must be greater than 0.";
+  if (!isPositiveNumber(data.numPlayers) && players.length === 0) {
+    return "Number of players must be greater than 0.";
+  }
   if (isBlank(data.contactFirstName)) return "Contact first name is required.";
   if (isBlank(data.contactLastName)) return "Contact last name is required.";
   if (isBlank(data.contactEmail)) return "Contact email is required.";
@@ -17,8 +21,12 @@ export function validateLeagueForm(data: any, options: { requirePlayers?: boolea
   if (new Date(data.endDate) < new Date(data.startDate)) {
     return "End date must be after the start date.";
   }
+  const maxEndDate = new Date(data.startDate);
+  maxEndDate.setFullYear(maxEndDate.getFullYear() + 1);
+  if (new Date(data.endDate) > maxEndDate) {
+    return "End date cannot be more than one year after the start date.";
+  }
 
-  const players = Array.isArray(data.players) ? data.players : [];
   if (options.requirePlayers && players.length === 0) return "Add at least one player.";
 
   const invalidPlayer = players.find(

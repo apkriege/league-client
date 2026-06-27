@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { useNavigate, useParams } from "react-router";
 import dayjs from "dayjs";
@@ -29,6 +29,7 @@ import { useLeague } from "@api/league/queries";
 import { useCoursesWithTees } from "@api/courses";
 import { useCreateLeagueEvents } from "@api/league/mutations";
 import { useToast } from "@/context/ToastContext";
+import { getEventDateInputValue } from "@/utils/eventDate";
 import { DEFAULT_STROKE_POINTS } from "../constants";
 
 // ---------------------------------------------------------------------------
@@ -105,24 +106,29 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a;
 }
 
-function buildDates(startDate: string, count: number, frequency: "weekly" | "biweekly"): string[] {
-  const gap = frequency === "weekly" ? 7 : 14;
-  return Array.from({ length: count }, (_, i) =>
-    dayjs(startDate)
-      .add(i * gap, "day")
-      .format("YYYY-MM-DD")
-  );
-}
-
-function buildCustomDates(startDate: string, endDate: string, days: number[]): string[] {
-  if (!days.length) return [];
-  const dates: string[] = [];
-  let cur = dayjs(startDate);
+function buildDates(
+  startDate: string,
+  endDate: string,
+  days: number[],
+  frequency: "weekly" | "biweekly"
+): string[] {
+  const start = dayjs(startDate);
   const end = dayjs(endDate);
+  if (!days.length || !start.isValid() || !end.isValid() || end.isBefore(start, "day")) return [];
+
+  const dates: string[] = [];
+  let cur = start;
+  const startWeek = start.startOf("week");
+  const weekInterval = frequency === "weekly" ? 1 : 2;
+
   while (!cur.isAfter(end)) {
-    if (days.includes(cur.day())) dates.push(cur.format("YYYY-MM-DD"));
+    const weekIndex = Math.floor(cur.startOf("week").diff(startWeek, "day") / 7);
+    if (weekIndex % weekInterval === 0 && days.includes(cur.day())) {
+      dates.push(cur.format("YYYY-MM-DD"));
+    }
     cur = cur.add(1, "day");
   }
+
   return dates;
 }
 
@@ -137,10 +143,13 @@ export default function MultiSeriesBuilder() {
   const { data: league } = useLeague(Number(leagueId));
   const { data: courses } = useCoursesWithTees();
   const methods = useFormContext();
+  const leagueStartDate = getEventDateInputValue(league?.startDate);
+  const leagueEndDate = getEventDateInputValue(league?.endDate);
 
   // Shared settings from the parent form context
   const format: string = methods.watch("format") || "team";
   const scoringFormat: string = methods.watch("scoringFormat") || "match";
+  const pointsEnabled = methods.watch("pointsEnabled") !== false;
   const selectScoringFormat = (nextScoringFormat: "stroke" | "match") => {
     methods.setValue("scoringFormat", nextScoringFormat);
 
@@ -165,18 +174,47 @@ export default function MultiSeriesBuilder() {
   const rrRounds = ids.length >= 2 ? (ids.length % 2 === 0 ? ids.length - 1 : ids.length) : 0;
 
   // Series config state
+  const defaultStartDate = dayjs().add(7, "day").format("YYYY-MM-DD");
   const [seriesName, setSeriesName] = useState("Weekly Series");
-  const [startDate, setStartDate] = useState(dayjs().add(7, "day").format("YYYY-MM-DD"));
+  const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(
     dayjs()
       .add(7 + 7 * 7, "day")
       .format("YYYY-MM-DD")
   );
-  const [frequency, setFrequency] = useState<"weekly" | "biweekly" | "custom">("weekly");
-  const [customDays, setCustomDays] = useState<number[]>([]);
+  const [frequency, setFrequency] = useState<"weekly" | "biweekly">("weekly");
+  const [selectedDays, setSelectedDays] = useState<number[]>([dayjs(defaultStartDate).day()]);
   const [schedule, setSchedule] = useState<ScheduleRound[]>([]);
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const [alternateStartSides, setAlternateStartSides] = useState(false);
+
+  const clampToLeagueDates = useCallback(
+    (date: string) => {
+      if (leagueStartDate && date < leagueStartDate) return leagueStartDate;
+      if (leagueEndDate && date > leagueEndDate) return leagueEndDate;
+      return date;
+    },
+    [leagueStartDate, leagueEndDate]
+  );
+
+  useEffect(() => {
+    if (!leagueStartDate || !leagueEndDate) return;
+
+    setStartDate((currentStart) => {
+      const nextStart = clampToLeagueDates(currentStart);
+      setEndDate((currentEnd) => {
+        const nextEnd = clampToLeagueDates(currentEnd);
+        return nextEnd < nextStart ? nextStart : nextEnd;
+      });
+      return nextStart;
+    });
+    setSchedule((current) =>
+      current.map((round) => ({
+        ...round,
+        date: clampToLeagueDates(round.date),
+      }))
+    );
+  }, [leagueStartDate, leagueEndDate, clampToLeagueDates]);
 
   const sharedStartSide = methods.watch("startSide") === "back" ? "back" : "front";
   const getEventStartSide = (index: number) => {
@@ -184,15 +222,8 @@ export default function MultiSeriesBuilder() {
     return index % 2 === 0 ? sharedStartSide : sharedStartSide === "front" ? "back" : "front";
   };
 
-  const gapDays = frequency === "weekly" ? 7 : 14;
-  const derivedRounds = Math.max(
-    1,
-    Math.floor(dayjs(endDate).diff(dayjs(startDate), "day") / gapDays) + 1
-  );
-  const eventCount =
-    frequency === "custom"
-      ? buildCustomDates(startDate, endDate, customDays).length
-      : derivedRounds;
+  const generatedDates = buildDates(startDate, endDate, selectedDays, frequency);
+  const eventCount = generatedDates.length;
 
   const mutation = useCreateLeagueEvents(() => {
     show(`${schedule.length} events created!`, "success");
@@ -249,15 +280,9 @@ export default function MultiSeriesBuilder() {
       }
       const sourceIds = doShuffle ? shuffleArray(ids) : ids;
       const rrData = generateRoundRobin(sourceIds);
-      const dates =
-        frequency === "custom"
-          ? buildCustomDates(startDate, endDate, customDays)
-          : buildDates(startDate, derivedRounds, frequency);
+      const dates = buildDates(startDate, endDate, selectedDays, frequency);
       if (!dates.length) {
-        show(
-          frequency === "custom" ? "Select at least one day of the week." : "No dates in range.",
-          "error"
-        );
+        show("Select at least one day of the week within the date range.", "error");
         return;
       }
 
@@ -268,11 +293,13 @@ export default function MultiSeriesBuilder() {
         }))
       );
     },
-    [ids, derivedRounds, rrRounds, startDate, endDate, frequency, customDays, format, scoringFormat]
+    [ids, startDate, endDate, selectedDays, frequency, format, scoringFormat]
   );
 
   const updateDate = (i: number, date: string) =>
-    setSchedule((prev) => prev.map((r, idx) => (idx === i ? { ...r, date } : r)));
+    setSchedule((prev) =>
+      prev.map((r, idx) => (idx === i ? { ...r, date: clampToLeagueDates(date) } : r))
+    );
 
   const updateFlights = (i: number, flights: any[]) =>
     setSchedule((prev) => prev.map((r, idx) => (idx === i ? { ...r, flights } : r)));
@@ -284,6 +311,15 @@ export default function MultiSeriesBuilder() {
   const handleSubmit = () => {
     if (!schedule.length) {
       show("Generate a schedule first.", "error");
+      return;
+    }
+    const outsideLeagueDate = schedule.find(
+      (round) =>
+        (leagueStartDate && round.date < leagueStartDate) ||
+        (leagueEndDate && round.date > leagueEndDate)
+    );
+    if (outsideLeagueDate) {
+      show("Event dates must stay within the league start and end dates.", "error");
       return;
     }
     const shared = methods.getValues();
@@ -301,6 +337,7 @@ export default function MultiSeriesBuilder() {
         holes: shared.holes,
         format: shared.format,
         scoringFormat: shared.scoringFormat,
+        pointsEnabled: shared.pointsEnabled,
         ptsPerHole: shared.ptsPerHole,
         ptsPerMatch: shared.ptsPerMatch,
         ptsPerTeamWin: shared.ptsPerTeamWin,
@@ -459,13 +496,34 @@ export default function MultiSeriesBuilder() {
             <div className="mt-4">
               {scoringFormat === "stroke" && (
                 <>
+                  <label className="mb-3 flex items-start gap-2 rounded-lg border border-base-300 bg-white px-3 py-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={pointsEnabled}
+                      onChange={(event) =>
+                        methods.setValue("pointsEnabled", event.target.checked, {
+                          shouldDirty: true,
+                        })
+                      }
+                      className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                    />
+                    <span>
+                      <span className="block font-semibold text-base-content">Award points</span>
+                      <span className="block text-base-content/60">
+                        Turn this off when each event should rank by net score only.
+                      </span>
+                    </span>
+                  </label>
                   <Input
                     label="Stroke Points (CSV)"
                     placeholder={`e.g. ${DEFAULT_STROKE_POINTS}`}
+                    disabled={!pointsEnabled}
                     {...methods.register("strokePoints")}
                   />
                   <p className="text-[11px] text-base-content/60 mt-1">
-                    Optional. Leave blank to use Stableford scoring.
+                    {pointsEnabled
+                      ? "Optional. Leave blank to use Stableford scoring."
+                      : "Points are disabled; event leaderboards will use low net."}
                   </p>
                 </>
               )}
@@ -525,13 +583,22 @@ export default function MultiSeriesBuilder() {
           <DateInput
             label="Start Date"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            min={leagueStartDate || undefined}
+            max={leagueEndDate || undefined}
+            onChange={(e) => {
+              const nextStartDate = clampToLeagueDates(e.target.value);
+              setStartDate(nextStartDate);
+              if (dayjs(endDate).isBefore(dayjs(nextStartDate), "day")) {
+                setEndDate(nextStartDate);
+              }
+            }}
           />
           <DateInput
             label="End Date"
             value={endDate}
-            min={dayjs(startDate).add(gapDays, "day").format("YYYY-MM-DD")}
-            onChange={(e) => setEndDate(e.target.value)}
+            min={leagueStartDate && leagueStartDate > startDate ? leagueStartDate : startDate}
+            max={leagueEndDate || undefined}
+            onChange={(e) => setEndDate(clampToLeagueDates(e.target.value))}
           />
         </div>
 
@@ -540,42 +607,43 @@ export default function MultiSeriesBuilder() {
             <Label text="Frequency" />
             <ToggleCards
               value={frequency}
-              onChange={(v) => setFrequency(v as "weekly" | "biweekly" | "custom")}
+              onChange={(v) => setFrequency(v as "weekly" | "biweekly")}
               options={[
                 { value: "weekly", label: "WEEKLY" },
                 { value: "biweekly", label: "BI-WEEKLY" },
-                { value: "custom", label: "CUSTOM" },
               ]}
             />
           </div>
-          {frequency === "custom" && (
-            <div>
-              <Label text="Days of Week" />
-              <div className="flex flex-wrap gap-1.5">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
-                  <button
-                    key={day}
-                    type="button"
-                    className={`btn btn-sm ${
-                      customDays.includes(i) ? "btn-primary" : " border border-base-300"
-                    }`}
-                    onClick={() =>
-                      setCustomDays((prev) =>
-                        prev.includes(i)
-                          ? prev.filter((d) => d !== i)
-                          : [...prev, i].sort((a, b) => a - b)
-                      )
-                    }
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
+          <div>
+            <Label text="Days of Week" />
+            <div className="flex flex-wrap gap-1.5">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
+                <button
+                  key={day}
+                  type="button"
+                  className={`btn btn-sm ${
+                    selectedDays.includes(i) ? "btn-primary" : "border border-base-300 bg-white"
+                  }`}
+                  onClick={() =>
+                    setSelectedDays((prev) =>
+                      prev.includes(i)
+                        ? prev.filter((d) => d !== i)
+                        : [...prev, i].sort((a, b) => a - b)
+                    )
+                  }
+                >
+                  {day}
+                </button>
+              ))}
             </div>
-          )}
+            <p className="mt-1 text-[11px] text-base-content/50">
+              Select one or more weekdays. Weekly uses every matching week; bi-weekly uses every
+              other matching week.
+            </p>
+          </div>
         </div>
 
-        {rrRounds > 0 && (frequency !== "custom" || customDays.length > 0) && (
+        {rrRounds > 0 && selectedDays.length > 0 && (
           <p className="text-xs text-base-content/50 mb-2 mt-2">
             {ids.length} {format === "team" ? "teams" : "players"} &rarr; {rrRounds}-round
             round-robin &bull; <span className="font-medium">{eventCount} events</span> scheduled
@@ -720,6 +788,8 @@ export default function MultiSeriesBuilder() {
                     {/* Editable date */}
                     <DateInput
                       value={round.date}
+                      min={leagueStartDate || undefined}
+                      max={leagueEndDate || undefined}
                       onChange={(e) => updateDate(i, e.target.value)}
                       className="w-40"
                     />

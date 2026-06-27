@@ -4,6 +4,7 @@ import Table from "@/components/Table";
 import { useAppStore } from "@/stores/appStore";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import { getEventLocalDate } from "@/utils/eventDate";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -22,7 +23,6 @@ import {
   BarChart2,
   CalendarDays,
   CheckCircle2,
-  ChevronRight,
   CircleDashed,
   Clock,
   Edit,
@@ -473,14 +473,14 @@ export default function League() {
               </div>
             )}
 
-            <div className="pt-2 border-t border-gray-100">
+            <div className="pt-2">
               <div className="mb-3">
                 <h3 className="font-bold text-gray-800 tracking-tight text-lg">Trends and Skins</h3>
                 <p className="text-xs text-gray-500">Weekly scoring trend and skin leaders</p>
               </div>
               <div className="flex flex-col lg:flex-row gap-4 items-start">
                 <div className="w-full lg:w-2/3 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2 px-4 py-3">
                     <div className="flex items-center gap-2">
                       <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
                       <h3 className="text-sm font-semibold text-gray-800">Season Trend</h3>
@@ -531,7 +531,7 @@ export default function League() {
                           key={type}
                           className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
                         >
-                          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+                          <div className="flex items-center justify-between px-3 py-2">
                             <div className="flex items-center gap-1.5">
                               <Zap size={13} className={iconClass} strokeWidth={2.5} />
                               <h3 className="text-xs font-semibold text-gray-800">{label} Skins</h3>
@@ -585,7 +585,7 @@ export default function League() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-gray-100">
+            <div className="pt-2">
               <div className="mb-3">
                 <h3 className="text-lg font-bold text-gray-800 tracking-tight">Standings</h3>
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -596,7 +596,7 @@ export default function League() {
               </div>
 
               <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-w-0">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2 px-4 py-3">
                   <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
                   <h3 className="text-sm font-semibold text-gray-800">
                     {standingsMode === "team" ? "Team Standings" : "Standings"}
@@ -689,14 +689,14 @@ function EventRow({
   onEdit: () => void;
 }) {
   const status = STATUS_CONFIG[event.status] ?? STATUS_CONFIG["upcoming"];
-  const date = new Date(event.date);
+  const date = getEventLocalDate(event.date);
   const canEditEvent =
     !event?.isComplete && String(event?.status || "").toLowerCase() !== "completed";
 
   return (
     <div
-      onClick={isAdmin ? undefined : onView}
-      className={`group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md hover:border-gray-300 ${!isAdmin ? "cursor-pointer" : ""}`}
+      onClick={onView}
+      className="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30 hover:bg-primary/2 cursor-pointer"
     >
       <div className="flex items-stretch">
         {/* Date block */}
@@ -712,9 +712,14 @@ function EventRow({
 
         {/* Main content */}
         <div className="flex-1 px-3 py-2.5">
-          <div className="flex items-start justify-between gap-2 mb-1">
+          <div className="mb-1">
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 leading-tight">{event.name}</h3>
+              <div className="flex min-w-0 items-center gap-2">
+                <h3 className="min-w-0 truncate text-sm font-semibold text-gray-800 leading-tight">
+                  {event.name}
+                </h3>
+                <StatusChip status={status} />
+              </div>
               <div className="flex items-center gap-1 mt-0.5">
                 <MapPin size={10} className="text-gray-400" strokeWidth={2} />
                 <span className="text-xs text-gray-400">{event.course?.name}</span>
@@ -725,12 +730,6 @@ function EventRow({
                   </>
                 )}
               </div>
-            </div>
-            <div
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${status.className}`}
-            >
-              {status.icon}
-              {status.label}
             </div>
           </div>
 
@@ -747,38 +746,18 @@ function EventRow({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center pr-3 pl-1 gap-1">
-          {isAdmin ? (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onView();
-                }}
-                className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
-                title="View"
-              >
-                <ChevronRight size={15} strokeWidth={2} />
-              </button>
-              {canEditEvent && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit();
-                  }}
-                  className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
-                  title="Edit"
-                >
-                  <Edit size={13} strokeWidth={2} />
-                </button>
-              )}
-            </>
-          ) : (
-            <ChevronRight
-              size={15}
-              className="text-gray-300 group-hover:text-gray-500 transition-colors"
-              strokeWidth={2}
-            />
+        <div className="flex items-center pr-3 pl-1 gap-1.5">
+          {isAdmin && canEditEvent && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors shadow-xs"
+              title="Edit"
+            >
+              <Edit size={13} strokeWidth={2} />
+            </button>
           )}
         </div>
       </div>
@@ -791,6 +770,21 @@ function MetaChip({ icon, label }: { icon: React.ReactNode; label: string }) {
     <div className="flex items-center gap-1 text-[10px] text-gray-400">
       <span className="text-gray-300">{icon}</span>
       {label}
+    </div>
+  );
+}
+
+function StatusChip({
+  status,
+}: {
+  status: { label: string; icon: React.ReactNode; className: string };
+}) {
+  return (
+    <div
+      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${status.className}`}
+    >
+      {status.icon}
+      {status.label}
     </div>
   );
 }

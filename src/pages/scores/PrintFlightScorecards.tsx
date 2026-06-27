@@ -3,6 +3,7 @@ import { useLeagueEvent, useLeaguePlayers } from "@api/league/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import { formatEventDate } from "@/utils/eventDate";
 import { Printer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
@@ -180,7 +181,7 @@ export default function PrintFlightScorecards() {
         <div>
           <h1 className="text-lg font-bold text-slate-900">Flight Scorecards</h1>
           <p className="text-xs text-slate-500">
-            {event.name} · {new Date(event.date).toLocaleDateString()} · {event.course?.name}
+            {event.name} · {formatEventDate(event.date)} · {event.course?.name}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -422,7 +423,7 @@ function FlightCard({
             <p className="text-[11px] text-slate-500">{event?.course?.name || ""}</p>
           </div>
           <div className="text-right text-[10px] text-slate-500">
-            <p>Date: {new Date(event.date).toLocaleDateString()}</p>
+            <p>Date: {formatEventDate(event.date)}</p>
             <p>Format: {String(event.format || "").toUpperCase()}</p>
             <p>Scoring: {String(event.scoringFormat || "").toUpperCase()}</p>
           </div>

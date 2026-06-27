@@ -79,8 +79,8 @@ export async function updateLeagueEvent(leagueId: number, eventId: number, event
   return response.data;
 }
 
-export async function deleteLeagueEvent(eventId: number) {
-  const response = await apiClient.delete(`/admin/events/${eventId}`);
+export async function deleteLeagueEvent(leagueId: number, eventId: number) {
+  const response = await apiClient.delete(`/leagues/${leagueId}/events/${eventId}`);
   return response.data;
 }
 

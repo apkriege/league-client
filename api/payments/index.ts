@@ -9,9 +9,10 @@ export type CreateCheckoutSessionPayload = {
 
 export const createCheckoutSession = async (payload: CreateCheckoutSessionPayload = {}) => {
   const response = await apiClient.post<{
-    sessionId: string;
-    url: string;
-    customerId: string;
+    alreadyCovered?: boolean;
+    sessionId: string | null;
+    url: string | null;
+    customerId: string | null;
     priceId: string | null;
     quantity: number;
     targetGolfers: number;

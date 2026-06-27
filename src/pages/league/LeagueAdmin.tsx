@@ -1,5 +1,6 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
+import { useDeleteLeagueEvent } from "@api/league/mutations";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
 import {
   AuditLogPanel,
@@ -8,6 +9,8 @@ import {
   OnboardingChecklist,
 } from "@/components/league/AdminOpsPanels";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import { getEventLocalDate } from "@/utils/eventDate";
+import { useToast } from "@/context/ToastContext";
 import dayjs from "dayjs";
 import {
   Award,
@@ -23,6 +26,7 @@ import {
   Plus,
   ShieldHalf,
   Timer,
+  Trash2,
   Trophy,
   User,
   Users,
@@ -51,6 +55,7 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
 export default function LeagueAdmin() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
+  const { show } = useToast();
 
   const {
     data: league,
@@ -69,6 +74,9 @@ export default function LeagueAdmin() {
     isError: metricsIsError,
     error: metricsError,
   } = useLeagueMetrics(Number(leagueId));
+  const deleteEvent = useDeleteLeagueEvent(() => {
+    show("Event deleted.", "success");
+  });
 
   const pageError = leagueError || eventsError || metricsError;
   const errorStatus = getApiErrorStatus(pageError);
@@ -109,6 +117,21 @@ export default function LeagueAdmin() {
   const nextEvent = upcoming[0] ?? null;
 
   const leader = metrics?.standings?.[0] ?? null;
+  const handleDeleteEvent = (event: any) => {
+    const confirmed = window.confirm(
+      `Delete "${event.name}"? This removes it from the schedule and league event lists.`
+    );
+    if (!confirmed) return;
+
+    deleteEvent.mutate(
+      { leagueId: Number(leagueId), eventId: Number(event.id) },
+      {
+        onError: (error: any) => {
+          show(error?.message || "Failed to delete event.", "error");
+        },
+      }
+    );
+  };
 
   return (
     <div className="space-y-7">
@@ -206,7 +229,7 @@ export default function LeagueAdmin() {
               description="Active rounds that need scores entered or reviewed."
             />
             <div className="bg-white border border-blue-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3.5 border-b border-blue-100 bg-blue-50/70">
+              <div className="flex items-center gap-2 px-4 py-3.5 bg-blue-50/70">
                 <Zap size={14} className="text-blue-600" strokeWidth={2.5} />
                 <div>
                   <h3 className="text-sm font-black tracking-tight text-gray-900">
@@ -252,7 +275,7 @@ export default function LeagueAdmin() {
 
           {nextEvent && (
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3.5 border-b border-gray-100">
+              <div className="flex items-center gap-2 px-4 py-3.5">
                 <CalendarDays size={14} className="text-blue-400" strokeWidth={2.5} />
                 <h3 className="text-sm font-black tracking-tight text-gray-900">Next Event</h3>
               </div>
@@ -332,6 +355,8 @@ export default function LeagueAdmin() {
                     onView={() => navigate(`/league/${leagueId}/events/${event.id}`)}
                     onEdit={() => navigate(`/league/${leagueId}/events/${event.id}/edit`)}
                     onScores={() => navigate(`/league/${leagueId}/events/${event.id}/scores`)}
+                    onDelete={() => handleDeleteEvent(event)}
+                    isDeleting={deleteEvent.isPending}
                   />
                 )
               )}
@@ -381,7 +406,7 @@ function ScoreEntryRow({
   onScores: () => void;
   onView: () => void;
 }) {
-  const date = new Date(event.date);
+  const date = getEventLocalDate(event.date);
   const canEnterScores = Boolean(event.canEnterScores);
   const canOpenScores = canEnterScores || Boolean(event.canEditScores);
   return (
@@ -430,21 +455,25 @@ function AdminEventRow({
   onView,
   onEdit,
   onScores,
+  onDelete,
+  isDeleting = false,
 }: {
   event: any;
   onView: () => void;
   onEdit: () => void;
   onScores: () => void;
+  onDelete: () => void;
+  isDeleting?: boolean;
 }) {
   const status = STATUS_CONFIG[event.status] ?? STATUS_CONFIG["upcoming"];
-  const date = new Date(event.date);
+  const date = getEventLocalDate(event.date);
   const canEditEvent =
     !event?.isComplete && String(event?.status || "").toLowerCase() !== "completed";
 
   return (
     <div
       onClick={onView}
-      className="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md hover:border-gray-300 cursor-pointer"
+      className="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30 hover:bg-primary/2 cursor-pointer"
     >
       <div className="flex items-stretch">
         {/* Date block */}
@@ -460,11 +489,14 @@ function AdminEventRow({
 
         {/* Main content */}
         <div className="flex-1 px-3.5 py-3 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1.5">
+          <div className="mb-1.5">
             <div className="min-w-0">
-              <h3 className="text-sm font-bold tracking-tight text-gray-900 leading-tight truncate">
-                {event.name}
-              </h3>
+              <div className="flex min-w-0 items-center gap-2">
+                <h3 className="min-w-0 truncate text-sm font-bold tracking-tight text-gray-900 leading-tight">
+                  {event.name}
+                </h3>
+                <StatusChip status={status} />
+              </div>
               <div className="flex items-center gap-1 mt-0.5">
                 <MapPin size={10} className="text-gray-400" strokeWidth={2} />
                 <span className="text-xs font-medium text-gray-400 truncate">
@@ -477,12 +509,6 @@ function AdminEventRow({
                   </>
                 )}
               </div>
-            </div>
-            <div
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${status.className}`}
-            >
-              {status.icon}
-              {status.label}
             </div>
           </div>
 
@@ -502,24 +528,14 @@ function AdminEventRow({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center pr-3 pl-1 gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onView();
-            }}
-            className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
-            title="View"
-          >
-            <ChevronRight size={15} strokeWidth={2} />
-          </button>
+        <div className="flex items-center pr-3 pl-1 gap-1.5">
           {canEditEvent && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit();
               }}
-              className="p-1.5 rounded-lg text-gray-300 hover:text-primary hover:bg-primary/10 transition-colors"
+              className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors shadow-xs"
               title="Edit"
             >
               <Edit size={13} strokeWidth={2} />
@@ -528,12 +544,23 @@ function AdminEventRow({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              onDelete();
+            }}
+            disabled={isDeleting}
+            className="p-1.5 rounded-lg border border-red-100 bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50 shadow-xs"
+            title="Delete"
+          >
+            <Trash2 size={13} strokeWidth={2} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
               onScores();
             }}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               event.canEnterScores || event.canEditScores
-                ? "border border-gray-200 text-gray-600 hover:bg-gray-50"
-                : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+                ? "bg-primary text-primary-content hover:bg-primary/90 shadow-xs"
+                : "border border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-primary/10 hover:text-primary shadow-xs"
             }`}
             title="Scores"
           >
@@ -551,6 +578,21 @@ function MetaChip({ icon, label }: { icon: React.ReactNode; label: string }) {
     <div className="flex items-center gap-1 text-[10px] font-semibold text-gray-400">
       <span className="text-gray-300">{icon}</span>
       {label}
+    </div>
+  );
+}
+
+function StatusChip({
+  status,
+}: {
+  status: { label: string; icon: React.ReactNode; className: string };
+}) {
+  return (
+    <div
+      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${status.className}`}
+    >
+      {status.icon}
+      {status.label}
     </div>
   );
 }

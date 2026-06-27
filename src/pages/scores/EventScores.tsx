@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLeagueEvent, useLeaguePlayers } from "@api/league/queries";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import { formatEventDate } from "@/utils/eventDate";
 import {
   CalendarDays,
   CheckCircle2,
@@ -13,7 +14,6 @@ import {
   MapPin,
   Users,
 } from "lucide-react";
-import dayjs from "dayjs";
 
 import PageHeader from "@/components/layout/PageHeader";
 import { CreateFlightScores } from "./CreateFlightScores";
@@ -161,7 +161,7 @@ export default function EventScores() {
           },
           {
             label: "Date",
-            value: dayjs(event.date).format("MMM D, YYYY"),
+            value: formatEventDate(event.date, { month: "short", day: "numeric", year: "numeric" }),
             icon: <CalendarDays size={14} className="text-amber-400" />,
             bg: "bg-amber-50 border-amber-100",
           },
