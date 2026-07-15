@@ -99,9 +99,7 @@ export default function Login() {
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="flex items-center justify-between px-6 py-6 md:px-8">
           <Link to="/" className="group flex items-center gap-3 text-white">
-            <span className="flex h-12 w-20 items-center justify-center overflow-hidden rounded-2xl p-1.5 shadow-lg shadow-sky-950/20 transition-transform group-hover:-rotate-2">
-              <img src={lnLogo} alt="League Night" className="h-full w-full object-contain" />
-            </span>
+            <img src={lnLogo} alt="League Night" className="h-20" />
             <div>
               <p className="text-sm font-black tracking-wide">League Night</p>
               <p className="text-[10px] uppercase tracking-[0.28em] text-white/45">

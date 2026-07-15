@@ -140,7 +140,7 @@ function Hero() {
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8">
         <Link to="/" className="group flex items-center gap-2">
-          <img src={lnLogo} alt="League Night Pro" className="object-contain h-20" />
+          <img src={lnLogo} alt="League Night Pro" className="h-20" />
           <div>
             <p className="text-sm font-black tracking-wide">League Night</p>
             <p className="text-[10px] uppercase tracking-[0.28em] text-white/45">
