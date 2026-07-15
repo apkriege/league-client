@@ -3,7 +3,6 @@ import { logout } from "@api/auth";
 import { useAppStore } from "@/stores/appStore";
 import { useEffect, useState } from "react";
 import {
-  BookOpen,
   Calendar,
   Check,
   LandPlot,
@@ -22,10 +21,13 @@ import { useLeague, useLeagueEvents } from "@api/league/queries";
 import { useAdminLeagues } from "@api/admin/queries";
 import dayjs from "dayjs";
 import NotificationsMenu from "@/components/layout/NotificationsMenu";
+import lnLogo from "@/assets/ln-logo.png";
 
 const Section = ({ section, collapsed }: { section: string; collapsed?: boolean }) => (
   <div className="mt-5 mb-2 flex flex-col">
-    {!collapsed && <p className="app-section-label text-[10px] uppercase ml-2 font-black">{section}</p>}
+    {!collapsed && (
+      <p className="app-section-label text-[10px] uppercase ml-2 font-black">{section}</p>
+    )}
   </div>
 );
 
@@ -53,9 +55,7 @@ const NavLink = ({
       aria-disabled={disabled}
       tabIndex={disabled ? -1 : undefined}
       className={`app-nav-link px-2 py-2.5 flex items-center ${
-        disabled
-          ? "opacity-40 cursor-not-allowed pointer-events-none"
-          : ""
+        disabled ? "opacity-40 cursor-not-allowed pointer-events-none" : ""
       } ${isActive ? "app-nav-link-active" : ""}`}
     >
       <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-xl bg-white/5">
@@ -81,7 +81,9 @@ const NavWithSubLinks = ({
     <li>
       <details open>
         <summary className="app-nav-link text-sm px-2 py-2">
-          <span className={`${collapsed ? "" : "mr-2"} inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/5`}>
+          <span
+            className={`${collapsed ? "" : "mr-2"} inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/5`}
+          >
             {icon}
           </span>
           {!collapsed && section}
@@ -94,7 +96,7 @@ const NavWithSubLinks = ({
                   to={link.to}
                   className={`rounded-xl px-2 py-1.5 hover:bg-white/8 hover:text-white flex items-center justify-between transition-colors text-xs text-white/60`}
                 >
-                  <div className="">
+                  <div>
                     {link.name} -
                     <span className="ml-1 text-[10px]">{dayjs(link.date).format("MM/DD/YY")}</span>
                   </div>
@@ -135,6 +137,7 @@ export default function BaseLayout() {
   const role = String(user?.role || "").toUpperCase();
   const isSuperAdmin = role === "SUPER";
   const isAdmin = role === "ADMIN" || isSuperAdmin;
+  const isLeagueViewer = role === "VIEWER";
   const numericLeagueId = Number(leagueId);
   const isLeagueRoute = Boolean(
     leagueId && leagueId !== "undefined" && Number.isFinite(numericLeagueId)
@@ -155,9 +158,7 @@ export default function BaseLayout() {
   const evs = events ? modelEvents(events) : [];
   const isTournamentLeague = String(league?.type || "").toLowerCase() === "tournament";
   const displayName =
-    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
-    user?.email ||
-    "Account";
+    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Account";
 
   useEffect(() => {
     // Set the golf theme on mount
@@ -197,22 +198,16 @@ export default function BaseLayout() {
     <div className="app-shell flex h-screen overflow-hidden">
       <div
         className={`app-sidebar text-gray-300 border-r transition-all duration-300 ${
-          isOpen ? "w-48 md:w-56" : "w-16 md:w-20"
+          isOpen ? "w-52 md:w-64" : "w-16 md:w-20"
         } flex flex-col`}
       >
         {/* Header */}
         <div className="p-3 md:p-4 border-b border-white/10 flex items-center justify-between">
           {isOpen && (
             <div className="hidden items-center gap-3 md:flex">
-              <span className="app-brand-mark flex h-10 w-10 items-center justify-center rounded-2xl">
-                <LandPlot size={18} />
+              <span className="flex h-11 w-16 items-center justify-center overflow-hidden p-1">
+                <img src={lnLogo} alt="League Night Pro" className="h-full w-full object-contain" />
               </span>
-              <div>
-                <h1 className="text-sm font-black text-white">Golf League App</h1>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/35">
-                  League Management
-                </p>
-              </div>
             </div>
           )}
           <button
@@ -236,7 +231,7 @@ export default function BaseLayout() {
           <NavLink
             to="/courses"
             text="Courses"
-            icon={<BookOpen size={19} />}
+            icon={<LandPlot size={19} />}
             isActive={location.pathname === "/courses" || location.pathname.startsWith("/courses/")}
             collapsed={!isOpen}
           />
@@ -350,7 +345,7 @@ export default function BaseLayout() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationsMenu />
+            {!isLeagueViewer && <NotificationsMenu />}
             <div className="flex items-center gap-3 rounded-full border border-black/5 bg-white/70 px-3 py-1.5 shadow-sm">
               <User size={22} className="rounded-full bg-sky-100 p-1 text-blue-800" />
               <h2 className="text-sm font-black text-slate-900">{displayName}</h2>

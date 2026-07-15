@@ -39,7 +39,7 @@ interface ReviewFormProps {
 }
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">{children}</p>
+  <p className="mb-2 section-kicker">{children}</p>
 );
 
 export default function ReviewForm({
@@ -224,7 +224,7 @@ export default function ReviewForm({
               <p className="text-xs text-gray-400">No players added.</p>
             ) : (
               <div className="rounded-xl border border-base-300 bg-base-100 shadow-xs overflow-hidden">
-                <div className="grid grid-cols-[1fr_56px_56px] border-b border-base-200 bg-base-200/60 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <div className="grid grid-cols-[1fr_56px_56px] border-b border-base-200 bg-base-200/60 px-4 py-2 section-kicker">
                   <span>Player</span>
                   <span className="text-center">Type</span>
                   <span className="text-right">HCP</span>

@@ -5,11 +5,15 @@ import { Navigate, Outlet, useLocation, useParams } from "react-router";
 
 type LeagueRouteGuardProps = {
   adminOnly?: boolean;
+  superAdminOnly?: boolean;
 };
 
 const normalizeRole = (role: unknown) => String(role || "").toUpperCase();
 
-export default function LeagueRouteGuard({ adminOnly = false }: LeagueRouteGuardProps) {
+export default function LeagueRouteGuard({
+  adminOnly = false,
+  superAdminOnly = false,
+}: LeagueRouteGuardProps) {
   const location = useLocation();
   const { leagueId } = useParams();
   const { user } = useAppStore();
@@ -31,6 +35,38 @@ export default function LeagueRouteGuard({ adminOnly = false }: LeagueRouteGuard
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
+  if (superAdminOnly) {
+    if (!isSuperAdmin) {
+      return (
+        <PageState
+          title="Access Denied"
+          message="You must be a super admin to open this page."
+          variant="forbidden"
+          actionTo="/leagues"
+          actionLabel="Back to Leagues"
+        />
+      );
+    }
+
+    return <Outlet />;
+  }
+
+  if (adminOnly && !numericLeagueId) {
+    if (!isAdminRole) {
+      return (
+        <PageState
+          title="Access Denied"
+          message="You must be an admin to open this page."
+          variant="forbidden"
+          actionTo="/leagues"
+          actionLabel="Back to Leagues"
+        />
+      );
+    }
+
+    return <Outlet />;
+  }
+
   if (!numericLeagueId) {
     return <Outlet />;
   }
@@ -40,7 +76,7 @@ export default function LeagueRouteGuard({ adminOnly = false }: LeagueRouteGuard
 
   if (isAdminRole && adminLeaguesLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+      <div className="loading-state">
         Checking access...
       </div>
     );

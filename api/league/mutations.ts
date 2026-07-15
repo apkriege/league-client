@@ -8,6 +8,7 @@ import {
   createEventScores,
   updateLeagueEvent,
   deleteLeagueEvent,
+  cancelLeagueEvent,
   updateEventScores,
 } from ".";
 import type { League } from "@/types/league";
@@ -167,6 +168,28 @@ export const useDeleteLeagueEvent = (onSuccess?: any) => {
     },
     onError: (error) => {
       console.error("Failed to delete event:", error);
+    },
+  });
+};
+
+export const useCancelLeagueEvent = (onSuccess?: any) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ leagueId, eventId }: { leagueId: number; eventId: number }) => {
+      return await cancelLeagueEvent(leagueId, eventId);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["league", variables.leagueId, "event", variables.eventId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "events"] });
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId, "metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId] });
+      if (onSuccess) onSuccess();
+    },
+    onError: (error) => {
+      console.error("Failed to cancel event:", error);
     },
   });
 };

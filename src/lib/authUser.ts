@@ -12,6 +12,7 @@ export function normalizeAuthUser(user: any) {
     role,
     isAdmin: role === "ADMIN" || role === "SUPER",
     isSuperAdmin: role === "SUPER",
+    isLeagueViewer: role === "VIEWER",
     leagues: Array.isArray(user.leagues) ? user.leagues : [],
   };
 }

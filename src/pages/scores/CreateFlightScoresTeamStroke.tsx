@@ -297,12 +297,12 @@ export const CreateFlightScoresTeamStroke = ({
                 type="number"
                 min="1"
                 max="10"
-                className="w-full min-w-10 border rounded h-8 text-center"
+                className="score-input"
                 value={watchedPlayers?.[player.playerId]?.scores?.[holeIdx] ?? ""}
                 onChange={(e) => handleHoleChange(e, holeIdx, player.playerId)}
               />
               {popsForHole(player.playerId, hole.num) > 0 && (
-                <span className="absolute bottom-1 left-1 pointer-events-none flex items-center justify-center gap-0.5">
+                <span className="score-medals">
                   {Array.from({ length: popsForHole(player.playerId, hole.num) }).map((_, idx) => (
                     <span key={idx} className="h-1 w-1 rounded-full bg-black" />
                   ))}
@@ -337,8 +337,8 @@ export const CreateFlightScoresTeamStroke = ({
   );
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+    <div className="surface-card">
+      <div className="panel-header">
         <div className="flex items-center gap-2">
           <Flag size={14} className="text-gray-400" strokeWidth={2} />
           <h3 className="text-sm font-semibold text-gray-800">Flight {flight.startTime}</h3>
@@ -369,7 +369,7 @@ export const CreateFlightScoresTeamStroke = ({
         </div>
         <div className="border rounded-lg">
           <div className="w-full overflow-x-auto">
-            <table className="min-w-max w-full text-left table-sm table-auto">
+            <table className="score-table">
               <thead>
                 <tr className="text-xs text-gray-700">
                   <th>Player</th>

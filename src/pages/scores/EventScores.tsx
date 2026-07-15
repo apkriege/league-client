@@ -40,7 +40,7 @@ export default function EventScores() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+      <div className="loading-state">
         Loading event...
       </div>
     );
@@ -244,9 +244,9 @@ export default function EventScores() {
             return (
               <div
                 key={flight.id}
-                className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
+                className="surface-card"
               >
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div className="panel-header">
                   <div className="flex items-center gap-2">
                     <CheckCircle2
                       size={14}

@@ -14,8 +14,23 @@ const defaultPlayer = {
   lastName: "",
   email: "",
   phone: "",
-  type: "", // "player" or "sub"
+  type: "player", // "player" or "sub"
   handicap: "",
+};
+
+const getMissingRequiredFields = (player: any) => {
+  const missing: string[] = [];
+  const handicap =
+    player?.handicap != null && String(player.handicap).trim() !== ""
+      ? Number(player.handicap)
+      : NaN;
+
+  if (!String(player?.firstName || "").trim()) missing.push("first name");
+  if (!String(player?.lastName || "").trim()) missing.push("last name");
+  if (!String(player?.type || "").trim()) missing.push("type");
+  if (!Number.isFinite(handicap)) missing.push("handicap");
+
+  return missing;
 };
 
 export default function PlayersForm() {
@@ -34,14 +49,32 @@ export default function PlayersForm() {
   });
 
   const onSubmit = (data: any) => {
+    const missingRequiredFields = getMissingRequiredFields(data);
+    if (missingRequiredFields.length > 0) {
+      show(`Required: ${missingRequiredFields.join(", ")}.`, "warning");
+      return;
+    }
+
+    const playerData = {
+      ...data,
+      firstName: String(data.firstName).trim(),
+      lastName: String(data.lastName).trim(),
+      email: String(data.email || "").trim(),
+      phone: String(data.phone || "").trim(),
+      type: String(data.type).trim().toLowerCase(),
+      handicap: Number(data.handicap),
+    };
+
     if (isEdit) {
-      const updatedPlayers = players.map((p: any) => (p.id === data.id ? { ...p, ...data } : p));
+      const updatedPlayers = players.map((p: any) =>
+        p.id === playerData.id ? { ...p, ...playerData } : p
+      );
       setValue("players", updatedPlayers);
       setIsEdit(false);
     } else {
       const newPlayerId = players.length > 0 ? Math.max(...players.map((p: any) => p.id)) + 1 : 1;
-      data.id = newPlayerId;
-      setValue("players", [...watch("players"), data]);
+      playerData.id = newPlayerId;
+      setValue("players", [...watch("players"), playerData]);
     }
 
     playerForm.reset(defaultPlayer);
@@ -84,8 +117,8 @@ export default function PlayersForm() {
             {row.firstName[0]}
             {row.lastName[0]}
           </div>
-          <div className="">
-            <p className="text-md font-semibold text-primary mb-0.5">
+          <div>
+            <p className="mb-0.5 text-base font-semibold text-primary">
               {row.firstName} {row.lastName}
             </p>
             <p className="font-light text-[10px] text-gray-500 flex items-center gap-1.5">
@@ -102,7 +135,9 @@ export default function PlayersForm() {
       label: "Type",
       render: (value: any) => (
         <div
-          className={`badge badge-${value === "player" ? "secondary" : "accent"} text-[9px] rounded-xl font-semibold`}
+          className={`badge rounded-xl text-[9px] font-semibold ${
+            value === "player" ? "badge-secondary" : "badge-accent"
+          }`}
         >
           {value.toUpperCase()}
         </div>
@@ -111,7 +146,7 @@ export default function PlayersForm() {
     {
       key: "handicap",
       label: "HCP",
-      render: (value: any) => <p className="text-md font-bold">{value}</p>,
+      render: (value: any) => <p className="text-base font-bold">{value}</p>,
     },
     {
       key: "actions",
@@ -148,7 +183,7 @@ export default function PlayersForm() {
       </p>
 
       <Card>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+        <p className="section-kicker mb-3">
           {isEdit ? "Edit Player" : "Add Player"}
         </p>
         <div className="grid grid-cols-3 items-end gap-2">
@@ -184,7 +219,6 @@ export default function PlayersForm() {
             render={({ field }) => (
               <Select
                 label="Type"
-                className="w-full"
                 options={[
                   { label: "Player", value: "player" },
                   { label: "Sub", value: "sub" },

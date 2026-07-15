@@ -183,7 +183,7 @@ export default function EventEdit() {
 
   if (eventLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+      <div className="loading-state">
         Loading event…
       </div>
     );

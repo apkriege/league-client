@@ -18,10 +18,10 @@ export default function Badge({ text, icon, variant, className, size }: BadgePro
 
   return (
     <div
-      className={`w-fit flex items center  mb-2 font-semibold rounded-full text-[10px] ${v} ${className} ${s[size || "sm"]}`}
+      className={`mb-2 flex w-fit items-center rounded-full font-semibold ${v} ${s[size || "sm"]}${className ? ` ${className}` : ""}`}
     >
       {icon}
-      <span className="uppercase font-semibold">{text}</span>
+      <span className="uppercase">{text}</span>
     </div>
   );
 }

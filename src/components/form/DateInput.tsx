@@ -12,14 +12,14 @@ const DateInput = forwardRef<HTMLInputElement, DateProps>(function Date(
   return (
     <fieldset className={`fieldset ${className || ""}`}>
       {label ? (
-        <legend className="fieldset-legend p-1 uppercase text-gray-500 font-black text-[10px] tracking-[0.18em]">
+        <legend className="fieldset-legend field-label p-1 text-[10px]">
           {label}
         </legend>
       ) : null}
       <input
         ref={ref}
         type="date"
-        className={`input w-full text-xs h-[35px] rounded-2xl bg-white/70 border-base-300 font-semibold ${
+        className={`input form-input h-[35px] text-xs ${
           error ? "input-error" : ""
         }`}
         {...inputProps}

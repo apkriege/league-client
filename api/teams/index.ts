@@ -17,6 +17,11 @@ export async function deleteTeam(id: number) {
   return response.data;
 }
 
+export async function getTeam(id: number) {
+  const response = await apiClient.get(`/teams/${id}`);
+  return response.data;
+}
+
 export async function getTeamPlayers(teamId: number) {
   const response = await apiClient.get(`/team/${teamId}/players`);
   return response.data;

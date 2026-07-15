@@ -112,7 +112,7 @@ export default function AutocompleteSelect({
   return (
     <fieldset className={`fieldset ${className}`}>
       {label ? (
-        <legend className="fieldset-legend p-1 uppercase text-gray-500 font-black text-[10px] tracking-[0.18em]">
+        <legend className="fieldset-legend field-label p-1 text-[10px]">
           {label}
         </legend>
       ) : null}
@@ -120,7 +120,7 @@ export default function AutocompleteSelect({
       <div className="relative" ref={containerRef}>
         <input
           type="text"
-          className="input w-full text-xs h-[35px] rounded-2xl bg-white/70 border-base-300 pr-14 font-semibold"
+          className="input form-input h-[35px] pr-14 text-xs"
           placeholder={placeholder}
           value={query}
           disabled={disabled}

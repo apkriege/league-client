@@ -27,6 +27,7 @@ export const useUpdateTeam = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["league"] });
+      queryClient.invalidateQueries({ queryKey: ["team", variables.id] });
       if (variables.data?.leagueId) {
         queryClient.invalidateQueries({ queryKey: ["league", Number(variables.data.leagueId)] });
         queryClient.invalidateQueries({ queryKey: ["teams", Number(variables.data.leagueId)] });
@@ -47,6 +48,7 @@ export const useDeleteTeam = () => {
     },
     onSuccess: (_data, variables: any) => {
       queryClient.invalidateQueries({ queryKey: ["league"] });
+      queryClient.invalidateQueries({ queryKey: ["team", Number(variables.id)] });
       if (variables.leagueId) {
         queryClient.invalidateQueries({ queryKey: ["league", Number(variables.leagueId)] });
         queryClient.invalidateQueries({ queryKey: ["teams", Number(variables.leagueId)] });

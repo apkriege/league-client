@@ -2,7 +2,7 @@ interface ButtonProps {
   children: React.ReactNode;
   className?: string;
   onClick?: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
-  variant?: string;
+  variant?: "primary" | "secondary" | "accent" | "info" | "success" | "warning" | "error";
   size?: "xs" | "sm" | "md" | "lg";
   outline?: boolean;
 }
@@ -17,7 +17,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`btn btn-${variant} btn-${outline} btn-${size} ${className}`}
+      className={`btn btn-${variant} btn-${size}${outline ? " btn-outline" : ""}${className ? ` ${className}` : ""}`}
       onClick={onClick}
     >
       {children}

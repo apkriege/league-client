@@ -14,7 +14,7 @@ import { BellPlus, CheckCircle2, ClipboardCheck, Mail, ShieldCheck, X } from "lu
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
-function DrawerActionPanel({
+export function DrawerActionPanel({
   title,
   description,
   icon,
@@ -88,7 +88,7 @@ function DrawerActionPanel({
           >
             <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-gray-100 bg-white px-5 py-4">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <p className="section-kicker">
                   League admin
                 </p>
                 <h3 className="text-lg font-bold tracking-tight text-gray-900">{title}</h3>

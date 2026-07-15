@@ -18,32 +18,26 @@ export default function Select({
   dense = false,
 }: SelectProps) {
   return (
-    <fieldset className={`fieldset ${className} w-full`}>
+    <fieldset className={`fieldset w-full ${className || ""}`}>
       <legend
-        className={`fieldset-legend uppercase text-gray-500 font-black tracking-[0.18em] ${
+        className={`fieldset-legend field-label ${
           dense ? "px-1 py-0.5 text-[9px]" : "p-1 text-[10px]"
         }`}
       >
         {label}
       </legend>
       <select
-        className={`select w-full rounded-2xl ${className || ""} !bg-white border-base-300 font-semibold ${
+        className={`select w-full rounded-2xl !bg-white border-base-300 font-semibold ${
           dense ? "h-[31px] text-[11px]" : "h-[35px] text-xs"
         }`}
-        value={value || ""}
+        value={value ?? ""}
         onChange={onChange}
       >
         {placeholder && (
-          <option value="" className="!bg-white bg-white text-base-content hover:!bg-base-200 focus:!bg-base-200">
-            {placeholder}
-          </option>
+          <option value="">{placeholder}</option>
         )}
         {options.map((option) => (
-          <option
-            key={option.value}
-            value={option.value}
-            className="!bg-white bg-white text-base-content hover:!bg-base-200 focus:!bg-base-200"
-          >
+          <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}

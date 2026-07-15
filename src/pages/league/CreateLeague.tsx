@@ -102,7 +102,7 @@ const createDefaultLeagueData = () => ({
   description: "",
   numPlayers: 0,
   type: "season",
-  format: "team",
+  format: "individual",
   access: "public",
   contactFirstName: "",
   contactLastName: "",
@@ -257,7 +257,10 @@ export default function CreateLeague() {
     const modeledData = modelLeagueData(data);
     const includedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
     const allocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
-    const requestedGolfers = Math.max(modeledData.players.length, Number(modeledData.numPlayers || 0));
+    const requestedGolfers = Math.max(
+      modeledData.players.length,
+      Number(modeledData.numPlayers || 0)
+    );
     const targetIncludedGolfers = allocatedGolfers + requestedGolfers;
 
     if (!stripeState?.billing?.hasCompletedRegistration || includedGolfers < BILLING_MIN_GOLFERS) {

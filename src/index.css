@@ -51,14 +51,6 @@ h6 {
   font-family: "Manrope", sans-serif;
 }
 
-.text-xxs {
-  font-size: 10px;
-}
-
-.text-md {
-  font-size: 16px;
-}
-
 .btn {
   @apply rounded-full font-black tracking-tight;
 }
@@ -71,16 +63,64 @@ h6 {
   @apply bg-white/10 border-white/20 text-white;
 }
 
+@layer components {
+  .surface-card {
+    @apply overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm;
+  }
+
+  .loading-state {
+    @apply flex h-48 items-center justify-center text-sm text-gray-400;
+  }
+
+  .section-kicker {
+    @apply text-[10px] font-bold uppercase tracking-widest text-gray-400;
+  }
+
+  .score-table {
+    @apply min-w-max w-full table-auto text-left table-sm;
+  }
+
+  .summary-pill {
+    @apply flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 shadow-sm;
+  }
+
+  .panel-header {
+    @apply flex items-center justify-between border-b border-gray-100 px-4 py-3;
+  }
+
+  .panel-row {
+    @apply flex items-center gap-2 px-4 py-3;
+  }
+
+  .score-input {
+    @apply h-8 min-w-10 w-full rounded border text-center;
+  }
+
+  .score-medals {
+    @apply pointer-events-none absolute bottom-1 left-1 flex items-center justify-center gap-0.5;
+  }
+
+  .auth-field {
+    @apply flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-blue-700 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-800/10;
+  }
+
+  .field-label {
+    @apply font-black uppercase tracking-[0.18em] text-gray-500;
+  }
+
+  .form-input {
+    @apply w-full rounded-2xl border-base-300 bg-white/70 font-semibold;
+  }
+}
+
 /* APP STYLE OVERHAUL START
    Reversible shell theme: remove the `app-shell` class from BaseLayout and this block to undo. */
 .app-shell {
   --app-ink: #101828;
   --app-muted: #647067;
-  --app-soft: #f4f7fb;
   --app-card: rgba(255, 255, 255, 0.84);
   --app-line: rgba(16, 24, 40, 0.1);
   --app-accent: #7dd3fc;
-  --app-blue: #2563eb;
   color: var(--app-ink);
   background:
     radial-gradient(circle at 10% 0%, rgba(125, 211, 252, 0.28), transparent 25rem),
@@ -129,9 +169,9 @@ h6 {
 }
 
 .app-shell .app-brand-mark {
-  background: var(--app-accent);
+  background: #ffffff;
   color: var(--app-ink);
-  box-shadow: 0 16px 34px rgba(125, 211, 252, 0.18);
+  box-shadow: 0 16px 34px rgba(125, 211, 252, 0.16);
 }
 
 .app-shell .app-nav-link {
@@ -174,7 +214,7 @@ h6 {
   backdrop-filter: blur(18px);
 }
 
-.app-shell :where(.bg-white) {
+.app-shell :where(.bg-white, .surface-card, .summary-pill) {
   background-color: rgba(255, 255, 255, 0.84);
 }
 
@@ -186,15 +226,15 @@ h6 {
   background-color: #ffffff;
 }
 
-.app-shell :where(.border-gray-200, .border-slate-200, .border-base-300) {
+.app-shell :where(.border-gray-200, .border-slate-200, .border-base-300, .surface-card, .summary-pill) {
   border-color: var(--app-line);
 }
 
-.app-shell :where(.shadow-sm, .shadow-xs) {
+.app-shell :where(.shadow-sm, .shadow-xs, .surface-card, .summary-pill) {
   box-shadow: 0 14px 38px rgba(16, 24, 40, 0.07);
 }
 
-.app-shell :where(.rounded-xl) {
+.app-shell :where(.rounded-xl, .surface-card) {
   border-radius: 1.25rem;
 }
 
@@ -218,14 +258,14 @@ h6 {
 
 .app-shell select option {
   background: #ffffff;
-  color: var(--app-text);
+  color: var(--app-ink);
 }
 
 .app-shell select option:hover,
 .app-shell select option:focus,
 .app-shell select option:checked {
   background: #e5e7eb;
-  color: var(--app-text);
+  color: var(--app-ink);
 }
 
 .app-shell .input:focus,

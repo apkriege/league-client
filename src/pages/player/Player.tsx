@@ -102,25 +102,6 @@ export default function Player() {
     };
   }, []);
 
-  if (isError) {
-    const status = getApiErrorStatus(error);
-    return (
-      <PageState
-        title={
-          status === 404
-            ? "Player Not Found"
-            : status === 403
-              ? "Access Denied"
-              : "Unable to Load Player"
-        }
-        message={getApiErrorMessage(error, "The player page could not be loaded right now.")}
-        variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
-        actionTo={leagueId ? `/league/${leagueId}/players` : "/leagues"}
-        actionLabel="Back to Players"
-      />
-    );
-  }
-
   const handicapDetail = useMemo(() => {
     const chronologicalRows = [...(data?.rounds ?? [])]
       .filter((r: any) => r?.differential != null && Number.isFinite(Number(r.differential)))
@@ -227,9 +208,28 @@ export default function Player() {
     };
   }, [data?.player?.handicap, data?.player?.startingHandicap, handicapDetail]);
 
+  if (isError) {
+    const status = getApiErrorStatus(error);
+    return (
+      <PageState
+        title={
+          status === 404
+            ? "Player Not Found"
+            : status === 403
+              ? "Access Denied"
+              : "Unable to Load Player"
+        }
+        message={getApiErrorMessage(error, "The player page could not be loaded right now.")}
+        variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
+        actionTo={leagueId ? `/league/${leagueId}/players` : "/leagues"}
+        actionLabel="Back to Players"
+      />
+    );
+  }
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+      <div className="loading-state">
         Loading player...
       </div>
     );
@@ -273,7 +273,7 @@ export default function Player() {
         <button
           type="button"
           onClick={openHandicapDrawer}
-          className="cursor-pointer flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-xs text-gray-600 shadow-sm hover:border-primary/30 hover:bg-primary/5 transition-colors"
+          className="cursor-pointer summary-pill hover:border-primary/30 hover:bg-primary/5 transition-colors"
           title="How handicap is calculated"
         >
           <span className="text-gray-400">
@@ -367,8 +367,8 @@ export default function Player() {
               </p>
             </div>
             <aside className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
-              <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3">
+              <section className="surface-card">
+                <div className="panel-row">
                   <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
                   <h2 className="text-sm font-semibold text-gray-900">Score Distribution</h2>
                   <span className="ml-auto text-[10px] text-gray-400">Player vs league avg</span>
@@ -383,7 +383,7 @@ export default function Player() {
                 </div>
               </section>
 
-              <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <section className="surface-card">
                 <div className="px-4 py-3">
                   <h2 className="text-sm font-semibold text-gray-900">Scoring Detail</h2>
                 </div>
@@ -413,7 +413,7 @@ export default function Player() {
               <h3 className="text-lg font-bold text-gray-800 tracking-tight">Round History</h3>
               <p className="text-xs text-gray-500 mt-0.5">Chronological log of completed rounds</p>
             </div>
-            <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <section className="surface-card">
               <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
@@ -434,7 +434,7 @@ export default function Player() {
                 Hole-by-hole gross and net scoring details
               </p>
             </div>
-            <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <section className="surface-card">
               <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Flag size={14} className="text-emerald-500" strokeWidth={2.5} />
@@ -496,7 +496,7 @@ export default function Player() {
           >
             <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="section-kicker">
                   Handicap Detail
                 </p>
                 <h3 className="text-lg font-bold text-gray-900 tracking-tight">
@@ -517,8 +517,8 @@ export default function Player() {
             </div>
 
             <div className="p-5 space-y-5">
-              <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">
+              <section className="surface-card p-4">
+                <p className="section-kicker mb-2.5">
                   1. Handicap Setup
                 </p>
                 <div className="grid grid-cols-2 gap-3">
@@ -544,8 +544,8 @@ export default function Player() {
                 </div>
               </section>
 
-              <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">
+              <section className="surface-card p-4">
+                <p className="section-kicker mb-2.5">
                   2. Round Variations (Differentials)
                 </p>
                 {handicapDetail.allRows.length === 0 ? (
@@ -554,7 +554,7 @@ export default function Player() {
                   <div className="max-h-64 overflow-auto border border-gray-100 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
                     <table className="w-full text-left text-xs">
                       <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
-                        <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <tr className="section-kicker">
                           <th className="px-3 py-2">Round</th>
                           <th className="px-3 py-2 text-right">Adj</th>
                           <th className="px-3 py-2 text-right">Rating</th>
@@ -601,8 +601,8 @@ export default function Player() {
                 )}
               </section>
 
-              <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">
+              <section className="surface-card p-4">
+                <p className="section-kicker mb-2.5">
                   3. Use Variations To Calculate Handicap
                 </p>
                 {handicapComputation ? (
@@ -710,7 +710,7 @@ function InfoChip({
   capitalize?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-xs text-gray-600 shadow-sm">
+    <div className="summary-pill">
       {icon && <span className="text-gray-400">{icon}</span>}
       <span
         className={`${strong ? "font-semibold text-gray-800" : ""} ${capitalize ? "capitalize" : ""}`}
@@ -820,7 +820,7 @@ function RoundHistory({ rounds, leagueId }: { rounds: any[]; leagueId?: string }
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead>
-          <tr className="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          <tr className="bg-gray-50 section-kicker">
             <th className="pl-4 pr-3 py-2.5 text-left min-w-56">Event</th>
             <th className="px-3 py-2.5 text-right">Gross</th>
             <th className="px-3 py-2.5 text-right">Net</th>
@@ -932,7 +932,7 @@ function PlayerRoundBreakdown({
             <col className="w-14" />
           </colgroup>
           <thead>
-            <tr className="border-b border-gray-100 bg-gray-50 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            <tr className="border-b border-gray-100 bg-gray-50 section-kicker">
               <th className="pl-4 py-2.5 text-left">Round</th>
               {holes.map((hole) => (
                 <th key={hole} className="py-2.5 text-center">

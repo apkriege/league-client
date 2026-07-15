@@ -1,10 +1,11 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import Table from "@/components/Table";
+import SharedLeagueAnnouncementsPanel from "@/components/league/LeagueAnnouncementsPanel";
 import { useAppStore } from "@/stores/appStore";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { getEventLocalDate } from "@/utils/eventDate";
+import { getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,6 +21,7 @@ import { Line } from "react-chartjs-2";
 import dayjs from "dayjs";
 import {
   Award,
+  Ban,
   BarChart2,
   CalendarDays,
   CheckCircle2,
@@ -67,6 +69,11 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
     icon: <CheckCircle2 size={12} strokeWidth={2.5} />,
     className: "bg-green-50 text-green-600 border border-green-200",
   },
+  canceled: {
+    label: "Canceled",
+    icon: <Ban size={12} strokeWidth={2.5} />,
+    className: "bg-slate-100 text-slate-500 border border-slate-200",
+  },
 };
 
 type TeamStandingsRow = {
@@ -107,26 +114,16 @@ export default function League() {
     isError: eventsIsError,
     error: eventsError,
   } = useLeagueEvents(Number(leagueId));
-  const { data: metrics, isError: metricsIsError, error: metricsError } = useLeagueMetrics(Number(leagueId));
+  const {
+    data: metrics,
+    isError: metricsIsError,
+    error: metricsError,
+  } = useLeagueMetrics(Number(leagueId));
 
   const pageError = leagueError || eventsError || metricsError;
   const errorStatus = getApiErrorStatus(pageError);
 
-  if (leagueIsError || eventsIsError || metricsIsError) {
-    return (
-      <PageState
-        title={errorStatus === 404 ? "League Not Found" : errorStatus === 403 ? "Access Denied" : "Unable to Load League"}
-        message={getApiErrorMessage(
-          pageError,
-          "The league page could not be loaded right now."
-        )}
-        variant={errorStatus === 404 ? "notFound" : errorStatus === 403 ? "forbidden" : "error"}
-      />
-    );
-  }
-
-  const completed = events?.filter((e: any) => e.status === "completed") ?? [];
-  const upcoming = events?.filter((e: any) => e.status !== "completed") ?? [];
+  const sortedEvents = useMemo(() => sortEventsByDate(events ?? []), [events]);
   const totalEvents = events?.length ?? 0;
   const standingsMode = metrics?.standingsMode === "team" ? "team" : "player";
   const teamStandings = metrics?.teamStandings ?? [];
@@ -372,9 +369,25 @@ export default function League() {
     []
   );
 
+  if (leagueIsError || eventsIsError || metricsIsError) {
+    return (
+      <PageState
+        title={
+          errorStatus === 404
+            ? "League Not Found"
+            : errorStatus === 403
+              ? "Access Denied"
+              : "Unable to Load League"
+        }
+        message={getApiErrorMessage(pageError, "The league page could not be loaded right now.")}
+        variant={errorStatus === 404 ? "notFound" : errorStatus === 403 ? "forbidden" : "error"}
+      />
+    );
+  }
+
   if (leagueLoading || eventsLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading...</div>
+      <div className="loading-state">Loading...</div>
     );
   }
 
@@ -385,7 +398,7 @@ export default function League() {
       {/* Info chips */}
       <div className="mt-4 mb-8 flex flex-wrap gap-2">
         {league?.startDate && league?.endDate && (
-          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-xs text-gray-600 shadow-sm">
+          <div className="summary-pill">
             <CalendarDays size={12} className="text-gray-400" />
             <span>
               {formatDate(league.startDate)} → {formatDate(league.endDate)}
@@ -393,19 +406,19 @@ export default function League() {
           </div>
         )}
         {league?.format && (
-          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-xs text-gray-600 shadow-sm">
+          <div className="summary-pill">
             <Flag size={12} className="text-gray-400" />
             <span className="capitalize">{league.format}</span>
           </div>
         )}
         {league?.type && (
-          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-xs text-gray-600 shadow-sm">
+          <div className="summary-pill">
             <Medal size={12} className="text-gray-400" />
             <span className="capitalize">{league.type}</span>
           </div>
         )}
         {league?.contactFirstName && (
-          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-xs text-gray-600 shadow-sm">
+          <div className="summary-pill">
             <MapPin size={12} className="text-gray-400" />
             <span>
               {league.contactFirstName} {league.contactLastName}
@@ -415,6 +428,8 @@ export default function League() {
       </div>
 
       <div className="flex flex-col gap-8">
+        <SharedLeagueAnnouncementsPanel leagueId={Number(leagueId)} />
+
         {metrics && (
           <section className="space-y-6">
             {metrics.records && (
@@ -454,7 +469,7 @@ export default function League() {
                     className={`relative overflow-hidden bg-linear-to-br ${item.accent} border rounded-xl px-4 py-3 shadow-sm flex items-start justify-between gap-3`}
                   >
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      <p className="section-kicker">
                         {item.label}
                       </p>
                       <p className="text-2xl font-black text-gray-900 leading-tight mt-1">
@@ -475,18 +490,59 @@ export default function League() {
 
             <div className="pt-2">
               <div className="mb-3">
+                <h3 className="text-lg font-bold text-gray-800 tracking-tight">Standings</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {standingsMode === "team"
+                    ? "Team leaderboard and event participation"
+                    : "Season leaderboard, scoring averages, and handicap movement"}
+                </p>
+              </div>
+
+              <div className="surface-card min-w-0">
+                <div className="panel-row">
+                  <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
+                  <h3 className="text-sm font-semibold text-gray-800">
+                    {standingsMode === "team" ? "Team Standings" : "Standings"}
+                  </h3>
+                </div>
+                <div className="p-0">
+                  {standingsMode === "team" ? (
+                    <Table
+                      data={teamStandingsRows}
+                      columns={teamStandingsColumns as any}
+                      size="sm"
+                      variant="clean"
+                      noBorder
+                      search={false}
+                    />
+                  ) : (
+                    <Table
+                      data={playerStandingsRows}
+                      columns={playerStandingsColumns as any}
+                      size="sm"
+                      variant="clean"
+                      noBorder
+                      search={false}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <div className="mb-3">
                 <h3 className="font-bold text-gray-800 tracking-tight text-lg">Trends and Skins</h3>
                 <p className="text-xs text-gray-500">Weekly scoring trend and skin leaders</p>
               </div>
               <div className="flex flex-col lg:flex-row gap-4 items-start">
-                <div className="w-full lg:w-2/3 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-3">
+                <div className="w-full lg:w-2/3 surface-card">
+                  <div className="panel-row">
                     <div className="flex items-center gap-2">
                       <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
                       <h3 className="text-sm font-semibold text-gray-800">Season Trend</h3>
                     </div>
                   </div>
-                  <div className="px-4 py-3 h-[250px]">
+                  <div className="px-4 py-3 h-64">
                     {(metrics?.playerWeeklyTrends?.labels?.length ?? 0) > 0 ? (
                       <Line data={seasonTrendChartData} options={seasonTrendChartOptions} />
                     ) : (
@@ -529,7 +585,7 @@ export default function League() {
                       return (
                         <div
                           key={type}
-                          className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
+                          className="surface-card"
                         >
                           <div className="flex items-center justify-between px-3 py-2">
                             <div className="flex items-center gap-1.5">
@@ -549,7 +605,7 @@ export default function League() {
                                 No {type} skins yet
                               </p>
                             ) : (
-                              <div className="max-h-[120px] overflow-y-auto pr-1 divide-y divide-gray-50 border border-gray-100 rounded-md">
+                              <div className="max-h-30 overflow-y-auto pr-1 divide-y divide-gray-50 border border-gray-100 rounded-md">
                                 {rows.map((p: any, i: number) => (
                                   <div
                                     key={p.playerId}
@@ -584,47 +640,6 @@ export default function League() {
                 )}
               </div>
             </div>
-
-            <div className="pt-2">
-              <div className="mb-3">
-                <h3 className="text-lg font-bold text-gray-800 tracking-tight">Standings</h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {standingsMode === "team"
-                    ? "Team leaderboard and event participation"
-                    : "Season leaderboard, scoring averages, and handicap movement"}
-                </p>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-w-0">
-                <div className="flex items-center gap-2 px-4 py-3">
-                  <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
-                  <h3 className="text-sm font-semibold text-gray-800">
-                    {standingsMode === "team" ? "Team Standings" : "Standings"}
-                  </h3>
-                </div>
-                <div className="p-0">
-                  {standingsMode === "team" ? (
-                    <Table
-                      data={teamStandingsRows}
-                      columns={teamStandingsColumns as any}
-                      size="sm"
-                      variant="clean"
-                      noBorder
-                      search={false}
-                    />
-                  ) : (
-                    <Table
-                      data={playerStandingsRows}
-                      columns={playerStandingsColumns as any}
-                      size="sm"
-                      variant="clean"
-                      noBorder
-                      search={false}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
           </section>
         )}
 
@@ -654,7 +669,7 @@ export default function League() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {[...upcoming, ...completed].map((event: any) => (
+              {sortedEvents.map((event: any) => (
                 <EventRow
                   key={event.id}
                   event={event}
@@ -673,7 +688,7 @@ export default function League() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{children}</h2>
+    <h2 className="section-kicker">{children}</h2>
   );
 }
 
@@ -691,12 +706,14 @@ function EventRow({
   const status = STATUS_CONFIG[event.status] ?? STATUS_CONFIG["upcoming"];
   const date = getEventLocalDate(event.date);
   const canEditEvent =
-    !event?.isComplete && String(event?.status || "").toLowerCase() !== "completed";
+    !event?.isComplete &&
+    String(event?.status || "").toLowerCase() !== "completed" &&
+    String(event?.status || "").toLowerCase() !== "canceled";
 
   return (
     <div
       onClick={onView}
-      className="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30 hover:bg-primary/2 cursor-pointer"
+      className="group surface-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30 hover:bg-primary/2 cursor-pointer"
     >
       <div className="flex items-stretch">
         {/* Date block */}

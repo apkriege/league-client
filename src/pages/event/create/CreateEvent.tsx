@@ -118,7 +118,7 @@ export default function CreateEvent() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+      <div className="loading-state">
         Loading league...
       </div>
     );

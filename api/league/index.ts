@@ -84,6 +84,11 @@ export async function deleteLeagueEvent(leagueId: number, eventId: number) {
   return response.data;
 }
 
+export async function cancelLeagueEvent(leagueId: number, eventId: number) {
+  const response = await apiClient.patch(`/leagues/${leagueId}/events/${eventId}/cancel`);
+  return response.data;
+}
+
 export async function createEventScores(leagueId: number, eventId: number, scoresData: any) {
   const response = await apiClient.post(
     `/leagues/${leagueId}/events/${eventId}/scores`,

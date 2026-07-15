@@ -6,10 +6,10 @@ interface CardProps {
   onClick?: () => void;
 }
 
-export default function Card({ title, subtitle, className, children, onClick }: CardProps) {
+export default function Card({ title, subtitle, className = "", children, onClick }: CardProps) {
   return (
     <div
-      className={`app-page-card card p-5 bg-base-100 border rounded-3xl w-full ${className || ""}`}
+      className={`app-page-card card w-full p-5 ${className}`}
       onClick={onClick}
     >
       {(title || subtitle) && (

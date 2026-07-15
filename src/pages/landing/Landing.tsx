@@ -24,13 +24,14 @@ import {
 import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Link } from "react-router";
+import lnLogo from "@/assets/ln-logo.png";
 
 const GOLF_IMAGES = {
   hero: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=1800&q=85",
   aerial:
-    "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1592919505780-303950717480?auto=format&fit=crop&w=1100&q=85",
   detail:
-    "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=700&q=80",
+    "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&w=900&q=85",
 };
 
 const stats = [
@@ -130,7 +131,7 @@ function Hero() {
     <section className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
       <img
         src={GOLF_IMAGES.hero}
-        alt="Golfer finishing a drive on a blue-toned golf fairway"
+        alt="Golf course fairway at sunset"
         className="absolute inset-0 h-full w-full scale-105 object-cover opacity-58"
       />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(125,211,252,.28),transparent_26%),linear-gradient(115deg,rgba(7,20,38,.98)_0%,rgba(7,20,38,.78)_48%,rgba(7,20,38,.34)_100%)]" />
@@ -138,14 +139,12 @@ function Hero() {
       <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-blue-400/12 blur-3xl landing-drift" />
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8">
-        <Link to="/" className="group flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-300 text-slate-950 shadow-lg shadow-sky-950/20 transition-transform group-hover:-rotate-6">
-            <Flag size={18} />
-          </span>
+        <Link to="/" className="group flex items-center gap-2">
+          <img src={lnLogo} alt="League Night Pro" className="object-contain h-20" />
           <div>
-            <p className="text-sm font-black tracking-wide">Golf League App</p>
+            <p className="text-sm font-black tracking-wide">League Night</p>
             <p className="text-[10px] uppercase tracking-[0.28em] text-white/45">
-              League Management
+              Golf League Management
             </p>
           </div>
         </Link>
@@ -190,7 +189,7 @@ function Hero() {
           </h1>
 
           <p className="landing-reveal landing-delay-2 mt-7 max-w-2xl text-base leading-8 text-white/72 md:text-lg">
-            Golf League App gives captains and clubs a complete golf league operating system:
+            League Night Pro gives captains and clubs a complete golf league operating system:
             scheduling, scorecards, teams, flights, skins, standings, handicap tracking, and player
             history.
           </p>
@@ -382,7 +381,7 @@ function ProductSection() {
             <div className="overflow-hidden rounded-[2rem] bg-slate-950 p-3 shadow-2xl shadow-blue-950/18">
               <img
                 src={GOLF_IMAGES.aerial}
-                alt="Golf fairway and player in motion"
+                alt="Aerial view of a golf course fairway"
                 className="h-72 w-full rounded-[1.45rem] object-cover opacity-90"
               />
               <div className="p-5 text-white">
@@ -473,7 +472,7 @@ function FeatureSection() {
             Serious functionality without a heavy admin experience.
           </h2>
           <p className="mt-5 text-base leading-8 text-slate-600">
-            Golf League App is designed to feel premium, but the real value is operational depth:
+            League Night Pro is designed to feel premium, but the real value is operational depth:
             correct sequencing, clean route protection, accurate score breakdowns, and league data
             that updates when scores are finalized.
           </p>
@@ -506,11 +505,14 @@ function ConversionSection() {
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
         <div className="overflow-hidden rounded-[2.25rem] bg-slate-950 p-3 shadow-2xl shadow-blue-950/15">
           <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
-            <img
-              src={GOLF_IMAGES.detail}
-              alt="Golf course fairway used as product atmosphere"
-              className="h-full min-h-80 rounded-[1.65rem] object-cover opacity-90"
-            />
+            <div className="relative min-h-80 overflow-hidden rounded-[1.65rem]">
+              <img
+                src={GOLF_IMAGES.detail}
+                alt="Putting green and golf score detail"
+                className="h-full min-h-80 w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(7,20,38,.72),rgba(29,78,216,.42)),radial-gradient(circle_at_70%_30%,rgba(125,211,252,.2),transparent_32%)]" />
+            </div>
             <div className="rounded-[1.65rem] bg-white p-6 text-slate-950">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
                 What admins see
@@ -672,7 +674,8 @@ function RegisterPanel() {
 
       window.location.href = checkout.url;
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || "Unable to create account.";
+      const errorMessage =
+        error?.response?.data?.message || error?.message || "Unable to create account.";
       setStatus("error");
       setMessage(errorMessage);
       show(errorMessage, "error");
@@ -690,7 +693,7 @@ function RegisterPanel() {
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-300">
               Register
             </p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight">Start Golf League App.</h2>
+            <h2 className="mt-2 text-3xl font-black tracking-tight">Start League Night Pro.</h2>
           </div>
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-300 text-slate-950">
             <LockKeyhole size={18} />
@@ -800,8 +803,11 @@ function LandingFooter() {
 
   return (
     <footer className="border-t border-white/10 bg-[#071426] px-5 py-6 md:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-2 text-xs text-white/55 md:flex-row md:items-center md:justify-between">
-        <p>© {year} Golf League App. All rights reserved.</p>
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 text-xs text-white/55 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <img src={lnLogo} alt="League Night" className="h-12" />
+          <p>© {year} League Night LLC. All rights reserved.</p>
+        </div>
         <Link to="/login" className="font-bold text-sky-200 transition hover:text-white">
           Sign in
         </Link>

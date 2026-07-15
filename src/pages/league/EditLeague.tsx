@@ -121,7 +121,7 @@ export default function EditLeague() {
 
   if (!numericLeagueId) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+      <div className="loading-state">
         Invalid league id.
       </div>
     );
@@ -129,7 +129,7 @@ export default function EditLeague() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+      <div className="loading-state">
         Loading league...
       </div>
     );

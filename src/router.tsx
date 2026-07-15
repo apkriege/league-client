@@ -57,7 +57,6 @@ export const router = createBrowserRouter([
     errorElement: <AppErrorBoundary />,
     children: [
       { path: "leagues", element: withSuspense(<Leagues />), errorElement: <AppErrorBoundary /> },
-      { path: "leagues/create", element: withSuspense(<CreateLeague />), errorElement: <AppErrorBoundary /> },
       { path: "courses", element: withSuspense(<Courses />), errorElement: <AppErrorBoundary /> },
       { path: "courses/:courseId", element: withSuspense(<Course />), errorElement: <AppErrorBoundary /> },
       {
@@ -77,6 +76,7 @@ export const router = createBrowserRouter([
         element: <LeagueRouteGuard adminOnly />,
         errorElement: <AppErrorBoundary />,
         children: [
+          { path: "leagues/create", element: withSuspense(<CreateLeague />) },
           { path: "league/:leagueId/edit", element: withSuspense(<EditLeague />) },
           { path: "league/:leagueId/admin", element: withSuspense(<LeagueAdmin />) },
           { path: "league/:leagueId/events/create", element: withSuspense(<SingleEvent />) },
@@ -87,8 +87,14 @@ export const router = createBrowserRouter([
           },
         ],
       },
-      { path: "superadmin/courses", element: withSuspense(<CoursesAdmin />) },
-      { path: "superadmin/leagues", element: withSuspense(<LeaguesAdmin />) },
+      {
+        element: <LeagueRouteGuard superAdminOnly />,
+        errorElement: <AppErrorBoundary />,
+        children: [
+          { path: "superadmin/courses", element: withSuspense(<CoursesAdmin />) },
+          { path: "superadmin/leagues", element: withSuspense(<LeaguesAdmin />) },
+        ],
+      },
     ],
   },
   {

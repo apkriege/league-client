@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">{children}</p>
+  <p className="section-kicker mb-3">{children}</p>
 );
 
 export default function InfoForm() {

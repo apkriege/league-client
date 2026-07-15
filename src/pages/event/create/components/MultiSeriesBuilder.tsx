@@ -603,7 +603,7 @@ export default function MultiSeriesBuilder() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="">
+          <div>
             <Label text="Frequency" />
             <ToggleCards
               value={frequency}
@@ -699,7 +699,7 @@ export default function MultiSeriesBuilder() {
                           key={tid}
                           type="button"
                           onClick={() => setHighlightId(active ? null : tid)}
-                          className={`btn btn-xs w-full justify-start font-normal transition-300  ${
+                          className={`btn btn-xs w-full justify-start font-normal duration-300 ${
                             active
                               ? "btn-primary"
                               : "bg-base-200 hover:bg-primary hover:text-primary-content border text-base-content"

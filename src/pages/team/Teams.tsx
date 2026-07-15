@@ -9,7 +9,7 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useCreateTeam, useDeleteTeam, useUpdateTeam } from "@api/teams/mutations";
 import { ShieldHalf, SquarePen, Trash2, Users } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
 type TeamPlayer = {
   id: number | string;
@@ -38,11 +38,14 @@ const EMPTY_FORM = {
 
 export default function Teams() {
   const { leagueId } = useParams();
+  const navigate = useNavigate();
   const numericLeagueId = Number(leagueId);
   const hasValidLeagueId = Number.isFinite(numericLeagueId) && numericLeagueId > 0;
   const { user } = useAppStore();
+  const role = String(user?.role || "").toUpperCase();
+  const canManageTeams = role === "ADMIN" || role === "SUPER";
   const { show } = useToast();
-  const { data: league, isLoading, isError, error } = useLeague(numericLeagueId);
+  const { data: league, isLoading, isError, error } = useLeague(numericLeagueId, hasValidLeagueId);
   const createTeam = useCreateTeam();
   const updateTeam = useUpdateTeam();
   const deleteTeam = useDeleteTeam();
@@ -52,7 +55,7 @@ export default function Teams() {
   const [editingTeamId, setEditingTeamId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const isReadOnly = String(user?.role).toUpperCase() === "USER";
+  const isReadOnly = !canManageTeams;
   const teams = useMemo(
     () =>
       [...((league?.teams ?? []) as TeamItem[])].sort((left, right) =>
@@ -102,6 +105,7 @@ export default function Teams() {
   };
 
   const openCreate = () => {
+    if (isReadOnly) return;
     setIsEditMode(false);
     setEditingTeamId(null);
     setForm(EMPTY_FORM);
@@ -109,6 +113,7 @@ export default function Teams() {
   };
 
   const openEdit = (team: TeamItem) => {
+    if (isReadOnly) return;
     setIsEditMode(true);
     setEditingTeamId(Number(team.id));
     setForm({
@@ -130,6 +135,11 @@ export default function Teams() {
   };
 
   const saveTeam = async () => {
+    if (isReadOnly) {
+      show("You do not have permission to manage teams.", "error");
+      return;
+    }
+
     if (!hasValidLeagueId) {
       show("Invalid league ID. Reload and try again.", "error");
       return;
@@ -176,12 +186,16 @@ export default function Teams() {
 
       resetAndCloseModal();
     } catch (error) {
-      console.error(error);
-      show("Unable to save team.", "error");
+      show(getApiErrorMessage(error, "Unable to save team."), "error");
     }
   };
 
   const removeTeam = async (team: TeamItem) => {
+    if (isReadOnly) {
+      show("You do not have permission to manage teams.", "error");
+      return;
+    }
+
     if (!hasValidLeagueId) {
       show("Invalid league ID. Reload and try again.", "error");
       return;
@@ -196,8 +210,7 @@ export default function Teams() {
       await deleteTeam.mutateAsync({ id: Number(team.id), leagueId: numericLeagueId } as any);
       show("Team removed", "success");
     } catch (error) {
-      console.error(error);
-      show("Unable to remove team.", "error");
+      show(getApiErrorMessage(error, "Unable to remove team."), "error");
     }
   };
 
@@ -206,6 +219,16 @@ export default function Teams() {
     const lastInitial = (player.lastName || "").trim().charAt(0);
     return `${firstInitial}${lastInitial}`.toUpperCase() || "?";
   };
+
+  if (!hasValidLeagueId) {
+    return (
+      <PageState
+        title="Invalid League"
+        message="The teams page could not be loaded because the league ID is invalid."
+        variant="error"
+      />
+    );
+  }
 
   if (isError) {
     const status = getApiErrorStatus(error);
@@ -257,6 +280,11 @@ export default function Teams() {
                 ? "Teams will appear here once created."
                 : "Create a team to get started."}
             </p>
+            {!isReadOnly && (
+              <button className="btn btn-primary btn-sm mt-4" type="button" onClick={openCreate}>
+                Add Team
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -278,9 +306,18 @@ export default function Teams() {
                 return (
                   <div
                     key={team.id}
-                    className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/league/${numericLeagueId}/team/${team.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        navigate(`/league/${numericLeagueId}/team/${team.id}`);
+                      }
+                    }}
+                    className="surface-card cursor-pointer transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-950/10"
                   >
-                    <div className={`flex items-center gap-2 px-4 py-3 border-b ${color.header}`}>
+                    <div className={`panel-row border-b ${color.header}`}>
                       <ShieldHalf size={14} className={color.icon} strokeWidth={2} />
                       <h3 className="text-sm font-semibold text-gray-800">{team.name}</h3>
                       <span
@@ -290,18 +327,28 @@ export default function Teams() {
                       </span>
                       {!isReadOnly ? (
                         <div className="flex items-center gap-2 ml-2">
-                          <SquarePen
-                            size={14}
-                            className="cursor-pointer text-blue-400"
+                          <button
+                            type="button"
+                            className="rounded-md p-1 text-blue-400 transition hover:bg-blue-50 hover:text-blue-700"
                             aria-label={`Edit ${team.name}`}
-                            onClick={() => openEdit(team)}
-                          />
-                          <Trash2
-                            size={14}
-                            className="cursor-pointer text-red-400"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openEdit(team);
+                            }}
+                          >
+                            <SquarePen size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-md p-1 text-red-400 transition hover:bg-red-50 hover:text-red-700"
                             aria-label={`Remove ${team.name}`}
-                            onClick={() => removeTeam(team)}
-                          />
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              removeTeam(team);
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       ) : null}
                     </div>

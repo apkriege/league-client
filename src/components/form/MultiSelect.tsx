@@ -55,7 +55,7 @@ export default function MultiSelect({
   return (
     <fieldset className={`fieldset ${className}`}>
       {label ? (
-        <legend className="fieldset-legend p-1 uppercase text-gray-500 font-black text-[10px] tracking-[0.18em]">
+        <legend className="fieldset-legend field-label p-1 text-[10px]">
           {label}
         </legend>
       ) : null}
@@ -92,10 +92,10 @@ export default function MultiSelect({
         {/* Dropdown */}
         {isOpen && (
           <div className="absolute top-full left-0 right-0 mt-1 border border-base-300 rounded-2xl !bg-white shadow-lg z-50 overflow-hidden">
-            <ul className="max-h-48 overflow-y-auto !bg-white">
+            <ul className="max-h-48 overflow-y-auto">
               {options.map((option) => (
-                <li key={option.value} className="!bg-white">
-                  <label className="flex items-center gap-2 !bg-white px-3 py-2 hover:!bg-base-200 cursor-pointer text-xs">
+                <li key={option.value}>
+                  <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-xs hover:bg-base-200">
                     <input
                       type="checkbox"
                       checked={value.includes(option.value)}

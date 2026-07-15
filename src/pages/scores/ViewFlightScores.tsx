@@ -152,8 +152,8 @@ export default function ViewFlightScores({ event, flight }: any) {
   return (
     <div className="border rounded-lg">
       <div className="w-full overflow-x-auto">
-        <table className="min-w-max w-full text-left table-sm table-auto">
-          <thead className="">
+        <table className="score-table">
+          <thead>
             <tr className="text-xs text-gray-700">
               <th>Player</th>
               {holes.map((hole: any) => (
@@ -360,7 +360,7 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
                 <div className="relative h-8 border rounded flex items-center justify-center text-xs font-semibold bg-white">
                   {score || "-"}
                   {popsForHole(Number(playerEntry.playerId), hole.num) > 0 && (
-                    <span className="absolute bottom-1 left-1 pointer-events-none flex items-center justify-center gap-0.5">
+                    <span className="score-medals">
                       {Array.from({
                         length: popsForHole(Number(playerEntry.playerId), hole.num),
                       }).map((_, idx) => (
@@ -398,7 +398,7 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
   return (
     <div className="border rounded-lg">
       <div className="w-full overflow-x-auto">
-        <table className="min-w-max w-full text-left table-sm table-auto">
+        <table className="score-table">
           <thead>
             <tr className="text-xs text-gray-700">
               <th className="p-2">Player</th>

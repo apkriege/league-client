@@ -186,7 +186,7 @@ export default function TeamsForm() {
 
   return (
     <div>
-      <Card className="p-2! border !bg-white mb-4">
+      <Card className="mb-4 p-2! !bg-white">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,220px)] lg:items-end">
           <Input
             label="Team Name"

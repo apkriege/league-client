@@ -21,7 +21,14 @@ export function validateHoleScores({
 
     for (let index = 0; index < holes.length; index += 1) {
       const score = scores[index];
-      if (score === "" || score == null || !Number.isFinite(Number(score)) || Number(score) <= 0) {
+      const numericScore = Number(score);
+      if (
+        score === "" ||
+        score == null ||
+        !Number.isInteger(numericScore) ||
+        numericScore < 1 ||
+        numericScore > 30
+      ) {
         return `${name} needs a valid score for hole ${holes[index]?.num ?? index + 1}.`;
       }
     }

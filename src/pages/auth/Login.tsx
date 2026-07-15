@@ -1,15 +1,16 @@
-import { login } from "@api/auth";
+import { login, loginWithLeagueCode } from "@api/auth";
 import { useToast } from "@/context/ToastContext";
 import { useAppStore } from "@/stores/appStore";
 import { normalizeAuthUser } from "@/lib/authUser";
-import { ArrowRight, ChevronRight, Flag, Lock, Mail, ShieldCheck } from "lucide-react";
+import { ArrowRight, ChevronRight, KeyRound, Lock, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
+import lnLogo from "@/assets/ln-logo.png";
 
 const googleAuthUrl = import.meta.env.VITE_GOOGLE_AUTH_URL;
 const heroImage =
-  "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=1800&q=85";
+  "https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?auto=format&fit=crop&w=1800&q=85";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -17,8 +18,10 @@ export default function Login() {
   const { setUser } = useAppStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [leagueCode, setLeagueCode] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCodeSubmitting, setIsCodeSubmitting] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -45,6 +48,31 @@ export default function Login() {
     }
   };
 
+  const handleLeagueCodeSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsCodeSubmitting(true);
+    setError("");
+
+    try {
+      const auth: any = await loginWithLeagueCode(leagueCode);
+      const { user, leagueId } = auth.data;
+      const normalizedUser = normalizeAuthUser(user);
+
+      if (!normalizedUser || !leagueId) {
+        throw new Error("League code login response was incomplete.");
+      }
+
+      setUser(normalizedUser);
+      navigate(`/league/${leagueId}`);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || "Unable to open league.";
+      setError(message);
+      show(message, "error");
+    } finally {
+      setIsCodeSubmitting(false);
+    }
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
       <style>{`
@@ -59,7 +87,11 @@ export default function Login() {
         .login-reveal { animation: login-fade-up 700ms cubic-bezier(.2,.8,.2,1) both; }
         .login-drift { animation: login-drift 8s ease-in-out infinite; }
       `}</style>
-      <img src={heroImage} alt="" className="absolute inset-0 h-full w-full scale-105 object-cover opacity-52" />
+      <img
+        src={heroImage}
+        alt=""
+        className="absolute inset-0 h-full w-full scale-105 object-cover opacity-52"
+      />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(125,211,252,.24),transparent_26%),linear-gradient(115deg,rgba(7,20,38,.98)_0%,rgba(7,20,38,.78)_48%,rgba(7,20,38,.42)_100%)]" />
       <div className="absolute -left-24 top-32 h-80 w-80 rounded-full bg-sky-300/20 blur-3xl login-drift" />
       <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-blue-400/12 blur-3xl login-drift" />
@@ -67,13 +99,13 @@ export default function Login() {
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="flex items-center justify-between px-6 py-6 md:px-8">
           <Link to="/" className="group flex items-center gap-3 text-white">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-300 text-slate-950 shadow-lg shadow-sky-950/20 transition-transform group-hover:-rotate-6">
-              <Flag size={18} />
+            <span className="flex h-12 w-20 items-center justify-center overflow-hidden rounded-2xl p-1.5 shadow-lg shadow-sky-950/20 transition-transform group-hover:-rotate-2">
+              <img src={lnLogo} alt="League Night" className="h-full w-full object-contain" />
             </span>
             <div>
-              <p className="text-sm font-black tracking-wide">Golf League App</p>
+              <p className="text-sm font-black tracking-wide">League Night</p>
               <p className="text-[10px] uppercase tracking-[0.28em] text-white/45">
-                League Management
+                Golf League Management
               </p>
             </div>
           </Link>
@@ -95,7 +127,7 @@ export default function Login() {
                   <Lock size={18} />
                 </div>
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-800">
-                Sign in
+                  Sign in
                 </p>
                 <h1 className="mt-2 text-4xl font-black tracking-[-0.04em] text-slate-950">
                   Welcome back.
@@ -114,7 +146,7 @@ export default function Login() {
 
                 <label className="grid gap-1.5">
                   <span className="text-xs font-black text-slate-600">Email</span>
-                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-blue-700 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-800/10">
+                  <div className="auth-field">
                     <Mail size={14} className="text-slate-400" />
                     <input
                       type="email"
@@ -129,7 +161,7 @@ export default function Login() {
 
                 <label className="grid gap-1.5">
                   <span className="text-xs font-black text-slate-600">Password</span>
-                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-blue-700 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-800/10">
+                  <div className="auth-field">
                     <Lock size={14} className="text-slate-400" />
                     <input
                       type="password"
@@ -173,6 +205,39 @@ export default function Login() {
                 <ShieldCheck size={15} className="text-blue-800" />
                 {googleAuthUrl ? "Sign in with Google" : "Google sign-in unavailable"}
               </button>
+
+              <div className="my-6 flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                  League code
+                </span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
+
+              <form onSubmit={handleLeagueCodeSubmit} className="grid gap-3">
+                <label className="grid gap-1.5">
+                  <span className="text-xs font-black text-slate-600">View-only access code</span>
+                  <div className="auth-field">
+                    <KeyRound size={14} className="text-slate-400" />
+                    <input
+                      type="text"
+                      value={leagueCode}
+                      onChange={(event) => setLeagueCode(event.target.value.toUpperCase())}
+                      className="w-full bg-transparent text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 outline-none placeholder:tracking-normal placeholder:normal-case placeholder:text-slate-400"
+                      placeholder="Enter league code"
+                      autoComplete="one-time-code"
+                    />
+                  </div>
+                </label>
+                <button
+                  type="submit"
+                  disabled={isCodeSubmitting || !leagueCode.trim()}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isCodeSubmitting ? "Opening league..." : "Open league"}
+                  <ArrowRight size={15} />
+                </button>
+              </form>
 
               <p className="mt-5 text-center text-sm text-slate-500">
                 Need an account?{" "}

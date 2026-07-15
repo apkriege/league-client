@@ -1,6 +1,6 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
-import { useDeleteLeagueEvent } from "@api/league/mutations";
+import { useCancelLeagueEvent, useDeleteLeagueEvent } from "@api/league/mutations";
 import { useLeagueEvent } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { getEventLocalDate } from "@/utils/eventDate";
@@ -20,6 +20,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 import {
   BarChart2,
+  Ban,
   Calendar,
   CheckCircle2,
   CircleDashed,
@@ -60,10 +61,16 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
     icon: <CheckCircle2 size={12} strokeWidth={2.5} />,
     className: "bg-green-50 text-green-600 border border-green-200",
   },
+  canceled: {
+    label: "Canceled",
+    icon: <Ban size={12} strokeWidth={2.5} />,
+    className: "bg-slate-100 text-slate-500 border border-slate-200",
+  },
 };
 
 const normalizeStatus = (status: string) => {
   if (status === "completed" || status === "complete") return "complete";
+  if (status === "canceled" || status === "cancelled") return "canceled";
   if (status === "upcoming" || status === "scheduled") return "scheduled";
   if (status === "active") return "active";
   return "scheduled";
@@ -116,6 +123,9 @@ export default function Event() {
   const deleteEvent = useDeleteLeagueEvent(() => {
     show("Event deleted.", "success");
     navigate(`/league/${leagueId}/admin`);
+  });
+  const cancelEvent = useCancelLeagueEvent(() => {
+    show("Event canceled.", "success");
   });
   const [activeTab, setActiveTab] = useState("points");
   const [isScorecardDrawerMounted, setIsScorecardDrawerMounted] = useState(false);
@@ -197,7 +207,7 @@ export default function Event() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+      <div className="loading-state">
         Loading event details...
       </div>
     );
@@ -267,7 +277,8 @@ export default function Event() {
   const topThreeMode = hasPointValues ? "points" : "net";
   const topThree = (hasPointValues ? pointsLeaderboard : lowNetLeaderboard).slice(0, 3);
   const role = String(user?.role || "").toUpperCase();
-  const canDeleteEvent = role === "ADMIN" || role === "SUPER";
+  const canManageEvent = role === "ADMIN" || role === "SUPER";
+  const isCanceledEvent = normalizeStatus(String(event.status || "")) === "canceled";
   const handleDeleteEvent = () => {
     const confirmed = window.confirm(
       `Delete "${event.name}"? This removes it from the schedule and league event lists.`
@@ -279,6 +290,21 @@ export default function Event() {
       {
         onError: (error: any) => {
           show(error?.message || "Failed to delete event.", "error");
+        },
+      }
+    );
+  };
+  const handleCancelEvent = () => {
+    const confirmed = window.confirm(
+      `Cancel "${event.name}"? This keeps it visible but prevents score entry.`
+    );
+    if (!confirmed) return;
+
+    cancelEvent.mutate(
+      { leagueId: Number(leagueId), eventId: Number(eventId) },
+      {
+        onError: (error: any) => {
+          show(error?.message || "Failed to cancel event.", "error");
         },
       }
     );
@@ -313,7 +339,7 @@ export default function Event() {
         ].map((chip, i) => (
           <div
             key={i}
-            className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-xs text-gray-600 shadow-sm"
+            className="summary-pill"
           >
             <span className="text-gray-400">{chip.icon}</span>
             <span className="capitalize">{chip.text}</span>
@@ -325,16 +351,31 @@ export default function Event() {
           {status.icon}
           {status.label}
         </div>
-        {normalizeStatus(String(event.status || "")) !== "complete" && (
-          <Link
-            to={`/league/${leagueId}/events/${eventId}/print-scorecards`}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-          >
-            <Printer size={12} />
-            Print Scorecards
-          </Link>
-        )}
-        {canDeleteEvent && (
+        {canManageEvent &&
+          !isCanceledEvent &&
+          normalizeStatus(String(event.status || "")) !== "complete" && (
+            <Link
+              to={`/league/${leagueId}/events/${eventId}/print-scorecards`}
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+            >
+              <Printer size={12} />
+              Print Scorecards
+            </Link>
+          )}
+        {canManageEvent &&
+          !isCanceledEvent &&
+          normalizeStatus(String(event.status || "")) !== "complete" && (
+            <button
+              type="button"
+              onClick={handleCancelEvent}
+              disabled={cancelEvent.isPending}
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+            >
+              <Ban size={12} />
+              {cancelEvent.isPending ? "Canceling..." : "Cancel Event"}
+            </button>
+          )}
+        {canManageEvent && (
           <button
             type="button"
             onClick={handleDeleteEvent}
@@ -383,7 +424,7 @@ export default function Event() {
             className={`relative overflow-hidden bg-linear-to-br ${stat.accent} border rounded-xl px-4 py-3 shadow-sm flex items-start justify-between gap-3`}
           >
             <div className="min-w-0">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              <p className="section-kicker">
                 {stat.label}
               </p>
               <p className="text-2xl font-black text-gray-900 leading-tight mt-1">{stat.value}</p>
@@ -451,21 +492,7 @@ export default function Event() {
                 </div>
 
                 <div className="w-2/3 flex flex-col gap-3">
-                  {event.metrics.scoreDistribution && (
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-3">
-                        <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
-                        <h3 className="text-sm font-semibold text-gray-800">Score Distribution</h3>
-                        <span className="ml-auto text-[10px] text-gray-400">
-                          This event vs. season avg
-                        </span>
-                      </div>
-                      <div className="px-4 py-3">
-                        <ScoreDistributionChart distribution={event.metrics.scoreDistribution} />
-                      </div>
-                    </div>
-                  )}
-                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="surface-card">
                     <div className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
@@ -488,6 +515,20 @@ export default function Event() {
                       valueLabel={activeValueLabel}
                     />
                   </div>
+                  {event.metrics.scoreDistribution && (
+                    <div className="surface-card">
+                      <div className="panel-row">
+                        <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
+                        <h3 className="text-sm font-semibold text-gray-800">Score Distribution</h3>
+                        <span className="ml-auto text-[10px] text-gray-400">
+                          This event vs. season avg
+                        </span>
+                      </div>
+                      <div className="px-4 py-3">
+                        <ScoreDistributionChart distribution={event.metrics.scoreDistribution} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -497,7 +538,7 @@ export default function Event() {
                 <h3 className="text-lg font-bold text-gray-800 tracking-tight">Round Scores</h3>
                 <p className="text-xs text-gray-500 mt-0.5">All player scores for this event</p>
               </div>
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="surface-card">
                 <div className="flex items-center justify-between gap-2 px-4 py-3">
                   <div className="flex items-center gap-2">
                     <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
@@ -522,8 +563,8 @@ export default function Event() {
               <h3 className="text-lg font-bold text-gray-800 tracking-tight">Flights</h3>
               <p className="text-xs text-gray-500 mt-0.5">Pairings and tee time assignments</p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3">
+            <div className="surface-card">
+              <div className="panel-row">
                 <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
                 <h3 className="text-sm font-semibold text-gray-800">Flights</h3>
                 <span className="text-[10px] text-gray-400">No rounds recorded yet</span>
@@ -552,7 +593,7 @@ export default function Event() {
           >
             <div className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-5 py-4 backdrop-blur flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="section-kicker">
                   Scorecard View
                 </p>
                 <h3 className="text-lg font-bold text-gray-900 tracking-tight">
@@ -603,7 +644,7 @@ export default function Event() {
           >
             <div className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-5 py-4 backdrop-blur flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="section-kicker">
                   Skins Breakdown
                 </p>
                 <h3 className="text-lg font-bold text-gray-900 tracking-tight">
@@ -656,7 +697,7 @@ function TeamScorecardsDrawer({ event }: { event: any }) {
       {flights.map((flight: any) => (
         <div
           key={flight.id}
-          className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+          className="surface-card"
         >
           <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-700">
             Flight {flight.startTime}
@@ -684,8 +725,8 @@ function IndividualStrokeScorecardsDrawer({ rounds }: { rounds: any[] }) {
     Number(round?.pointsEarned ?? round?.points ?? 0) + Number(round?.matchPoints ?? 0);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-x-auto">
-      <table className="min-w-max w-full text-left table-sm table-auto">
+    <div className="surface-card overflow-x-auto">
+      <table className="score-table">
         <thead>
           <tr className="text-xs text-gray-700">
             <th className="p-2">Player</th>
@@ -747,7 +788,7 @@ function IndividualMatchScorecardsDrawer({ event }: { event: any }) {
       {flights.map((flight: any) => (
         <div
           key={flight.id}
-          className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+          className="surface-card"
         >
           <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-700">
             Flight {flight.startTime}
@@ -929,7 +970,7 @@ function SkinsList({
   onViewAll: () => void;
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div className="surface-card">
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
         <div className="flex items-center gap-1.5">
           <Zap size={13} className={iconClass} strokeWidth={2.5} />
@@ -1015,8 +1056,8 @@ function SkinsRoundScoresDrawer({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+      <div className="surface-card">
+        <div className="panel-header">
           <div className="flex items-center gap-2">
             <Zap size={14} className={iconClass} strokeWidth={2.5} />
             <h3 className="text-sm font-semibold text-gray-800">{label} Skin Winners</h3>
@@ -1058,7 +1099,7 @@ function SkinsRoundScoresDrawer({
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="surface-card">
         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
@@ -1092,7 +1133,7 @@ function ScoreLeaderboard({ leaderboard, valueLabel }: { leaderboard: any[]; val
     <div className="max-h-70 overflow-y-auto">
       <table className="w-full text-left">
         <thead className="sticky top-0 z-10 bg-gray-50">
-          <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+          <tr className="section-kicker border-b border-gray-100">
             <th className="px-3 py-2 w-8">#</th>
             <th className="px-2.5 py-2">
               <div className="flex items-center gap-1">
@@ -1194,7 +1235,7 @@ function TopThreePlayers({ players, mode }: { players: any[]; mode: "points" | "
   ];
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <section className="surface-card">
       <div className="flex items-center justify-between gap-3 px-3 py-2">
         <div className="flex items-center gap-2">
           <Trophy size={13} className="text-amber-500" strokeWidth={2.5} />
@@ -1381,7 +1422,7 @@ function RoundsTable({
         <col className="w-14" />
       </colgroup>
       <thead>
-        <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 border-b border-gray-100">
+        <tr className="section-kicker bg-gray-50 border-b border-gray-100">
           <th className="pl-4 py-2.5 text-left">Player</th>
           {holes.map((hole: number) => (
             <th key={hole} className="py-2.5 text-center">

@@ -36,3 +36,11 @@ export const getEventDateInputValue = (value: unknown) => {
     "0"
   )}`;
 };
+
+export const sortEventsByDate = <T extends { date?: unknown; id?: unknown }>(events: T[] = []) =>
+  [...events].sort((a, b) => {
+    const dateDiff = getEventLocalDate(a.date).getTime() - getEventLocalDate(b.date).getTime();
+    if (dateDiff !== 0) return dateDiff;
+
+    return Number(a.id ?? 0) - Number(b.id ?? 0);
+  });

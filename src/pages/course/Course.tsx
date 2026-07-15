@@ -96,7 +96,7 @@ export default function Course() {
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
         <div className="space-y-4">
           <Card>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+            <p className="section-kicker mb-3">
               Overview
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -107,7 +107,7 @@ export default function Course() {
             </div>
             {course.description && (
               <div className="mt-4 rounded-xl border border-base-300 bg-base-200/30 px-4 py-3">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">
+                <p className="section-kicker mb-1">
                   Description
                 </p>
                 <p className="text-sm text-gray-700 leading-6">{course.description}</p>
@@ -117,7 +117,7 @@ export default function Course() {
 
           <Card>
             <div className="flex items-center justify-between gap-3 mb-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              <p className="section-kicker">
                 Tee Decks
               </p>
               <p className="text-[11px] text-gray-400">Select a tee to inspect hole data</p>
@@ -265,7 +265,7 @@ export default function Course() {
 
         <div className="space-y-4 xl:sticky xl:top-4">
           <Card>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+            <p className="section-kicker mb-3">
               Rating Snapshot
             </p>
             {activeTee ? (
@@ -297,7 +297,7 @@ export default function Course() {
           </Card>
 
           <Card>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+            <p className="section-kicker mb-3">
               Course Facts
             </p>
             <div className="space-y-2 text-sm">

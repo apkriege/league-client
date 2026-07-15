@@ -198,7 +198,7 @@ export default function InfoForm() {
         </Card>
       </div>
       <div className="w-1/3 flex flex-col gap-5">
-        <Card className="">
+        <Card>
           <h3 className="text-lg font-bold">Scoring</h3>
           <p className="text-sm text-gray-500">Choose how you want to score your event.</p>
 

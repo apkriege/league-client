@@ -17,12 +17,27 @@ const EMPTY_FORM = {
   lastName: "",
   email: "",
   phone: "",
-  type: "player",
-  handicap: "0",
+  type: "",
+  handicap: "",
+};
+
+const getMissingRequiredFields = (form: typeof EMPTY_FORM) => {
+  const missing: string[] = [];
+  const handicapNum = Number(form.handicap);
+
+  if (!form.firstName.trim()) missing.push("first name");
+  if (!form.lastName.trim()) missing.push("last name");
+  if (!form.email.trim()) missing.push("email");
+  if (!form.type.trim()) missing.push("type");
+  if (!form.handicap.trim() || !Number.isFinite(handicapNum)) missing.push("handicap");
+
+  return missing;
 };
 
 export default function Players() {
   const { user } = useAppStore();
+  const role = String(user?.role || "").toUpperCase();
+  const canManagePlayers = role === "ADMIN" || role === "SUPER";
   const { show } = useToast();
   const { leagueId } = useParams();
   const numericLeagueId = Number(leagueId);
@@ -105,16 +120,12 @@ export default function Players() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handicapNum = Number(form.handicap);
-  const validateForm =
-    form.firstName.trim().length > 0 &&
-    form.lastName.trim().length > 0 &&
-    form.email.trim().length > 0 &&
-    Number.isFinite(handicapNum);
+  const missingRequiredFields = getMissingRequiredFields(form);
+  const validateForm = missingRequiredFields.length === 0;
 
   const savePlayer = async () => {
     if (!validateForm) {
-      show("Please fill out required fields.", "warning");
+      show(`Required: ${missingRequiredFields.join(", ")}.`, "warning");
       return;
     }
 
@@ -147,7 +158,7 @@ export default function Players() {
       resetAndCloseModal();
     } catch (error) {
       console.error(error);
-      show("Unable to save player.", "error");
+      show(getApiErrorMessage(error, "Unable to save player."), "error");
     }
   };
 
@@ -166,7 +177,7 @@ export default function Players() {
     }
   };
 
-  let columns: any = [
+  const columns: any = [
     {
       key: "firstName",
       label: "Name",
@@ -180,7 +191,7 @@ export default function Players() {
             {row.firstName[0]}
             {row.lastName[0]}
           </div>
-          <div className="">
+          <div>
             <p className="text-xs font-semibold text-primary mb-0">
               {row.firstName} {row.lastName}
             </p>
@@ -198,7 +209,9 @@ export default function Players() {
       label: "Type",
       render: (value: any) => (
         <div
-          className={`badge badge-${value === "player" ? "secondary" : "accent"} text-[9px] rounded-xl font-semibold`}
+          className={`badge rounded-xl text-[9px] font-semibold ${
+            value === "player" ? "badge-secondary" : "badge-accent"
+          }`}
         >
           {value.toUpperCase()}
         </div>
@@ -211,7 +224,7 @@ export default function Players() {
     },
   ];
 
-  if (String(user.role).toUpperCase() !== "USER") {
+  if (canManagePlayers) {
     columns.push({
       key: "actions",
       label: "Actions",
@@ -248,7 +261,7 @@ export default function Players() {
           columns={columns}
           size="sm"
           headerActions={
-            String(user.role).toUpperCase() !== "USER" ? (
+            canManagePlayers ? (
               <button className="btn btn-primary btn-sm" onClick={openCreate}>
                 Add Player
               </button>
@@ -302,6 +315,7 @@ export default function Players() {
               value={form.type}
               onChange={(e) => onChange("type", e.target.value)}
             >
+              <option value="">Select type</option>
               <option value="player">Player</option>
               <option value="sub">Sub</option>
             </select>

@@ -1,6 +1,6 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
-import { useDeleteLeagueEvent } from "@api/league/mutations";
+import { useCancelLeagueEvent, useDeleteLeagueEvent } from "@api/league/mutations";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
 import {
   AuditLogPanel,
@@ -8,18 +8,21 @@ import {
   LeagueNotificationComposer,
   OnboardingChecklist,
 } from "@/components/league/AdminOpsPanels";
+import LeagueAnnouncementsPanel from "@/components/league/LeagueAnnouncementsPanel";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { getEventLocalDate } from "@/utils/eventDate";
+import { getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
 import { useToast } from "@/context/ToastContext";
 import dayjs from "dayjs";
 import {
   Award,
+  Ban,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
   CircleDashed,
   ClipboardList,
   Clock,
+  Copy,
   Edit,
   Flag,
   MapPin,
@@ -50,6 +53,11 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
     icon: <CheckCircle2 size={12} strokeWidth={2.5} />,
     className: "bg-green-50 text-green-600 border border-green-200",
   },
+  canceled: {
+    label: "Canceled",
+    icon: <Ban size={12} strokeWidth={2.5} />,
+    className: "bg-slate-100 text-slate-500 border border-slate-200",
+  },
 };
 
 export default function LeagueAdmin() {
@@ -77,13 +85,16 @@ export default function LeagueAdmin() {
   const deleteEvent = useDeleteLeagueEvent(() => {
     show("Event deleted.", "success");
   });
+  const cancelEvent = useCancelLeagueEvent(() => {
+    show("Event canceled.", "success");
+  });
 
   const pageError = leagueError || eventsError || metricsError;
   const errorStatus = getApiErrorStatus(pageError);
 
   if (leagueLoading || eventsLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading...</div>
+      <div className="loading-state">Loading...</div>
     );
   }
 
@@ -111,6 +122,7 @@ export default function LeagueAdmin() {
   const completed = events?.filter((e: any) => e.status === "completed") ?? [];
   const needsScores = events?.filter((e: any) => e.status === "active") ?? [];
   const upcoming = events?.filter((e: any) => e.status === "upcoming") ?? [];
+  const sortedEvents = sortEventsByDate(events ?? []);
   const totalEvents = events?.length ?? 0;
   const totalPlayers = league?.players?.length ?? 0;
   const totalTeams = league?.teams?.length ?? 0;
@@ -128,6 +140,21 @@ export default function LeagueAdmin() {
       {
         onError: (error: any) => {
           show(error?.message || "Failed to delete event.", "error");
+        },
+      }
+    );
+  };
+  const handleCancelEvent = (event: any) => {
+    const confirmed = window.confirm(
+      `Cancel "${event.name}"? This keeps it on the schedule but removes it from scoring.`
+    );
+    if (!confirmed) return;
+
+    cancelEvent.mutate(
+      { leagueId: Number(leagueId), eventId: Number(event.id) },
+      {
+        onError: (error: any) => {
+          show(error?.message || "Failed to cancel event.", "error");
         },
       }
     );
@@ -152,6 +179,34 @@ export default function LeagueAdmin() {
       </div>
 
       <OnboardingChecklist leagueId={Number(leagueId)} />
+
+      <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3.5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-black tracking-tight text-gray-900">View-only league code</p>
+            <p className="mt-0.5 text-xs font-medium text-blue-800/70">
+              Share this with users who only need to view this league.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <code className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-black tracking-[0.18em] text-blue-900">
+              {league?.viewerAccessCode || "—"}
+            </code>
+            <button
+              type="button"
+              disabled={!league?.viewerAccessCode}
+              onClick={() => {
+                navigator.clipboard?.writeText(String(league.viewerAccessCode));
+                show("League code copied.", "success");
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Copy size={13} />
+              Copy
+            </button>
+          </div>
+        </div>
+      </div>
 
       <section className="space-y-3">
         <SectionHeader
@@ -210,12 +265,13 @@ export default function LeagueAdmin() {
           <div>
             <p className="text-sm font-bold tracking-tight text-gray-900">Communication tools</p>
             <p className="mt-0.5 text-xs font-medium text-gray-500">
-              Manage profile claims and in-app announcements.
+              Manage profile claims, notifications, and league announcements.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <InvitePlayersPanel leagueId={Number(leagueId)} players={league?.players ?? []} />
             <LeagueNotificationComposer leagueId={Number(leagueId)} />
+            <LeagueAnnouncementsPanel leagueId={Number(leagueId)} canManage />
           </div>
         </div>
       </section>
@@ -229,7 +285,7 @@ export default function LeagueAdmin() {
               description="Active rounds that need scores entered or reviewed."
             />
             <div className="bg-white border border-blue-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3.5 bg-blue-50/70">
+              <div className="panel-row.5 bg-blue-50/70">
                 <Zap size={14} className="text-blue-600" strokeWidth={2.5} />
                 <div>
                   <h3 className="text-sm font-black tracking-tight text-gray-900">
@@ -262,7 +318,9 @@ export default function LeagueAdmin() {
           <div className="flex items-center justify-between mb-2">
             <div className="space-y-1">
               <SectionLabel>Events</SectionLabel>
-              <p className="text-sm font-medium text-gray-500">Upcoming and completed rounds</p>
+              <p className="text-sm font-medium text-gray-500">
+                Upcoming, completed, and canceled rounds
+              </p>
             </div>
             <button
               onClick={() => navigate(`/league/${leagueId}/events/create`)}
@@ -274,8 +332,8 @@ export default function LeagueAdmin() {
           </div>
 
           {nextEvent && (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3.5">
+            <div className="surface-card">
+              <div className="panel-row.5">
                 <CalendarDays size={14} className="text-blue-400" strokeWidth={2.5} />
                 <h3 className="text-sm font-black tracking-tight text-gray-900">Next Event</h3>
               </div>
@@ -347,19 +405,19 @@ export default function LeagueAdmin() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {[...(needsScores ?? []), ...(upcoming ?? []), ...(completed ?? [])].map(
-                (event: any) => (
-                  <AdminEventRow
-                    key={event.id}
-                    event={event}
-                    onView={() => navigate(`/league/${leagueId}/events/${event.id}`)}
-                    onEdit={() => navigate(`/league/${leagueId}/events/${event.id}/edit`)}
-                    onScores={() => navigate(`/league/${leagueId}/events/${event.id}/scores`)}
-                    onDelete={() => handleDeleteEvent(event)}
-                    isDeleting={deleteEvent.isPending}
-                  />
-                )
-              )}
+              {sortedEvents.map((event: any) => (
+                <AdminEventRow
+                  key={event.id}
+                  event={event}
+                  onView={() => navigate(`/league/${leagueId}/events/${event.id}`)}
+                  onEdit={() => navigate(`/league/${leagueId}/events/${event.id}/edit`)}
+                  onScores={() => navigate(`/league/${leagueId}/events/${event.id}/scores`)}
+                  onCancel={() => handleCancelEvent(event)}
+                  onDelete={() => handleDeleteEvent(event)}
+                  isCanceling={cancelEvent.isPending}
+                  isDeleting={deleteEvent.isPending}
+                />
+              ))}
             </div>
           )}
         </section>
@@ -455,25 +513,32 @@ function AdminEventRow({
   onView,
   onEdit,
   onScores,
+  onCancel,
   onDelete,
+  isCanceling = false,
   isDeleting = false,
 }: {
   event: any;
   onView: () => void;
   onEdit: () => void;
   onScores: () => void;
+  onCancel: () => void;
   onDelete: () => void;
+  isCanceling?: boolean;
   isDeleting?: boolean;
 }) {
   const status = STATUS_CONFIG[event.status] ?? STATUS_CONFIG["upcoming"];
   const date = getEventLocalDate(event.date);
+  const isCanceledEvent = String(event?.status || "").toLowerCase() === "canceled";
   const canEditEvent =
-    !event?.isComplete && String(event?.status || "").toLowerCase() !== "completed";
+    !event?.isComplete &&
+    String(event?.status || "").toLowerCase() !== "completed" &&
+    !isCanceledEvent;
 
   return (
     <div
       onClick={onView}
-      className="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30 hover:bg-primary/2 cursor-pointer"
+      className="group surface-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30 hover:bg-primary/2 cursor-pointer"
     >
       <div className="flex items-stretch">
         {/* Date block */}
@@ -541,6 +606,19 @@ function AdminEventRow({
               <Edit size={13} strokeWidth={2} />
             </button>
           )}
+          {!isCanceledEvent && canEditEvent && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCancel();
+              }}
+              disabled={isCanceling}
+              className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50 shadow-xs"
+              title="Cancel"
+            >
+              <Ban size={13} strokeWidth={2} />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -557,15 +635,22 @@ function AdminEventRow({
               e.stopPropagation();
               onScores();
             }}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              event.canEnterScores || event.canEditScores
+            disabled={isCanceledEvent}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              !isCanceledEvent && (event.canEnterScores || event.canEditScores)
                 ? "bg-primary text-primary-content hover:bg-primary/90 shadow-xs"
                 : "border border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-primary/10 hover:text-primary shadow-xs"
             }`}
             title="Scores"
           >
             <ClipboardList size={12} strokeWidth={2} />
-            {event.canEnterScores ? "Scores" : event.canEditScores ? "Edit Scores" : "View Scores"}
+            {isCanceledEvent
+              ? "Canceled"
+              : event.canEnterScores
+                ? "Scores"
+                : event.canEditScores
+                  ? "Edit Scores"
+                  : "View Scores"}
           </button>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { getEventLocalDate } from "@/utils/eventDate";
 import {
   Calendar,
   CalendarDays,
+  Ban,
   CheckCircle2,
   ChevronRight,
   CircleDashed,
@@ -36,10 +37,16 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
     icon: <CheckCircle2 size={12} strokeWidth={2.5} />,
     className: "bg-green-50 text-green-600 border border-green-200",
   },
+  canceled: {
+    label: "Canceled",
+    icon: <Ban size={12} strokeWidth={2.5} />,
+    className: "bg-slate-100 text-slate-500 border border-slate-200",
+  },
 };
 
 function normalizeEventStatus(status?: string) {
   if (status === "completed" || status === "complete") return "complete";
+  if (status === "canceled" || status === "cancelled") return "canceled";
   if (status === "upcoming" || status === "scheduled") return "scheduled";
   if (status === "active") return "active";
   return "scheduled";
@@ -63,7 +70,7 @@ export default function Schedule() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+      <div className="loading-state">
         Loading schedule...
       </div>
     );

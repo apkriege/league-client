@@ -51,7 +51,7 @@ export default function WizardType({
   setWizardType: (type: EventWizardType) => void;
 }) {
   return (
-    <div className="">
+    <div>
       <div className="flex gap-2 mb-5">
         <WizardCard
           icon={<Trophy size={16} className="text-secondary" />}

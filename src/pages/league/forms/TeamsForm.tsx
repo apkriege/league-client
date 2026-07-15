@@ -177,7 +177,7 @@ export default function TeamsForm() {
       />
 
       <Card className="mt-6 mb-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+        <p className="section-kicker mb-3">
           {isEditing ? "Edit Team" : "Add Team"}
         </p>
         <div className="flex flex-col lg:flex-row lg:items-end gap-2">
@@ -239,7 +239,7 @@ export default function TeamsForm() {
         </div>
       ) : (
         <>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+          <p className="section-kicker mb-3">
             Teams · {teams.length}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-auto pb-1">

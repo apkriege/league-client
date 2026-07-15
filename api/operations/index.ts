@@ -43,6 +43,36 @@ export async function revokeLeagueInvitation(leagueId: number, invitationId: num
   return response.data;
 }
 
+export async function getLeagueAnnouncements(leagueId: number) {
+  const response = await apiClient.get(`/leagues/${leagueId}/announcements`);
+  return response.data;
+}
+
+export async function createLeagueAnnouncement(
+  leagueId: number,
+  payload: { title: string; body: string }
+) {
+  const response = await apiClient.post(`/leagues/${leagueId}/announcements`, payload);
+  return response.data;
+}
+
+export async function updateLeagueAnnouncement(
+  leagueId: number,
+  announcementId: number,
+  payload: { title?: string; body?: string }
+) {
+  const response = await apiClient.put(
+    `/leagues/${leagueId}/announcements/${announcementId}`,
+    payload
+  );
+  return response.data;
+}
+
+export async function deleteLeagueAnnouncement(leagueId: number, announcementId: number) {
+  const response = await apiClient.delete(`/leagues/${leagueId}/announcements/${announcementId}`);
+  return response.data;
+}
+
 export async function createLeagueNotification(
   leagueId: number,
   payload: { title: string; body: string; includeAdmin?: boolean }
