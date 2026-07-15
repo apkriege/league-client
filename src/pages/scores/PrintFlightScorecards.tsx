@@ -6,7 +6,13 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { formatEventDate } from "@/utils/eventDate";
 import { Printer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useParams } from "react-router";
+import {
+  buildSwappedPlayerEntry,
+  getSwapCandidates,
+  PlayerSwapControl,
+} from "./PlayerSwapControl";
 
 export default function PrintFlightScorecards() {
   const { leagueId, eventId } = useParams();
@@ -119,6 +125,10 @@ export default function PrintFlightScorecards() {
   }
 
   const holeCount = Number(event?.holes || 18);
+  const eventPlayerIds = event.flights
+    .flatMap((flight: any) => flight.players || [])
+    .map((entry: any) => Number(entry?.playerId))
+    .filter(Boolean);
 
   return (
     <div className="min-h-screen bg-slate-100 p-6 print:p-0 print:bg-white">
@@ -215,6 +225,7 @@ export default function PrintFlightScorecards() {
               flightNumber={index + 1}
               holeCount={holeCount}
               leaguePlayers={leaguePlayers}
+              eventPlayerIds={eventPlayerIds}
               onSaveFlightPlayers={saveFlightPlayers}
               isSaving={updateFlightPlayersMutation.isPending}
             />
@@ -231,6 +242,7 @@ function FlightCard({
   flightNumber,
   holeCount,
   leaguePlayers,
+  eventPlayerIds,
   onSaveFlightPlayers,
   isSaving,
 }: {
@@ -239,179 +251,58 @@ function FlightCard({
   flightNumber: number;
   holeCount: number;
   leaguePlayers: any[];
+  eventPlayerIds: number[];
   onSaveFlightPlayers: (flightId: number, players: any[]) => Promise<void>;
   isSaving: boolean;
 }) {
-  const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
-  const [swapCandidateId, setSwapCandidateId] = useState<number | null>(null);
-  const [showSwapUi, setShowSwapUi] = useState(false);
-
   const rows = getFlightRows(event, flight);
-  const activePlayerIds = new Set((flight?.players || []).map((p: any) => Number(p.playerId)));
-
-  const getSwapCandidates = (row: any) => {
-    const baseEntry = row.entry;
-    const currentId = Number(baseEntry.playerId);
-    const baseTeamId = Number(baseEntry?.teamId ?? baseEntry?.player?.teamId ?? 0);
-
-    const sameTeam = (leaguePlayers || []).filter(
-      (p: any) => Number(p?.teamId ?? 0) === baseTeamId
-    );
-    const subs = (leaguePlayers || []).filter(
-      (p: any) => String(p?.type || "").toLowerCase() === "sub"
-    );
-
-    const unique = new Map<number, any>();
-    if (baseEntry?.player) {
-      unique.set(currentId, { ...baseEntry.player, id: currentId });
-    }
-
-    [...sameTeam, ...subs].forEach((candidate: any) => {
-      const id = Number(candidate?.id);
-      if (id > 0) unique.set(id, candidate);
+  const getRowSwapCandidates = (row: any) =>
+    getSwapCandidates({
+      currentEntry: row.entry,
+      leaguePlayers,
+      eventPlayerIds,
+      activePlayerIds: (flight?.players || []).map((player: any) => Number(player.playerId)),
+      teamOnly: event?.format === "team",
     });
 
-    return Array.from(unique.values()).filter((candidate: any) => {
-      const candidateId = Number(candidate?.id);
-      return candidateId === currentId || !activePlayerIds.has(candidateId);
-    });
-  };
-
-  const startSwap = (row: any) => {
-    setEditingRowIndex(Number(row.slotIndex));
-    setSwapCandidateId(Number(row.entry?.playerId));
-  };
-
-  const cancelSwap = () => {
-    setEditingRowIndex(null);
-    setSwapCandidateId(null);
-  };
-
-  const saveSwap = async () => {
-    if (editingRowIndex == null || !swapCandidateId) return;
-
+  const savePlayerSwap = async (row: any, replacementId: number) => {
+    const slotIndex = Number(row.slotIndex);
     const players = [...(flight?.players || [])];
-    const targetEntry = players[editingRowIndex];
-    if (!targetEntry) {
-      cancelSwap();
-      return;
-    }
+    const targetEntry = players[slotIndex];
+    if (!targetEntry) return;
 
     const currentId = Number(targetEntry.playerId);
-    const nextId = Number(swapCandidateId);
-    if (currentId === nextId) {
-      cancelSwap();
-      return;
-    }
+    const nextId = Number(replacementId);
+    if (!nextId || currentId === nextId) return;
 
-    const replacement = (leaguePlayers || []).find((player: any) => Number(player?.id) === nextId);
-    if (!replacement) {
-      cancelSwap();
-      return;
-    }
+    const candidates = getSwapCandidates({
+      currentEntry: targetEntry,
+      leaguePlayers,
+      eventPlayerIds,
+      activePlayerIds: players.map((player: any) => Number(player.playerId)),
+      teamOnly: event?.format === "team",
+    });
+    const replacement = candidates.find((player: any) => Number(player?.id) === nextId);
+    if (!replacement) return;
 
-    players[editingRowIndex] = {
-      ...targetEntry,
-      playerId: nextId,
-      player: {
-        ...targetEntry.player,
-        ...replacement,
-        id: nextId,
-        rounds: [],
-      },
-    };
+    const nextPlayers = players.map((player: any, index: number) =>
+      index === slotIndex ? buildSwappedPlayerEntry(player, replacement) : player
+    );
 
-    try {
-      await onSaveFlightPlayers(Number(flight.id), players);
-      cancelSwap();
-    } catch (error) {
-      console.error("Failed to swap player for scorecard:", error);
-    }
+    const playersToSave =
+      event?.scoringFormat === "match"
+        ? nextPlayers.map((player: any) =>
+            Number(player?.opponentId) === currentId
+              ? { ...player, opponentId: nextId }
+              : player
+          )
+        : nextPlayers;
+
+    await onSaveFlightPlayers(Number(flight.id), playersToSave);
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="no-print">
-        <button
-          onClick={() => {
-            if (showSwapUi) {
-              cancelSwap();
-            }
-            setShowSwapUi((prev) => !prev);
-          }}
-          className="text-[11px] px-2.5 py-1.5 rounded border border-slate-300 bg-white text-slate-700"
-        >
-          {showSwapUi
-            ? `Hide swaps for Flight ${flightNumber}`
-            : `Show swaps for Flight ${flightNumber}`}
-        </button>
-      </div>
-
-      {showSwapUi && (
-        <div className="no-print border border-slate-200 rounded-md p-2.5 bg-slate-50">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[11px] font-semibold text-slate-700">Swap Players Before Print</p>
-            <p className="text-[10px] text-slate-500">Hidden on paper</p>
-          </div>
-
-          <div className="space-y-1.5">
-            {rows.map((row) => {
-              const isEditing = editingRowIndex === Number(row.slotIndex);
-              const candidates = getSwapCandidates(row);
-
-              return (
-                <div
-                  key={`swap-${row.id}-${row.slotIndex}`}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-slate-700 truncate">{row.name}</p>
-                    {row.detail ? <p className="text-[10px] text-slate-500">{row.detail}</p> : null}
-                  </div>
-
-                  {isEditing ? (
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <select
-                        className="text-[11px] border border-slate-300 rounded px-1.5 py-1 bg-white"
-                        value={swapCandidateId ?? ""}
-                        onChange={(e) => setSwapCandidateId(Number(e.target.value) || null)}
-                      >
-                        {candidates.map((candidate: any) => (
-                          <option key={candidate.id} value={candidate.id}>
-                            {candidate.firstName} {candidate.lastName}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={saveSwap}
-                        disabled={isSaving}
-                        className="text-[11px] px-2 py-1 rounded border border-emerald-300 bg-emerald-50 text-emerald-700 disabled:opacity-50"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={cancelSwap}
-                        className="text-[11px] px-2 py-1 rounded border border-slate-300 bg-white text-slate-600"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => startSwap(row)}
-                      className="text-[11px] px-2 py-1 rounded border border-slate-300 bg-white text-slate-700 shrink-0"
-                    >
-                      Swap
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <section className="flight-card bg-white border border-slate-300 rounded-lg shadow-sm p-3.5 flex flex-col gap-3">
+    <section className="flight-card bg-white border border-slate-300 rounded-lg shadow-sm p-3.5 flex flex-col gap-3">
         <header className="flex items-start justify-between border-b border-slate-200 pb-2">
           <div>
             <h2 className="text-sm font-bold text-slate-900">{event.name}</h2>
@@ -443,6 +334,14 @@ function FlightCard({
             players={rows}
             startHole={event.startSide === "back" && holeCount === 9 ? 10 : 1}
             holeCount={holeCount}
+            renderPlayerActions={(row) => (
+              <PlayerSwapControl
+                currentPlayerId={Number(row.entry?.playerId)}
+                candidates={getRowSwapCandidates(row)}
+                isSaving={isSaving}
+                onSwap={(replacementId) => savePlayerSwap(row, replacementId)}
+              />
+            )}
           />
         </div>
 
@@ -450,8 +349,7 @@ function FlightCard({
           <p className="border border-slate-300 p-2">Notes:</p>
           <p className="border border-slate-300 p-2">Signatures:</p>
         </div>
-      </section>
-    </div>
+    </section>
   );
 }
 
@@ -459,10 +357,19 @@ function ScorecardGrid({
   players,
   startHole,
   holeCount,
+  renderPlayerActions,
 }: {
-  players: Array<{ id: string; name: string; detail?: string; handicap?: number | null }>;
+  players: Array<{
+    id: string;
+    name: string;
+    detail?: string;
+    handicap?: number | null;
+    slotIndex: number;
+    entry: any;
+  }>;
   startHole: number;
   holeCount: number;
+  renderPlayerActions?: (player: any) => ReactNode;
 }) {
   const holes = Array.from({ length: holeCount }, (_, idx) => startHole + idx);
 
@@ -494,6 +401,9 @@ function ScorecardGrid({
                 </span>
               </p>
               {player.detail ? <p className="text-[9px] text-slate-500">{player.detail}</p> : null}
+              {renderPlayerActions ? (
+                <div className="no-print mt-1">{renderPlayerActions(player)}</div>
+              ) : null}
             </td>
             {holes.map((hole) => (
               <td key={`${player.id}-${hole}`} className="border border-slate-300 h-7" />
