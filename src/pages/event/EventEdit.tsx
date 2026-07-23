@@ -115,8 +115,13 @@ export default function EventEdit() {
   // are always populated (season team leagues store teams on the league, not the event).
   useEffect(() => {
     if (!event || !league) return;
-    const { flights } = transformFlights(event);
-    const teams = (league.teams ?? []).map((t: any) => ({
+    const { flights, teams: eventTeams } = transformFlights(event);
+    const isSeasonTeamLeague =
+      String(league.type || "").toLowerCase() === "season" &&
+      String(league.format || "").toLowerCase() === "team";
+    const teamSource =
+      isSeasonTeamLeague || eventTeams.length === 0 ? (league.teams ?? []) : eventTeams;
+    const teams = teamSource.map((t: any) => ({
       id: Number(t.id),
       name: t.name,
       players: (t.players ?? []).map((p: any) =>

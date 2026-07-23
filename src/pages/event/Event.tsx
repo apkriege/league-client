@@ -44,6 +44,11 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import ViewFlightScores from "@/pages/scores/ViewFlightScores";
+import {
+  buildEventLeaderboard,
+  type EventLeaderboardEntry,
+  type EventLeaderboardSort,
+} from "./eventLeaderboard";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   scheduled: {
@@ -257,15 +262,8 @@ export default function Event() {
       ? "lowNet"
       : activeTab;
 
-  const activeLeaderboard =
-    resolvedActiveTab === "points"
-      ? event.metrics.leaderboards.playerPoints
-      : resolvedActiveTab === "lowGross"
-        ? event.metrics.leaderboards.playerLowGross
-        : event.metrics.leaderboards.playerLowNet;
-
-  const activeValueLabel =
-    resolvedActiveTab === "points" ? "PTS" : resolvedActiveTab === "lowGross" ? "GROSS" : "NET";
+  const leaderboardSort = resolvedActiveTab as EventLeaderboardSort;
+  const activeLeaderboard = buildEventLeaderboard(event.metrics.scores || [], leaderboardSort);
   const hasRounds = (event.metrics.scores?.length ?? 0) > 0;
   const totalFlightPlayers = (event.flights ?? []).flatMap(
     (flight: any) => flight.players ?? []
@@ -502,7 +500,9 @@ export default function Event() {
                         {leaderboardTabs.map((tab) => (
                           <button
                             key={tab.id}
+                            type="button"
                             onClick={() => setActiveTab(tab.id)}
+                            aria-pressed={resolvedActiveTab === tab.id}
                             className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${resolvedActiveTab === tab.id ? "bg-gray-100 text-gray-800 border border-gray-200" : "text-gray-400 hover:text-gray-600"}`}
                           >
                             {tab.label}
@@ -512,7 +512,7 @@ export default function Event() {
                     </div>
                     <ScoreLeaderboard
                       leaderboard={activeLeaderboard}
-                      valueLabel={activeValueLabel}
+                      sortBy={leaderboardSort}
                     />
                   </div>
                   {event.metrics.scoreDistribution && (
@@ -1121,7 +1121,13 @@ function SkinsRoundScoresDrawer({
   );
 }
 
-function ScoreLeaderboard({ leaderboard, valueLabel }: { leaderboard: any[]; valueLabel: string }) {
+function ScoreLeaderboard({
+  leaderboard,
+  sortBy,
+}: {
+  leaderboard: EventLeaderboardEntry[];
+  sortBy: EventLeaderboardSort;
+}) {
   const getInitials = (name: string) =>
     name
       .split(" ")
@@ -1130,8 +1136,15 @@ function ScoreLeaderboard({ leaderboard, valueLabel }: { leaderboard: any[]; val
       .toUpperCase();
 
   return (
-    <div className="max-h-70 overflow-y-auto">
-      <table className="w-full text-left">
+    <div className="max-h-70 overflow-auto">
+      <table className="w-full min-w-[28rem] table-fixed text-left">
+        <colgroup>
+          <col className="w-10" />
+          <col />
+          <col className="w-14" />
+          <col className="w-16" />
+          <col className="w-14" />
+        </colgroup>
         <thead className="sticky top-0 z-10 bg-gray-50">
           <tr className="section-kicker border-b border-gray-100">
             <th className="px-3 py-2 w-8">#</th>
@@ -1141,13 +1154,39 @@ function ScoreLeaderboard({ leaderboard, valueLabel }: { leaderboard: any[]; val
                 <span>Player</span>
               </div>
             </th>
-            <th className="px-3 py-2 text-right">{valueLabel}</th>
+            <th
+              aria-sort={sortBy === "points" ? "descending" : "none"}
+              className={`px-1.5 py-2 text-right ${sortBy === "points" ? "text-gray-800" : ""}`}
+            >
+              <span className="inline-flex items-center justify-end gap-1">
+                PTS
+                {sortBy === "points" && <TrendingDown size={10} strokeWidth={2.5} />}
+              </span>
+            </th>
+            <th
+              aria-sort={sortBy === "lowGross" ? "ascending" : "none"}
+              className={`px-1.5 py-2 text-right ${sortBy === "lowGross" ? "text-gray-800" : ""}`}
+            >
+              <span className="inline-flex items-center justify-end gap-1">
+                GROSS
+                {sortBy === "lowGross" && <TrendingUp size={10} strokeWidth={2.5} />}
+              </span>
+            </th>
+            <th
+              aria-sort={sortBy === "lowNet" ? "ascending" : "none"}
+              className={`px-1.5 py-2 text-right ${sortBy === "lowNet" ? "text-gray-800" : ""}`}
+            >
+              <span className="inline-flex items-center justify-end gap-1">
+                NET
+                {sortBy === "lowNet" && <TrendingUp size={10} strokeWidth={2.5} />}
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
           {leaderboard.map((entry, index) => (
             <tr
-              key={index}
+              key={entry.playerId}
               className={`text-xs ${index === 0 ? "bg-amber-50/40" : "hover:bg-gray-50/60"}`}
             >
               <td className="px-3 py-2">
@@ -1181,22 +1220,30 @@ function ScoreLeaderboard({ leaderboard, valueLabel }: { leaderboard: any[]; val
                   </div>
                 </div>
               </td>
-              <td className="px-3 py-2 text-right">
-                <span
-                  className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold border ${
-                    index === 0
-                      ? "bg-amber-100 text-amber-700 border-amber-200"
-                      : "bg-gray-100 text-gray-600 border-gray-200"
-                  }`}
-                >
-                  {entry.value}
-                </span>
-              </td>
+              <LeaderboardValueCell value={entry.points} active={sortBy === "points"} />
+              <LeaderboardValueCell value={entry.gross} active={sortBy === "lowGross"} />
+              <LeaderboardValueCell value={entry.net} active={sortBy === "lowNet"} />
             </tr>
           ))}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function LeaderboardValueCell({ value, active }: { value: number | null; active: boolean }) {
+  return (
+    <td className={`px-1.5 py-2 text-right tabular-nums ${active ? "bg-gray-50/70" : ""}`}>
+      <span
+        className={`inline-block min-w-8 rounded border px-1.5 py-0.5 text-xs font-bold ${
+          active
+            ? "border-amber-200 bg-amber-100 text-amber-700"
+            : "border-gray-200 bg-gray-100 text-gray-600"
+        }`}
+      >
+        {value ?? "—"}
+      </span>
+    </td>
   );
 }
 

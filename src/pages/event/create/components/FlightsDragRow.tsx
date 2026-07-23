@@ -210,9 +210,10 @@ export const FlightsDragRow = ({
       const newFlights = [...fs];
       newFlights.splice(cIdx, 1);
       newFlights.splice(targetColumnIndex, 0, moved);
+      setFs(newFlights);
       setFlights(newFlights);
     },
-    [dragState.dragging.columnIndex, dragState.dragging.rowId]
+    [dragState.dragging, fs, setFlights]
   );
 
   const handleDragEnd = useCallback(() => {
