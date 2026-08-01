@@ -1,22 +1,20 @@
-import { Link, useParams } from "react-router";
+import LoadingState from "@/components/layout/LoadingState";
+import PanelBar from "@/components/layout/PanelBar";
+import SectionKicker from "@/components/layout/SectionKicker";
+import SurfaceCard from "@/components/layout/SurfaceCard";
+import { SummaryPillButton } from "@/components/layout/SummaryPill";
+import TableHeaderRow from "@/components/layout/TableHeaderRow";
+import SectionIntro from "@/components/layout/SectionIntro";
+import { useParams } from "react-router";
 import { usePlayerStats } from "@api/players/queries";
 import { useLeagueMetrics } from "@api/league/queries";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  BarElement,
-  CategoryScale,
-  Chart as ChartJS,
-  Legend,
-  LinearScale,
-  Tooltip,
-} from "chart.js";
-import { Bar } from "react-chartjs-2";
+import { useMemo, useState } from "react";
+import useAnimatedDrawer from "@/hooks/useAnimatedDrawer";
 import {
   BarChart2,
-  ChevronRight,
   Flag,
   Minus,
   ShieldHalf,
@@ -29,19 +27,12 @@ import {
   Zap,
 } from "lucide-react";
 import dayjs from "dayjs";
+import PlayerScoreDistributionChart from "./components/PlayerScoreDistributionChart";
+import { InfoChip, StatMini } from "./components/PlayerSummary";
+import { PlayerRoundBreakdown, RoundHistory } from "./components/PlayerRoundTables";
+import type { ScoreDistribution } from "./playerTypes";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
-
-type ScoreDist = {
-  eagles: number;
-  birdies: number;
-  pars: number;
-  bogeys: number;
-  doubleBogeys: number;
-  tripleBogeys: number;
-};
-
-const EMPTY_DIST: ScoreDist = {
+const EMPTY_DIST: ScoreDistribution = {
   eagles: 0,
   birdies: 0,
   pars: 0,
@@ -60,47 +51,14 @@ const formatDelta = (delta: number) => {
   return delta < 0 ? delta.toFixed(1) : `+${delta.toFixed(1)}`;
 };
 
-const round1 = (value: number) => Math.round(value * 10) / 10;
-
 export default function Player() {
   const { leagueId, playerId } = useParams();
   const [roundBreakdownView, setRoundBreakdownView] = useState<"gross" | "net">("gross");
-  const [isHandicapDrawerMounted, setIsHandicapDrawerMounted] = useState(false);
-  const [isHandicapDrawerOpen, setIsHandicapDrawerOpen] = useState(false);
-  const handicapDrawerCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handicapDrawer = useAnimatedDrawer();
   const numericLeagueId = Number(leagueId);
   const { data, isLoading, isError, error } = usePlayerStats(numericLeagueId, Number(playerId));
   const { data: leagueMetrics } = useLeagueMetrics(numericLeagueId);
 
-  const openHandicapDrawer = () => {
-    if (handicapDrawerCloseTimerRef.current) {
-      clearTimeout(handicapDrawerCloseTimerRef.current);
-      handicapDrawerCloseTimerRef.current = null;
-    }
-    setIsHandicapDrawerMounted(true);
-    requestAnimationFrame(() => {
-      setIsHandicapDrawerOpen(true);
-    });
-  };
-
-  const closeHandicapDrawer = () => {
-    setIsHandicapDrawerOpen(false);
-    if (handicapDrawerCloseTimerRef.current) {
-      clearTimeout(handicapDrawerCloseTimerRef.current);
-    }
-    handicapDrawerCloseTimerRef.current = setTimeout(() => {
-      setIsHandicapDrawerMounted(false);
-      handicapDrawerCloseTimerRef.current = null;
-    }, 300);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (handicapDrawerCloseTimerRef.current) {
-        clearTimeout(handicapDrawerCloseTimerRef.current);
-      }
-    };
-  }, []);
 
   const handicapDetail = useMemo(() => {
     const chronologicalRows = [...(data?.rounds ?? [])]
@@ -228,11 +186,7 @@ export default function Player() {
   }
 
   if (isLoading) {
-    return (
-      <div className="loading-state">
-        Loading player...
-      </div>
-    );
+    return <LoadingState>Loading player...</LoadingState>;
   }
 
   if (!data) return null;
@@ -244,7 +198,7 @@ export default function Player() {
   const hcpColor =
     hcpDelta < 0 ? "text-emerald-600" : hcpDelta > 0 ? "text-red-500" : "text-gray-400";
 
-  const playerDistribution: ScoreDist = stats
+  const playerDistribution: ScoreDistribution = stats
     ? {
         eagles: Number(stats.totalEagles || 0),
         birdies: Number(stats.totalBirdies || 0),
@@ -255,7 +209,8 @@ export default function Player() {
       }
     : EMPTY_DIST;
 
-  const leagueDistribution: ScoreDist = leagueMetrics?.scoreDistribution || EMPTY_DIST;
+  const leagueDistribution: ScoreDistribution =
+    leagueMetrics?.scoreDistribution || EMPTY_DIST;
   const leagueRoundCount = Number(leagueMetrics?.seasonSummary?.totalRounds || 0);
 
   return (
@@ -270,21 +225,16 @@ export default function Player() {
           text={stats ? `${stats.rounds} rounds` : "No rounds"}
         />
         {player.seasonRank && <InfoChip text={`Rank #${player.seasonRank}`} strong />}
-        <button
-          type="button"
-          onClick={openHandicapDrawer}
-          className="cursor-pointer summary-pill hover:border-primary/30 hover:bg-primary/5 transition-colors"
+        <SummaryPillButton
+          onClick={() => handicapDrawer.open()}
+          className="hover:border-slate-900/30 hover:bg-slate-900/5"
           title="How handicap is calculated"
         >
           <span className="text-gray-400">
             <Target size={12} />
           </span>
           <span className="font-semibold text-gray-800">HCP {formatValue(player.handicap)}</span>
-        </button>
-        {/* <InfoChip
-          icon={<Flag size={12} />}
-          text={`Start ${formatValue(stats?.startingHandicap ?? player.startingHandicap)}`}
-        /> */}
+        </SummaryPillButton>
         <div
           className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border bg-white ${hcpColor}`}
         >
@@ -300,19 +250,17 @@ export default function Player() {
       ) : (
         <div className="flex flex-col gap-4">
           <div>
-            <div className="mb-3">
-              <h3 className="text-lg font-bold text-gray-800 tracking-tight">Overview</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Season snapshot and key scoring metrics
-              </p>
-            </div>
+            <SectionIntro
+              title="Overview"
+              description="Season snapshot and key scoring metrics"
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 {
                   label: "Season Points",
                   value: stats.totalPoints,
                   sub: `${stats.avgPoints} avg / round`,
-                  icon: <Zap size={15} className="text-primary" />,
+                  icon: <Zap size={15} className="text-slate-900" />,
                   accent: "from-slate-50 to-white border-slate-200",
                 },
                 {
@@ -360,30 +308,28 @@ export default function Player() {
           </div>
 
           <div className="pt-2">
-            <div className="mb-3">
-              <h3 className="text-lg font-bold text-gray-800 tracking-tight">Performance</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Scoring distribution and detailed stat breakdown
-              </p>
-            </div>
+            <SectionIntro
+              title="Performance"
+              description="Scoring distribution and detailed stat breakdown"
+            />
             <aside className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
-              <section className="surface-card">
-                <div className="panel-row">
+              <SurfaceCard as="section">
+                <PanelBar>
                   <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
                   <h2 className="text-sm font-semibold text-gray-900">Score Distribution</h2>
                   <span className="ml-auto text-[10px] text-gray-400">Player vs league avg</span>
-                </div>
+                </PanelBar>
                 <div className="px-4 py-3">
-                  <ScoreDistributionChart
+                  <PlayerScoreDistributionChart
                     playerDistribution={playerDistribution}
                     playerRounds={Number(stats.rounds || 0)}
                     leagueDistribution={leagueDistribution}
                     leagueRounds={leagueRoundCount}
                   />
                 </div>
-              </section>
+              </SurfaceCard>
 
-              <section className="surface-card">
+              <SurfaceCard as="section">
                 <div className="px-4 py-3">
                   <h2 className="text-sm font-semibold text-gray-900">Scoring Detail</h2>
                 </div>
@@ -404,16 +350,16 @@ export default function Player() {
                     </div>
                   ))}
                 </div>
-              </section>
+              </SurfaceCard>
             </aside>
           </div>
 
           <div className="pt-2">
-            <div className="mb-3">
-              <h3 className="text-lg font-bold text-gray-800 tracking-tight">Round History</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Chronological log of completed rounds</p>
-            </div>
-            <section className="surface-card">
+            <SectionIntro
+              title="Round History"
+              description="Chronological log of completed rounds"
+            />
+            <SurfaceCard as="section">
               <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
@@ -424,17 +370,15 @@ export default function Player() {
                 </span>
               </div>
               <RoundHistory rounds={rounds} leagueId={leagueId} />
-            </section>
+            </SurfaceCard>
           </div>
 
           <div className="pt-2">
-            <div className="mb-3">
-              <h3 className="text-lg font-bold text-gray-800 tracking-tight">Round Breakdown</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Hole-by-hole gross and net scoring details
-              </p>
-            </div>
-            <section className="surface-card">
+            <SectionIntro
+              title="Round Breakdown"
+              description="Hole-by-hole gross and net scoring details"
+            />
+            <SurfaceCard as="section">
               <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Flag size={14} className="text-emerald-500" strokeWidth={2.5} />
@@ -473,32 +417,30 @@ export default function Player() {
                 leagueId={leagueId}
                 scoreView={roundBreakdownView}
               />
-            </section>
+            </SurfaceCard>
           </div>
         </div>
       )}
 
-      {isHandicapDrawerMounted && (
+      {handicapDrawer.isMounted && (
         <div className="fixed inset-0 z-50">
           <button
             type="button"
             aria-label="Close handicap drawer"
-            onClick={closeHandicapDrawer}
+            onClick={handicapDrawer.close}
             className={`absolute inset-0 bg-black/35 transition-opacity duration-300 ${
-              isHandicapDrawerOpen ? "opacity-100" : "opacity-0"
+              handicapDrawer.isOpen ? "opacity-100" : "opacity-0"
             }`}
           />
 
           <aside
             className={`app-slideout-drawer absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 overflow-y-auto transition-transform duration-300 ease-out ${
-              isHandicapDrawerOpen ? "translate-x-0" : "translate-x-full"
+              handicapDrawer.isOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >
             <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4">
               <div>
-                <p className="section-kicker">
-                  Handicap Detail
-                </p>
+                <SectionKicker>Handicap Detail</SectionKicker>
                 <h3 className="text-lg font-bold text-gray-900 tracking-tight">
                   How Handicap Is Calculated
                 </h3>
@@ -508,7 +450,7 @@ export default function Player() {
               </div>
               <button
                 type="button"
-                onClick={closeHandicapDrawer}
+                onClick={handicapDrawer.close}
                 className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200"
                 aria-label="Close"
               >
@@ -517,10 +459,8 @@ export default function Player() {
             </div>
 
             <div className="p-5 space-y-5">
-              <section className="surface-card p-4">
-                <p className="section-kicker mb-2.5">
-                  1. Handicap Setup
-                </p>
+              <SurfaceCard as="section" className="p-4">
+                <SectionKicker className="mb-2.5">1. Handicap Setup</SectionKicker>
                 <div className="grid grid-cols-2 gap-3">
                   <StatMini
                     label="Starting"
@@ -542,24 +482,24 @@ export default function Player() {
                     }
                   />
                 </div>
-              </section>
+              </SurfaceCard>
 
-              <section className="surface-card p-4">
-                <p className="section-kicker mb-2.5">
+              <SurfaceCard as="section" className="p-4">
+                <SectionKicker className="mb-2.5">
                   2. Round Variations (Differentials)
-                </p>
+                </SectionKicker>
                 {handicapDetail.allRows.length === 0 ? (
                   <p className="text-xs text-gray-400">No differentials available yet.</p>
                 ) : (
                   <div className="max-h-64 overflow-auto border border-gray-100 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
                     <table className="w-full text-left text-xs">
                       <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
-                        <tr className="section-kicker">
+                        <TableHeaderRow>
                           <th className="px-3 py-2">Round</th>
                           <th className="px-3 py-2 text-right">Adj</th>
                           <th className="px-3 py-2 text-right">Rating</th>
                           <th className="px-3 py-2 text-right">Diff</th>
-                        </tr>
+                        </TableHeaderRow>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {handicapDetail.allRows.map((row) => {
@@ -576,7 +516,7 @@ export default function Player() {
                               className={isUsed ? "bg-blue-50/50" : "bg-white hover:bg-gray-50/60"}
                             >
                               <td className="px-3 py-2 min-w-0">
-                                <p className="font-semibold text-gray-800 truncate max-w-[180px]">
+                                <p className="font-semibold text-gray-800 truncate max-w-45">
                                   {row.eventName}
                                 </p>
                                 <p className="text-[10px] text-gray-400">
@@ -599,12 +539,12 @@ export default function Player() {
                     </table>
                   </div>
                 )}
-              </section>
+              </SurfaceCard>
 
-              <section className="surface-card p-4">
-                <p className="section-kicker mb-2.5">
+              <SurfaceCard as="section" className="p-4">
+                <SectionKicker className="mb-2.5">
                   3. Use Variations To Calculate Handicap
-                </p>
+                </SectionKicker>
                 {handicapComputation ? (
                   <div className="space-y-2.5 text-xs text-gray-600">
                     <p className="font-medium text-gray-700">Variations are added together...</p>
@@ -680,342 +620,11 @@ export default function Player() {
                     At least 3 completed rounds are needed before a handicap can be calculated.
                   </p>
                 )}
-              </section>
+              </SurfaceCard>
             </div>
           </aside>
         </div>
       )}
     </div>
-  );
-}
-
-function StatMini({ label, value }: { label: string; value: any }) {
-  return (
-    <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="text-sm font-semibold text-gray-800 mt-0.5">{value}</p>
-    </div>
-  );
-}
-
-function InfoChip({
-  icon,
-  text,
-  strong = false,
-  capitalize = false,
-}: {
-  icon?: ReactNode;
-  text: any;
-  strong?: boolean;
-  capitalize?: boolean;
-}) {
-  return (
-    <div className="summary-pill">
-      {icon && <span className="text-gray-400">{icon}</span>}
-      <span
-        className={`${strong ? "font-semibold text-gray-800" : ""} ${capitalize ? "capitalize" : ""}`}
-      >
-        {text}
-      </span>
-    </div>
-  );
-}
-
-function ScoreDistributionChart({
-  playerDistribution,
-  playerRounds,
-  leagueDistribution,
-  leagueRounds,
-}: {
-  playerDistribution: ScoreDist;
-  playerRounds: number;
-  leagueDistribution: ScoreDist;
-  leagueRounds: number;
-}) {
-  const toPerRound = (dist: ScoreDist, rounds: number) => {
-    const divisor = Math.max(rounds, 1);
-    return [
-      dist.eagles,
-      dist.birdies,
-      dist.pars,
-      dist.bogeys,
-      dist.doubleBogeys,
-      dist.tripleBogeys,
-    ].map((value) => round1(Number(value || 0) / divisor));
-  };
-
-  const chartData = {
-    labels: ["Eagle", "Birdie", "Par", "Bogey", "Double", "Triple+"],
-    datasets: [
-      {
-        label: "Player Avg",
-        data: toPerRound(playerDistribution, playerRounds),
-        backgroundColor: "rgba(15, 23, 42, 0.88)",
-        borderRadius: 4,
-        borderSkipped: false,
-        categoryPercentage: 0.78,
-        barPercentage: 0.74,
-      },
-      {
-        label: "League Avg",
-        data: toPerRound(leagueDistribution, leagueRounds),
-        backgroundColor: "rgba(156, 163, 175, 0.5)",
-        borderRadius: 4,
-        borderSkipped: false,
-        categoryPercentage: 0.78,
-        barPercentage: 0.74,
-      },
-    ],
-  };
-
-  const options: any = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "top" as const,
-        labels: {
-          boxWidth: 10,
-          boxHeight: 10,
-          borderRadius: 3,
-          useBorderRadius: true,
-          font: { size: 11 },
-          color: "#6b7280",
-          padding: 10,
-        },
-      },
-      tooltip: {
-        callbacks: {
-          label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.y} / round`,
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 10 }, color: "#9ca3af" },
-        border: { display: false },
-      },
-      y: {
-        grid: { color: "#f3f4f6" },
-        ticks: { font: { size: 10 }, color: "#9ca3af", precision: 0 },
-        border: { display: false },
-      },
-    },
-  };
-
-  return (
-    <div className="h-[180px]">
-      <Bar data={chartData} options={options} />
-    </div>
-  );
-}
-
-function RoundHistory({ rounds, leagueId }: { rounds: any[]; leagueId?: string }) {
-  const sorted = [...rounds].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="bg-gray-50 section-kicker">
-            <th className="pl-4 pr-3 py-2.5 text-left min-w-56">Event</th>
-            <th className="px-3 py-2.5 text-right">Gross</th>
-            <th className="px-3 py-2.5 text-right">Net</th>
-            <th className="px-3 py-2.5 text-right">Pts</th>
-            <th className="px-3 py-2.5 text-right">Putts</th>
-            <th className="px-3 py-2.5 text-right">E</th>
-            <th className="px-3 py-2.5 text-right">B</th>
-            <th className="px-3 py-2.5 text-right">Par</th>
-            <th className="px-3 py-2.5 text-right">Bogey</th>
-            <th className="px-3 py-2.5 text-right">Diff</th>
-            <th className="pl-3 pr-4 py-2.5 text-right">HCP</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {sorted.map((round: any) => {
-            const delta =
-              round.preHandicap != null && round.postHandicap != null
-                ? Number(round.postHandicap) - Number(round.preHandicap)
-                : null;
-            const DeltaIcon =
-              delta == null || Math.abs(delta) < 0.05
-                ? Minus
-                : delta < 0
-                  ? TrendingDown
-                  : TrendingUp;
-            const deltaClass =
-              delta == null || Math.abs(delta) < 0.05
-                ? "text-gray-300"
-                : delta < 0
-                  ? "text-emerald-600"
-                  : "text-red-500";
-
-            return (
-              <tr key={round.eventId} className="hover:bg-gray-50/70">
-                <td className="pl-4 pr-3 py-2.5">
-                  <Link
-                    to={`/league/${leagueId}/events/${round.eventId}`}
-                    className="group flex items-center justify-between gap-3"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate font-semibold text-gray-900">
-                        {round.eventName}
-                      </span>
-                      <span className="block text-[10px] text-gray-400">
-                        {dayjs(round.date).format("MMM D, YYYY")}
-                      </span>
-                    </span>
-                    <ChevronRight
-                      size={13}
-                      className="text-gray-300 group-hover:text-gray-500 shrink-0"
-                    />
-                  </Link>
-                </td>
-                <NumericCell value={round.gross} strong />
-                <NumericCell value={round.net} />
-                <NumericCell value={round.points} strong className="text-primary" />
-                <NumericCell value={round.putts} />
-                <NumericCell value={round.eagles} />
-                <NumericCell value={round.birdies} />
-                <NumericCell value={round.pars} />
-                <NumericCell value={round.bogeys} />
-                <NumericCell value={round.differential} />
-                <td className="pl-3 pr-4 py-2.5 text-right">
-                  <span
-                    className={`inline-flex items-center justify-end gap-1 font-semibold ${deltaClass}`}
-                  >
-                    <DeltaIcon size={11} strokeWidth={2.5} />
-                    {delta == null ? "-" : formatDelta(delta)}
-                  </span>
-                  <span className="block text-[10px] text-gray-400">
-                    {formatValue(round.postHandicap)}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function PlayerRoundBreakdown({
-  rounds,
-  leagueId,
-  scoreView,
-}: {
-  rounds: any[];
-  leagueId?: string;
-  scoreView: "gross" | "net";
-}) {
-  const sorted = [...rounds].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  const holes = Array.from(
-    new Set(sorted.flatMap((round) => (round.scores ?? []).map((score: any) => Number(score.hole))))
-  ).sort((a, b) => a - b);
-
-  return (
-    <div className="w-full">
-      <div className="w-full overflow-x-auto">
-        <table className="w-full table-fixed">
-          <colgroup>
-            <col className="w-56" />
-            {holes.map((hole) => (
-              <col key={hole} />
-            ))}
-            <col className="w-14" />
-            <col className="w-14" />
-          </colgroup>
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50 section-kicker">
-              <th className="pl-4 py-2.5 text-left">Round</th>
-              {holes.map((hole) => (
-                <th key={hole} className="py-2.5 text-center">
-                  {hole}
-                </th>
-              ))}
-              <th className="py-2.5 text-right">Gross</th>
-              <th className="pr-4 py-2.5 text-right">Net</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {sorted.map((round: any) => (
-              <tr key={round.id ?? round.eventId} className="transition-colors hover:bg-gray-50/60">
-                <td className="pl-4 py-2">
-                  <Link
-                    to={`/league/${leagueId}/events/${round.eventId}`}
-                    className="group flex flex-col gap-0.5"
-                  >
-                    <span className="truncate text-xs font-semibold text-gray-800 group-hover:text-gray-950">
-                      {round.eventName || "Round"}
-                    </span>
-                    <span className="text-[10px] font-medium text-gray-400">
-                      {dayjs(round.date).format("MMM D, YYYY")}
-                      {round.course?.name ? ` · ${round.course.name}` : ""}
-                      {round.tee?.name ? ` · ${round.tee.name}` : ""}
-                      {round.event?.startSide ? ` · ${round.event.startSide}` : ""}
-                    </span>
-                  </Link>
-                </td>
-                {holes.map((hole) => {
-                  const score = round.scores?.find((s: any) => Number(s.hole) === hole);
-                  const value = score?.[scoreView];
-                  const par = Number(score?.par ?? 0);
-                  const numericValue = Number(value ?? 0);
-                  const isHighlight = score && par > 0 && numericValue < par;
-
-                  return (
-                    <td key={hole} className="py-2.5 text-center text-xs text-gray-700">
-                      {score ? (
-                        <span
-                          className={
-                            isHighlight
-                              ? "inline-flex h-5 w-5 items-center justify-center rounded bg-green-100 font-semibold text-green-700 ring-1 ring-green-200"
-                              : ""
-                          }
-                        >
-                          {formatValue(value)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-                  );
-                })}
-                <td className="py-2.5 text-right">
-                  <span className="text-sm font-bold text-gray-700">{round.gross}</span>
-                </td>
-                <td className="pr-4 py-2.5 text-right">
-                  <span className="text-sm font-semibold text-gray-500">{round.net}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function NumericCell({
-  value,
-  strong = false,
-  className = "",
-}: {
-  value: any;
-  strong?: boolean;
-  className?: string;
-}) {
-  return (
-    <td
-      className={`px-3 py-2.5 text-right text-gray-600 ${strong ? "font-black text-gray-900" : ""} ${className}`}
-    >
-      {formatValue(value)}
-    </td>
   );
 }

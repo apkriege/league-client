@@ -33,7 +33,7 @@ export default function ToggleCards({
             key={option.value}
             type="button"
             className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl p-2 transition-all duration-200 ease-out ${
-              isSelected ? "bg-primary text-primary-content shadow-sm" : "hover:bg-sky-100/70"
+              isSelected ? "bg-slate-900 text-white shadow-sm" : "hover:bg-sky-100/70"
             } ${optionClassName}`}
             onClick={() => onChange(option.value)}
             aria-pressed={isSelected}

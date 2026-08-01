@@ -1,3 +1,6 @@
+import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import PanelBar from "@/components/layout/PanelBar";
+import SurfaceCard from "@/components/layout/SurfaceCard";
 import Button from "@/components/layout/Button";
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
@@ -14,6 +17,7 @@ import { calculateMatchplayPops } from "./util";
 import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
 import { useToast } from "@/context/ToastContext";
 import { validateHoleScores } from "./scoreValidation";
+import { formatTime } from "@/utils/format";
 
 export const CreateFlightScoresIndividualMatch = ({
   flight,
@@ -374,15 +378,15 @@ export const CreateFlightScoresIndividualMatch = ({
               </div>
             </td>
           ))}
-          <td className="font-bold text-center text-xs">
+          <ScoreValueCell>
             {getPlayerTotalScore(Number(player.playerId))}
-          </td>
-          <td className="font-bold text-center text-xs">
+          </ScoreValueCell>
+          <ScoreValueCell>
             {getPlayerNetScore(Number(player.playerId))}
-          </td>
-          <td className="font-bold text-center text-xs">{holePoints}</td>
-          <td className="font-bold text-center text-xs">{matchPoints}</td>
-          <td className="font-bold text-center text-xs">{holePoints + matchPoints}</td>
+          </ScoreValueCell>
+          <ScoreValueCell>{holePoints}</ScoreValueCell>
+          <ScoreValueCell>{matchPoints}</ScoreValueCell>
+          <ScoreValueCell>{holePoints + matchPoints}</ScoreValueCell>
         </tr>
         <tr className="bg-slate-50 text-[11px] text-gray-600">
           <td className="p-2 font-semibold">Hole Pts</td>
@@ -402,11 +406,13 @@ export const CreateFlightScoresIndividualMatch = ({
   };
 
   return (
-    <div className="surface-card">
-      <div className="panel-header">
+    <SurfaceCard>
+      <PanelBar variant="header">
         <div className="flex items-center gap-2">
           <Flag size={14} className="text-gray-400" strokeWidth={2} />
-          <h3 className="text-sm font-semibold text-gray-800">Flight {flight.startTime}</h3>
+          <h3 className="text-sm font-semibold text-gray-800">
+            Flight {formatTime(flight.startsAt, event.timeZone)}
+          </h3>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -422,7 +428,7 @@ export const CreateFlightScoresIndividualMatch = ({
             {isEditMode ? "Save Changes" : "Submit Scores"}
           </Button>
         </div>
-      </div>
+      </PanelBar>
 
       <div className="p-4">
         <div className="mb-3">
@@ -439,9 +445,9 @@ export const CreateFlightScoresIndividualMatch = ({
                 <tr className="text-xs text-gray-700">
                   <th className="p-2">Player</th>
                   {holes.map((hole: any) => (
-                    <th key={hole.num} className="p-2 text-center">
+                    <ScoreHeaderCell key={hole.num}>
                       {hole.num}
-                    </th>
+                    </ScoreHeaderCell>
                   ))}
                   <th className="w-px whitespace-nowrap p-2 text-center">Total</th>
                   <th className="w-px whitespace-nowrap p-2 text-center">Net</th>
@@ -473,6 +479,6 @@ export const CreateFlightScoresIndividualMatch = ({
           </div>
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 };

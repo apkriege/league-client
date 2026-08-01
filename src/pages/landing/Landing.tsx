@@ -1,9 +1,4 @@
-import { register } from "@api/auth";
-import { createCheckoutSession } from "@api/payments";
-import { useToast } from "@/context/ToastContext";
-import { useAppStore } from "@/stores/appStore";
 import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice } from "@/lib/billing";
-import { normalizeAuthUser } from "@/lib/authUser";
 import {
   ArrowRight,
   BarChart3,
@@ -15,23 +10,23 @@ import {
   Flag,
   Gauge,
   LineChart,
-  LockKeyhole,
   ShieldCheck,
   Sparkles,
   Trophy,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import lnLogo from "@/assets/ln-logo.png";
+import lnLogo from "@/assets/league-night-logo.png";
+
+const RegisterPanel = lazy(() => import("./components/RegisterPanel"));
 
 const GOLF_IMAGES = {
-  hero: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=1800&q=85",
+  hero: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&q=76",
   aerial:
-    "https://images.unsplash.com/photo-1592919505780-303950717480?auto=format&fit=crop&w=1100&q=85",
+    "https://images.unsplash.com/photo-1592919505780-303950717480?auto=format&fit=crop&q=76",
   detail:
-    "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&q=76",
 };
 
 const stats = [
@@ -89,26 +84,18 @@ export default function Landing() {
           from { opacity: 0; transform: translateY(22px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes landing-drift {
-          0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-          50% { transform: translate3d(18px, -18px, 0) rotate(1deg); }
-        }
-        @keyframes landing-scan {
-          0% { transform: translateX(-100%); opacity: 0; }
-          20%, 80% { opacity: 1; }
-          100% { transform: translateX(100%); opacity: 0; }
-        }
         .landing-reveal { animation: landing-fade-up 780ms cubic-bezier(.2,.8,.2,1) both; }
         .landing-delay-1 { animation-delay: 120ms; }
         .landing-delay-2 { animation-delay: 240ms; }
         .landing-delay-3 { animation-delay: 360ms; }
-        .landing-drift { animation: landing-drift 9s ease-in-out infinite; }
-        .landing-scan::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
-          animation: landing-scan 4.8s ease-in-out infinite;
+        .landing-deferred-section {
+          content-visibility: auto;
+          contain-intrinsic-size: auto 800px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .landing-reveal {
+            animation: none;
+          }
         }
       `}</style>
 
@@ -130,13 +117,17 @@ function Hero() {
   return (
     <section className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
       <img
-        src={GOLF_IMAGES.hero}
+        src={`${GOLF_IMAGES.hero}&w=1800`}
+        srcSet={`${GOLF_IMAGES.hero}&w=720 720w, ${GOLF_IMAGES.hero}&w=1200 1200w, ${GOLF_IMAGES.hero}&w=1800 1800w`}
+        sizes="100vw"
         alt="Golf course fairway at sunset"
+        width={1800}
+        height={1200}
+        fetchPriority="high"
+        decoding="async"
         className="absolute inset-0 h-full w-full scale-105 object-cover opacity-58"
       />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(125,211,252,.28),transparent_26%),linear-gradient(115deg,rgba(7,20,38,.98)_0%,rgba(7,20,38,.78)_48%,rgba(7,20,38,.34)_100%)]" />
-      <div className="absolute -left-24 top-32 h-80 w-80 rounded-full bg-sky-300/20 blur-3xl landing-drift" />
-      <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-blue-400/12 blur-3xl landing-drift" />
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8">
         <Link to="/" className="group flex items-center gap-2">
@@ -149,7 +140,7 @@ function Hero() {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-6 rounded-full border border-white/10 bg-white/8 px-5 py-2 text-xs font-bold text-white/70 backdrop-blur-md md:flex">
+        <nav className="hidden items-center gap-6 rounded-full border border-white/10 bg-slate-950/45 px-5 py-2 text-xs font-bold text-white/70 md:flex">
           <a href="#product" className="hover:text-white">
             Product
           </a>
@@ -164,7 +155,7 @@ function Hero() {
         <div className="flex items-center gap-2">
           <Link
             to="/login"
-            className="rounded-full border border-white/15 px-4 py-2 text-xs font-black text-white/80 backdrop-blur-md transition hover:bg-white/10 hover:text-white"
+            className="rounded-full border border-white/15 bg-slate-950/35 px-4 py-2 text-xs font-black text-white/80 transition hover:bg-white/10 hover:text-white"
           >
             Sign in
           </Link>
@@ -179,7 +170,7 @@ function Hero() {
 
       <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-14 md:px-8 lg:grid-cols-[minmax(0,1fr)_520px] lg:pb-28 lg:pt-20">
         <div>
-          <div className="landing-reveal inline-flex items-center gap-2 rounded-full border border-sky-200/20 bg-sky-200/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-sky-100 backdrop-blur-md">
+          <div className="landing-reveal inline-flex items-center gap-2 rounded-full border border-sky-200/20 bg-slate-950/40 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-sky-100">
             <Sparkles size={13} />
             Premium league management for golf clubs
           </div>
@@ -204,7 +195,7 @@ function Hero() {
             </a>
             <a
               href="#product"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-5 py-3 text-sm font-black text-white backdrop-blur-md transition hover:bg-white/12"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-slate-950/35 px-5 py-3 text-sm font-black text-white transition hover:bg-white/12"
             >
               See the system
               <ChevronRight size={16} />
@@ -215,7 +206,7 @@ function Hero() {
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="rounded-3xl border border-white/10 bg-white/8 p-4 backdrop-blur-md"
+                className="rounded-3xl border border-white/10 bg-slate-950/40 p-4"
               >
                 <p className="text-2xl font-black text-white">{stat.value}</p>
                 <p className="mt-1 text-[11px] font-semibold leading-4 text-white/52">
@@ -235,8 +226,8 @@ function Hero() {
 function HeroProductCard() {
   return (
     <div className="landing-reveal landing-delay-2 relative">
-      <div className="absolute -inset-5 rounded-[2.5rem] bg-sky-300/18 blur-2xl" />
-      <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-white/10 p-3 shadow-2xl shadow-black/30 backdrop-blur-xl landing-scan">
+      <div className="absolute -inset-5 rounded-[2.5rem] bg-[radial-gradient(circle,rgba(125,211,252,.22),transparent_70%)]" />
+      <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-slate-900/75 p-3 shadow-2xl shadow-black/30">
         <div className="rounded-[1.5rem] bg-[#f8fafc] text-slate-950 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <div>
@@ -318,7 +309,7 @@ function HeroProductCard() {
 
 function ProofStrip() {
   return (
-    <section className="relative border-b border-black/5 bg-[#f4f7fb]">
+    <section className="landing-deferred-section relative border-b border-black/5 bg-[#f4f7fb]">
       <div className="mx-auto grid max-w-7xl gap-3 px-5 py-6 md:grid-cols-4 md:px-8">
         {[
           "Course and tee database",
@@ -338,8 +329,7 @@ function ProofStrip() {
 
 function ProductSection() {
   return (
-    <section id="product" className="relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
-      <div className="absolute right-0 top-10 h-96 w-96 rounded-full bg-sky-200/40 blur-3xl" />
+    <section id="product" className="landing-deferred-section relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
       <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
         <div className="landing-reveal">
           <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
@@ -380,8 +370,14 @@ function ProductSection() {
           <div className="relative grid gap-4 lg:grid-cols-[1fr_0.74fr]">
             <div className="overflow-hidden rounded-[2rem] bg-slate-950 p-3 shadow-2xl shadow-blue-950/18">
               <img
-                src={GOLF_IMAGES.aerial}
+                src={`${GOLF_IMAGES.aerial}&w=1100`}
+                srcSet={`${GOLF_IMAGES.aerial}&w=560 560w, ${GOLF_IMAGES.aerial}&w=800 800w, ${GOLF_IMAGES.aerial}&w=1100 1100w`}
+                sizes="(min-width: 1024px) 42vw, 100vw"
                 alt="Aerial view of a golf course fairway"
+                width={1100}
+                height={733}
+                loading="lazy"
+                decoding="async"
                 className="h-72 w-full rounded-[1.45rem] object-cover opacity-90"
               />
               <div className="p-5 text-white">
@@ -420,7 +416,7 @@ function MetricCard({ label, value, icon }: { label: string; value: string; icon
 
 function WorkflowSection() {
   return (
-    <section id="workflow" className="bg-[#101828] px-5 py-24 text-white md:px-8">
+    <section id="workflow" className="landing-deferred-section bg-[#101828] px-5 py-24 text-white md:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
           <div>
@@ -448,7 +444,7 @@ function WorkflowSection() {
               key={step}
               className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.06] p-5 transition hover:-translate-y-1 hover:bg-white/[0.09]"
             >
-              <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-sky-300/10 blur-2xl transition group-hover:bg-sky-300/20" />
+              <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-[radial-gradient(circle,rgba(125,211,252,.15),transparent_70%)] transition group-hover:opacity-80" />
               <p className="text-[10px] font-black text-sky-300">{step}</p>
               <h3 className="mt-10 text-xl font-black">{title}</h3>
               <p className="mt-3 text-sm leading-6 text-white/58">{body}</p>
@@ -462,7 +458,7 @@ function WorkflowSection() {
 
 function FeatureSection() {
   return (
-    <section className="relative overflow-hidden bg-white px-5 py-24 md:px-8">
+    <section className="landing-deferred-section relative overflow-hidden bg-white px-5 py-24 md:px-8">
       <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <div className="lg:sticky lg:top-8">
           <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
@@ -500,15 +496,21 @@ function FeatureSection() {
 
 function ConversionSection() {
   return (
-    <section className="relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
+    <section className="landing-deferred-section relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
       <div className="absolute inset-x-0 top-0 h-px bg-black/5" />
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
         <div className="overflow-hidden rounded-[2.25rem] bg-slate-950 p-3 shadow-2xl shadow-blue-950/15">
           <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
             <div className="relative min-h-80 overflow-hidden rounded-[1.65rem]">
               <img
-                src={GOLF_IMAGES.detail}
+                src={`${GOLF_IMAGES.detail}&w=900`}
+                srcSet={`${GOLF_IMAGES.detail}&w=480 480w, ${GOLF_IMAGES.detail}&w=720 720w, ${GOLF_IMAGES.detail}&w=900 900w`}
+                sizes="(min-width: 1024px) 36vw, 100vw"
                 alt="Putting green and golf score detail"
+                width={900}
+                height={600}
+                loading="lazy"
+                decoding="async"
                 className="h-full min-h-80 w-full object-cover"
               />
               <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(7,20,38,.72),rgba(29,78,216,.42)),radial-gradient(circle_at_70%_30%,rgba(125,211,252,.2),transparent_32%)]" />
@@ -536,7 +538,7 @@ function ConversionSection() {
           </div>
         </div>
 
-        <RegisterPanel />
+        <DeferredRegisterPanel />
       </div>
     </section>
   );
@@ -546,7 +548,7 @@ function PricingSection() {
   const includedTotal = formatBillingPrice(BILLING_PRICE_PER_GOLFER * BILLING_MIN_GOLFERS);
 
   return (
-    <section id="pricing" className="bg-white px-5 py-24 md:px-8">
+    <section id="pricing" className="landing-deferred-section bg-white px-5 py-24 md:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
@@ -616,185 +618,43 @@ function PricingSection() {
   );
 }
 
-function RegisterPanel() {
-  const { show } = useToast();
-  const { setUser } = useAppStore();
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-  });
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [message, setMessage] = useState("");
-
-  const update = (key: keyof typeof form, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
+function DeferredRegisterPanel() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(
+    () => typeof IntersectionObserver === "undefined",
+  );
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const checkoutStatus = params.get("checkout");
+    const element = containerRef.current;
+    if (!element || shouldLoad) return;
 
-    if (checkoutStatus !== "registration_cancel") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setShouldLoad(true);
+        observer.disconnect();
+      },
+      { rootMargin: "600px 0px" },
+    );
+    observer.observe(element);
 
-    setStatus("error");
-    setMessage("Registration checkout was canceled.");
-    params.delete("checkout");
-    const nextQuery = params.toString();
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
-    window.history.replaceState({}, "", nextUrl);
-  }, []);
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setStatus("submitting");
-    setMessage("");
-
-    try {
-      const response = await register(form);
-      const user = response.data?.user;
-      const normalizedUser = normalizeAuthUser(user);
-      if (normalizedUser) {
-        setUser(normalizedUser);
-      }
-      setStatus("success");
-      setMessage("Account created. Redirecting to secure checkout...");
-
-      const checkout = await createCheckoutSession({
-        purpose: "registration",
-        requestedGolfers: BILLING_MIN_GOLFERS,
-        successUrl: `${window.location.origin}/leagues?checkout=registration_success`,
-        cancelUrl: `${window.location.origin}/?checkout=registration_cancel#register`,
-      });
-
-      if (!checkout?.url) {
-        throw new Error("Could not start registration checkout.");
-      }
-
-      window.location.href = checkout.url;
-    } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.message || error?.message || "Unable to create account.";
-      setStatus("error");
-      setMessage(errorMessage);
-      show(errorMessage, "error");
-    }
-  };
+    return () => observer.disconnect();
+  }, [shouldLoad]);
 
   return (
-    <aside
-      id="register"
-      className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-950/10 lg:sticky lg:top-6"
-    >
-      <div className="rounded-[1.5rem] bg-slate-950 p-5 text-white">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-300">
-              Register
-            </p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight">Start League Night Pro.</h2>
-          </div>
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-300 text-slate-950">
-            <LockKeyhole size={18} />
-          </span>
-        </div>
-        <p className="mt-4 text-sm leading-7 text-white/62">
-          Includes your admin account and {BILLING_MIN_GOLFERS} golfer slots starting at{" "}
-          {formatBillingPrice(BILLING_PRICE_PER_GOLFER * BILLING_MIN_GOLFERS)}.
-        </p>
-      </div>
-
-      <form onSubmit={submit} className="mt-5 grid gap-3">
-        <div className="grid grid-cols-2 gap-3">
-          <TextField
-            label="First name"
-            value={form.firstName}
-            onChange={(value) => update("firstName", value)}
-            autoComplete="given-name"
-          />
-          <TextField
-            label="Last name"
-            value={form.lastName}
-            onChange={(value) => update("lastName", value)}
-            autoComplete="family-name"
-          />
-        </div>
-
-        <TextField
-          label="Email"
-          type="email"
-          value={form.email}
-          onChange={(value) => update("email", value)}
-          autoComplete="email"
-        />
-        <TextField
-          label="Password"
-          type="password"
-          minLength={6}
-          value={form.password}
-          onChange={(value) => update("password", value)}
-          autoComplete="new-password"
-        />
-
-        {message && (
-          <p
-            className={`rounded-2xl px-4 py-3 text-xs font-bold ${
-              status === "error" ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"
-            }`}
-          >
-            {message}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={status === "submitting"}
-          className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-sky-300 px-5 text-sm font-black text-slate-950 transition hover:bg-sky-200 disabled:opacity-60"
+    <div id="register" ref={containerRef} className="min-h-[560px] scroll-mt-6 lg:sticky lg:top-6">
+      {shouldLoad ? (
+        <Suspense
+          fallback={
+            <div className="min-h-[560px] rounded-[2rem] border border-slate-200 bg-white" />
+          }
         >
-          {status === "submitting" ? "Creating account..." : "Create account"}
-          <ArrowRight size={16} />
-        </button>
-      </form>
-
-      <p className="mt-4 text-center text-xs text-slate-500">
-        Already have an account?{" "}
-        <Link to="/login" className="font-black text-slate-950 underline">
-          Sign in
-        </Link>
-      </p>
-    </aside>
-  );
-}
-
-function TextField({
-  label,
-  value,
-  onChange,
-  type = "text",
-  minLength,
-  autoComplete,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  minLength?: number;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="grid gap-1.5">
-      <span className="text-xs font-black text-slate-600">{label}</span>
-      <input
-        required
-        type={type}
-        minLength={minLength}
-        value={value}
-        autoComplete={autoComplete}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-800/10"
-      />
-    </label>
+          <RegisterPanel />
+        </Suspense>
+      ) : (
+        <div className="min-h-[560px] rounded-[2rem] border border-slate-200 bg-white" />
+      )}
+    </div>
   );
 }
 

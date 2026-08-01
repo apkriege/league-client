@@ -1,3 +1,4 @@
+import Button from "@/components/layout/Button";
 import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/stores/appStore";
 import { Input, Select } from "@/components/form";
@@ -6,158 +7,27 @@ import PageHeader from "@/components/layout/PageHeader";
 import { useToast } from "@/context/ToastContext";
 import { useClubs } from "@api/clubs";
 import { useCreateClub } from "@api/clubs/mutations";
-import { useCoursesWithTees, type CoursePayload, type CourseTeePayload } from "@api/courses";
+import { useCoursesWithTees } from "@api/courses";
 import { useCreateCourse, useDeleteCourse, useUpdateCourse } from "@api/courses/mutations";
-import { Flag, Plus, ShieldCheck } from "lucide-react";
+import type { ImportedCourse } from "@api/courses";
+import { AlertTriangle, Flag, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
-
-type CourseFormData = {
-  clubId: string;
-  name: string;
-  description: string;
-  location: string;
-  phone: string;
-  accessType: string;
-  numHoles: string;
-  par: string;
-};
-
-type ClubFormData = {
-  name: string;
-  description: string;
-  location: string;
-  phone: string;
-  link: string;
-  accessType: string;
-};
-
-type HoleFormData = {
-  num: number;
-  par: string;
-  dis: string;
-  hcp: string;
-};
-
-type TeeFormData = {
-  id?: number;
-  name: string;
-  color: string;
-  distance: string;
-  par: string;
-  frontPar: string;
-  backPar: string;
-  slopeMen: string;
-  slopeFrontMen: string;
-  slopeBackMen: string;
-  slopeWomen: string;
-  slopeFrontWomen: string;
-  slopeBackWomen: string;
-  ratingMen: string;
-  ratingFrontMen: string;
-  ratingBackMen: string;
-  ratingWomen: string;
-  ratingFrontWomen: string;
-  ratingBackWomen: string;
-  holes: HoleFormData[];
-};
-
-type CourseRecord = {
-  id: number;
-  clubId?: number;
-  name: string;
-  description?: string | null;
-  location?: string | null;
-  phone?: string | null;
-  accessType?: string | null;
-  numHoles?: number | null;
-  par?: number | null;
-  club?: { id?: number; name?: string | null; location?: string | null } | null;
-  tees?: Array<{
-    id?: number;
-    name?: string | null;
-    color?: string | null;
-    distance?: number | null;
-    par?: number | null;
-    frontPar?: number | null;
-    backPar?: number | null;
-    slopeMen?: number | null;
-    slopeFrontMen?: number | null;
-    slopeBackMen?: number | null;
-    slopeWomen?: number | null;
-    slopeFrontWomen?: number | null;
-    slopeBackWomen?: number | null;
-    ratingMen?: number | null;
-    ratingFrontMen?: number | null;
-    ratingBackMen?: number | null;
-    ratingWomen?: number | null;
-    ratingFrontWomen?: number | null;
-    ratingBackWomen?: number | null;
-    holes?: HoleFormData[] | null;
-  }> | null;
-};
-
-const emptyForm: CourseFormData = {
-  clubId: "",
-  name: "",
-  description: "",
-  location: "",
-  phone: "",
-  accessType: "public",
-  numHoles: "18",
-  par: "72",
-};
-
-const emptyClubForm: ClubFormData = {
-  name: "",
-  description: "",
-  location: "",
-  phone: "",
-  link: "",
-  accessType: "public",
-};
-
-const buildEmptyHoles = (count: number): HoleFormData[] =>
-  Array.from({ length: count }, (_, index) => ({
-    num: index + 1,
-    par: "4",
-    dis: "0",
-    hcp: String(index + 1),
-  }));
-
-const buildEmptyTee = (count: number): TeeFormData => ({
-  name: "",
-  color: "",
-  distance: "",
-  par: count === 9 ? "36" : "72",
-  frontPar: count === 9 ? "36" : "36",
-  backPar: count === 9 ? "0" : "36",
-  slopeMen: "",
-  slopeFrontMen: "",
-  slopeBackMen: count === 9 ? "0" : "",
-  slopeWomen: "",
-  slopeFrontWomen: "",
-  slopeBackWomen: count === 9 ? "0" : "",
-  ratingMen: "",
-  ratingFrontMen: "",
-  ratingBackMen: count === 9 ? "0" : "",
-  ratingWomen: "",
-  ratingFrontWomen: "",
-  ratingBackWomen: count === 9 ? "0" : "",
-  holes: buildEmptyHoles(count),
-});
-
-const ensureHoleCount = (holes: HoleFormData[], count: number) =>
-  Array.from({ length: count }, (_, index) => ({
-    num: index + 1,
-    par: holes[index]?.par ?? "4",
-    dis: holes[index]?.dis ?? "0",
-    hcp: holes[index]?.hcp ?? String(index + 1),
-  }));
-
-const toNullableNumber = (value: string) => {
-  if (value.trim() === "") return null;
-  return Number(value);
-};
+import {
+  buildEmptyTee,
+  courseToEditorState,
+  emptyClubForm,
+  emptyCourseForm,
+  ensureHoleCount,
+  getCourseValidationError,
+  toCoursePayload,
+  type ClubFormData,
+  type CourseFormData,
+  type CourseRecord,
+  type HoleFormData,
+  type TeeFormData,
+} from "./courseAdminForm";
+import ScorecardInputTable from "./components/ScorecardInputTable";
+import CourseImportSearch from "./components/CourseImportSearch";
 
 export default function CoursesAdmin() {
   const navigate = useNavigate();
@@ -173,10 +43,12 @@ export default function CoursesAdmin() {
   const createClub = useCreateClub();
 
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<CourseFormData>(emptyForm);
+  const [form, setForm] = useState<CourseFormData>(emptyCourseForm);
   const [clubForm, setClubForm] = useState<ClubFormData>(emptyClubForm);
   const [showClubForm, setShowClubForm] = useState(false);
   const [tees, setTees] = useState<TeeFormData[]>([]);
+  const [importWarnings, setImportWarnings] = useState<string[]>([]);
+  const [importAttribution, setImportAttribution] = useState("");
 
   const isSuperAdmin = String(user?.role || "").toUpperCase() === "SUPER";
   const holeCount = Number(form.numHoles) || 18;
@@ -245,8 +117,10 @@ export default function CoursesAdmin() {
 
   const resetForm = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    setForm(emptyCourseForm);
     setTees([]);
+    setImportWarnings([]);
+    setImportAttribution("");
 
     if (searchParams.get("edit")) {
       const nextParams = new URLSearchParams(searchParams);
@@ -256,55 +130,12 @@ export default function CoursesAdmin() {
   };
 
   const startEditing = (course: CourseRecord) => {
-    const nextHoleCount = Number(course.numHoles || 18) || 18;
-
+    const editorState = courseToEditorState(course);
     setEditingId(Number(course.id));
-    setForm({
-      clubId: String(course.clubId ?? course.club?.id ?? ""),
-      name: String(course.name || ""),
-      description: String(course.description || ""),
-      location: String(course.location || ""),
-      phone: String(course.phone || ""),
-      accessType: String(course.accessType || "public"),
-      numHoles: String(nextHoleCount),
-      par: String(course.par ?? 72),
-    });
-    setTees(
-      Array.isArray(course.tees)
-        ? course.tees.map((tee) => ({
-            id: tee.id != null ? Number(tee.id) : undefined,
-            name: String(tee.name || ""),
-            color: String(tee.color || ""),
-            distance: String(tee.distance ?? ""),
-            par: String(tee.par ?? 0),
-            frontPar: String(tee.frontPar ?? 0),
-            backPar: String(tee.backPar ?? 0),
-            slopeMen: String(tee.slopeMen ?? ""),
-            slopeFrontMen: String(tee.slopeFrontMen ?? ""),
-            slopeBackMen: String(tee.slopeBackMen ?? ""),
-            slopeWomen: tee.slopeWomen == null ? "" : String(tee.slopeWomen),
-            slopeFrontWomen: tee.slopeFrontWomen == null ? "" : String(tee.slopeFrontWomen),
-            slopeBackWomen: tee.slopeBackWomen == null ? "" : String(tee.slopeBackWomen),
-            ratingMen: String(tee.ratingMen ?? ""),
-            ratingFrontMen: String(tee.ratingFrontMen ?? ""),
-            ratingBackMen: String(tee.ratingBackMen ?? ""),
-            ratingWomen: tee.ratingWomen == null ? "" : String(tee.ratingWomen),
-            ratingFrontWomen: tee.ratingFrontWomen == null ? "" : String(tee.ratingFrontWomen),
-            ratingBackWomen: tee.ratingBackWomen == null ? "" : String(tee.ratingBackWomen),
-            holes: ensureHoleCount(
-              Array.isArray(tee.holes)
-                ? tee.holes.map((hole, index) => ({
-                    num: Number(hole.num ?? index + 1),
-                    par: String(hole.par ?? 4),
-                    dis: String(hole.dis ?? 0),
-                    hcp: String(hole.hcp ?? index + 1),
-                  }))
-                : [],
-              nextHoleCount
-            ),
-          }))
-        : []
-    );
+    setForm(editorState.form);
+    setTees(editorState.tees);
+    setImportWarnings([]);
+    setImportAttribution("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -348,6 +179,53 @@ export default function CoursesAdmin() {
     );
   };
 
+  const handleCourseImport = async (imported: ImportedCourse) => {
+    const normalizedClubName = imported.club.name.trim().toLowerCase();
+    const importedCity = imported.course.location.split(",")[0]?.trim().toLowerCase();
+    const existingClub = clubs.find(
+      (club: any) => {
+        const sameName = String(club.name || "").trim().toLowerCase() === normalizedClubName;
+        const clubLocation = String(club.location || "").trim().toLowerCase();
+        return sameName && (!clubLocation || !importedCity || clubLocation.includes(importedCity));
+      }
+    );
+    const club =
+      existingClub ??
+      (await createClub.mutateAsync({
+        name: imported.club.name,
+        description: imported.club.description,
+        location: imported.club.location,
+        phone: imported.club.phone,
+        link: imported.club.link,
+        accessType: imported.club.accessType,
+      }));
+    const editorState = courseToEditorState({
+      id: 0,
+      clubId: Number(club.id),
+      ...imported.course,
+    });
+
+    setEditingId(null);
+    setForm(editorState.form);
+    setTees(editorState.tees);
+    setImportWarnings(imported.warnings);
+    setImportAttribution(imported.attribution);
+    setClubForm(emptyClubForm);
+    setShowClubForm(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (imported.warnings.length > 0) {
+      show(
+        `Course loaded with ${imported.warnings.length} warning${
+          imported.warnings.length === 1 ? "" : "s"
+        }. Review the imported scorecard before saving.`,
+        "warning"
+      );
+    } else {
+      show("Club confirmed and course data loaded for review.", "success");
+    }
+  };
+
   useEffect(() => {
     if (!editCourseId || !Array.isArray(courses) || editingId === editCourseId) return;
 
@@ -359,110 +237,14 @@ export default function CoursesAdmin() {
     }
   }, [courses, editCourseId, editingId]);
 
-  const validate = () => {
-    if (!form.clubId) {
-      show("Please select a club.", "error");
-      return false;
-    }
-
-    if (!form.name.trim()) {
-      show("Course name is required.", "error");
-      return false;
-    }
-
-    const coursePar = Number(form.par);
-    if (Number.isNaN(coursePar) || coursePar <= 0) {
-      show("Par must be a positive number.", "error");
-      return false;
-    }
-
-    const holes = Number(form.numHoles);
-    if (!holes || Number.isNaN(holes) || holes <= 0) {
-      show("Number of holes must be a positive number.", "error");
-      return false;
-    }
-
-    for (const [teeIndex, tee] of tees.entries()) {
-      if (!tee.name.trim()) {
-        show(`Tee ${teeIndex + 1} needs a name.`, "error");
-        return false;
-      }
-
-      if (!tee.color.trim()) {
-        show(`Tee ${teeIndex + 1} needs a color.`, "error");
-        return false;
-      }
-
-      if (tee.holes.length !== holes) {
-        show(`Tee ${teeIndex + 1} must have ${holes} holes.`, "error");
-        return false;
-      }
-
-      for (const hole of tee.holes) {
-        if (Number.isNaN(Number(hole.par)) || Number(hole.par) <= 0) {
-          show(`Hole ${hole.num} on tee ${teeIndex + 1} needs a valid par.`, "error");
-          return false;
-        }
-
-        if (Number.isNaN(Number(hole.dis)) || Number(hole.dis) < 0) {
-          show(`Hole ${hole.num} on tee ${teeIndex + 1} needs a valid distance.`, "error");
-          return false;
-        }
-
-        if (Number.isNaN(Number(hole.hcp)) || Number(hole.hcp) <= 0) {
-          show(`Hole ${hole.num} on tee ${teeIndex + 1} needs a valid handicap rank.`, "error");
-          return false;
-        }
-      }
-    }
-
-    return true;
-  };
-
-  const mapTeePayload = (tee: TeeFormData): CourseTeePayload => ({
-    ...(tee.id != null ? { id: tee.id } : {}),
-    name: tee.name.trim(),
-    color: tee.color.trim(),
-    distance: Number(tee.distance || 0),
-    par: Number(tee.par || 0),
-    frontPar: Number(tee.frontPar || 0),
-    backPar: Number(tee.backPar || 0),
-    slopeMen: Number(tee.slopeMen || 0),
-    slopeFrontMen: Number(tee.slopeFrontMen || 0),
-    slopeBackMen: Number(tee.slopeBackMen || 0),
-    slopeWomen: toNullableNumber(tee.slopeWomen),
-    slopeFrontWomen: toNullableNumber(tee.slopeFrontWomen),
-    slopeBackWomen: toNullableNumber(tee.slopeBackWomen),
-    ratingMen: Number(tee.ratingMen || 0),
-    ratingFrontMen: Number(tee.ratingFrontMen || 0),
-    ratingBackMen: Number(tee.ratingBackMen || 0),
-    ratingWomen: toNullableNumber(tee.ratingWomen),
-    ratingFrontWomen: toNullableNumber(tee.ratingFrontWomen),
-    ratingBackWomen: toNullableNumber(tee.ratingBackWomen),
-    holes: tee.holes.map((hole) => ({
-      num: hole.num,
-      par: Number(hole.par),
-      dis: Number(hole.dis),
-      hcp: Number(hole.hcp),
-    })),
-  });
-
-  const toPayload = (): CoursePayload => ({
-    clubId: Number(form.clubId),
-    name: form.name.trim(),
-    description: form.description.trim() || undefined,
-    location: form.location.trim() || undefined,
-    phone: form.phone.trim() || undefined,
-    accessType: form.accessType || "public",
-    numHoles: form.numHoles ? Number(form.numHoles) : undefined,
-    par: Number(form.par),
-    tees: tees.map(mapTeePayload),
-  });
-
   const handleSubmit = () => {
-    if (!validate()) return;
+    const validationError = getCourseValidationError(form, tees);
+    if (validationError) {
+      show(validationError, "error");
+      return;
+    }
 
-    const payload = toPayload();
+    const payload = toCoursePayload(form, tees);
 
     if (editingId) {
       updateCourse.mutate(
@@ -566,23 +348,54 @@ export default function CoursesAdmin() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button
+              <Button
                 type="button"
-                className="btn btn-outline btn-sm border-slate-300 bg-white"
+                variant="primary"
+                outline
+                size="sm"
                 onClick={addTee}
               >
                 <Plus size={14} /> Add Tee
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="btn btn-error btn-sm"
+                variant="error"
+                size="sm"
                 onClick={() => handleDeleteCourse(editingId!)}
                 disabled={!editingId}
               >
                 Delete Course
-              </button>
+              </Button>
             </div>
           </div>
+
+          {!editingId && (
+            <CourseImportSearch
+              disabled={createClub.isPending}
+              onImport={handleCourseImport}
+            />
+          )}
+
+          {importWarnings.length > 0 && (
+            <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 shrink-0 text-amber-700" size={16} />
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">
+                    Review the imported course data
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-amber-800">
+                    {importWarnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                  {importAttribution && (
+                    <p className="mt-3 text-xs text-amber-700">{importAttribution}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -594,13 +407,15 @@ export default function CoursesAdmin() {
                   Create a club first, then assign one or more courses to it.
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
-                className="btn btn-outline btn-sm border-slate-300 bg-white"
+                variant="primary"
+                outline
+                size="sm"
                 onClick={() => setShowClubForm((prev) => !prev)}
               >
                 <Plus size={14} /> {showClubForm ? "Hide Club Form" : "Add New Club"}
-              </button>
+              </Button>
             </div>
 
             {showClubForm && (
@@ -649,17 +464,17 @@ export default function CoursesAdmin() {
                   />
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <button
+                  <Button
                     type="button"
-                    className="btn btn-primary btn-sm"
+                    variant="primary"
                     onClick={handleCreateClub}
                     disabled={createClub.isPending}
                   >
                     {createClub.isPending ? "Creating Club..." : "Create Club"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    className="btn btn-ghost btn-sm"
+                    variant="ghost"
                     onClick={() => {
                       setClubForm(emptyClubForm);
                       setShowClubForm(false);
@@ -667,7 +482,7 @@ export default function CoursesAdmin() {
                     disabled={createClub.isPending}
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -716,6 +531,13 @@ export default function CoursesAdmin() {
             />
             <Input
               dense
+              label="IANA Timezone"
+              placeholder="America/Detroit"
+              value={form.timeZone}
+              onChange={(e) => handleChange("timeZone", e.target.value)}
+            />
+            <Input
+              dense
               label="Description"
               className="md:col-span-2"
               value={form.description}
@@ -744,9 +566,9 @@ export default function CoursesAdmin() {
                 Each tee holds its own pars, ratings, slopes, and hole-by-hole setup.
               </p>
             </div>
-            <button type="button" className="btn btn-primary btn-sm" onClick={addTee}>
+            <Button type="button" variant="primary" onClick={addTee}>
               <Plus size={14} /> Add Another Tee
-            </button>
+            </Button>
           </div>
 
           {tees.length === 0 ? (
@@ -777,13 +599,16 @@ export default function CoursesAdmin() {
                         </p>
                       </div>
                     </div>
-                    <button
+                    <Button
                       type="button"
-                      className="btn btn-ghost btn-sm text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                      variant="error"
+                      outline
                       onClick={() => removeTee(teeIndex)}
+                      aria-label={`Remove ${tee.name.trim() || `tee ${teeIndex + 1}`}`}
                     >
+                      <Trash2 size={14} />
                       Remove Tee
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -994,9 +819,9 @@ export default function CoursesAdmin() {
         </div>
 
         <div className="mt-6 flex gap-2 border-t border-slate-200 pt-5">
-          <button
+          <Button
             type="button"
-            className="btn btn-primary btn-sm"
+            variant="primary"
             onClick={handleSubmit}
             disabled={createCourse.isPending || updateCourse.isPending}
           >
@@ -1007,136 +832,14 @@ export default function CoursesAdmin() {
               : createCourse.isPending
                 ? "Creating..."
                 : "Create Course"}
-          </button>
+          </Button>
           {editingId && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={resetForm}>
+            <Button type="button" variant="ghost" onClick={resetForm}>
               Cancel
-            </button>
+            </Button>
           )}
         </div>
       </Card>
     </div>
-  );
-}
-
-function ScorecardInputTable({
-  title,
-  holes,
-  teeIndex,
-  startIndex,
-  onHoleChange,
-}: {
-  title: string;
-  holes: HoleFormData[];
-  teeIndex: number;
-  startIndex: number;
-  onHoleChange: (
-    teeIndex: number,
-    holeIndex: number,
-    field: keyof HoleFormData,
-    value: string
-  ) => void;
-}) {
-  if (holes.length === 0) return null;
-
-  const totalDistance = holes.reduce((sum, hole) => sum + Number(hole.dis || 0), 0);
-  const totalPar = holes.reduce((sum, hole) => sum + Number(hole.par || 0), 0);
-
-  return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200">
-      <table className="table table-xs min-w-[820px] border-separate border-spacing-0 bg-white">
-        <thead>
-          <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-            <th className="w-24 rounded-tl-2xl px-2.5 py-2.5 text-left">{title}</th>
-            {holes.map((hole) => (
-              <th key={`${title}-${hole.num}`} className="px-1.5 py-2.5 text-center">
-                {hole.num}
-              </th>
-            ))}
-            <th className="rounded-tr-2xl px-2.5 py-2.5 text-center">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <ScorecardInputRow
-            label="Yards"
-            holes={holes}
-            total={String(totalDistance)}
-            inputType="number"
-            field="dis"
-            teeIndex={teeIndex}
-            startIndex={startIndex}
-            onHoleChange={onHoleChange}
-          />
-          <ScorecardInputRow
-            label="Par"
-            holes={holes}
-            total={String(totalPar)}
-            inputType="number"
-            field="par"
-            teeIndex={teeIndex}
-            startIndex={startIndex}
-            onHoleChange={onHoleChange}
-          />
-          <ScorecardInputRow
-            label="HCP"
-            holes={holes}
-            total="—"
-            inputType="number"
-            field="hcp"
-            teeIndex={teeIndex}
-            startIndex={startIndex}
-            onHoleChange={onHoleChange}
-          />
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function ScorecardInputRow({
-  label,
-  holes,
-  total,
-  inputType,
-  field,
-  teeIndex,
-  startIndex,
-  onHoleChange,
-}: {
-  label: string;
-  holes: HoleFormData[];
-  total: string;
-  inputType: string;
-  field: keyof Pick<HoleFormData, "dis" | "par" | "hcp">;
-  teeIndex: number;
-  startIndex: number;
-  onHoleChange: (
-    teeIndex: number,
-    holeIndex: number,
-    field: keyof HoleFormData,
-    value: string
-  ) => void;
-}) {
-  return (
-    <tr className="border-t border-slate-200 text-sm text-slate-700">
-      <th
-        scope="row"
-        className="px-2.5 py-2 text-left text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500"
-      >
-        {label}
-      </th>
-      {holes.map((hole, holeOffset) => (
-        <td key={`${label}-${hole.num}`} className="px-1.5 py-1.5">
-          <input
-            type={inputType}
-            value={String(hole[field] ?? "")}
-            onChange={(e) => onHoleChange(teeIndex, startIndex + holeOffset, field, e.target.value)}
-            className="input input-bordered input-xs h-8 w-16 min-w-0 border-slate-200 bg-white px-1 text-center text-[11px]"
-            aria-label={`${label} for hole ${hole.num}`}
-          />
-        </td>
-      ))}
-      <td className="px-2.5 py-2 text-center text-xs font-semibold text-slate-900">{total}</td>
-    </tr>
   );
 }

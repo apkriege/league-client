@@ -15,6 +15,7 @@ import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { useParams } from "react-router";
 import { DEFAULT_STROKE_POINTS } from "../constants";
+import MuiCheckbox from "@mui/material/Checkbox";
 
 export default function InfoForm() {
   const { leagueId } = useParams();
@@ -112,10 +113,10 @@ export default function InfoForm() {
               />
             </div>
             {isFormatLocked ? (
-              <div className="rounded-lg border border-base-300 px-3 py-2 text-xs">
+              <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
                 Event format is locked to
                 <span className="font-semibold ml-1 uppercase">{lockedSeasonFormat}</span>
-                <span className="text-base-content/60 ml-1">by league season settings.</span>
+                <span className="text-slate-900/60 ml-1">by league season settings.</span>
               </div>
             ) : (
               <ToggleCards
@@ -237,18 +238,18 @@ export default function InfoForm() {
           <div className="mt-4">
             {scoringFormat === "stroke" && (
               <>
-                <label className="mb-3 flex items-start gap-2 rounded-lg border border-base-300 bg-white px-3 py-2 text-xs">
-                  <input
-                    type="checkbox"
+                <label className="mb-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
+                  <MuiCheckbox
                     checked={pointsEnabled}
                     onChange={(event) =>
                       methods.setValue("pointsEnabled", event.target.checked, { shouldDirty: true })
                     }
-                    className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                    size="small"
+                    sx={{ mt: -0.5, p: 0.5 }}
                   />
                   <span>
-                    <span className="block font-semibold text-base-content">Award points</span>
-                    <span className="block text-base-content/60">
+                    <span className="block font-semibold text-slate-900">Award points</span>
+                    <span className="block text-slate-900/60">
                       Turn this off for tournament events where the leaderboard should rank by net score only.
                     </span>
                   </span>
@@ -259,7 +260,7 @@ export default function InfoForm() {
                   disabled={!pointsEnabled}
                   {...methods.register("strokePoints")}
                 />
-                <p className="text-[11px] text-base-content/60 mt-1">
+                <p className="text-[11px] text-slate-900/60 mt-1">
                   {pointsEnabled
                     ? "Optional. Leave blank to use Stableford scoring."
                     : "Points are disabled; this event leaderboard will use low net."}

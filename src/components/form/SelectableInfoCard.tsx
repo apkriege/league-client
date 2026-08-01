@@ -29,8 +29,8 @@ export default function SelectableInfoCard({
         active
           ? "bg-sky-100/70 border-blue-700/25 cursor-pointer shadow-sm"
           : disabled
-            ? "opacity-40 cursor-not-allowed bg-base-100 border-base-300"
-            : "bg-white/70 border-base-300 hover:bg-white cursor-pointer hover:shadow-sm"
+            ? "opacity-40 cursor-not-allowed bg-white border-slate-200"
+            : "bg-white/70 border-slate-200 hover:bg-white cursor-pointer hover:shadow-sm"
       } ${className}`}
       aria-pressed={active}
     >

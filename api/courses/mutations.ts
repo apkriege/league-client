@@ -1,6 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createCourse, deleteCourse, updateCourse } from ".";
-import type { CoursePayload } from ".";
+import {
+  createCourse,
+  deleteCourse,
+  requestCourse,
+  requestManualCourse,
+  updateCourse,
+} from ".";
+import type { CoursePayload, ManualCourseRequest } from ".";
 
 export const useCreateCourse = () => {
   const queryClient = useQueryClient();
@@ -43,3 +49,13 @@ export const useDeleteCourse = () => {
     },
   });
 };
+
+export const useRequestCourse = () =>
+  useMutation({
+    mutationFn: (externalId: string) => requestCourse(externalId),
+  });
+
+export const useRequestManualCourse = () =>
+  useMutation({
+    mutationFn: (request: ManualCourseRequest) => requestManualCourse(request),
+  });

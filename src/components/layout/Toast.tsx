@@ -1,9 +1,5 @@
+import Alert from "@mui/material/Alert";
+
 export default function Toast() {
-  return (
-    <div className="toast">
-      <div className="alert alert-info">
-        <span>New message arrived.</span>
-      </div>
-    </div>
-  );
+  return <Alert severity="info">New message arrived.</Alert>;
 }

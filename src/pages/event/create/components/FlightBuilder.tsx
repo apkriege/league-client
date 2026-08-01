@@ -1,3 +1,4 @@
+import Button from "@/components/layout/Button";
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { Select } from "@/components/form";
@@ -169,26 +170,26 @@ export default function FlightBuilder({ flights, setFlights, event }: FlightBuil
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
-                className="btn btn-primary btn-sm"
+                variant="primary"
                 onClick={handleStrokeFlight}
                 disabled={flightSlots.every((v) => v === "")}
               >
                 Add Flight
-              </button>
+              </Button>
               {assignedIds.size === 0 && (
-                <button
+                <Button
                   type="button"
-                  className="btn btn-ghost btn-sm"
+                  variant="ghost"
                   onClick={handleAutoFill}
                   disabled={league.players.length < 2}
                 >
                   <Shuffle size={12} />
                   Auto-Fill Flights
-                </button>
+                </Button>
               )}
-              <span className="text-xs text-base-content/50 ml-auto">
+              <span className="text-xs text-slate-900/50 ml-auto">
                 {flightSlots.filter((v) => v !== "").length}/4 players selected
               </span>
             </div>
@@ -198,7 +199,7 @@ export default function FlightBuilder({ flights, setFlights, event }: FlightBuil
           <div className="flex flex-col gap-3">
             {[0, 1].map((matchup) => (
               <div key={matchup} className="flex items-end gap-3">
-                <span className="text-xs font-semibold text-base-content/50 mb-2 w-20 shrink-0">
+                <span className="text-xs font-semibold text-slate-900/50 mb-2 w-20 shrink-0">
                   Matchup {matchup + 1}
                 </span>
                 <div className="flex-1">
@@ -215,7 +216,7 @@ export default function FlightBuilder({ flights, setFlights, event }: FlightBuil
                     }}
                   />
                 </div>
-                <span className="text-xs text-base-content/40 mb-2">vs</span>
+                <span className="text-xs text-slate-900/40 mb-2">vs</span>
                 <div className="flex-1">
                   <Select
                     label="Player B"
@@ -233,22 +234,22 @@ export default function FlightBuilder({ flights, setFlights, event }: FlightBuil
               </div>
             ))}
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
-                className="btn btn-primary btn-sm"
+                variant="primary"
                 onClick={handleMatchFlight}
                 disabled={matchSlots.some((v) => v === "")}
               >
                 Add Flight
-              </button>
-              <span className="text-xs text-base-content/50 ml-auto">
+              </Button>
+              <span className="text-xs text-slate-900/50 ml-auto">
                 {matchSlots.filter((v) => v !== "").length}/4 players selected
               </span>
             </div>
           </div>
         )}
         {event.format !== "individual" && scoringFormat !== "match" && event.format !== "team" && (
-          <p className="text-xs text-base-content/50">
+          <p className="text-xs text-slate-900/50">
             Set format to <span className="font-semibold">Individual</span> in Event Settings to
             build player flights.
           </p>
@@ -273,12 +274,12 @@ export default function FlightBuilder({ flights, setFlights, event }: FlightBuil
                 onChange={(e) => setTeam2(Number(e.target.value))}
               />
             </div>
-            <button className="btn btn-primary mb-1 col-span-2" onClick={handleTeamFlight}>
+            <Button className="col-span-2 mb-1" variant="primary" onClick={handleTeamFlight}>
               Add Flight
-            </button>
+            </Button>
           </div>
         )}
-        <div className="mt-4 border-t border-base-300 pt-4">
+        <div className="mt-4 border-t border-slate-200 pt-4">
           <FlightsDragRow
             event={event}
             players={league.players}

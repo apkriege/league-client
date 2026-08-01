@@ -1,3 +1,5 @@
+import Chip from "@mui/material/Chip";
+
 interface BadgeProps {
   text: string;
   icon?: React.ReactNode;
@@ -6,22 +8,35 @@ interface BadgeProps {
   size?: "xs" | "sm" | "md" | "lg";
 }
 
-export default function Badge({ text, icon, variant, className, size }: BadgeProps) {
-  const s = {
-    xs: "px-2 py-1 text-[8px] gap-1",
-    sm: "px-2 py-1 text-[10px] gap-1",
-    md: "px-3 py-1.5 text-xs gap-2",
-    lg: "px-4 py-2 text-sm gap-2",
-  };
+const colorByVariant = {
+  primary: "primary",
+  secondary: "secondary",
+  accent: "secondary",
+  info: "info",
+  success: "success",
+  warning: "warning",
+  error: "error",
+} as const;
 
-  const v = variant ? `bg-${variant} text-${variant}-content` : "bg-gray-200 text-gray-800";
+export default function Badge({ text, icon, variant, className, size = "sm" }: BadgeProps) {
+  const color = variant ? colorByVariant[variant] : "default";
 
   return (
-    <div
-      className={`mb-2 flex w-fit items-center rounded-full font-semibold ${v} ${s[size || "sm"]}${className ? ` ${className}` : ""}`}
-    >
-      {icon}
-      <span className="uppercase">{text}</span>
-    </div>
+    <Chip
+      className={`w-fit px-1 ${className}`}
+      color={color}
+      size={size === "lg" ? "medium" : "small"}
+      label={
+        <span className="flex items-center gap-1 uppercase">
+          {icon}
+          {text}
+        </span>
+      }
+      sx={{
+        mb: 1,
+        height: size === "xs" ? 22 : size === "lg" ? 36 : size === "md" ? 30 : 26,
+        fontSize: size === "xs" ? "0.5rem" : size === "sm" ? "0.625rem" : undefined,
+      }}
+    />
   );
 }

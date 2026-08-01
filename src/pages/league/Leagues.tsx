@@ -70,7 +70,7 @@ export default function Leagues() {
       <div className="grid grid-cols-3 gap-3 mt-2 auto-rows-fr items-stretch">
         {canManageLeagues && (
           <Link to="/leagues/create" className="block h-full">
-            <Card className="bg-primary h-full flex items-center justify-center cursor-pointer hover:bg-primary/95 transition-colors">
+            <Card className="bg-slate-900 h-full flex items-center justify-center cursor-pointer hover:bg-slate-900/95 transition-colors">
               <div className="flex flex-col items-center justify-center text-white text-center">
                 <div className=" bg-gray-300/20 p-3 rounded-full mb-3 mt-3">
                   <Plus size={24} />
@@ -102,7 +102,7 @@ const LeagueCard = ({ league, canManageLeagues }: any) => {
         <div className="flex justify-end">
           <Link
             to={`/league/${league.id}/edit`}
-            className="inline-flex items-center gap-1 rounded-md border border-base-300 px-2 py-1 text-[10px] font-semibold text-gray-500 hover:bg-base-200"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-gray-500 hover:bg-slate-100"
           >
             <Edit size={10} />
             Edit

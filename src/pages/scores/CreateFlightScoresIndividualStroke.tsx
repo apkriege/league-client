@@ -1,3 +1,6 @@
+import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import PanelBar from "@/components/layout/PanelBar";
+import SurfaceCard from "@/components/layout/SurfaceCard";
 import { useState } from "react";
 import Button from "@/components/layout/Button";
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
@@ -14,6 +17,7 @@ import { calculateStrokeplayPops } from "./util";
 import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
 import { useToast } from "@/context/ToastContext";
 import { validateHoleScores } from "./scoreValidation";
+import { formatTime } from "@/utils/format";
 
 export const CreateFlightScoresIndividualStroke = ({
   flight,
@@ -222,11 +226,13 @@ export const CreateFlightScoresIndividualStroke = ({
   };
 
   return (
-    <div className="surface-card">
-      <div className="panel-header">
+    <SurfaceCard>
+      <PanelBar variant="header">
         <div className="flex items-center gap-2">
           <Flag size={14} className="text-gray-400" strokeWidth={2} />
-          <h3 className="text-sm font-semibold text-gray-800">Flight {flight.startTime}</h3>
+          <h3 className="text-sm font-semibold text-gray-800">
+            Flight {formatTime(flight.startsAt, event.timeZone)}
+          </h3>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -242,7 +248,7 @@ export const CreateFlightScoresIndividualStroke = ({
             {isEditMode ? "Save Changes" : "Submit Scores"}
           </Button>
         </div>
-      </div>
+      </PanelBar>
 
       <div className="p-4">
         <div className="mb-3">
@@ -259,13 +265,13 @@ export const CreateFlightScoresIndividualStroke = ({
                 <tr className="text-xs text-gray-700">
                   <th>Player</th>
                   {holes.map((hole: any) => (
-                    <th key={hole.num} className="p-2 text-center">
+                    <ScoreHeaderCell key={hole.num}>
                       {hole.num}
-                    </th>
+                    </ScoreHeaderCell>
                   ))}
-                  <th className="p-2 text-center">Total</th>
-                  <th className="p-2 text-center">Net</th>
-                  <th className="p-2 text-center">Pts</th>
+                  <ScoreHeaderCell>Total</ScoreHeaderCell>
+                  <ScoreHeaderCell>Net</ScoreHeaderCell>
+                  <ScoreHeaderCell>Pts</ScoreHeaderCell>
                 </tr>
               </thead>
               <tbody>
@@ -318,15 +324,15 @@ export const CreateFlightScoresIndividualStroke = ({
                           </div>
                         </td>
                       ))}
-                      <td className="font-bold text-center text-xs">
+                      <ScoreValueCell>
                         {getPlayerTotalScore(Number(player.playerId))}
-                      </td>
-                      <td className="font-bold text-center text-xs">
+                      </ScoreValueCell>
+                      <ScoreValueCell>
                         {getPlayerNetScore(Number(player.playerId))}
-                      </td>
-                      <td className="font-bold text-center text-xs">
+                      </ScoreValueCell>
+                      <ScoreValueCell>
                         {getPlayerStablefordPoints(Number(player.playerId))}
-                      </td>
+                      </ScoreValueCell>
                     </tr>
                   );
                 })}
@@ -335,6 +341,6 @@ export const CreateFlightScoresIndividualStroke = ({
           </div>
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 };

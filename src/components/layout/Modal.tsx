@@ -1,3 +1,7 @@
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import IconButton from "@mui/material/IconButton";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -6,21 +10,48 @@ interface ModalProps {
   children: React.ReactNode;
   onClose: () => void;
   onSubmit?: () => void;
+  position?: "center" | "top";
+  width?: "default" | "half";
 }
 
-export default function Modal({ isOpen, title, children, onClose }: ModalProps) {
+export default function Modal({
+  isOpen,
+  title,
+  children,
+  onClose,
+  position = "center",
+  width = "default",
+}: ModalProps) {
   return (
-    <>
-      {isOpen && <div className="fixed inset-0 z-40" onClick={onClose} />}
-      <dialog className={`modal ${isOpen ? "modal-open" : ""}`}>
-        <div className="modal-box w-full max-w-[90vw] max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center">
-            <h3 className="font-bold text-lg">{title}</h3>
-            <X size={20} className="cursor-pointer hover:text-gray-400" onClick={onClose} />
-          </div>
-          <div className="py-4">{children}</div>
-        </div>
-      </dialog>
-    </>
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      maxWidth={false}
+      fullWidth
+      aria-labelledby="app-dialog-title"
+      sx={{
+        "& .MuiDialog-container": {
+          alignItems: position === "top" ? "flex-start" : "center",
+        },
+        "& .MuiDialog-paper": {
+          mt: position === "top" ? { xs: 2, sm: 4 } : undefined,
+          width: width === "half" ? { xs: "calc(100% - 32px)", sm: "50vw" } : { xs: "calc(100% - 32px)", sm: "min(90vw, 720px)" },
+          maxHeight: "90vh",
+        },
+      }}
+    >
+      <DialogTitle id="app-dialog-title" sx={{ pr: 7, fontSize: "1.125rem", fontWeight: 800 }}>
+        {title}
+        <IconButton
+          aria-label="Close dialog"
+          onClick={onClose}
+          size="small"
+          sx={{ position: "absolute", right: 16, top: 14 }}
+        >
+          <X size={18} />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent dividers>{children}</DialogContent>
+    </Dialog>
   );
 }

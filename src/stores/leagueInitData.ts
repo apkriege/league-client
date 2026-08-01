@@ -3,7 +3,6 @@ export const info = {
   name: "Bomb League",
   description: "This is a simple description that will describe the league.",
   numPlayers: 10,
-  access: "public",
   contactFirstName: "Adam",
   contactLastName: "Krieger",
   contactEmail: "adamkriger@gmail.com",

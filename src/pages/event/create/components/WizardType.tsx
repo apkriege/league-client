@@ -21,13 +21,13 @@ const WizardCard = ({
   <Card
     className={`flex flex-col cursor-pointer transition-all ${
       selected
-        ? "border-secondary  bg-secondary/10"
-        : "hover:border-secondary/40 hover:bg-secondary/5"
+        ? "border-sky-400  bg-sky-300/10"
+        : "hover:border-sky-400/40 hover:bg-sky-300/5"
     }`}
     onClick={onSelect}
   >
     <div className="flex justify-between items-start">
-      <div className="bg-primary rounded-lg p-2 w-fit mb-3">{icon}</div>
+      <div className="bg-slate-900 rounded-lg p-2 w-fit mb-3">{icon}</div>
       {selected && <Check size={20} strokeWidth={4} className="text-green-500 inline-block ml-2" />}
     </div>
     <h3 className="text-xl font-semibold">{title}</h3>
@@ -54,7 +54,7 @@ export default function WizardType({
     <div>
       <div className="flex gap-2 mb-5">
         <WizardCard
-          icon={<Trophy size={16} className="text-secondary" />}
+          icon={<Trophy size={16} className="text-sky-600" />}
           title="Single Event"
           description="Create a one-time event for a specific date and time."
           pros={["Quick setup", "Ideal for casual play", "No ongoing management"]}
@@ -62,7 +62,7 @@ export default function WizardType({
           onSelect={() => setWizardType("single")}
         />
         <WizardCard
-          icon={<Trophy size={18} className="text-secondary" />}
+          icon={<Trophy size={18} className="text-sky-600" />}
           title="Multi-Event Series"
           description="Set up a series of events with recurring dates and times."
           pros={[
@@ -74,8 +74,8 @@ export default function WizardType({
           onSelect={() => setWizardType("multi")}
         />
       </div>
-      <div className="bg-base-100 border-l-4 border-error/50 rounded-lg p-3 flex gap-3 items-start">
-        <Info size={18} strokeWidth={2} className="inline-block text-error mt-0.5" />
+      <div className="bg-white border-l-4 border-red-700/50 rounded-lg p-3 flex gap-3 items-start">
+        <Info size={18} strokeWidth={2} className="inline-block text-red-700 mt-0.5" />
         <div>
           <h4 className="text-sm font-bold mb-1">Caddy Tip</h4>
           <p className="text-xs text-gray-500 italic">

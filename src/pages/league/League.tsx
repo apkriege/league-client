@@ -1,3 +1,9 @@
+import LoadingState from "@/components/layout/LoadingState";
+import SectionKicker from "@/components/layout/SectionKicker";
+import SummaryPill from "@/components/layout/SummaryPill";
+import PanelBar from "@/components/layout/PanelBar";
+import SurfaceCard from "@/components/layout/SurfaceCard";
+import SectionIntro from "@/components/layout/SectionIntro";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import Table from "@/components/Table";
@@ -5,7 +11,8 @@ import SharedLeagueAnnouncementsPanel from "@/components/league/LeagueAnnounceme
 import { useAppStore } from "@/stores/appStore";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
+import { sortEventsByDate } from "@/utils/eventDate";
+import LeagueEventRow from "./components/LeagueEventRow";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,20 +27,13 @@ import {
 import { Line } from "react-chartjs-2";
 import dayjs from "dayjs";
 import {
-  Award,
-  Ban,
   BarChart2,
   CalendarDays,
-  CheckCircle2,
-  CircleDashed,
-  Clock,
-  Edit,
   Flag,
   MapPin,
   Medal,
   Plus,
   Target,
-  Timer,
   TrendingDown,
   TrendingUp,
   Trophy,
@@ -52,29 +52,6 @@ ChartJS.register(
   Legend,
   Filler
 );
-
-const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
-  upcoming: {
-    label: "Scheduled",
-    icon: <CircleDashed size={12} strokeWidth={2.5} />,
-    className: "bg-blue-50 text-blue-600 border border-blue-200",
-  },
-  active: {
-    label: "In Progress",
-    icon: <Timer size={12} strokeWidth={2.5} />,
-    className: "bg-amber-50 text-amber-600 border border-amber-200",
-  },
-  completed: {
-    label: "Complete",
-    icon: <CheckCircle2 size={12} strokeWidth={2.5} />,
-    className: "bg-green-50 text-green-600 border border-green-200",
-  },
-  canceled: {
-    label: "Canceled",
-    icon: <Ban size={12} strokeWidth={2.5} />,
-    className: "bg-slate-100 text-slate-500 border border-slate-200",
-  },
-};
 
 type TeamStandingsRow = {
   rank: number;
@@ -174,7 +151,7 @@ export default function League() {
       {
         key: "points",
         label: "Pts",
-        render: (value: number) => <span className="text-xs font-black text-primary">{value}</span>,
+        render: (value: number) => <span className="text-xs font-black text-slate-900">{value}</span>,
       },
       {
         key: "eventsPlayed",
@@ -200,7 +177,7 @@ export default function League() {
           <button
             type="button"
             onClick={() => navigate(`/league/${leagueId}/player/${row.playerId}`)}
-            className="text-left text-xs font-semibold text-gray-800 hover:text-primary hover:underline"
+            className="text-left text-xs font-semibold text-gray-800 hover:text-slate-900 hover:underline"
           >
             {value}
           </button>
@@ -209,7 +186,7 @@ export default function League() {
       {
         key: "points",
         label: "Pts",
-        render: (value: number) => <span className="text-xs font-black text-primary">{value}</span>,
+        render: (value: number) => <span className="text-xs font-black text-slate-900">{value}</span>,
       },
       {
         key: "avgGross",
@@ -387,7 +364,7 @@ export default function League() {
 
   if (leagueLoading || eventsLoading) {
     return (
-      <div className="loading-state">Loading...</div>
+      <LoadingState>Loading...</LoadingState>
     );
   }
 
@@ -398,32 +375,24 @@ export default function League() {
       {/* Info chips */}
       <div className="mt-4 mb-8 flex flex-wrap gap-2">
         {league?.startDate && league?.endDate && (
-          <div className="summary-pill">
-            <CalendarDays size={12} className="text-gray-400" />
-            <span>
-              {formatDate(league.startDate)} → {formatDate(league.endDate)}
-            </span>
-          </div>
+          <SummaryPill icon={<CalendarDays size={12} />}>
+            {formatDate(league.startDate)} → {formatDate(league.endDate)}
+          </SummaryPill>
         )}
         {league?.format && (
-          <div className="summary-pill">
-            <Flag size={12} className="text-gray-400" />
-            <span className="capitalize">{league.format}</span>
-          </div>
+          <SummaryPill icon={<Flag size={12} />} className="capitalize">
+            {league.format}
+          </SummaryPill>
         )}
         {league?.type && (
-          <div className="summary-pill">
-            <Medal size={12} className="text-gray-400" />
-            <span className="capitalize">{league.type}</span>
-          </div>
+          <SummaryPill icon={<Medal size={12} />} className="capitalize">
+            {league.type}
+          </SummaryPill>
         )}
         {league?.contactFirstName && (
-          <div className="summary-pill">
-            <MapPin size={12} className="text-gray-400" />
-            <span>
-              {league.contactFirstName} {league.contactLastName}
-            </span>
-          </div>
+          <SummaryPill icon={<MapPin size={12} />}>
+            {league.contactFirstName} {league.contactLastName}
+          </SummaryPill>
         )}
       </div>
 
@@ -460,7 +429,7 @@ export default function League() {
                     label: "Most Points",
                     record: metrics.records.mostPoints,
                     displayValue: (r: any) => Number(r.value).toFixed(1),
-                    icon: <Zap size={14} className="text-primary" />,
+                    icon: <Zap size={14} className="text-slate-900" />,
                     accent: "from-violet-50 to-white border-violet-100",
                   },
                 ].map((item, i) => (
@@ -469,9 +438,9 @@ export default function League() {
                     className={`relative overflow-hidden bg-linear-to-br ${item.accent} border rounded-xl px-4 py-3 shadow-sm flex items-start justify-between gap-3`}
                   >
                     <div className="min-w-0">
-                      <p className="section-kicker">
+                      <SectionKicker>
                         {item.label}
-                      </p>
+                      </SectionKicker>
                       <p className="text-2xl font-black text-gray-900 leading-tight mt-1">
                         {item.record ? item.displayValue(item.record) : "—"}
                       </p>
@@ -489,22 +458,22 @@ export default function League() {
             )}
 
             <div className="pt-2">
-              <div className="mb-3">
-                <h3 className="text-lg font-bold text-gray-800 tracking-tight">Standings</h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {standingsMode === "team"
+              <SectionIntro
+                title="Standings"
+                description={
+                  standingsMode === "team"
                     ? "Team leaderboard and event participation"
-                    : "Season leaderboard, scoring averages, and handicap movement"}
-                </p>
-              </div>
+                    : "Season leaderboard, scoring averages, and handicap movement"
+                }
+              />
 
-              <div className="surface-card min-w-0">
-                <div className="panel-row">
+              <SurfaceCard className="min-w-0">
+                <PanelBar>
                   <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
                   <h3 className="text-sm font-semibold text-gray-800">
                     {standingsMode === "team" ? "Team Standings" : "Standings"}
                   </h3>
-                </div>
+                </PanelBar>
                 <div className="p-0">
                   {standingsMode === "team" ? (
                     <Table
@@ -526,7 +495,7 @@ export default function League() {
                     />
                   )}
                 </div>
-              </div>
+              </SurfaceCard>
             </div>
 
             <div className="pt-2">
@@ -535,13 +504,13 @@ export default function League() {
                 <p className="text-xs text-gray-500">Weekly scoring trend and skin leaders</p>
               </div>
               <div className="flex flex-col lg:flex-row gap-4 items-start">
-                <div className="w-full lg:w-2/3 surface-card">
-                  <div className="panel-row">
+                <SurfaceCard className="w-full lg:w-2/3">
+                  <PanelBar>
                     <div className="flex items-center gap-2">
                       <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
                       <h3 className="text-sm font-semibold text-gray-800">Season Trend</h3>
                     </div>
-                  </div>
+                  </PanelBar>
                   <div className="px-4 py-3 h-64">
                     {(metrics?.playerWeeklyTrends?.labels?.length ?? 0) > 0 ? (
                       <Line data={seasonTrendChartData} options={seasonTrendChartOptions} />
@@ -561,7 +530,7 @@ export default function League() {
                       </div>
                     )}
                   </div>
-                </div>
+                </SurfaceCard>
 
                 {metrics.skins && (
                   <div className="w-full lg:w-1/3 grid grid-cols-1 gap-3">
@@ -583,9 +552,8 @@ export default function League() {
                     ).map(({ type, label, iconClass, badgeClass }) => {
                       const rows = (metrics.skins[type] as any[]) ?? [];
                       return (
-                        <div
+                        <SurfaceCard
                           key={type}
-                          className="surface-card"
                         >
                           <div className="flex items-center justify-between px-3 py-2">
                             <div className="flex items-center gap-1.5">
@@ -633,7 +601,7 @@ export default function League() {
                               </div>
                             )}
                           </div>
-                        </div>
+                        </SurfaceCard>
                       );
                     })}
                   </div>
@@ -653,7 +621,7 @@ export default function League() {
             {isAdmin && (
               <button
                 onClick={() => navigate(`/league/${leagueId}/events/create`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-900/90 transition-colors"
               >
                 <Plus size={12} strokeWidth={2.5} />
                 New Event
@@ -670,7 +638,7 @@ export default function League() {
           ) : (
             <div className="flex flex-col gap-3">
               {sortedEvents.map((event: any) => (
-                <EventRow
+                <LeagueEventRow
                   key={event.id}
                   event={event}
                   isAdmin={isAdmin}
@@ -687,121 +655,5 @@ export default function League() {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="section-kicker">{children}</h2>
-  );
-}
-
-function EventRow({
-  event,
-  isAdmin,
-  onView,
-  onEdit,
-}: {
-  event: any;
-  isAdmin: boolean;
-  onView: () => void;
-  onEdit: () => void;
-}) {
-  const status = STATUS_CONFIG[event.status] ?? STATUS_CONFIG["upcoming"];
-  const date = getEventLocalDate(event.date);
-  const canEditEvent =
-    !event?.isComplete &&
-    String(event?.status || "").toLowerCase() !== "completed" &&
-    String(event?.status || "").toLowerCase() !== "canceled";
-
-  return (
-    <div
-      onClick={onView}
-      className="group surface-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30 hover:bg-primary/2 cursor-pointer"
-    >
-      <div className="flex items-stretch">
-        {/* Date block */}
-        <div className="flex flex-col items-center justify-center px-3 py-3 min-w-14 border-r bg-primary/5 border-primary/10">
-          <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
-            {date.toLocaleDateString("en-US", { month: "short" })}
-          </span>
-          <span className="text-xl font-black leading-none text-primary">{date.getDate()}</span>
-          <span className="text-[9px] text-gray-400 font-medium">
-            {date.toLocaleDateString("en-US", { weekday: "short" })}
-          </span>
-        </div>
-
-        {/* Main content */}
-        <div className="flex-1 px-3 py-2.5">
-          <div className="mb-1">
-            <div>
-              <div className="flex min-w-0 items-center gap-2">
-                <h3 className="min-w-0 truncate text-sm font-semibold text-gray-800 leading-tight">
-                  {event.name}
-                </h3>
-                <StatusChip status={status} />
-              </div>
-              <div className="flex items-center gap-1 mt-0.5">
-                <MapPin size={10} className="text-gray-400" strokeWidth={2} />
-                <span className="text-xs text-gray-400">{event.course?.name}</span>
-                {event.tee?.name && (
-                  <>
-                    <span className="text-gray-300 text-xs">&bull;</span>
-                    <span className="text-xs text-gray-400">{event.tee.name} tees</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {event.startTime && <MetaChip icon={<Clock size={10} />} label={event.startTime} />}
-            <MetaChip icon={<Flag size={10} />} label={`${event.holes}h`} />
-            {event.scoringFormat && (
-              <MetaChip
-                icon={<Award size={10} />}
-                label={event.scoringFormat.charAt(0).toUpperCase() + event.scoringFormat.slice(1)}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center pr-3 pl-1 gap-1.5">
-          {isAdmin && canEditEvent && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
-              className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors shadow-xs"
-              title="Edit"
-            >
-              <Edit size={13} strokeWidth={2} />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MetaChip({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex items-center gap-1 text-[10px] text-gray-400">
-      <span className="text-gray-300">{icon}</span>
-      {label}
-    </div>
-  );
-}
-
-function StatusChip({
-  status,
-}: {
-  status: { label: string; icon: React.ReactNode; className: string };
-}) {
-  return (
-    <div
-      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${status.className}`}
-    >
-      {status.icon}
-      {status.label}
-    </div>
-  );
+  return <SectionKicker as="h2">{children}</SectionKicker>;
 }

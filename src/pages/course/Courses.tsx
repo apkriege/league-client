@@ -6,6 +6,9 @@ import { useCoursesWithTees } from "@api/courses/queries";
 import { BookOpen, Flag, MapPin, Trees, Trophy } from "lucide-react";
 import { useMemo } from "react";
 import { useNavigate } from "react-router";
+import CourseRequestPanel from "./components/CourseRequestPanel";
+import Button from "@/components/layout/Button";
+import Chip from "@mui/material/Chip";
 
 type CourseRow = {
   id: number;
@@ -22,7 +25,9 @@ export default function Courses() {
   const navigate = useNavigate();
   const { user } = useAppStore();
   const { data: courses = [], isLoading } = useCoursesWithTees();
-  const isSuperAdmin = String(user?.role || "").toUpperCase() === "SUPER";
+  const role = String(user?.role || "").toUpperCase();
+  const isSuperAdmin = role === "SUPER";
+  const canRequestCourse = role === "ADMIN" || isSuperAdmin;
 
   const rows = useMemo<CourseRow[]>(
     () =>
@@ -76,7 +81,7 @@ export default function Courses() {
     {
       key: "tees",
       label: "Tees",
-      render: (value) => <span className="badge badge-primary badge-sm">{value}</span>,
+      render: (value) => <Chip label={value} color="primary" size="small" />,
       cellWidth: "7%",
     },
     {
@@ -95,16 +100,17 @@ export default function Courses() {
             key: "id" as keyof CourseRow,
             label: "Edit",
             render: (_value: unknown, row: CourseRow) => (
-              <button
+              <Button
                 type="button"
-                className="btn btn-primary btn-xs"
+                variant="primary"
+                size="xs"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/superadmin/courses?edit=${row.id}`);
                 }}
               >
                 Edit
-              </button>
+              </Button>
             ),
             cellWidth: "10%",
           } satisfies Column<CourseRow>,
@@ -127,8 +133,8 @@ export default function Courses() {
             label: "Courses",
             value: rows.length,
             sub: "available to browse",
-            icon: <BookOpen size={14} className="text-primary" />,
-            bg: "bg-primary/5 border-primary/10",
+            icon: <BookOpen size={14} className="text-slate-900" />,
+            bg: "bg-slate-900/5 border-slate-900/10",
           },
           {
             label: "Clubs",
@@ -169,6 +175,8 @@ export default function Courses() {
           </div>
         ))}
       </div>
+
+      {canRequestCourse && <CourseRequestPanel />}
 
       {isLoading ? (
         <Card>

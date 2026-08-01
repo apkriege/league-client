@@ -1,6 +1,8 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import Modal from "@/components/layout/Modal";
+import Button from "@/components/layout/Button";
+import { Input, Select } from "@/components/form";
 import { useToast } from "@/context/ToastContext";
 import { formatPhone } from "@/utils/format";
 import { useLeague } from "@api/league/queries";
@@ -11,6 +13,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 import Table from "@/components/Table";
 import { useAppStore } from "@/stores/appStore";
+import Chip from "@mui/material/Chip";
 
 const EMPTY_FORM = {
   firstName: "",
@@ -187,12 +190,12 @@ export default function Players() {
           to={`/league/${leagueId}/player/${row.id}`}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <div className="bg-primary text-primary-content rounded-lg w-7 h-7 flex items-center justify-center text-xs uppercase">
+          <div className="bg-slate-900 text-white rounded-lg w-7 h-7 flex items-center justify-center text-xs uppercase">
             {row.firstName[0]}
             {row.lastName[0]}
           </div>
           <div>
-            <p className="text-xs font-semibold text-primary mb-0">
+            <p className="text-xs font-semibold text-slate-900 mb-0">
               {row.firstName} {row.lastName}
             </p>
             <p className="font-light text-[10px] text-gray-500 flex items-center gap-1.5">
@@ -208,13 +211,12 @@ export default function Players() {
       key: "type",
       label: "Type",
       render: (value: any) => (
-        <div
-          className={`badge rounded-xl text-[9px] font-semibold ${
-            value === "player" ? "badge-secondary" : "badge-accent"
-          }`}
-        >
-          {value.toUpperCase()}
-        </div>
+        <Chip
+          label={value.toUpperCase()}
+          color={value === "player" ? "secondary" : "primary"}
+          size="small"
+          sx={{ height: 24, fontSize: "0.5625rem" }}
+        />
       ),
     },
     {
@@ -262,9 +264,9 @@ export default function Players() {
           size="sm"
           headerActions={
             canManagePlayers ? (
-              <button className="btn btn-primary btn-sm" onClick={openCreate}>
+              <Button variant="primary" onClick={openCreate}>
                 Add Player
-              </button>
+              </Button>
             ) : null
           }
         />
@@ -276,73 +278,56 @@ export default function Players() {
         onClose={resetAndCloseModal}
       >
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-gray-600">First Name</label>
-            <input
-              className="input input-sm input-bordered w-full"
-              value={form.firstName}
-              onChange={(e) => onChange("firstName", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-600">Last Name</label>
-            <input
-              className="input input-sm input-bordered w-full"
-              value={form.lastName}
-              onChange={(e) => onChange("lastName", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-600">Email</label>
-            <input
-              className="input input-sm input-bordered w-full"
-              value={form.email}
-              onChange={(e) => onChange("email", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-600">Phone</label>
-            <input
-              className="input input-sm input-bordered w-full"
-              value={form.phone}
-              onChange={(e) => onChange("phone", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-600">Type</label>
-            <select
-              className="select select-sm select-bordered w-full"
-              value={form.type}
-              onChange={(e) => onChange("type", e.target.value)}
-            >
-              <option value="">Select type</option>
-              <option value="player">Player</option>
-              <option value="sub">Sub</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-600">Handicap</label>
-            <input
-              type="number"
-              step="0.1"
-              className="input input-sm input-bordered w-full"
-              value={form.handicap}
-              onChange={(e) => onChange("handicap", e.target.value)}
-            />
-          </div>
+          <Input
+            label="First Name"
+            value={form.firstName}
+            onChange={(e) => onChange("firstName", e.target.value)}
+          />
+          <Input
+            label="Last Name"
+            value={form.lastName}
+            onChange={(e) => onChange("lastName", e.target.value)}
+          />
+          <Input
+            label="Email"
+            value={form.email}
+            onChange={(e) => onChange("email", e.target.value)}
+          />
+          <Input
+            label="Phone"
+            value={form.phone}
+            onChange={(e) => onChange("phone", e.target.value)}
+          />
+          <Select
+            label="Type"
+            value={form.type}
+            placeholder="Select type"
+            options={[
+              { value: "player", label: "Player" },
+              { value: "sub", label: "Sub" },
+            ]}
+            onChange={(e) => onChange("type", e.target.value)}
+          />
+          <Input
+            label="Handicap"
+            type="number"
+            step="0.1"
+            value={form.handicap}
+            onChange={(e) => onChange("handicap", e.target.value)}
+          />
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-2">
-          <button className="btn btn-sm" onClick={resetAndCloseModal}>
+          <Button variant="default" onClick={resetAndCloseModal}>
             Cancel
-          </button>
-          <button
-            className="btn btn-primary btn-sm"
+          </Button>
+          <Button
+            variant="primary"
             onClick={savePlayer}
             disabled={!validateForm || submitting}
           >
             {submitting ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       </Modal>
     </div>

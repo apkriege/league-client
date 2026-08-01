@@ -1,3 +1,6 @@
+import FormControlLabel from "@mui/material/FormControlLabel";
+import MuiCheckbox from "@mui/material/Checkbox";
+
 interface CheckboxProps {
   label?: string;
   checked: boolean;
@@ -13,16 +16,18 @@ export default function Checkbox({
   disabled = false,
   className = "",
 }: CheckboxProps) {
-  return (
-    <fieldset className={`fieldset ${className}`}>
-      <legend className="fieldset-legend p-1">{label}</legend>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        disabled={disabled}
-        className={`checkbox checkbox-primary ${className} h-5 w-5 rounded-md`}
-      />
-    </fieldset>
+  const control = (
+    <MuiCheckbox
+      checked={checked}
+      onChange={(event) => onChange(event.target.checked)}
+      disabled={disabled}
+      size="small"
+    />
+  );
+
+  return label ? (
+    <FormControlLabel className={className} control={control} label={label} />
+  ) : (
+    <span className={className}>{control}</span>
   );
 }

@@ -7,7 +7,11 @@ import { SquarePen, Trash2, UserPlus } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import Table from "@/components/Table";
 import Card from "@/components/layout/Card";
+import SectionKicker from "@/components/layout/SectionKicker";
 import { formatPhone } from "@/utils/format";
+import Badge from "@/components/layout/Badge";
+import Button from "@/components/layout/Button";
+import Chip from "@mui/material/Chip";
 
 const defaultPlayer = {
   firstName: "",
@@ -113,12 +117,12 @@ export default function PlayersForm() {
       width: "65%",
       render: (_value: any, row: any) => (
         <div className="flex items-center gap-2">
-          <div className="bg-primary text-primary-content rounded-lg w-8 h-8 flex items-center justify-center text-xs uppercase">
+          <div className="bg-slate-900 text-white rounded-lg w-8 h-8 flex items-center justify-center text-xs uppercase">
             {row.firstName[0]}
             {row.lastName[0]}
           </div>
           <div>
-            <p className="mb-0.5 text-base font-semibold text-primary">
+            <p className="mb-0.5 text-base font-semibold text-slate-900">
               {row.firstName} {row.lastName}
             </p>
             <p className="font-light text-[10px] text-gray-500 flex items-center gap-1.5">
@@ -134,13 +138,12 @@ export default function PlayersForm() {
       key: "type",
       label: "Type",
       render: (value: any) => (
-        <div
-          className={`badge rounded-xl text-[9px] font-semibold ${
-            value === "player" ? "badge-secondary" : "badge-accent"
-          }`}
-        >
-          {value.toUpperCase()}
-        </div>
+        <Chip
+          label={value.toUpperCase()}
+          color={value === "player" ? "secondary" : "primary"}
+          size="small"
+          sx={{ height: 24, fontSize: "0.5625rem" }}
+        />
       ),
     },
     {
@@ -170,10 +173,7 @@ export default function PlayersForm() {
 
   return (
     <div>
-      <div className="badge badge-secondary mb-1.5 font-semibold rounded-full text-[10px]">
-        <UserPlus size={14} />
-        <span>PLAYERS</span>
-      </div>
+      <Badge text="Players" icon={<UserPlus size={14} />} variant="secondary" />
       <h1 className="text-4xl font-bold mb-1">Add Players</h1>
       <p className="text-sm text-gray-500 mb-6 w-3/5">
         Build your roster of competitors and substitutes.
@@ -183,9 +183,9 @@ export default function PlayersForm() {
       </p>
 
       <Card>
-        <p className="section-kicker mb-3">
+        <SectionKicker className="mb-3">
           {isEdit ? "Edit Player" : "Add Player"}
-        </p>
+        </SectionKicker>
         <div className="grid grid-cols-3 items-end gap-2">
           <Controller
             name="firstName"
@@ -235,13 +235,15 @@ export default function PlayersForm() {
               <Input label="Handicap" placeholder="Enter handicap" {...field} />
             )}
           />
-          <button
+          <Button
             type="button"
-            className="btn btn-primary btn-md mb-1"
+            variant="primary"
+            size="md"
+            className="mb-1"
             onClick={playerForm.handleSubmit(onSubmit)}
           >
             {isEdit ? "Update Player" : "Save Player"}
-          </button>
+          </Button>
         </div>
       </Card>
 

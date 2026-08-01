@@ -1,3 +1,4 @@
+import LoadingState from "@/components/layout/LoadingState";
 import { useAdminLeagues } from "@api/admin/queries";
 import PageState from "@/components/layout/PageState";
 import { useAppStore } from "@/stores/appStore";
@@ -76,9 +77,9 @@ export default function LeagueRouteGuard({
 
   if (isAdminRole && adminLeaguesLoading) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Checking access...
-      </div>
+      </LoadingState>
     );
   }
 

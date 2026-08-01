@@ -27,7 +27,7 @@ export function PlayerSwapControl({
       {!isOpen ? (
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline"
+          className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-900 hover:underline"
           onClick={() => {
             setReplacementId(currentPlayerId);
             setIsOpen(true);
@@ -58,7 +58,7 @@ export function PlayerSwapControl({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="h-6 rounded bg-primary px-2 text-[10px] font-semibold text-white disabled:opacity-60"
+              className="h-6 rounded bg-slate-900 px-2 text-[10px] font-semibold text-white disabled:opacity-60"
               disabled={isSaving || !replacementId}
               onClick={async () => {
                 await onSwap(replacementId);

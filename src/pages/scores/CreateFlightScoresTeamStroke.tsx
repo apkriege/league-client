@@ -1,3 +1,6 @@
+import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import PanelBar from "@/components/layout/PanelBar";
+import SurfaceCard from "@/components/layout/SurfaceCard";
 import { useState } from "react";
 import Button from "@/components/layout/Button";
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
@@ -14,6 +17,7 @@ import { calculateStrokeplayPops } from "./util";
 import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
 import { useToast } from "@/context/ToastContext";
 import { validateHoleScores } from "./scoreValidation";
+import { formatTime } from "@/utils/format";
 
 export const CreateFlightScoresTeamStroke = ({
   flight,
@@ -311,13 +315,13 @@ export const CreateFlightScoresTeamStroke = ({
             </div>
           </td>
         ))}
-        <td className="font-bold text-center text-xs">
+        <ScoreValueCell>
           {getPlayerTotalScore(Number(player.playerId))}
-        </td>
-        <td className="font-bold text-center text-xs">
+        </ScoreValueCell>
+        <ScoreValueCell>
           {getPlayerNetScore(Number(player.playerId))}
-        </td>
-        <td className="font-bold text-center text-xs">0</td>
+        </ScoreValueCell>
+        <ScoreValueCell>0</ScoreValueCell>
       </tr>
     );
   };
@@ -326,22 +330,24 @@ export const CreateFlightScoresTeamStroke = ({
     <tr aria-hidden="true" className="bg-gray-100">
       <td className="font-semibold text-xs">{teamName} Best Ball</td>
       {holes.map((hole: any, holeIdx: number) => (
-        <td key={hole.num} className="p-2 font-bold text-center text-xs">
+        <ScoreValueCell key={hole.num} className="p-2">
           {getTeamPointsAtHole(team, holeIdx)}
-        </td>
+        </ScoreValueCell>
       ))}
       <td />
       <td />
-      <td className="p-2 font-bold text-center text-xs">{getTeamTotalPoints(team)}</td>
+      <ScoreValueCell className="p-2">{getTeamTotalPoints(team)}</ScoreValueCell>
     </tr>
   );
 
   return (
-    <div className="surface-card">
-      <div className="panel-header">
+    <SurfaceCard>
+      <PanelBar variant="header">
         <div className="flex items-center gap-2">
           <Flag size={14} className="text-gray-400" strokeWidth={2} />
-          <h3 className="text-sm font-semibold text-gray-800">Flight {flight.startTime}</h3>
+          <h3 className="text-sm font-semibold text-gray-800">
+            Flight {formatTime(flight.startsAt, event.timeZone)}
+          </h3>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -357,7 +363,7 @@ export const CreateFlightScoresTeamStroke = ({
             {isEditMode ? "Save Changes" : "Submit Scores"}
           </Button>
         </div>
-      </div>
+      </PanelBar>
 
       <div className="p-4">
         <div className="mb-3">
@@ -374,13 +380,13 @@ export const CreateFlightScoresTeamStroke = ({
                 <tr className="text-xs text-gray-700">
                   <th>Player</th>
                   {holes.map((hole: any) => (
-                    <th key={hole.num} className="p-2 text-center">
+                    <ScoreHeaderCell key={hole.num}>
                       {hole.num}
-                    </th>
+                    </ScoreHeaderCell>
                   ))}
-                  <th className="p-2 text-center">Total</th>
-                  <th className="p-2 text-center">Net</th>
-                  <th className="p-2 text-center">Points</th>
+                  <ScoreHeaderCell>Total</ScoreHeaderCell>
+                  <ScoreHeaderCell>Net</ScoreHeaderCell>
+                  <ScoreHeaderCell>Points</ScoreHeaderCell>
                 </tr>
               </thead>
               <tbody>
@@ -397,6 +403,6 @@ export const CreateFlightScoresTeamStroke = ({
           </div>
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 };

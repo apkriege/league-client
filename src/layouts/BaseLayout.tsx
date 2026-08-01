@@ -19,9 +19,9 @@ import {
 } from "lucide-react";
 import { useLeague, useLeagueEvents } from "@api/league/queries";
 import { useAdminLeagues } from "@api/admin/queries";
-import dayjs from "dayjs";
 import NotificationsMenu from "@/components/layout/NotificationsMenu";
-import lnLogo from "@/assets/ln-logo.png";
+import lnLogo from "@/assets/league-night-logo.png";
+import { formatEventDate } from "@/utils/eventDate";
 
 const Section = ({ section, collapsed }: { section: string; collapsed?: boolean }) => (
   <div className="mt-5 mb-2 flex flex-col">
@@ -73,11 +73,18 @@ const NavWithSubLinks = ({
   collapsed,
 }: {
   section: string;
-  links: { to: string; name: string; date: Date; completed: boolean; eventType: string }[];
+  links: {
+    to: string;
+    name: string;
+    date: string;
+    timeZone: string;
+    completed: boolean;
+    eventType: string;
+  }[];
   icon: any;
   collapsed?: boolean;
 }) => (
-  <ul className="menu w-full m-0! p-0">
+  <ul className="m-0! w-full list-none p-0">
     <li>
       <details open>
         <summary className="app-nav-link text-sm px-2 py-2">
@@ -98,7 +105,14 @@ const NavWithSubLinks = ({
                 >
                   <div>
                     {link.name} -
-                    <span className="ml-1 text-[10px]">{dayjs(link.date).format("MM/DD/YY")}</span>
+                    <span className="ml-1 text-[10px]">
+                      {formatEventDate(
+                        link.date,
+                        { month: "2-digit", day: "2-digit", year: "2-digit" },
+                        "en-US",
+                        link.timeZone,
+                      )}
+                    </span>
                   </div>
                   {link.eventType !== "off" && link.completed && (
                     <div>
@@ -119,7 +133,8 @@ const modelEvents = (events: any) => {
   return events.map((event: any) => ({
     id: event.id,
     name: event.name,
-    date: event.date,
+    date: event.startsAt,
+    timeZone: event.timeZone,
     to: `/league/${event.leagueId}/events/${event.id}`,
     completed: event.completed,
     eventType: event.eventType,
@@ -161,13 +176,13 @@ export default function BaseLayout() {
     `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Account";
 
   useEffect(() => {
-    // Set the golf theme on mount
-    document.documentElement.setAttribute("data-theme", "golf");
-  }, []);
-
-  useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/login", {
+        replace: true,
+        state: {
+          from: `${location.pathname}${location.search}${location.hash}`,
+        },
+      });
       return;
     }
     if (location.pathname.startsWith("/superadmin") && !isSuperAdmin) {
@@ -178,7 +193,7 @@ export default function BaseLayout() {
     // if (!leagueId) {
     //   navigate("/dashboard");
     // }
-  }, [user, leagueId, navigate, location.pathname, isSuperAdmin]);
+  }, [user, leagueId, navigate, location.pathname, location.search, location.hash, isSuperAdmin]);
 
   const handleLogout = async () => {
     try {

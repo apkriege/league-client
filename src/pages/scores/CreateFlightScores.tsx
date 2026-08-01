@@ -1,3 +1,6 @@
+import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import PanelBar from "@/components/layout/PanelBar";
+import SurfaceCard from "@/components/layout/SurfaceCard";
 import { useState } from "react";
 import Button from "@/components/layout/Button";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
@@ -14,6 +17,7 @@ import {
 import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
 import { useToast } from "@/context/ToastContext";
 import { validateHoleScores } from "./scoreValidation";
+import { formatTime } from "@/utils/format";
 
 export const CreateFlightScores = ({
   flight,
@@ -378,7 +382,6 @@ export const CreateFlightScores = ({
 
     try {
       if (isEditMode) {
-        console.log("Updating scores with data:", scoresData); // --- IGNORE ---
         updateMutation.mutate(
           {
             leagueId: numericLeagueId,
@@ -586,7 +589,7 @@ export const CreateFlightScores = ({
             {!isEditingSwap ? (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-900 hover:underline"
                 onClick={() => startSwap(team, idx, Number(player.playerId))}
               >
                 <ArrowLeftRight size={10} />
@@ -609,7 +612,7 @@ export const CreateFlightScores = ({
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    className="h-6 rounded bg-primary px-2 text-[10px] font-semibold text-white"
+                    className="h-6 rounded bg-slate-900 px-2 text-[10px] font-semibold text-white"
                     onClick={() => saveSwap(team, idx, player)}
                   >
                     Save
@@ -648,11 +651,11 @@ export const CreateFlightScores = ({
             </div>
           </td>
         ))}
-        <td className="font-bold text-center text-xs">{getPlayerTotalScore(player.playerId)}</td>
-        <td className="font-bold text-center text-xs">{getPlayerNetScore(player.playerId)}</td>
-        <td className="font-bold text-center text-xs">
+        <ScoreValueCell>{getPlayerTotalScore(player.playerId)}</ScoreValueCell>
+        <ScoreValueCell>{getPlayerNetScore(player.playerId)}</ScoreValueCell>
+        <ScoreValueCell>
           {getPlayerPoints(player) + getPlayerMatchPoints(player)}
-        </td>
+        </ScoreValueCell>
       </tr>
     );
   };
@@ -682,11 +685,13 @@ export const CreateFlightScores = ({
   );
 
   return (
-    <div className="surface-card">
-      <div className="panel-header">
+    <SurfaceCard>
+      <PanelBar variant="header">
         <div className="flex items-center gap-2">
           <Flag size={14} className="text-gray-400" strokeWidth={2} />
-          <h3 className="text-sm font-semibold text-gray-800">Flight {flight.startTime}</h3>
+          <h3 className="text-sm font-semibold text-gray-800">
+            Flight {formatTime(flight.startsAt, event.timeZone)}
+          </h3>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -702,7 +707,7 @@ export const CreateFlightScores = ({
             {isEditMode ? "Save Changes" : "Submit Scores"}
           </Button>
         </div>
-      </div>
+      </PanelBar>
 
       <div className="p-4">
         <div className="mb-3">
@@ -719,9 +724,9 @@ export const CreateFlightScores = ({
                 <tr className="text-xs text-gray-700">
                   <th>Player</th>
                   {holes.map((hole: any) => (
-                    <th key={hole.num} className="p-2 text-center">
+                    <ScoreHeaderCell key={hole.num}>
                       {hole.num}
-                    </th>
+                    </ScoreHeaderCell>
                   ))}
                   <th>Total</th>
                   <th>Net</th>
@@ -742,6 +747,6 @@ export const CreateFlightScores = ({
           </div>
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 };

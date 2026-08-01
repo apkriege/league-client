@@ -9,7 +9,6 @@ export function validateLeagueForm(data: any, options: { requirePlayers?: boolea
   if (String(data.type).toLowerCase() === "season" && isBlank(data.format)) {
     return "Season leagues require a format.";
   }
-  if (isBlank(data.access)) return "League access is required.";
   if (!isPositiveNumber(data.numPlayers) && players.length === 0) {
     return "Number of players must be greater than 0.";
   }

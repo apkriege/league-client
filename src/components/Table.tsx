@@ -110,18 +110,18 @@ export default function Table<T>({
 
   const variantClasses = {
     default: {
-      container: "bg-white/80 border rounded-3xl shadow-sm backdrop-blur-md overflow-hidden",
-      containerNoBorder: "bg-white/80 rounded-3xl shadow-sm backdrop-blur-md overflow-hidden",
+      container: "bg-white border rounded-3xl shadow-sm overflow-hidden",
+      containerNoBorder: "bg-white rounded-3xl shadow-sm overflow-hidden",
       header: "px-4 py-3 border-b border-black/5",
       heading: "text-blue-800",
-      theadRow: "bg-[#f4f7fb]/80 border-b border-base-300",
+      theadRow: "bg-[#f4f7fb]/80 border-b border-slate-200",
       headerCell: "hover:bg-sky-100/40 text-gray-600",
-      row: "border-base-300 hover:bg-sky-50/50",
-      empty: "text-base-content/50",
+      row: "border-slate-200 hover:bg-sky-50/50",
+      empty: "text-slate-900/50",
     },
     clean: {
-      container: "overflow-hidden rounded-3xl border border-gray-200 bg-white/80 shadow-sm backdrop-blur-md",
-      containerNoBorder: "overflow-hidden rounded-3xl bg-white/80 shadow-sm backdrop-blur-md",
+      container: "overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm",
+      containerNoBorder: "overflow-hidden rounded-3xl bg-white shadow-sm",
       header: "border-b border-gray-100 px-4 py-3",
       heading: "text-blue-800",
       theadRow: "bg-[#f4f7fb]/80 border-b border-gray-100",

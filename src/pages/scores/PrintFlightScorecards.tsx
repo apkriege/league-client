@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { formatEventDate } from "@/utils/eventDate";
+import { compareTimes, formatTime } from "@/utils/format";
 import { Printer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -46,11 +47,7 @@ export default function PrintFlightScorecards() {
   const flights = useMemo(() => {
     if (!event?.flights) return [];
     return [...event.flights]
-      .sort((a: any, b: any) => {
-        const aTime = String(a?.startTime || "");
-        const bTime = String(b?.startTime || "");
-        return aTime.localeCompare(bTime);
-      })
+      .sort((a: any, b: any) => compareTimes(a?.startsAt, b?.startsAt))
       .map((flight: any) => ({
         ...flight,
         players: flightPlayersById[Number(flight.id)] || [...(flight.players || [])],
@@ -191,7 +188,7 @@ export default function PrintFlightScorecards() {
         <div>
           <h1 className="text-lg font-bold text-slate-900">Flight Scorecards</h1>
           <p className="text-xs text-slate-500">
-            {event.name} · {formatEventDate(event.date)} · {event.course?.name}
+            {event.name} · {formatEventDate(event.startsAt, undefined, "en-US", event.timeZone)} · {event.course?.name}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -308,13 +305,13 @@ function FlightCard({
             <h2 className="text-sm font-bold text-slate-900">{event.name}</h2>
             <p className="text-[11px] text-slate-600">
               Flight {flightNumber}
-              {flight?.startTime ? ` · ${flight.startTime}` : ""}
+              {flight?.startsAt ? ` · ${formatTime(flight.startsAt, event.timeZone)}` : ""}
               {event?.tee?.name ? ` · ${event.tee.name}` : ""}
             </p>
             <p className="text-[11px] text-slate-500">{event?.course?.name || ""}</p>
           </div>
           <div className="text-right text-[10px] text-slate-500">
-            <p>Date: {formatEventDate(event.date)}</p>
+            <p>Date: {formatEventDate(event.startsAt, undefined, "en-US", event.timeZone)}</p>
             <p>Format: {String(event.format || "").toUpperCase()}</p>
             <p>Scoring: {String(event.scoringFormat || "").toUpperCase()}</p>
           </div>

@@ -1,7 +1,10 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
+import Button from "@/components/layout/Button";
+import { Input, MultiSelect } from "@/components/form";
+import PanelBar from "@/components/layout/PanelBar";
+import SurfaceCard from "@/components/layout/SurfaceCard";
 import Modal from "@/components/layout/Modal";
-import { MultiSelect } from "@/components/form";
 import { useToast } from "@/context/ToastContext";
 import { useAppStore } from "@/stores/appStore";
 import { useLeague } from "@api/league/queries";
@@ -28,7 +31,7 @@ const TEAM_COLOR = {
   header: "bg-gray-50 border-gray-100",
   icon: "text-gray-400",
   badge: "bg-white text-gray-500 border border-gray-200",
-  avatar: "bg-primary/10 text-primary",
+  avatar: "bg-slate-900/10 text-slate-900",
 };
 
 const EMPTY_FORM = {
@@ -281,9 +284,9 @@ export default function Teams() {
                 : "Create a team to get started."}
             </p>
             {!isReadOnly && (
-              <button className="btn btn-primary btn-sm mt-4" type="button" onClick={openCreate}>
+              <Button variant="primary" className="mt-4" onClick={openCreate}>
                 Add Team
-              </button>
+              </Button>
             )}
           </div>
         ) : (
@@ -294,9 +297,9 @@ export default function Teams() {
               </h2>
               {!isReadOnly && (
                 <div className="flex justify-end">
-                  <button className="btn btn-primary btn-xs" onClick={openCreate}>
+                  <Button variant="primary" size="xs" onClick={openCreate}>
                     Add Team
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -304,7 +307,7 @@ export default function Teams() {
               {teams.map((team) => {
                 const color = TEAM_COLOR;
                 return (
-                  <div
+                  <SurfaceCard
                     key={team.id}
                     role="button"
                     tabIndex={0}
@@ -315,9 +318,9 @@ export default function Teams() {
                         navigate(`/league/${numericLeagueId}/team/${team.id}`);
                       }
                     }}
-                    className="surface-card cursor-pointer transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-950/10"
+                    className="cursor-pointer transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-950/10"
                   >
-                    <div className={`panel-row border-b ${color.header}`}>
+                    <PanelBar className={`border-b ${color.header}`}>
                       <ShieldHalf size={14} className={color.icon} strokeWidth={2} />
                       <h3 className="text-sm font-semibold text-gray-800">{team.name}</h3>
                       <span
@@ -351,7 +354,7 @@ export default function Teams() {
                           </button>
                         </div>
                       ) : null}
-                    </div>
+                    </PanelBar>
                     <div className="px-4 py-3 flex flex-col gap-2.5">
                       {team.players?.length === 0 && (
                         <p className="text-xs text-gray-400 italic">No players assigned</p>
@@ -384,7 +387,7 @@ export default function Teams() {
                           </div>
                         ))}
                     </div>
-                  </div>
+                  </SurfaceCard>
                 );
               })}
             </div>
@@ -398,14 +401,11 @@ export default function Teams() {
         onClose={resetAndCloseModal}
       >
         <div className="space-y-4">
-          <div>
-            <label className="text-xs font-semibold text-gray-600">Team Name</label>
-            <input
-              className="input input-sm input-bordered w-full"
-              value={form.name}
-              onChange={(event) => onNameChange(event.target.value)}
-            />
-          </div>
+          <Input
+            label="Team Name"
+            value={form.name}
+            onChange={(event) => onNameChange(event.target.value)}
+          />
 
           <MultiSelect
             label="Players"
@@ -421,16 +421,16 @@ export default function Teams() {
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-2">
-          <button className="btn btn-sm" onClick={resetAndCloseModal}>
+          <Button variant="default" onClick={resetAndCloseModal}>
             Cancel
-          </button>
-          <button
-            className="btn btn-primary btn-sm"
+          </Button>
+          <Button
+            variant="primary"
             onClick={saveTeam}
             disabled={!validateForm || submitting}
           >
             {submitting ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       </Modal>
     </div>

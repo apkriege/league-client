@@ -5,11 +5,10 @@
 Copy `.env.example` to `.env` and set:
 
 - `VITE_API_URL`
-- `VITE_STRIPE_PUBLISHABLE_KEY`
 
 Optional:
 
-- `VITE_GOOGLE_AUTH_URL`
+- Billing display overrides (`VITE_BILLING_MIN_GOLFERS` and `VITE_BILLING_PRICE_PER_GOLFER`)
 
 ## Local development
 
@@ -20,6 +19,9 @@ Optional:
 ## Production
 
 1. Set production `VITE_API_URL`.
-2. Set the live Stripe publishable key.
-3. Build with `npm run build`.
-4. Serve the generated `dist/` directory behind your CDN or web server.
+2. Build with `npm run build`.
+3. Start the production static server with `npm start`.
+
+The committed Railway configuration builds the client, serves `dist/` with SPA route fallback, and
+checks `/` before activating a deployment. Static responses include the production security headers
+defined in `public/serve.json`.

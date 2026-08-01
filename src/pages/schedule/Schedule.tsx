@@ -1,8 +1,10 @@
+import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { useLeagueEvents } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { getEventLocalDate } from "@/utils/eventDate";
+import { formatTime } from "@/utils/format";
 import {
   Calendar,
   CalendarDays,
@@ -70,9 +72,9 @@ export default function Schedule() {
 
   if (isLoading) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Loading schedule...
-      </div>
+      </LoadingState>
     );
   }
 
@@ -125,7 +127,7 @@ export default function Schedule() {
 function EventCard({ event, onClick }: { event: any; leagueId: string; onClick: () => void }) {
   const normalizedStatus = normalizeEventStatus(event.status);
   const status = STATUS_CONFIG[normalizedStatus] ?? STATUS_CONFIG["scheduled"];
-  const date = getEventLocalDate(event.date);
+  const date = getEventLocalDate(event.startsAt, event.timeZone);
 
   return (
     <div
@@ -134,11 +136,11 @@ function EventCard({ event, onClick }: { event: any; leagueId: string; onClick: 
     >
       <div className="flex items-stretch">
         {/* Date block */}
-        <div className="flex flex-col items-center justify-center px-3 py-2.5 rounded-l-lg min-w-[58px] border-r bg-primary/5 border-primary/10">
+        <div className="flex flex-col items-center justify-center px-3 py-2.5 rounded-l-lg min-w-[58px] border-r bg-slate-900/5 border-slate-900/10">
           <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
             {date.toLocaleDateString("en-US", { month: "short" })}
           </span>
-          <span className="text-xl font-black leading-none text-primary">{date.getDate()}</span>
+          <span className="text-xl font-black leading-none text-slate-900">{date.getDate()}</span>
           <span className="text-[9px] text-gray-400 font-medium">
             {date.toLocaleDateString("en-US", { weekday: "short" })}
           </span>
@@ -171,7 +173,7 @@ function EventCard({ event, onClick }: { event: any; leagueId: string; onClick: 
           </div>
 
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <MetaChip icon={<Clock size={10} />} label={event.startTime} />
+            <MetaChip icon={<Clock size={10} />} label={formatTime(event.startsAt, event.timeZone)} />
             <MetaChip icon={<Flag size={10} />} label={`${event.holes} holes`} />
             <MetaChip
               icon={<ShieldHalf size={10} />}

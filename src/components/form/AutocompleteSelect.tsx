@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import Autocomplete from "@mui/material/Autocomplete";
+import TextField from "@mui/material/TextField";
+import { useId } from "react";
+import { Label } from "./Label";
 
 export type AutocompleteOption = {
   value: string | number;
@@ -29,155 +32,35 @@ export default function AutocompleteSelect({
   disabled = false,
   clearable = true,
 }: AutocompleteSelectProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [highlightedIndex, setHighlightedIndex] = useState(0);
-
-  const selectedOption = useMemo(
-    () => options.find((option) => option.value === value),
-    [options, value]
-  );
-
-  useEffect(() => {
-    if (!isOpen) {
-      setQuery(selectedOption?.label ?? "");
-    }
-  }, [isOpen, selectedOption]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const filteredOptions = useMemo(() => {
-    const search = query.trim().toLowerCase();
-
-    if (!search) return options;
-
-    return options.filter((option) => option.label.toLowerCase().includes(search));
-  }, [options, query]);
-
-  useEffect(() => {
-    setHighlightedIndex(0);
-  }, [query, isOpen]);
-
-  const handleSelect = (option: AutocompleteOption) => {
-    onChange(option.value, option);
-    setQuery(option.label);
-    setIsOpen(false);
-  };
-
-  const handleClear = () => {
-    onChange(undefined);
-    setQuery("");
-    setIsOpen(false);
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
-      setIsOpen(true);
-      return;
-    }
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setHighlightedIndex((prev) => Math.min(prev + 1, filteredOptions.length - 1));
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setHighlightedIndex((prev) => Math.max(prev - 1, 0));
-      return;
-    }
-
-    if (event.key === "Enter" && isOpen && filteredOptions.length > 0) {
-      event.preventDefault();
-      handleSelect(filteredOptions[highlightedIndex]);
-      return;
-    }
-
-    if (event.key === "Escape") {
-      setIsOpen(false);
-    }
-  };
+  const id = useId();
+  const selectedOption = options.find((option) => option.value === value) ?? null;
 
   return (
-    <fieldset className={`fieldset ${className}`}>
-      {label ? (
-        <legend className="fieldset-legend field-label p-1 text-[10px]">
-          {label}
-        </legend>
-      ) : null}
-
-      <div className="relative" ref={containerRef}>
-        <input
-          type="text"
-          className="input form-input h-[35px] pr-14 text-xs"
-          placeholder={placeholder}
-          value={query}
-          disabled={disabled}
-          onFocus={() => setIsOpen(true)}
-          onChange={(event) => {
-            const nextQuery = event.target.value;
-            setQuery(nextQuery);
-            setIsOpen(true);
-
-            if (!nextQuery) {
-              onChange(undefined);
-            }
-          }}
-          onKeyDown={handleKeyDown}
-          autoComplete="off"
-        />
-        {clearable && !disabled && query ? (
-          <button
-            type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-base-content"
-            onClick={handleClear}
-            aria-label="Clear selection"
-          >
-            Clear
-          </button>
-        ) : null}
-
-        {isOpen && !disabled ? (
-          <div className="absolute top-full left-0 right-0 mt-1 z-20 border border-base-300 rounded-2xl bg-white shadow-lg overflow-hidden">
-            {filteredOptions.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-gray-500">{noResultsText}</p>
-            ) : (
-              <ul className="max-h-56 overflow-y-auto">
-                {filteredOptions.map((option, index) => {
-                  const isHighlighted = index === highlightedIndex;
-                  const isSelected = option.value === selectedOption?.value;
-
-                  return (
-                    <li key={option.value}>
-                      <button
-                        type="button"
-                        className={`w-full text-left px-3 py-2 text-xs transition-colors ${
-                          isHighlighted ? "bg-base-200" : "bg-white"
-                        } ${isSelected ? "text-primary font-medium" : "text-base-content"}`}
-                        onMouseEnter={() => setHighlightedIndex(index)}
-                        onClick={() => handleSelect(option)}
-                      >
-                        {option.content ?? option.label}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        ) : null}
-      </div>
-    </fieldset>
+    <div className={className}>
+      {label ? <Label htmlFor={id} text={label} /> : null}
+      <Autocomplete
+        id={id}
+        options={options}
+        value={selectedOption}
+        disabled={disabled}
+        disableClearable={!clearable}
+        noOptionsText={noResultsText}
+        isOptionEqualToValue={(option, selected) => option.value === selected.value}
+        getOptionLabel={(option) => option.label}
+        onChange={(_, option) => onChange(option?.value, option ?? undefined)}
+        renderOption={(props, option) => (
+          <li {...props} key={option.value}>
+            {option.content ?? option.label}
+          </li>
+        )}
+        renderInput={(params) => (
+          <TextField {...params} placeholder={placeholder} size="small" />
+        )}
+        sx={{
+          "& .MuiInputBase-root": { minHeight: 35, fontSize: "0.75rem", py: 0 },
+          "& .MuiAutocomplete-input": { py: "4px !important" },
+        }}
+      />
+    </div>
   );
 }

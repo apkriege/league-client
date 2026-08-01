@@ -1,3 +1,5 @@
+import Button from "@/components/layout/Button";
+import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { useEffect, useState } from "react";
@@ -118,9 +120,9 @@ export default function CreateEvent() {
 
   if (isLoading) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Loading league...
-      </div>
+      </LoadingState>
     );
   }
 
@@ -175,10 +177,10 @@ export default function CreateEvent() {
             {showTeamsSection && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="bg-primary rounded-md p-1.5">
+                  <div className="bg-slate-900 rounded-md p-1.5">
                     <ShieldHalf size={12} className="text-white" />
                   </div>
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-base-content/60">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900/60">
                     Teams
                   </h2>
                 </div>
@@ -189,10 +191,10 @@ export default function CreateEvent() {
             {/* Flights */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="bg-primary rounded-md p-1.5">
+                <div className="bg-slate-900 rounded-md p-1.5">
                   <Flag size={12} className="text-white" />
                 </div>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-base-content/60">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900/60">
                   Flights
                 </h2>
               </div>
@@ -201,21 +203,21 @@ export default function CreateEvent() {
 
             {/* Submit */}
             <div className="flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
-                className="btn btn-sm"
+                variant="default"
                 onClick={() => navigate(`/league/${leagueId}/admin`)}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="btn btn-primary btn-sm"
+                variant="primary"
                 onClick={handleSubmit}
                 disabled={mutation.isPending}
               >
                 {mutation.isPending ? "Creating..." : "Create Event"}
-              </button>
+              </Button>
             </div>
           </>
         )}

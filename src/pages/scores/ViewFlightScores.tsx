@@ -1,3 +1,4 @@
+import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
 import { Fragment } from "react";
 import { Link, useParams } from "react-router";
 import {
@@ -10,7 +11,7 @@ import {
 function PlayerNameLink({
   playerId,
   children,
-  className = "font-semibold text-gray-800 hover:text-primary hover:underline",
+  className = "font-semibold text-gray-800 hover:text-slate-900 hover:underline",
 }: {
   playerId?: number | string | null;
   children: React.ReactNode;
@@ -157,9 +158,9 @@ export default function ViewFlightScores({ event, flight }: any) {
             <tr className="text-xs text-gray-700">
               <th>Player</th>
               {holes.map((hole: any) => (
-                <th key={hole.num} className="p-2 text-center">
+                <ScoreHeaderCell key={hole.num}>
                   {hole.num}
-                </th>
+                </ScoreHeaderCell>
               ))}
               <th className="text-center">Total</th>
               <th className="text-center">Net</th>
@@ -228,11 +229,11 @@ const PlayerRow = ({ player, holes }: any) => {
           </td>
         );
       })}
-      <td className="font-bold text-center text-xs">{round?.gross ?? 0}</td>
-      <td className="font-bold text-center text-xs">{round?.net ?? 0}</td>
-      <td className="font-bold text-center text-xs">
+      <ScoreValueCell>{round?.gross ?? 0}</ScoreValueCell>
+      <ScoreValueCell>{round?.net ?? 0}</ScoreValueCell>
+      <ScoreValueCell>
         {Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0)}
-      </td>
+      </ScoreValueCell>
     </tr>
   );
 };
@@ -346,7 +347,7 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
       <Fragment key={playerEntry.playerId}>
         <tr className="text-sm bg-slate-50/50">
           <td className="p-2 text-xs">
-            <PlayerNameLink playerId={playerEntry.playerId} className="block font-semibold text-gray-800 hover:text-primary hover:underline">
+            <PlayerNameLink playerId={playerEntry.playerId} className="block font-semibold text-gray-800 hover:text-slate-900 hover:underline">
               {player.firstName} {player.lastName}
             </PlayerNameLink>
             <span className="block text-[10px]">
@@ -372,11 +373,11 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
               </td>
             );
           })}
-          <td className="font-bold text-center text-xs">{matchup.gross}</td>
-          <td className="font-bold text-center text-xs">{matchup.net}</td>
-          <td className="font-bold text-center text-xs">{matchup.holePoints}</td>
-          <td className="font-bold text-center text-xs">{matchup.matchPoints}</td>
-          <td className="font-bold text-center text-xs">{matchup.totalPoints}</td>
+          <ScoreValueCell>{matchup.gross}</ScoreValueCell>
+          <ScoreValueCell>{matchup.net}</ScoreValueCell>
+          <ScoreValueCell>{matchup.holePoints}</ScoreValueCell>
+          <ScoreValueCell>{matchup.matchPoints}</ScoreValueCell>
+          <ScoreValueCell>{matchup.totalPoints}</ScoreValueCell>
         </tr>
         <tr className="bg-slate-50 text-[11px] text-gray-600">
           <td className="p-2 font-semibold">Hole Pts</td>
@@ -403,9 +404,9 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
             <tr className="text-xs text-gray-700">
               <th className="p-2">Player</th>
               {holes.map((hole: any) => (
-                <th key={hole.num} className="p-2 text-center">
+                <ScoreHeaderCell key={hole.num}>
                   {hole.num}
-                </th>
+                </ScoreHeaderCell>
               ))}
               <th className="w-px whitespace-nowrap text-center">Total</th>
               <th className="w-px whitespace-nowrap text-center">Net</th>
@@ -425,11 +426,11 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
                 <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
                   <td className="p-2" colSpan={holes.length + 6}>
                     Matchup {pairIdx + 1}:{" "}
-                    <PlayerNameLink playerId={p1.playerId} className="font-semibold text-gray-600 hover:text-primary hover:underline">
+                    <PlayerNameLink playerId={p1.playerId} className="font-semibold text-gray-600 hover:text-slate-900 hover:underline">
                       {p1.player.firstName} {p1.player.lastName}
                     </PlayerNameLink>{" "}
                     vs{" "}
-                    <PlayerNameLink playerId={p2.playerId} className="font-semibold text-gray-600 hover:text-primary hover:underline">
+                    <PlayerNameLink playerId={p2.playerId} className="font-semibold text-gray-600 hover:text-slate-900 hover:underline">
                       {p2.player.firstName} {p2.player.lastName}
                     </PlayerNameLink>
                   </td>
@@ -458,9 +459,9 @@ const TeamPointsRow = ({
     <tr aria-hidden="true" className="bg-gray-200">
       <td>{label}</td>
       {holes.map((hole: any, holeIdx: number) => (
-        <td key={hole.num} className="p-2 font-bold text-center text-xs">
+        <ScoreValueCell key={hole.num} className="p-2">
           {getTeamPointsForHole(team, hole, holeIdx)}
-        </td>
+        </ScoreValueCell>
       ))}
       <td />
       <td className="p-2 font-bold text-center">

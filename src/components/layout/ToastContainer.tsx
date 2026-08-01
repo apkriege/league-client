@@ -1,35 +1,37 @@
-import { useToast } from "@/context/ToastContext";
+import Alert from "@mui/material/Alert";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
 import { X } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 
 export default function ToastContainer() {
   const { toasts, remove } = useToast();
 
   return (
-    <div className="fixed bottom-4 right-4 z-10000 space-y-2">
+    <Stack
+      spacing={1}
+      sx={{ position: "fixed", right: 16, bottom: 16, zIndex: (theme) => theme.zIndex.snackbar }}
+    >
       {toasts.map((toast) => (
-        <div
+        <Alert
           key={toast.id}
-          className={`
-            relative max-w-sm animate-fade-in
-            backdrop-blur-md bg-slate-950/90 border border-white/10
-            rounded-2xl shadow-2xl p-4
-            ${toast.type === "success" ? "border-sky-300/40" : ""}
-            ${toast.type === "error" ? "border-red-400/40" : ""}
-            ${toast.type === "warning" ? "border-yellow-400/40" : ""}
-            ${toast.type === "info" ? "border-sky-400/40" : ""}
-          `}
-        >
-          <div className="flex items-center justify-between gap-4 w-full">
-            <span className="text-sm font-medium text-white/90">{toast.message}</span>
-            <button
+          severity={toast.type}
+          variant="filled"
+          action={
+            <IconButton
+              aria-label="Dismiss notification"
+              color="inherit"
+              size="small"
               onClick={() => remove(toast.id)}
-              className="shrink-0 p-1 hover:bg-white/10 rounded transition-colors"
             >
-              <X className="w-4 h-4 text-white/70 hover:text-white" />
-            </button>
-          </div>
-        </div>
+              <X size={16} />
+            </IconButton>
+          }
+          sx={{ width: { xs: "calc(100vw - 32px)", sm: 384 }, boxShadow: 8 }}
+        >
+          {toast.message}
+        </Alert>
       ))}
-    </div>
+    </Stack>
   );
 }

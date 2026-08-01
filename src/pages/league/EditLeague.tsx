@@ -1,3 +1,5 @@
+import LoadingState from "@/components/layout/LoadingState";
+import Button from "@/components/layout/Button";
 import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router";
@@ -19,7 +21,6 @@ type LeagueFormData = {
   numPlayers: number;
   type: string;
   format: string | null;
-  access: string;
   contactFirstName: string;
   contactLastName: string;
   contactEmail: string;
@@ -35,7 +36,6 @@ const defaultLeagueData: LeagueFormData = {
   numPlayers: 0,
   type: "season",
   format: "team",
-  access: "public",
   contactFirstName: "",
   contactLastName: "",
   contactEmail: "",
@@ -53,7 +53,6 @@ const mapLeagueToForm = (league: any): LeagueFormData => {
     numPlayers: Number(league.numPlayers ?? 0),
     type: String(league.type || "season").toLowerCase(),
     format: league.format ? String(league.format).toLowerCase() : null,
-    access: String(league.access || "public").toLowerCase(),
     contactFirstName: league.contactFirstName || "",
     contactLastName: league.contactLastName || "",
     contactEmail: league.contactEmail || "",
@@ -121,17 +120,17 @@ export default function EditLeague() {
 
   if (!numericLeagueId) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Invalid league id.
-      </div>
+      </LoadingState>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Loading league...
-      </div>
+      </LoadingState>
     );
   }
 
@@ -169,23 +168,23 @@ export default function EditLeague() {
           <InfoForm />
         </div>
 
-        <div className="step-footer mt-4 w-full bg-base-100 px-4 py-3 flex items-center justify-end border border-base-300 rounded-xl shadow-xs gap-2">
-          <button
-            type="button"
-            className="btn btn-secondary btn-md"
+        <div className="step-footer mt-4 w-full bg-white px-4 py-3 flex items-center justify-end border border-slate-200 rounded-xl shadow-xs gap-2">
+          <Button
+            variant="secondary"
+            size="md"
             onClick={() => navigate(`/league/${numericLeagueId}/admin`)}
             disabled={updateLeague.isPending}
           >
             Cancel
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary btn-md"
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
             onClick={handleSubmit}
             disabled={updateLeague.isPending}
           >
             {updateLeague.isPending ? "Saving..." : "Save League"}
-          </button>
+          </Button>
         </div>
       </FormProvider>
     </div>

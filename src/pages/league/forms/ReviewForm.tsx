@@ -1,4 +1,5 @@
 import PageHeader from "@/components/layout/PageHeader";
+import SectionKicker from "@/components/layout/SectionKicker";
 import { formatPhone } from "@/utils/format";
 import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice } from "@/lib/billing";
 import dayjs from "dayjs";
@@ -6,8 +7,6 @@ import {
   CalendarRange,
   ClipboardCheck,
   Flag,
-  Globe,
-  Lock,
   Mail,
   Phone,
   ShieldHalf,
@@ -39,7 +38,7 @@ interface ReviewFormProps {
 }
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="mb-2 section-kicker">{children}</p>
+  <SectionKicker className="mb-2">{children}</SectionKicker>
 );
 
 export default function ReviewForm({
@@ -91,7 +90,7 @@ export default function ReviewForm({
       />
 
       {/* Stat chips */}
-      <div className="mt-5 mb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="mt-5 mb-5 grid grid-cols-2 gap-3 md:grid-cols-3">
         {[
           {
             label: "Type",
@@ -101,26 +100,11 @@ export default function ReviewForm({
             bg: "bg-amber-50 border-amber-100",
           },
           {
-            label: "Access",
-            value: fmt(String(leagueData?.access || "")),
-            sub: leagueData?.access === "public" ? "anyone can view" : "invite only",
-            icon:
-              leagueData?.access === "public" ? (
-                <Globe size={14} className="text-blue-500" />
-              ) : (
-                <Lock size={14} className="text-violet-500" />
-              ),
-            bg:
-              leagueData?.access === "public"
-                ? "bg-blue-50 border-blue-100"
-                : "bg-violet-50 border-violet-100",
-          },
-          {
             label: "Players",
             value: players.length,
             sub: `${players.filter((p) => p.type === "sub").length} subs`,
-            icon: <Users size={14} className="text-primary" />,
-            bg: "bg-primary/5 border-primary/10",
+            icon: <Users size={14} className="text-slate-900" />,
+            bg: "bg-slate-900/5 border-slate-900/10",
           },
           {
             label: isTeamSeason ? "Teams" : "Dates",
@@ -159,14 +143,14 @@ export default function ReviewForm({
           {/* League Info */}
           <section>
             <SectionLabel>League Info</SectionLabel>
-            <div className="rounded-xl border border-base-300 bg-base-100 shadow-xs overflow-hidden">
-              <div className="px-4 py-3 border-b border-base-200">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-100">
                 <p className="text-base font-bold text-gray-900">{leagueData?.name || "—"}</p>
                 {leagueData?.description && (
                   <p className="text-xs text-gray-500 mt-0.5">{leagueData.description}</p>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-px bg-base-200">
+              <div className="grid grid-cols-2 gap-px bg-slate-100">
                 {[
                   {
                     icon: <CalendarRange size={12} className="text-gray-400" />,
@@ -202,7 +186,7 @@ export default function ReviewForm({
                 ].map(({ icon, label, value, span }) => (
                   <div
                     key={label}
-                    className={`bg-base-100 px-4 py-2.5 flex items-start gap-2 ${span ? "col-span-2" : ""}`}
+                    className={`bg-white px-4 py-2.5 flex items-start gap-2 ${span ? "col-span-2" : ""}`}
                   >
                     <span className="mt-0.5 shrink-0">{icon}</span>
                     <div className="min-w-0">
@@ -223,13 +207,16 @@ export default function ReviewForm({
             {sortedPlayers.length === 0 ? (
               <p className="text-xs text-gray-400">No players added.</p>
             ) : (
-              <div className="rounded-xl border border-base-300 bg-base-100 shadow-xs overflow-hidden">
-                <div className="grid grid-cols-[1fr_56px_56px] border-b border-base-200 bg-base-200/60 px-4 py-2 section-kicker">
+              <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+                <SectionKicker
+                  as="div"
+                  className="grid grid-cols-[1fr_56px_56px] border-b border-slate-100 bg-slate-100/60 px-4 py-2"
+                >
                   <span>Player</span>
                   <span className="text-center">Type</span>
                   <span className="text-right">HCP</span>
-                </div>
-                <div className="divide-y divide-base-200 max-h-64 overflow-auto">
+                </SectionKicker>
+                <div className="max-h-64 divide-y divide-slate-100 overflow-auto">
                   {sortedPlayers.map((p) => {
                     const initials =
                       `${(p.firstName || "")[0] || ""}${(p.lastName || "")[0] || ""}`.toUpperCase();
@@ -240,7 +227,7 @@ export default function ReviewForm({
                         className="grid grid-cols-[1fr_56px_56px] px-4 py-2 items-center"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="bg-primary text-primary-content rounded-lg w-7 h-7 flex items-center justify-center text-[9px] font-bold uppercase shrink-0">
+                          <div className="bg-slate-900 text-white rounded-lg w-7 h-7 flex items-center justify-center text-[9px] font-bold uppercase shrink-0">
                             {initials || "?"}
                           </div>
                           <div className="min-w-0">
@@ -255,7 +242,7 @@ export default function ReviewForm({
                             className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
                               isSub
                                 ? "bg-amber-50 text-amber-600 border border-amber-200"
-                                : "bg-primary/8 text-primary border border-primary/15"
+                                : "bg-slate-900/8 text-slate-900 border border-slate-900/15"
                             }`}
                           >
                             {p.type || "—"}
@@ -283,10 +270,10 @@ export default function ReviewForm({
                   {sortedTeams.map((team) => (
                     <div
                       key={team.id}
-                      className="rounded-xl border border-base-300 bg-base-100 shadow-xs overflow-hidden"
+                      className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden"
                     >
-                      <div className="flex items-center gap-2 px-3 py-2 bg-base-200/60 border-b border-base-200">
-                        <ShieldHalf size={12} className="text-primary/50 shrink-0" />
+                      <div className="flex items-center gap-2 px-3 py-2 bg-slate-100/60 border-b border-slate-100">
+                        <ShieldHalf size={12} className="text-slate-900/50 shrink-0" />
                         <span className="text-xs font-bold text-gray-800 truncate flex-1">
                           {team.name || `Team #${team.id}`}
                         </span>
@@ -302,7 +289,7 @@ export default function ReviewForm({
                             return (
                               <span
                                 key={pid}
-                                className="inline-flex items-center gap-1 rounded-lg bg-base-200 px-2 py-0.5 text-[11px] text-gray-600"
+                                className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] text-gray-600"
                               >
                                 {playerName(pid)}
                                 <span className="text-gray-400">· {p?.handicap ?? "—"}</span>
@@ -321,8 +308,8 @@ export default function ReviewForm({
         {/* Sidebar */}
         <div className="xl:sticky xl:top-4 space-y-3">
           {needsPayment && (
-            <div className="rounded-xl border border-base-300 bg-base-100 shadow-xs overflow-hidden">
-              <div className="px-4 py-3 bg-primary text-primary-content">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+              <div className="px-4 py-3 bg-slate-900 text-white">
                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-0.5">
                   Billing Summary
                 </p>
@@ -340,7 +327,7 @@ export default function ReviewForm({
                 </div>
               </div>
 
-              <div className="px-4 py-3 space-y-2 text-xs border-b border-base-200">
+              <div className="px-4 py-3 space-y-2 text-xs border-b border-slate-100">
                 {[
                   { label: "League", value: leagueData?.name || "—" },
                   { label: "Roster", value: `${players.length}` },

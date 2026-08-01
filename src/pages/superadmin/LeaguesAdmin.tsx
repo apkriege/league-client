@@ -1,3 +1,4 @@
+import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import Table from "@/components/Table";
@@ -11,9 +12,9 @@ export default function LeaguesAdmin() {
 
   if (isLoading) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Loading leagues...
-      </div>
+      </LoadingState>
     );
   }
 
@@ -40,8 +41,8 @@ export default function LeaguesAdmin() {
       label: "League",
       render: (_value: any, row: any) => (
         <div className="flex flex-col">
-          <p className="text-sm font-semibold text-base-content">{row.name}</p>
-          <p className="text-[11px] text-base-content/60 capitalize">
+          <p className="text-sm font-semibold text-slate-900">{row.name}</p>
+          <p className="text-[11px] text-slate-900/60 capitalize">
             {row.type} {row.format ? `• ${row.format}` : ""}
           </p>
         </div>
@@ -51,7 +52,7 @@ export default function LeaguesAdmin() {
       key: "admin",
       label: "Admin",
       render: (_value: any, row: any) => (
-        <div className="text-xs text-base-content/70">
+        <div className="text-xs text-slate-900/70">
           {row.contactFirstName || row.contactLastName
             ? `${row.contactFirstName || ""} ${row.contactLastName || ""}`.trim()
             : row.contactEmail || "Unknown"}
@@ -63,7 +64,7 @@ export default function LeaguesAdmin() {
       label: "Players",
       width: "100px",
       render: (_value: any, row: any) => (
-        <span className="text-xs font-semibold text-base-content">{row._count?.players ?? 0}</span>
+        <span className="text-xs font-semibold text-slate-900">{row._count?.players ?? 0}</span>
       ),
     },
     {
@@ -71,7 +72,7 @@ export default function LeaguesAdmin() {
       label: "Events",
       width: "100px",
       render: (_value: any, row: any) => (
-        <span className="text-xs font-semibold text-base-content">{row._count?.events ?? 0}</span>
+        <span className="text-xs font-semibold text-slate-900">{row._count?.events ?? 0}</span>
       ),
     },
     {
@@ -82,14 +83,14 @@ export default function LeaguesAdmin() {
         <div className="flex items-center gap-2">
           <Link
             to={`/league/${row.id}`}
-            className="inline-flex items-center gap-1 rounded-md border border-base-300 px-2.5 py-1.5 text-[11px] font-semibold text-base-content/70 hover:bg-base-200"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-900/70 hover:bg-slate-100"
           >
             <Eye size={12} />
             View User
           </Link>
           <Link
             to={`/league/${row.id}/admin`}
-            className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/15"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-900/20 bg-slate-900/10 px-2.5 py-1.5 text-[11px] font-semibold text-slate-900 hover:bg-slate-900/15"
           >
             <ShieldCheck size={12} />
             View Admin
@@ -108,11 +109,11 @@ export default function LeaguesAdmin() {
         iconText="SUPER ADMIN"
       />
 
-      <div className="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-base-content">League Directory</p>
-            <p className="text-xs text-base-content/60">{leagues.length} total leagues</p>
+            <p className="text-sm font-semibold text-slate-900">League Directory</p>
+            <p className="text-xs text-slate-900/60">{leagues.length} total leagues</p>
           </div>
         </div>
 

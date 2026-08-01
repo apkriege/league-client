@@ -1,6 +1,11 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
+import SectionKicker from "@/components/layout/SectionKicker";
+import SurfaceCard from "@/components/layout/SurfaceCard";
+import PanelBar from "@/components/layout/PanelBar";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import { formatTime } from "@/utils/format";
+import { formatEventDate } from "@/utils/eventDate";
 import { useTeam } from "@api/teams/queries";
 import dayjs from "dayjs";
 import {
@@ -55,13 +60,11 @@ function StatCard({
     <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="section-kicker">
-            {label}
-          </p>
+          <SectionKicker>{label}</SectionKicker>
           <p className="mt-1 text-2xl font-black leading-tight text-gray-900">{value}</p>
           {subText && <p className="mt-0.5 text-[11px] font-medium text-gray-500">{subText}</p>}
         </div>
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900/10 text-slate-900">
           {icon}
         </span>
       </div>
@@ -135,7 +138,7 @@ export default function Team() {
     <div className="pb-8">
       <Link
         to={numericLeagueId ? `/league/${numericLeagueId}/teams` : "/leagues"}
-        className="mb-4 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-gray-400 transition hover:text-primary"
+        className="mb-4 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-gray-400 transition hover:text-slate-900"
       >
         <ChevronLeft size={14} />
         Back to teams
@@ -177,17 +180,17 @@ export default function Team() {
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
-          <section className="surface-card">
+          <SurfaceCard as="section">
             <div className="flex items-center justify-between gap-3">
-              <div className="panel-row">
-                <div className="rounded-lg bg-primary/10 p-2 text-primary">
+              <PanelBar>
+                <div className="rounded-lg bg-slate-900/10 p-2 text-slate-900">
                   <Users size={15} />
                 </div>
                 <div>
                   <h2 className="text-sm font-semibold text-gray-800">Roster</h2>
                   <p className="text-xs text-gray-400">Players assigned to this team</p>
                 </div>
-              </div>
+              </PanelBar>
               <span className="mr-4 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10px] font-bold text-gray-500">
                 {players.length}
               </span>
@@ -201,9 +204,9 @@ export default function Team() {
                   <Link
                     key={player.id}
                     to={`/league/${numericLeagueId}/player/${player.id}`}
-                    className="flex items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 transition hover:border-primary/20 hover:bg-primary/5"
+                    className="flex items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 transition hover:border-slate-900/20 hover:bg-slate-900/5"
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-[11px] font-black text-primary">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900/10 text-[11px] font-black text-slate-900">
                       {initials(player)}
                     </span>
                     <span className="min-w-0">
@@ -218,12 +221,12 @@ export default function Team() {
                 ))
               )}
             </div>
-          </section>
+          </SurfaceCard>
 
-          <section className="surface-card">
+          <SurfaceCard as="section">
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <div className="flex items-center gap-2">
-                <TrendingUp size={14} className="text-primary" />
+                <TrendingUp size={14} className="text-slate-900" />
                 <div>
                   <h2 className="text-sm font-semibold text-gray-800">Team Points</h2>
                   <p className="text-xs text-gray-400">Event-by-event scoring</p>
@@ -246,21 +249,28 @@ export default function Team() {
                         {row.event?.name || "Event"}
                       </span>
                       <span className="text-[11px] text-gray-400">
-                        {row.event?.date ? dayjs(row.event.date).format("MMM D, YYYY") : "No date"}
+                        {row.event?.startsAt
+                          ? formatEventDate(
+                              row.event.startsAt,
+                              { month: "short", day: "numeric", year: "numeric" },
+                              "en-US",
+                              row.event.timeZone,
+                            )
+                          : "No date"}
                       </span>
                     </span>
-                    <span className="text-right text-xs font-black text-primary">
+                    <span className="text-right text-xs font-black text-slate-900">
                       {formatPoints(row.points)}
                     </span>
                   </Link>
                 ))
               )}
             </div>
-          </section>
+          </SurfaceCard>
         </div>
 
         <div className="space-y-4">
-          <section className="surface-card">
+          <SurfaceCard as="section">
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <div className="flex items-center gap-2">
                 <Medal size={14} className="text-amber-500" />
@@ -279,7 +289,7 @@ export default function Team() {
                   <Link
                     key={round.id}
                     to={`/league/${numericLeagueId}/events/${round.event?.id}`}
-                    className="block rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 transition hover:border-primary/20 hover:bg-primary/5"
+                    className="block rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 transition hover:border-slate-900/20 hover:bg-slate-900/5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -305,9 +315,9 @@ export default function Team() {
                 ))
               )}
             </div>
-          </section>
+          </SurfaceCard>
 
-          <section className="surface-card">
+          <SurfaceCard as="section">
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <div className="flex items-center gap-2">
                 <CalendarDays size={14} className="text-gray-400" />
@@ -326,21 +336,28 @@ export default function Team() {
                   <Link
                     key={event.id}
                     to={`/league/${numericLeagueId}/events/${event.id}`}
-                    className="block rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 transition hover:border-primary/20 hover:bg-primary/5"
+                    className="block rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 transition hover:border-slate-900/20 hover:bg-slate-900/5"
                   >
                     <p className="text-xs font-semibold text-gray-800">{event.name}</p>
                     <p className="mt-0.5 text-[11px] text-gray-400">
-                      {event.date ? dayjs(event.date).format("MMM D, YYYY") : "No date"}
-                      {event.startTime ? ` · ${event.startTime}` : ""}
+                      {event.startsAt
+                        ? formatEventDate(
+                            event.startsAt,
+                            { month: "short", day: "numeric", year: "numeric" },
+                            "en-US",
+                            event.timeZone,
+                          )
+                        : "No date"}
+                      {event.startsAt ? ` · ${formatTime(event.startsAt, event.timeZone)}` : ""}
                     </p>
-                    <p className="mt-1.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+                    <p className="mt-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-900">
                       {eventModeLabel(event)}
                     </p>
                   </Link>
                 ))
               )}
             </div>
-          </section>
+          </SurfaceCard>
         </div>
       </div>
     </div>

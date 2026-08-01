@@ -7,6 +7,7 @@ import { Input, MultiSelect } from "@/components/form";
 import Card from "@/components/layout/Card";
 import { useToast } from "@/context/ToastContext";
 import { useLeaguePlayers } from "@api/league/queries";
+import Button from "@/components/layout/Button";
 
 type Team = {
   id: number;
@@ -218,26 +219,30 @@ export default function TeamsForm() {
           </div>
 
           <div className="grid w-full min-w-0 grid-cols-2 gap-2 lg:grid-cols-1 xl:grid-cols-2">
-            <button
+            <Button
               type="button"
               onClick={handleSaveTeam}
-              className="btn btn-md w-full min-w-0 px-3 text-center leading-tight"
+              variant="primary"
+              size="md"
+              className="w-full min-w-0 px-3 text-center leading-tight"
             >
               {isEditing ? "Update Team" : "Add Team"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={resetDraft}
-              className="btn btn-md btn-secondary w-full min-w-0 px-3 text-center leading-tight"
+              variant="secondary"
+              size="md"
+              className="w-full min-w-0 px-3 text-center leading-tight"
             >
               Reset
-            </button>
+            </Button>
           </div>
         </div>
       </Card>
 
       {teams.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 mt-10 justify-center text-base-content/60">
+        <div className="flex flex-col items-center gap-3 mt-10 justify-center text-slate-900/60">
           <Users size={18} />
           <p className="text-sm">No teams created yet. Please create a team.</p>
         </div>
@@ -246,9 +251,9 @@ export default function TeamsForm() {
           {teams.map((team) => (
             <div
               key={team.id}
-              className="border border-base-300/80 rounded-lg w-full bg-base-100 shadow-xs"
+              className="border border-slate-200/80 rounded-lg w-full bg-white shadow-xs"
             >
-              <div className="flex justify-between items-center bg-primary p-2 rounded-t-lg text-white">
+              <div className="flex justify-between items-center bg-slate-900 p-2 rounded-t-lg text-white">
                 <span className="font-semibold text-sm">{team.name}</span>
                 <div className="flex items-center gap-2">
                   <SquarePen
@@ -275,10 +280,10 @@ export default function TeamsForm() {
                       className="border  rounded-lg px-2 py-1 w-full text-sm flex items-center justify-between gap-2"
                     >
                       <div className="flex flex-col">
-                        <span className="font-medium text-primary text-xs">
+                        <span className="font-medium text-slate-900 text-xs">
                           {player.firstName} {player.lastName}
                         </span>
-                        <span className="text-[10px] text-primary/80">
+                        <span className="text-[10px] text-slate-900/80">
                           HCP: {player.handicap ?? "-"}
                         </span>
                       </div>

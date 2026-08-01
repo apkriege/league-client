@@ -103,7 +103,6 @@ const createDefaultLeagueData = () => ({
   numPlayers: 0,
   type: "season",
   format: "individual",
-  access: "public",
   contactFirstName: "",
   contactLastName: "",
   contactEmail: "",
@@ -117,7 +116,7 @@ const createDefaultLeagueData = () => ({
 const DRAFT_STORAGE_KEY = "create-league-draft";
 
 const modelLeagueData = (league: any) => {
-  const { players, teams, ...info } = league;
+  const { players, teams, access: _legacyAccess, ...info } = league;
 
   const isSeason = info.type === "season";
   const isTeamSeason = isSeason && info.format === "team";
@@ -180,6 +179,7 @@ export default function CreateLeague() {
 
     try {
       const parsed = JSON.parse(draft);
+      const { access: _legacyAccess, ...parsedDraft } = parsed ?? {};
       const resolvedStartDate = parsed?.startDate
         ? new Date(parsed.startDate)
         : freshDefaultLeagueData.startDate;
@@ -189,7 +189,7 @@ export default function CreateLeague() {
           : freshDefaultLeagueData.players;
       leagueForm.reset({
         ...freshDefaultLeagueData,
-        ...parsed,
+        ...parsedDraft,
         startDate: resolvedStartDate,
         endDate: getDefaultEndDate(resolvedStartDate),
         players: resolvedPlayers,

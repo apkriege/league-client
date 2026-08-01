@@ -1,35 +1,61 @@
-import { useClearNotification, useMarkNotificationRead } from "@api/operations/mutations";
-import { useNotifications } from "@api/operations/queries";
+import { useState } from "react";
+import Badge from "@mui/material/Badge";
+import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import Menu from "@mui/material/Menu";
 import dayjs from "dayjs";
 import { Bell, X } from "lucide-react";
+import { useClearNotification, useMarkNotificationRead } from "@api/operations/mutations";
+import { useNotifications } from "@api/operations/queries";
 
 export default function NotificationsMenu() {
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const { data: notifications = [] } = useNotifications();
   const markRead = useMarkNotificationRead();
   const clearNotification = useClearNotification();
   const unreadCount = notifications.filter((notification: any) => !notification.readAt).length;
 
   return (
-    <details className="dropdown dropdown-end">
-      <summary className="btn btn-ghost btn-sm relative rounded-full !border !border-black/5 !bg-white !text-blue-700 shadow-sm hover:!bg-blue-50 hover:!text-blue-800">
-        <Bell size={16} strokeWidth={2.5} className="!text-blue-700" />
-        {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 rounded-full bg-blue-700 px-1.5 text-[10px] font-black text-white">
-            {unreadCount}
-          </span>
-        )}
-      </summary>
-      <div className="dropdown-content z-30 mt-2 w-80 rounded-2xl border border-slate-200 !bg-white p-2 shadow-xl">
+    <>
+      <IconButton
+        aria-label="Open notifications"
+        aria-controls={anchorEl ? "notifications-menu" : undefined}
+        aria-expanded={anchorEl ? "true" : undefined}
+        onClick={(event) => setAnchorEl(event.currentTarget)}
+        size="small"
+        sx={{
+          border: "1px solid rgba(0,0,0,0.05)",
+          bgcolor: "white",
+          color: "#1d4ed8",
+          boxShadow: "0 1px 3px rgba(15,23,42,0.12)",
+          "&:hover": { bgcolor: "#eff6ff", color: "#1e40af" },
+        }}
+      >
+        <Badge badgeContent={unreadCount} color="primary" max={99}>
+          <Bell size={16} strokeWidth={2.5} />
+        </Badge>
+      </IconButton>
+
+      <Menu
+        id="notifications-menu"
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        slotProps={{ paper: { sx: { mt: 1, width: 320, maxWidth: "calc(100vw - 24px)", p: 1 } } }}
+      >
         <p className="px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-400">
           Notifications
         </p>
-        <div className="max-h-80 overflow-y-auto">
+        <Box sx={{ maxHeight: 320, overflowY: "auto" }}>
           {notifications.length === 0 ? (
             <p className="px-3 py-4 text-sm text-slate-400">No notifications yet.</p>
           ) : (
             notifications.map((notification: any) => (
-              <div
+              <Box
                 key={notification.id}
+                component="div"
                 onClick={() => markRead.mutate(Number(notification.id))}
                 className={`group w-full cursor-pointer rounded-xl px-3 py-2 text-left transition hover:bg-slate-50 ${
                   notification.readAt ? "opacity-60" : ""
@@ -44,13 +70,11 @@ export default function NotificationsMenu() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-start gap-2">
-                    {!notification.readAt && (
-                      <span className="mt-1.5 h-2 w-2 rounded-full bg-blue-600" />
-                    )}
-                    <button
+                    {!notification.readAt && <span className="mt-1.5 h-2 w-2 rounded-full bg-blue-600" />}
+                    <IconButton
                       type="button"
                       aria-label="Clear notification"
-                      className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      size="small"
                       disabled={clearNotification.isPending}
                       onClick={(event) => {
                         event.preventDefault();
@@ -59,14 +83,14 @@ export default function NotificationsMenu() {
                       }}
                     >
                       <X size={14} />
-                    </button>
+                    </IconButton>
                   </div>
                 </div>
-              </div>
+              </Box>
             ))
           )}
-        </div>
-      </div>
-    </details>
+        </Box>
+      </Menu>
+    </>
   );
 }

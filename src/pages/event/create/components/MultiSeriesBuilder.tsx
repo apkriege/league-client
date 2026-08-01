@@ -1,3 +1,4 @@
+import Button from "@/components/layout/Button";
 import { useState, useCallback, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { useNavigate, useParams } from "react-router";
@@ -31,106 +32,14 @@ import { useCreateLeagueEvents } from "@api/league/mutations";
 import { useToast } from "@/context/ToastContext";
 import { getEventDateInputValue } from "@/utils/eventDate";
 import { DEFAULT_STROKE_POINTS } from "../constants";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type ScheduleRound = { date: string; flights: any[] };
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Berger circle round-robin.
- * Returns an array of rounds – each round is a flat array of paired ids:
- *   [idA, idB, idC, idD]  →  matchup(A vs B), matchup(C vs D)
- */
-function generateRoundRobin(ids: number[]): number[][] {
-  if (ids.length < 2) return [];
-  // Pad to even with a BYE placeholder (-1)
-  const arr = ids.length % 2 === 0 ? [...ids] : [...ids, -1];
-  const n = arr.length;
-  const fixed = arr[0];
-  const rotating = arr.slice(1);
-  const rounds: number[][] = [];
-
-  for (let round = 0; round < n - 1; round++) {
-    const row = [fixed, ...rotating];
-    const pairs: number[] = [];
-    for (let i = 0; i < n / 2; i++) {
-      const a = row[i];
-      const b = row[n - 1 - i];
-      if (a !== -1 && b !== -1) pairs.push(a, b);
-    }
-    if (pairs.length) rounds.push(pairs);
-    // Rotate: move tail of rotating array to front
-    rotating.unshift(rotating.pop()!);
-  }
-
-  return rounds;
-}
-
-/**
- * Convert a flat pair array into the flight format used by the app.
- *   Team match:       flight = [teamId1, teamId2]
- *   Individual match: flight = [[p1, p2]]
- *   Stroke:           flight = [p1, p2, p3, p4]
- */
-function buildFlights(pairs: number[], format: string, scoringFormat: string): any[] {
-  const flights: any[] = [];
-  if (format === "team") {
-    for (let i = 0; i < pairs.length; i += 2) {
-      flights.push([pairs[i], pairs[i + 1]]);
-    }
-  } else if (scoringFormat === "match") {
-    for (let i = 0; i < pairs.length; i += 2) {
-      flights.push([[pairs[i], pairs[i + 1]]]);
-    }
-  } else {
-    // Stroke play – group into flights of 4
-    for (let i = 0; i < pairs.length; i += 4) {
-      flights.push(pairs.slice(i, Math.min(i + 4, pairs.length)));
-    }
-  }
-  return flights;
-}
-
-function shuffleArray<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function buildDates(
-  startDate: string,
-  endDate: string,
-  days: number[],
-  frequency: "weekly" | "biweekly"
-): string[] {
-  const start = dayjs(startDate);
-  const end = dayjs(endDate);
-  if (!days.length || !start.isValid() || !end.isValid() || end.isBefore(start, "day")) return [];
-
-  const dates: string[] = [];
-  let cur = start;
-  const startWeek = start.startOf("week");
-  const weekInterval = frequency === "weekly" ? 1 : 2;
-
-  while (!cur.isAfter(end)) {
-    const weekIndex = Math.floor(cur.startOf("week").diff(startWeek, "day") / 7);
-    if (weekIndex % weekInterval === 0 && days.includes(cur.day())) {
-      dates.push(cur.format("YYYY-MM-DD"));
-    }
-    cur = cur.add(1, "day");
-  }
-
-  return dates;
-}
+import {
+  buildDates,
+  buildFlights,
+  generateRoundRobin,
+  shuffleArray,
+  type ScheduleRound,
+} from "../multiSeriesSchedule";
+import MuiCheckbox from "@mui/material/Checkbox";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -359,16 +268,16 @@ export default function MultiSeriesBuilder() {
         <div className="w-2/3 flex flex-col gap-5">
           <Card>
             <h3 className="text-base font-semibold mb-1">Event Settings</h3>
-            <p className="text-xs text-base-content/60 mb-4">
+            <p className="text-xs text-slate-900/60 mb-4">
               These settings apply to every event in the series.
             </p>
 
             <div className="flex flex-col gap-4">
               {isFormatLocked ? (
-                <div className="rounded-lg border border-base-300 px-3 py-2 text-xs">
+                <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
                   Format locked to{" "}
                   <span className="font-semibold uppercase ml-1">{lockedSeasonFormat}</span>
-                  <span className="text-base-content/60 ml-1">by league settings.</span>
+                  <span className="text-slate-900/60 ml-1">by league settings.</span>
                 </div>
               ) : (
                 <div>
@@ -414,18 +323,18 @@ export default function MultiSeriesBuilder() {
                     { value: "back", label: "BACK" },
                   ]}
                 />
-                <label className="mt-2 flex items-start gap-2 rounded-lg border border-base-300 bg-base-100 px-3 py-2 text-xs">
-                  <input
-                    type="checkbox"
+                <label className="mt-2 flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
+                  <MuiCheckbox
                     checked={alternateStartSides}
                     onChange={(e) => setAlternateStartSides(e.target.checked)}
-                    className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                    size="small"
+                    sx={{ mt: -0.5, p: 0.5 }}
                   />
                   <span>
-                    <span className="block font-semibold text-base-content">
+                    <span className="block font-semibold text-slate-900">
                       Alternate front/back each event
                     </span>
-                    <span className="block text-base-content/60">
+                    <span className="block text-slate-900/60">
                       Event 1 starts on {sharedStartSide}; event 2 starts on{" "}
                       {sharedStartSide === "front" ? "back" : "front"}, then repeats.
                     </span>
@@ -496,20 +405,20 @@ export default function MultiSeriesBuilder() {
             <div className="mt-4">
               {scoringFormat === "stroke" && (
                 <>
-                  <label className="mb-3 flex items-start gap-2 rounded-lg border border-base-300 bg-white px-3 py-2 text-xs">
-                    <input
-                      type="checkbox"
+                  <label className="mb-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
+                    <MuiCheckbox
                       checked={pointsEnabled}
                       onChange={(event) =>
                         methods.setValue("pointsEnabled", event.target.checked, {
                           shouldDirty: true,
                         })
                       }
-                      className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                      size="small"
+                      sx={{ mt: -0.5, p: 0.5 }}
                     />
                     <span>
-                      <span className="block font-semibold text-base-content">Award points</span>
-                      <span className="block text-base-content/60">
+                      <span className="block font-semibold text-slate-900">Award points</span>
+                      <span className="block text-slate-900/60">
                         Turn this off when each event should rank by net score only.
                       </span>
                     </span>
@@ -520,7 +429,7 @@ export default function MultiSeriesBuilder() {
                     disabled={!pointsEnabled}
                     {...methods.register("strokePoints")}
                   />
-                  <p className="text-[11px] text-base-content/60 mt-1">
+                  <p className="text-[11px] text-slate-900/60 mt-1">
                     {pointsEnabled
                       ? "Optional. Leave blank to use Stableford scoring."
                       : "Points are disabled; event leaderboards will use low net."}
@@ -555,10 +464,10 @@ export default function MultiSeriesBuilder() {
       {showTeams && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <div className="bg-primary rounded-md p-1.5">
+            <div className="bg-slate-900 rounded-md p-1.5">
               <ShieldHalf size={12} className="text-white" />
             </div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-base-content/60">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900/60">
               Teams
             </h2>
           </div>
@@ -569,7 +478,7 @@ export default function MultiSeriesBuilder() {
       {/* ── Schedule Builder ── */}
       <Card>
         <h3 className="text-base font-semibold mb-1">Schedule Builder</h3>
-        <p className="text-xs text-base-content/60 mb-4">
+        <p className="text-xs text-slate-900/60 mb-4">
           Configure your series then generate a round-robin schedule. Drag flights within a round to
           reorder tee times.
         </p>
@@ -618,12 +527,12 @@ export default function MultiSeriesBuilder() {
             <Label text="Days of Week" />
             <div className="flex flex-wrap gap-1.5">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
-                <button
+                <Button
                   key={day}
                   type="button"
-                  className={`btn btn-sm ${
-                    selectedDays.includes(i) ? "btn-primary" : "border border-base-300 bg-white"
-                  }`}
+                  variant={selectedDays.includes(i) ? "primary" : "default"}
+                  outline={!selectedDays.includes(i)}
+                  size="sm"
                   onClick={() =>
                     setSelectedDays((prev) =>
                       prev.includes(i)
@@ -633,10 +542,10 @@ export default function MultiSeriesBuilder() {
                   }
                 >
                   {day}
-                </button>
+                </Button>
               ))}
             </div>
-            <p className="mt-1 text-[11px] text-base-content/50">
+            <p className="mt-1 text-[11px] text-slate-900/50">
               Select one or more weekdays. Weekly uses every matching week; bi-weekly uses every
               other matching week.
             </p>
@@ -644,7 +553,7 @@ export default function MultiSeriesBuilder() {
         </div>
 
         {rrRounds > 0 && selectedDays.length > 0 && (
-          <p className="text-xs text-base-content/50 mb-2 mt-2">
+          <p className="text-xs text-slate-900/50 mb-2 mt-2">
             {ids.length} {format === "team" ? "teams" : "players"} &rarr; {rrRounds}-round
             round-robin &bull; <span className="font-medium">{eventCount} events</span> scheduled
           </p>
@@ -657,23 +566,23 @@ export default function MultiSeriesBuilder() {
         )}
 
         <div className="flex gap-2 mt-2">
-          <button
+          <Button
             type="button"
-            className="btn btn-primary btn-sm"
+            variant="primary"
             onClick={() => handleGenerate(false)}
           >
             <RefreshCw size={12} />
             Generate Schedule
-          </button>
+          </Button>
           {schedule.length > 0 && (
-            <button
+            <Button
               type="button"
-              className="btn btn-ghost btn-sm"
+              variant="ghost"
               onClick={() => handleGenerate(true)}
             >
               <Shuffle size={12} />
               Shuffle Matchups
-            </button>
+            </Button>
           )}
         </div>
       </Card>
@@ -683,9 +592,9 @@ export default function MultiSeriesBuilder() {
         <div className="flex gap-4 items-start">
           {/* Sticky highlight selector */}
           <div className="sticky top-4 w-48 shrink-0">
-            <div className="bg-base-100 border rounded-xl shadow-xs overflow-hidden">
-              <div className="px-3 py-2.5 border-b bg-base-200/40">
-                <p className="text-[10px] font-semibold tracking-wide text-base-content/50">
+            <div className="bg-white border rounded-xl shadow-xs overflow-hidden">
+              <div className="px-3 py-2.5 border-b bg-slate-100/40">
+                <p className="text-[10px] font-semibold tracking-wide text-slate-900/50">
                   {format === "team" ? "Filter by Team" : "Filter by Player"}
                 </p>
               </div>
@@ -695,19 +604,18 @@ export default function MultiSeriesBuilder() {
                       const tid = Number(t.id);
                       const active = highlightId === tid;
                       return (
-                        <button
+                        <Button
                           key={tid}
                           type="button"
                           onClick={() => setHighlightId(active ? null : tid)}
-                          className={`btn btn-xs w-full justify-start font-normal duration-300 ${
-                            active
-                              ? "btn-primary"
-                              : "bg-base-200 hover:bg-primary hover:text-primary-content border text-base-content"
-                          }`}
+                          variant={active ? "primary" : "default"}
+                          outline={!active}
+                          size="xs"
+                          className="w-full justify-start font-normal duration-300"
                         >
                           {active && <span className="mr-1">●</span>}
                           {t.name}
-                        </button>
+                        </Button>
                       );
                     })
                   : null}
@@ -716,30 +624,30 @@ export default function MultiSeriesBuilder() {
                       const pid = Number(p.id);
                       const active = highlightId === pid;
                       return (
-                        <button
+                        <Button
                           key={pid}
                           type="button"
                           onClick={() => setHighlightId(active ? null : pid)}
-                          className={`btn btn-xs w-full justify-start font-normal ${
-                            active
-                              ? "btn-primary"
-                              : "bg-transparent hover:bg-base-200 border-transparent text-base-content"
-                          }`}
+                          variant={active ? "primary" : "ghost"}
+                          size="xs"
+                          className="w-full justify-start font-normal"
                         >
                           {active && <span className="mr-1">●</span>}
                           {p.firstName} {p.lastName}
-                        </button>
+                        </Button>
                       );
                     })
                   : null}
                 {highlightId !== null && (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setHighlightId(null)}
-                    className="btn btn-xs w-full justify-start bg-transparent border-transparent hover:bg-base-200 text-base-content/40 mt-1"
+                    variant="ghost"
+                    size="xs"
+                    className="mt-1 w-full justify-start text-slate-500"
                   >
                     Clear filter
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -755,33 +663,33 @@ export default function MultiSeriesBuilder() {
                 startSide: eventStartSide,
               };
               return (
-                <div key={i} className="border rounded-xl bg-base-100 shadow-xs overflow-hidden">
+                <div key={i} className="border rounded-xl bg-white shadow-xs overflow-hidden">
                   {/* Row header */}
-                  <div className="flex items-center justify-between px-4 py-2.5 border-b bg-base-200/40">
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b bg-slate-100/40">
                     <div className="flex items-center gap-3">
-                      <CalendarDays size={14} className="text-base-content/40" />
+                      <CalendarDays size={14} className="text-slate-900/40" />
                       <span className="text-sm font-semibold">Round {i + 1}</span>
                       {selectedCourse && (
                         <>
-                          <span className="text-xs text-base-content/50">
+                          <span className="text-xs text-slate-900/50">
                             {selectedCourse.name}
                           </span>
-                          <span className="text-xs text-base-content/30">&bull;</span>
+                          <span className="text-xs text-slate-900/30">&bull;</span>
                         </>
                       )}
                       {selectedTee && (
                         <>
-                          <span className="text-xs text-base-content/50">
+                          <span className="text-xs text-slate-900/50">
                             {selectedTee.name} Tees
                           </span>
-                          <span className="text-xs text-base-content/30">&bull;</span>
+                          <span className="text-xs text-slate-900/30">&bull;</span>
                         </>
                       )}
-                      <span className="text-xs text-base-content/50 capitalize">
+                      <span className="text-xs text-slate-900/50 capitalize">
                         {eventStartSide}
                       </span>
-                      <span className="text-xs text-base-content/30">&bull;</span>
-                      <span className="text-xs text-base-content/50">
+                      <span className="text-xs text-slate-900/30">&bull;</span>
+                      <span className="text-xs text-slate-900/50">
                         {dayjs(round.date).format("ddd, MMM D, YYYY")}
                       </span>
                     </div>
@@ -815,23 +723,23 @@ export default function MultiSeriesBuilder() {
       {/* ── Submit ── */}
       {schedule.length > 0 && (
         <div className="flex justify-end gap-2 pb-4">
-          <button
+          <Button
             type="button"
-            className="btn btn-sm"
+            variant="default"
             onClick={() => navigate(`/league/${leagueId}/admin`)}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="btn btn-primary btn-sm"
+            variant="primary"
             onClick={handleSubmit}
             disabled={mutation.isPending}
           >
             {mutation.isPending
               ? `Creating ${schedule.length} events…`
               : `Create ${schedule.length} Events`}
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -5,7 +5,9 @@ import { ShieldHalf, SquarePen, Trash2, Users, X } from "lucide-react";
 import { Input, MultiSelect } from "@/components/form";
 import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
+import SectionKicker from "@/components/layout/SectionKicker";
 import { useToast } from "@/context/ToastContext";
+import Button from "@/components/layout/Button";
 
 type Team = {
   id: number;
@@ -177,9 +179,9 @@ export default function TeamsForm() {
       />
 
       <Card className="mt-6 mb-4">
-        <p className="section-kicker mb-3">
+        <SectionKicker className="mb-3">
           {isEditing ? "Edit Team" : "Add Team"}
-        </p>
+        </SectionKicker>
         <div className="flex flex-col lg:flex-row lg:items-end gap-2">
           <Input
             label="Team Name"
@@ -212,17 +214,19 @@ export default function TeamsForm() {
 
           <div className="flex gap-2 shrink-0">
             <div className="flex gap-2">
-              <button type="button" onClick={handleSaveTeam} className="btn btn-md btn-primary">
+              <Button type="button" onClick={handleSaveTeam} variant="primary" size="md">
                 {isEditing ? "Update Team" : "Add Team"}
-              </button>
+              </Button>
               {isEditing && (
-                <button
+                <Button
                   type="button"
                   onClick={resetDraft}
-                  className="btn btn-md btn-ghost border border-base-300"
+                  variant="ghost"
+                  outline
+                  size="md"
                 >
                   Cancel
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -230,8 +234,8 @@ export default function TeamsForm() {
       </Card>
 
       {teams.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 mt-12 justify-center text-base-content/40">
-          <div className="bg-base-200 p-4 rounded-full">
+        <div className="flex flex-col items-center gap-3 mt-12 justify-center text-slate-900/40">
+          <div className="bg-slate-100 p-4 rounded-full">
             <Users size={22} />
           </div>
           <p className="text-sm font-medium">No teams yet</p>
@@ -239,26 +243,26 @@ export default function TeamsForm() {
         </div>
       ) : (
         <>
-          <p className="section-kicker mb-3">
+          <SectionKicker className="mb-3">
             Teams · {teams.length}
-          </p>
+          </SectionKicker>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-auto pb-1">
             {teams.map((team) => (
               <div
                 key={team.id}
-                className="border border-base-300 rounded-xl w-full bg-base-100 shadow-xs overflow-hidden"
+                className="border border-slate-200 rounded-xl w-full bg-white shadow-xs overflow-hidden"
               >
-                <div className="flex justify-between items-center px-3 py-2 border-b border-base-300 bg-base-200/60">
+                <div className="flex justify-between items-center px-3 py-2 border-b border-slate-200 bg-slate-100/60">
                   <div className="flex items-center gap-2">
-                    <ShieldHalf size={13} className="text-primary/60" />
-                    <span className="font-semibold text-sm text-primary">{team.name}</span>
+                    <ShieldHalf size={13} className="text-slate-900/60" />
+                    <span className="font-semibold text-sm text-slate-900">{team.name}</span>
                     <span className="text-[10px] text-gray-400">· {team.players.length}p</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => handleEditTeam(team)}
-                      className="text-gray-400 hover:text-primary transition-colors"
+                      className="text-gray-400 hover:text-slate-900 transition-colors"
                     >
                       <SquarePen size={13} />
                     </button>
@@ -280,15 +284,15 @@ export default function TeamsForm() {
                     return (
                       <div
                         key={`${team.id}-${player.id}`}
-                        className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 bg-base-200/60 hover:bg-base-200 transition-colors"
+                        className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 bg-slate-100/60 hover:bg-slate-100 transition-colors"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="bg-primary text-primary-content rounded-md w-6 h-6 flex items-center justify-center text-[9px] uppercase shrink-0">
+                          <div className="bg-slate-900 text-white rounded-md w-6 h-6 flex items-center justify-center text-[9px] uppercase shrink-0">
                             {player.firstName[0]}
                             {player.lastName[0]}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-xs font-medium text-primary truncate">
+                            <p className="text-xs font-medium text-slate-900 truncate">
                               {player.firstName} {player.lastName}
                             </p>
                             <p className="text-[9px] text-gray-400">HCP {player.handicap ?? "-"}</p>

@@ -1,3 +1,5 @@
+import Button from "@/components/layout/Button";
+import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { useEffect } from "react";
@@ -13,6 +15,7 @@ import { Flag, Pencil, ShieldHalf } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { validateEventForm } from "./create/validation";
 import { getEventDateInputValue } from "@/utils/eventDate";
+import { toTimeInputValue } from "@/utils/format";
 
 // Transform Prisma relational flight data into the flat ID-array format the components expect.
 function transformFlights(event: any): { flights: any[]; teams: any[] } {
@@ -131,8 +134,8 @@ export default function EventEdit() {
     eventForm.reset({
       name: event.name ?? "",
       type: event.type ?? "regular",
-      date: getEventDateInputValue(event.date),
-      startTime: event.startTime ?? "",
+      date: getEventDateInputValue(event.startsAt, event.timeZone),
+      startTime: toTimeInputValue(event.startsAt, event.timeZone),
       interval: event.interval ?? 10,
       courseId: event.courseId ?? undefined,
       teeId: event.teeId ?? undefined,
@@ -188,9 +191,9 @@ export default function EventEdit() {
 
   if (eventLoading) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Loading event…
-      </div>
+      </LoadingState>
     );
   }
 
@@ -241,10 +244,10 @@ export default function EventEdit() {
         {showTeamsSection && (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <div className="bg-primary rounded-md p-1.5">
+              <div className="bg-slate-900 rounded-md p-1.5">
                 <ShieldHalf size={12} className="text-white" />
               </div>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-base-content/60">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900/60">
                 Teams
               </h2>
             </div>
@@ -254,10 +257,10 @@ export default function EventEdit() {
 
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <div className="bg-primary rounded-md p-1.5">
+            <div className="bg-slate-900 rounded-md p-1.5">
               <Flag size={12} className="text-white" />
             </div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-base-content/60">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900/60">
               Flights
             </h2>
           </div>
@@ -265,21 +268,21 @@ export default function EventEdit() {
         </div>
 
         <div className="flex justify-end gap-2">
-          <button
+          <Button
             type="button"
-            className="btn btn-sm"
+            variant="default"
             onClick={() => navigate(`/league/${leagueId}/events/${eventId}`)}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="btn btn-primary btn-sm"
+            variant="primary"
             onClick={handleSubmit}
             disabled={mutation.isPending}
           >
             {mutation.isPending ? "Saving…" : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </div>
     </FormProvider>

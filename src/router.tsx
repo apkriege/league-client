@@ -3,10 +3,10 @@ import { lazy, Suspense, type ReactNode } from "react";
 import Landing from "./pages/landing/Landing.tsx";
 
 // auth pages
-import Login from "./pages/auth/Login.tsx";
 import AppErrorBoundary from "@/components/route/AppErrorBoundary";
 import LeagueRouteGuard from "@/components/route/LeagueRouteGuard";
 
+const Login = lazy(() => import("./pages/auth/Login.tsx"));
 const BaseLayout = lazy(() => import("./layouts/BaseLayout.tsx"));
 const League = lazy(() => import("./pages/league/League.tsx"));
 const Leagues = lazy(() => import("./pages/league/Leagues.tsx"));
@@ -43,7 +43,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <Login />,
+    element: withSuspense(<Login />),
     errorElement: <AppErrorBoundary />,
   },
   {

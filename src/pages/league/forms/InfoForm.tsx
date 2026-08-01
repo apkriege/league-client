@@ -1,13 +1,14 @@
 import { Input, SelectableInfoCard } from "@/components/form";
 import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
+import SectionKicker from "@/components/layout/SectionKicker";
 import dayjs from "dayjs";
-import { Globe, Info, Lock, Trophy, User, Users, CalendarRange } from "lucide-react";
+import { Info, Trophy, User, Users, CalendarRange } from "lucide-react";
 import { useEffect } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="section-kicker mb-3">{children}</p>
+  <SectionKicker className="mb-3">{children}</SectionKicker>
 );
 
 export default function InfoForm() {
@@ -100,27 +101,6 @@ export default function InfoForm() {
           </div>
         </Card>
 
-        {/* Access */}
-        <Card>
-          <SectionLabel>Access</SectionLabel>
-          <div className="grid grid-cols-2 gap-2">
-            <SelectableInfoCard
-              title="Public League"
-              description="Visible to anyone on the platform. Members must be added by an admin to join."
-              icon={<Globe size={16} className="text-primary" />}
-              active={leagueForm.watch("access") === "public"}
-              onClick={() => leagueForm.setValue("access", "public")}
-            />
-            <SelectableInfoCard
-              title="Private League"
-              description="Only invited members with an account can view this league and its contents."
-              icon={<Lock size={16} className="text-primary" />}
-              active={leagueForm.watch("access") === "private"}
-              onClick={() => leagueForm.setValue("access", "private")}
-            />
-          </div>
-        </Card>
-
         {/* League Type */}
         <Card>
           <SectionLabel>League Type</SectionLabel>
@@ -128,7 +108,7 @@ export default function InfoForm() {
             <SelectableInfoCard
               title="Season"
               description="A collection of events. Players earn points across events and compete for the season championship."
-              icon={<CalendarRange size={16} className="text-primary" />}
+              icon={<CalendarRange size={16} className="text-slate-900" />}
               active={leagueForm.watch("type") === "season"}
               onClick={() => {
                 leagueForm.setValue("type", "season");
@@ -140,7 +120,7 @@ export default function InfoForm() {
             <SelectableInfoCard
               title="Tournament"
               description="Single standalone events not tied to a season. Ideal for one-off competitions or casual play."
-              icon={<Trophy size={16} className="text-primary" />}
+              icon={<Trophy size={16} className="text-slate-900" />}
               active={leagueForm.watch("type") === "tournament"}
               onClick={() => {
                 leagueForm.setValue("type", "tournament");
@@ -158,14 +138,14 @@ export default function InfoForm() {
               <SelectableInfoCard
                 title="Individuals"
                 description="Players compete as individuals throughout the season. No team assignment required."
-                icon={<User size={16} className="text-primary" />}
+                icon={<User size={16} className="text-slate-900" />}
                 active={leagueForm.watch("format") === "individual"}
                 onClick={() => leagueForm.setValue("format", "individual")}
               />
               <SelectableInfoCard
                 title="Teams"
                 description="Players are grouped into fixed teams for season standings and team-based play."
-                icon={<Users size={16} className="text-primary" />}
+                icon={<Users size={16} className="text-slate-900" />}
                 active={leagueForm.watch("format") === "team"}
                 onClick={() => leagueForm.setValue("format", "team")}
               />
