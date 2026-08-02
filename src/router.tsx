@@ -28,6 +28,8 @@ const Courses = lazy(() => import("./pages/course/Courses.tsx"));
 const CoursesAdmin = lazy(() => import("@/pages/superadmin/CoursesAdmin"));
 const LeaguesAdmin = lazy(() => import("@/pages/superadmin/LeaguesAdmin"));
 const InviteClaim = lazy(() => import("./pages/invite/InviteClaim.tsx"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword.tsx"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword.tsx"));
 
 const withSuspense = (element: ReactNode) => (
   <Suspense fallback={<div className="p-6 text-sm text-slate-400">Loading...</div>}>
@@ -49,6 +51,16 @@ export const router = createBrowserRouter([
   {
     path: "/invite/:token",
     element: withSuspense(<InviteClaim />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
+    path: "/forgot-password",
+    element: withSuspense(<ForgotPassword />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
+    path: "/reset-password",
+    element: withSuspense(<ResetPassword />),
     errorElement: <AppErrorBoundary />,
   },
   {

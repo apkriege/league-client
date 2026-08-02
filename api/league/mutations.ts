@@ -10,6 +10,7 @@ import {
   deleteLeagueEvent,
   cancelLeagueEvent,
   updateEventScores,
+  rotateLeagueViewerAccessCode,
 } from ".";
 import type { League } from "@/types/league";
 
@@ -73,6 +74,17 @@ export const useDeleteLeague = () => {
     },
     onError: (error) => {
       console.error("Failed to delete league:", error);
+    },
+  });
+};
+
+export const useRotateLeagueViewerAccessCode = (leagueId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => rotateLeagueViewerAccessCode(leagueId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["league", leagueId] });
+      queryClient.invalidateQueries({ queryKey: ["league", leagueId, "audit-logs"] });
     },
   });
 };

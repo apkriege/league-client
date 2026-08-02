@@ -32,6 +32,16 @@ test('invalid credentials show the API error without leaving the login page', as
   await expect(page.getByText('Invalid credentials').first()).toBeVisible();
 });
 
+test('users can request a password reset from the login page', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByRole('link', { name: 'Forgot password?' }).click();
+  await expect(page).toHaveURL(/\/forgot-password$/);
+  await expect(page.getByRole('heading', { name: 'Reset your password' })).toBeVisible();
+  await page.getByLabel('Email').fill('missing-account@test.com');
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+  await expect(page.getByText(/if an account exists/i)).toBeVisible();
+});
+
 test('league-code viewers can read the seeded league but cannot see admin controls', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('View-only access code').fill('testcode');
@@ -46,6 +56,7 @@ test('regular members can open their league and are blocked from its admin page'
   await signIn(page, 'user@test.com');
   await page.getByText('Seeded Thursday Night League', { exact: true }).click();
   await expect(page).toHaveURL(/\/league\/\d+$/);
+  await expect(page.getByRole('link', { name: 'Admin', exact: true })).toHaveCount(0);
   const leagueId = page.url().match(/\/league\/(\d+)/)?.[1];
   expect(leagueId).toBeTruthy();
 
@@ -71,6 +82,40 @@ test('admins can navigate league operations and use scorecard player controls', 
   await expect(firstPlayerCell.getByRole('combobox')).toBeVisible();
   await firstPlayerCell.getByRole('button', { name: 'Cancel' }).click();
   await expect(firstPlayerCell.getByRole('button', { name: 'Swap' })).toBeVisible();
+});
+
+test('completed events expose sortable points, low-gross, and low-net leaderboards', async ({
+  page,
+}) => {
+  await signIn(page, 'admin@test.com');
+  const eventsResponse = await page.request.get(`${apiUrl}/leagues/1/events`);
+  expect(eventsResponse.ok()).toBe(true);
+  const events = await eventsResponse.json();
+  const completedEvent = events.find((event: { status: string }) => event.status === 'completed');
+  expect(completedEvent).toBeTruthy();
+
+  await page.goto(`/league/1/events/${completedEvent.id}`);
+  const points = page.getByRole('button', { name: 'Points', exact: true });
+  const lowGross = page.getByRole('button', { name: 'Low Gross', exact: true });
+  const lowNet = page.getByRole('button', { name: 'Low Net', exact: true });
+  await expect(points).toBeVisible();
+  await expect(lowGross).toBeVisible();
+  await expect(lowNet).toBeVisible();
+  await lowGross.click();
+  await expect(lowGross).toHaveAttribute('aria-pressed', 'true');
+  await lowNet.click();
+  await expect(lowNet).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByRole('button', { name: 'Scorecards', exact: true }).click();
+  const scorecardsDrawer = page.locator('aside.app-slideout-drawer');
+  await expect(scorecardsDrawer).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Detailed Scorecards' })).toBeVisible();
+  const scorecardsBackdrop = page.getByRole('button', { name: 'Close scorecards drawer' });
+  await expect
+    .poll(() => scorecardsBackdrop.evaluate((element) => getComputedStyle(element).backdropFilter))
+    .toBe('none');
+  await scorecardsDrawer.evaluate((element) => element.scrollTo(0, element.scrollHeight));
+  await expect(scorecardsDrawer.locator('table').last()).toBeVisible();
 });
 
 test('sign out clears browser and server authentication', async ({ page }) => {

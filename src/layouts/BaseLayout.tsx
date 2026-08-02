@@ -175,6 +175,8 @@ export default function BaseLayout() {
     : [];
   const hasLeagueAccess =
     !isLeagueRoute || isSuperAdmin || isLeagueMember || adminLeagueIds.includes(numericLeagueId);
+  const canManageCurrentLeague =
+    isAdmin && (isSuperAdmin || (isLeagueRoute && adminLeagueIds.includes(numericLeagueId)));
 
   const { data: league } = useLeague(Number(leagueId)!, hasLeagueAccess);
   const { data: events } = useLeagueEvents(Number(leagueId), hasLeagueAccess);
@@ -259,7 +261,7 @@ export default function BaseLayout() {
             collapsed={!isOpen}
           />
           <Section section={league?.name || "League"} collapsed={!isOpen} />
-          {isAdmin && (
+          {canManageCurrentLeague && (
             <NavLink
               to={`/league/${leagueId}/admin`}
               text="Admin"

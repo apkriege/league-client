@@ -17,7 +17,7 @@ export async function getLeagueInvitations(leagueId: number) {
 
 export async function createLeagueInvitations(
   leagueId: number,
-  payload: { playerIds?: number[]; emails?: string[] }
+  payload: { playerIds: number[] }
 ) {
   const response = await apiClient.post(`/leagues/${leagueId}/invitations`, payload);
   return response.data;

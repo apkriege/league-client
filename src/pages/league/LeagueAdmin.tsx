@@ -3,7 +3,11 @@ import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
-import { useCancelLeagueEvent, useDeleteLeagueEvent } from "@api/league/mutations";
+import {
+  useCancelLeagueEvent,
+  useDeleteLeagueEvent,
+  useRotateLeagueViewerAccessCode,
+} from "@api/league/mutations";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
 import {
   AuditLogPanel,
@@ -28,6 +32,7 @@ import {
   Flag,
   MapPin,
   Plus,
+  RotateCw,
   ShieldHalf,
   Timer,
   Trash2,
@@ -89,6 +94,7 @@ export default function LeagueAdmin() {
   const cancelEvent = useCancelLeagueEvent(() => {
     show("Event canceled.", "success");
   });
+  const rotateViewerCode = useRotateLeagueViewerAccessCode(Number(leagueId));
 
   const pageError = leagueError || eventsError || metricsError;
   const errorStatus = getApiErrorStatus(pageError);
@@ -202,6 +208,25 @@ export default function LeagueAdmin() {
             >
               <Copy size={13} />
               Copy
+            </button>
+            <button
+              type="button"
+              disabled={rotateViewerCode.isPending}
+              onClick={() => {
+                const confirmed = window.confirm(
+                  "Generate a new view-only code? The current code will stop working immediately."
+                );
+                if (!confirmed) return;
+                rotateViewerCode.mutate(undefined, {
+                  onSuccess: () => show("League access code rotated.", "success"),
+                  onError: (error: any) =>
+                    show(error?.message || "Unable to rotate the access code.", "error"),
+                });
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCw size={13} className={rotateViewerCode.isPending ? "animate-spin" : ""} />
+              Rotate
             </button>
           </div>
         </div>

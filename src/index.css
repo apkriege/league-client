@@ -59,6 +59,19 @@ h6 {
     @apply pointer-events-none absolute bottom-1 left-1 flex items-center justify-center gap-0.5;
   }
 
+  .event-scorecard-flight {
+    content-visibility: auto;
+    contain: layout paint style;
+  }
+
+  .scorecards-drawer {
+    scrollbar-gutter: stable;
+  }
+
+  .scorecards-drawer .surface-card {
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  }
+
   .auth-field {
     @apply flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-blue-700 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-800/10;
   }

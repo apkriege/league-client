@@ -31,14 +31,13 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import {
   buildEventLeaderboard,
   type EventLeaderboardSort,
 } from "./eventLeaderboard";
 import EventFlightsPreview from "./components/EventFlightsPreview";
-import ScoreDistributionChart from "./components/ScoreDistributionChart";
 import EventRoundsTable from "./components/EventRoundsTable";
 import {
   FlightScorecardsDrawer,
@@ -57,7 +56,38 @@ const LEADERBOARD_TABS = [
   { id: "points", label: "Points" },
   { id: "lowGross", label: "Low Gross" },
   { id: "lowNet", label: "Low Net" },
-];
+] satisfies Array<{ id: EventLeaderboardSort; label: string }>;
+const SCORE_ONLY_LEADERBOARD_TABS = LEADERBOARD_TABS.filter((tab) => tab.id !== "points");
+const ScoreDistributionChart = lazy(() => import("./components/ScoreDistributionChart"));
+
+const buildEventView = (event: any, activeTab: EventLeaderboardSort) => {
+  const rounds = event.metrics?.scores ?? [];
+  const pointsEnabled = event.pointsEnabled !== false;
+  const resolvedActiveTab = pointsEnabled
+    ? activeTab
+    : activeTab === "points"
+      ? "lowNet"
+      : activeTab;
+  const pointsLeaderboard = event.metrics?.leaderboards?.playerPoints ?? [];
+  const lowNetLeaderboard = event.metrics?.leaderboards?.playerLowNet ?? [];
+  const hasPointValues =
+    pointsEnabled && pointsLeaderboard.some((entry: any) => Number(entry?.value || 0) > 0);
+
+  return {
+    activeLeaderboard: buildEventLeaderboard(rounds, resolvedActiveTab),
+    hasRounds: rounds.length > 0,
+    leaderboardSort: resolvedActiveTab,
+    leaderboardTabs: pointsEnabled ? LEADERBOARD_TABS : SCORE_ONLY_LEADERBOARD_TABS,
+    normalizedStatus: normalizeEventStatus(event.status),
+    resolvedActiveTab,
+    topThree: (hasPointValues ? pointsLeaderboard : lowNetLeaderboard).slice(0, 3),
+    topThreeMode: hasPointValues ? ("points" as const) : ("net" as const),
+    totalFlightPlayers: (event.flights ?? []).reduce(
+      (total: number, flight: any) => total + (flight.players?.length ?? 0),
+      0,
+    ),
+  };
+};
 
 export default function Event() {
   const { leagueId, eventId } = useParams();
@@ -77,9 +107,13 @@ export default function Event() {
   const cancelEvent = useCancelLeagueEvent(() => {
     show("Event canceled.", "success");
   });
-  const [activeTab, setActiveTab] = useState("points");
+  const [activeTab, setActiveTab] = useState<EventLeaderboardSort>("points");
   const scorecardDrawer = useAnimatedDrawer();
   const skinsDrawer = useAnimatedDrawer<SkinsDrawerContent>();
+  const eventView = useMemo(
+    () => (event ? buildEventView(event, activeTab) : null),
+    [activeTab, event],
+  );
 
   if (isLoading) {
     return (
@@ -122,31 +156,20 @@ export default function Event() {
 
   const status = getEventStatusConfig(event.status);
   const date = getEventLocalDate(event.startsAt, event.timeZone);
-  const pointsEnabled = event.pointsEnabled !== false;
-  const leaderboardTabs = pointsEnabled
-    ? LEADERBOARD_TABS
-    : LEADERBOARD_TABS.filter((tab) => tab.id !== "points");
-  const resolvedActiveTab = pointsEnabled
-    ? activeTab
-    : activeTab === "points"
-      ? "lowNet"
-      : activeTab;
-
-  const leaderboardSort = resolvedActiveTab as EventLeaderboardSort;
-  const activeLeaderboard = buildEventLeaderboard(event.metrics.scores || [], leaderboardSort);
-  const hasRounds = (event.metrics.scores?.length ?? 0) > 0;
-  const totalFlightPlayers = (event.flights ?? []).flatMap(
-    (flight: any) => flight.players ?? []
-  ).length;
-  const pointsLeaderboard = event.metrics.leaderboards.playerPoints || [];
-  const lowNetLeaderboard = event.metrics.leaderboards.playerLowNet || [];
-  const hasPointValues =
-    pointsEnabled && pointsLeaderboard.some((entry: any) => Number(entry?.value || 0) > 0);
-  const topThreeMode = hasPointValues ? "points" : "net";
-  const topThree = (hasPointValues ? pointsLeaderboard : lowNetLeaderboard).slice(0, 3);
+  const {
+    activeLeaderboard,
+    hasRounds,
+    leaderboardSort,
+    leaderboardTabs,
+    normalizedStatus,
+    resolvedActiveTab,
+    topThree,
+    topThreeMode,
+    totalFlightPlayers,
+  } = eventView!;
   const role = String(user?.role || "").toUpperCase();
   const canManageEvent = role === "ADMIN" || role === "SUPER";
-  const isCanceledEvent = normalizeEventStatus(event.status) === "canceled";
+  const isCanceledEvent = normalizedStatus === "canceled";
   const handleDeleteEvent = () => {
     const confirmed = window.confirm(
       `Delete "${event.name}"? This removes it from the schedule and league event lists.`
@@ -221,7 +244,7 @@ export default function Event() {
         </div>
         {canManageEvent &&
           !isCanceledEvent &&
-          normalizeEventStatus(event.status) !== "complete" && (
+          normalizedStatus !== "complete" && (
             <Link
               to={`/league/${leagueId}/events/${eventId}/print-scorecards`}
               className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
@@ -232,7 +255,7 @@ export default function Event() {
           )}
         {canManageEvent &&
           !isCanceledEvent &&
-          normalizeEventStatus(event.status) !== "complete" && (
+          normalizedStatus !== "complete" && (
             <button
               type="button"
               onClick={handleCancelEvent}
@@ -391,7 +414,9 @@ export default function Event() {
                         </span>
                       </PanelBar>
                       <div className="px-4 py-3">
-                        <ScoreDistributionChart distribution={event.metrics.scoreDistribution} />
+                        <Suspense fallback={<div className="h-45 animate-pulse rounded-lg bg-gray-50" />}>
+                          <ScoreDistributionChart distribution={event.metrics.scoreDistribution} />
+                        </Suspense>
                       </div>
                     </SurfaceCard>
                   )}
@@ -399,7 +424,7 @@ export default function Event() {
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 [content-visibility:auto] [contain-intrinsic-size:auto_560px]">
               <SectionIntro title="Round Scores" description="All player scores for this event" />
               <SurfaceCard>
                 <div className="flex items-center justify-between gap-2 px-4 py-3">
@@ -441,17 +466,17 @@ export default function Event() {
             type="button"
             aria-label="Close scorecards drawer"
             onClick={scorecardDrawer.close}
-            className={`absolute inset-0 bg-black/35 backdrop-blur-[2px] transition-opacity duration-300 ${
+            className={`absolute inset-0 bg-black/35 transition-opacity duration-300 ${
               scorecardDrawer.isOpen ? "opacity-100" : "opacity-0"
             }`}
           />
 
           <aside
-            className={`app-slideout-drawer absolute right-0 top-0 h-full w-full max-w-5xl border-l border-gray-200 bg-white shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${
+            className={`app-slideout-drawer scorecards-drawer absolute right-0 top-0 h-full w-full max-w-5xl overscroll-contain overflow-y-auto border-l border-gray-200 bg-white shadow-2xl transition-transform duration-300 ease-out ${
               scorecardDrawer.isOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >
-            <div className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-5 py-4 backdrop-blur flex items-start justify-between gap-4">
+            <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-gray-100 bg-white px-5 py-4">
               <div>
                 <SectionKicker>Scorecard View</SectionKicker>
                 <h3 className="text-lg font-bold text-gray-900 tracking-tight">
@@ -493,17 +518,17 @@ export default function Event() {
             type="button"
             aria-label="Close skins drawer"
             onClick={skinsDrawer.close}
-            className={`absolute inset-0 bg-black/35 backdrop-blur-[2px] transition-opacity duration-300 ${
+            className={`absolute inset-0 bg-black/35 transition-opacity duration-300 ${
               skinsDrawer.isOpen ? "opacity-100" : "opacity-0"
             }`}
           />
 
           <aside
-            className={`app-slideout-drawer absolute right-0 top-0 h-full w-full max-w-5xl border-l border-gray-200 bg-white shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${
+            className={`app-slideout-drawer absolute right-0 top-0 h-full w-full max-w-5xl overscroll-contain overflow-y-auto border-l border-gray-200 bg-white shadow-2xl transition-transform duration-300 ease-out ${
               skinsDrawer.isOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >
-            <div className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-5 py-4 backdrop-blur flex items-start justify-between gap-4">
+            <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-gray-100 bg-white px-5 py-4">
               <div>
                 <SectionKicker>Skins Breakdown</SectionKicker>
                 <h3 className="text-lg font-bold text-gray-900 tracking-tight">

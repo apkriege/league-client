@@ -5,7 +5,7 @@ import { normalizeAuthUser } from "@/lib/authUser";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { clearCreateLeagueDraft } from "@/pages/league/leagueDraft";
 
 type RegistrationForm = {
@@ -26,6 +26,7 @@ export default function RegisterPanel() {
   const { show } = useToast();
   const { setUser } = useAppStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState(emptyRegistrationForm);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -40,14 +41,20 @@ export default function RegisterPanel() {
     setMessage("");
 
     try {
-      const response = await register(form);
+      const requestedReturnTo = new URLSearchParams(location.search).get("redirect");
+      const invitationToken = requestedReturnTo?.match(/^\/invite\/([^/?#]+)/)?.[1];
+      const response = await register({ ...form, invitationToken });
       const normalizedUser = normalizeAuthUser(response.data?.user);
       if (normalizedUser) setUser(normalizedUser);
 
       setStatus("success");
       setMessage("Account created. Start building your first league.");
       clearCreateLeagueDraft();
-      navigate("/leagues/create");
+      const returnTo =
+        requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//")
+          ? requestedReturnTo
+          : "/leagues/create";
+      navigate(returnTo);
     } catch (error: unknown) {
       const errorMessage = getApiErrorMessage(error, "Unable to create account.");
       setStatus("error");

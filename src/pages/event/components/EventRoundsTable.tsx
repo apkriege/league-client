@@ -1,28 +1,74 @@
 import { TrendingDown, TrendingUp } from "lucide-react";
 import PlayerNameLink from "./PlayerNameLink";
 import TableHeaderRow from "@/components/layout/TableHeaderRow";
+import { memo, useMemo } from "react";
+
+type EventScore = {
+  hole: number | string;
+  gross: number;
+  par: number;
+};
+
+type EventRound = {
+  id?: number | string;
+  playerId: number | string;
+  player: {
+    firstName: string;
+    lastName: string;
+  };
+  preHandicap?: number | null;
+  postHandicap?: number | null;
+  gross: number;
+  net: number;
+  scores?: EventScore[];
+};
 
 type EventRoundsTableProps = {
-  rounds: any[];
+  rounds: EventRound[];
   highlightedHolesByPlayer?: Record<number, number[]>;
   highlightUnderPar?: boolean;
 };
 
-export default function EventRoundsTable({
+function EventRoundsTable({
   rounds,
   highlightedHolesByPlayer,
   highlightUnderPar = true,
 }: EventRoundsTableProps) {
-  const sorted = [...rounds].sort((a, b) =>
-    a.player.lastName.localeCompare(b.player.lastName),
+  const holes = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rounds.flatMap((round) =>
+            (round.scores ?? []).map((score) => Number(score.hole)),
+          ),
+        ),
+      ).sort((left, right) => left - right),
+    [rounds],
   );
-  const holes = Array.from(
-    new Set(
-      rounds.flatMap((round) =>
-        (round.scores ?? []).map((score: any) => Number(score.hole)),
+  const preparedRounds = useMemo(
+    () =>
+      rounds
+        .map((round) => ({
+          round,
+          scoresByHole: new Map(
+            (round.scores ?? []).map((score) => [Number(score.hole), score] as const),
+          ),
+        }))
+        .sort((left, right) =>
+          left.round.player.lastName.localeCompare(right.round.player.lastName),
+        ),
+    [rounds],
+  );
+  const highlightedHoleSets = useMemo(
+    () =>
+      new Map(
+        Object.entries(highlightedHolesByPlayer ?? {}).map(([playerId, playerHoles]) => [
+          Number(playerId),
+          new Set(playerHoles),
+        ]),
       ),
-    ),
-  ).sort((a, b) => a - b);
+    [highlightedHolesByPlayer],
+  );
 
   return (
     <table className="w-full table-fixed">
@@ -43,7 +89,7 @@ export default function EventRoundsTable({
         </TableHeaderRow>
       </thead>
       <tbody className="divide-y divide-gray-100">
-        {sorted.map((round) => (
+        {preparedRounds.map(({ round, scoresByHole }) => (
           <tr key={round.id ?? round.playerId} className="transition-colors hover:bg-gray-50/60">
             <td className="py-2 pl-4">
               <div className="flex flex-col gap-0.5">
@@ -57,10 +103,8 @@ export default function EventRoundsTable({
               </div>
             </td>
             {holes.map((hole) => {
-              const score = round.scores.find((entry: any) => Number(entry.hole) === hole);
-              const isHighlighted = (
-                highlightedHolesByPlayer?.[Number(round.playerId)] || []
-              ).includes(hole);
+              const score = scoresByHole.get(hole);
+              const isHighlighted = highlightedHoleSets.get(Number(round.playerId))?.has(hole);
               return (
                 <td key={hole} className="py-2.5 text-center text-xs text-gray-700">
                   {score ? (
@@ -93,6 +137,8 @@ export default function EventRoundsTable({
     </table>
   );
 }
+
+export default memo(EventRoundsTable);
 
 function HandicapChange({ before, after }: { before: unknown; after: unknown }) {
   if (before == null || after == null) return null;

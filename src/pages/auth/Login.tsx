@@ -24,6 +24,7 @@ export default function Login() {
   const [isCodeSubmitting, setIsCodeSubmitting] = useState(false);
   const stateReturnTo = (location.state as { from?: string } | null)?.from;
   const queryReturnTo = new URLSearchParams(location.search).get("redirect");
+  const passwordResetComplete = new URLSearchParams(location.search).get("passwordReset") === "success";
   const requestedReturnTo = stateReturnTo || queryReturnTo;
   const returnTo =
     requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//")
@@ -145,6 +146,11 @@ export default function Login() {
               </div>
 
               <form onSubmit={handleSubmit} className="grid gap-4">
+                {passwordResetComplete && (
+                  <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                    Password updated. You can sign in now.
+                  </div>
+                )}
                 {error && (
                   <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                     {error}
@@ -165,6 +171,10 @@ export default function Login() {
                     />
                   </div>
                 </label>
+
+                <Link to="/forgot-password" className="-mt-2 text-right text-xs font-black text-blue-800 underline">
+                  Forgot password?
+                </Link>
 
                 <label className="grid gap-1.5">
                   <span className="text-xs font-black text-slate-600">Password</span>
@@ -226,7 +236,10 @@ export default function Login() {
 
               <p className="mt-5 text-center text-sm text-slate-500">
                 Need an account?{" "}
-                <a href="/#register" className="font-black text-slate-950 underline">
+                <a
+                  href={`/${requestedReturnTo ? `?redirect=${encodeURIComponent(returnTo)}` : ""}#register`}
+                  className="font-black text-slate-950 underline"
+                >
                   Register
                 </a>
               </p>

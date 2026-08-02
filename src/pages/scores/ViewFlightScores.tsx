@@ -1,5 +1,5 @@
 import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
-import { Fragment } from "react";
+import { Fragment, memo } from "react";
 import { Link, useParams } from "react-router";
 import {
   createTeamBestBallScoringHelpers,
@@ -35,7 +35,7 @@ function PlayerNameLink({
   );
 }
 
-export default function ViewFlightScores({ event, flight }: any) {
+function ViewFlightScores({ event, flight }: any) {
   const startingHole = event.startSide === "front" ? 1 : 10;
   const holes = event.tee.holes
     .slice(startingHole - 1, startingHole + event.holes - 1)
@@ -202,6 +202,8 @@ export default function ViewFlightScores({ event, flight }: any) {
     </div>
   );
 }
+
+export default memo(ViewFlightScores);
 
 const PlayerRow = ({ player, holes }: any) => {
   const p = player.player;

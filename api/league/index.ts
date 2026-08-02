@@ -32,6 +32,11 @@ export async function deleteLeague(id: number) {
   return response.data;
 }
 
+export async function rotateLeagueViewerAccessCode(leagueId: number) {
+  const response = await apiClient.post(`/leagues/${leagueId}/viewer-access-code/rotate`);
+  return response.data;
+}
+
 export async function getLeaguePlayers(leagueId: number) {
   const response = await apiClient.get(`/leagues/${leagueId}/players`);
   return response.data;

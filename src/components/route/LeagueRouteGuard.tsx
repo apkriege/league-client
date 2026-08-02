@@ -73,7 +73,8 @@ export default function LeagueRouteGuard({
   }
 
   const isMember = memberLeagueIds.includes(numericLeagueId);
-  const isLeagueAdmin = isSuperAdmin || adminLeagueIds.includes(numericLeagueId);
+  const isLeagueAdmin =
+    isAdminRole && (isSuperAdmin || adminLeagueIds.includes(numericLeagueId));
 
   if (isAdminRole && adminLeaguesLoading) {
     return (

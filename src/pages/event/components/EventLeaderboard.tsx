@@ -3,8 +3,9 @@ import SurfaceCard from "@/components/layout/SurfaceCard";
 import TableHeaderRow from "@/components/layout/TableHeaderRow";
 import type { EventLeaderboardEntry, EventLeaderboardSort } from "../eventLeaderboard";
 import PlayerNameLink from "./PlayerNameLink";
+import { memo } from "react";
 
-export function ScoreLeaderboard({
+export const ScoreLeaderboard = memo(function ScoreLeaderboard({
   leaderboard,
   sortBy,
 }: {
@@ -70,7 +71,7 @@ export function ScoreLeaderboard({
       </table>
     </div>
   );
-}
+});
 
 function SortHeading({
   label,
@@ -107,7 +108,7 @@ function LeaderboardValueCell({ value, active }: { value: number | null; active:
   );
 }
 
-export function TopThreePlayers({ players, mode }: { players: any[]; mode: "points" | "net" }) {
+export const TopThreePlayers = memo(function TopThreePlayers({ players, mode }: { players: any[]; mode: "points" | "net" }) {
   const label = mode === "points" ? "Top Points" : "Low Net Leaders";
   const valueLabel = mode === "points" ? "PTS" : "NET";
 
@@ -155,7 +156,7 @@ export function TopThreePlayers({ players, mode }: { players: any[]; mode: "poin
       </div>
     </SurfaceCard>
   );
-}
+});
 
 const podiumStyles = [
   { rank: "1", medal: "border-amber-200 bg-amber-100 text-amber-700", card: "border-amber-200 bg-linear-to-br from-amber-50 to-white", icon: "text-amber-500" },

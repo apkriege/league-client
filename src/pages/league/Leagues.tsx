@@ -17,11 +17,22 @@ export default function Leagues() {
   const role = String(user?.role || "").toUpperCase();
   const canManageLeagues = role === "ADMIN" || role === "SUPER";
   const adminLeaguesQuery = useAdminLeagues(canManageLeagues);
-  const memberLeaguesQuery = useLeagues(!canManageLeagues);
-  const activeQuery = canManageLeagues ? adminLeaguesQuery : memberLeaguesQuery;
+  const memberLeaguesQuery = useLeagues(Boolean(user) && role !== "VIEWER");
+  const viewerLeaguesQuery = useLeagues(role === "VIEWER");
+  const memberLeagues = (memberLeaguesQuery.data as any)?.leagues ?? [];
+  const adminLeagues = adminLeaguesQuery.data ?? [];
+  const adminLeagueIds = new Set(adminLeagues.map((league: any) => Number(league.id)));
   const leagues = canManageLeagues
-    ? activeQuery.data ?? []
-    : (activeQuery.data as any)?.leagues ?? [];
+    ? [
+        ...adminLeagues,
+        ...memberLeagues.filter((league: any) => !adminLeagueIds.has(Number(league.id))),
+      ]
+    : ((viewerLeaguesQuery.data as any)?.leagues ?? memberLeagues);
+  const activeQueries = canManageLeagues
+    ? [adminLeaguesQuery, memberLeaguesQuery]
+    : [role === "VIEWER" ? viewerLeaguesQuery : memberLeaguesQuery];
+  const isLoading = activeQueries.some((query) => query.isLoading);
+  const activeError = activeQueries.find((query) => query.isError)?.error;
   const { show } = useToast();
 
   useEffect(() => {
@@ -50,17 +61,17 @@ export default function Leagues() {
         icon={<Shield size={14} />}
         iconText="DASHBOARD"
       />
-      {activeQuery.isError && (
+      {activeError && (
         <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {(activeQuery.error as any)?.message || "Unable to load leagues."}
+          {(activeError as any)?.message || "Unable to load leagues."}
         </div>
       )}
-      {activeQuery.isLoading && (
+      {isLoading && (
         <div className="mt-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500">
           Loading leagues...
         </div>
       )}
-      {!activeQuery.isLoading && !activeQuery.isError && leagues.length === 0 && !canManageLeagues && (
+      {!isLoading && !activeError && leagues.length === 0 && !canManageLeagues && (
         <div className="mt-3 rounded-xl border border-gray-200 bg-white px-5 py-8 text-center">
           <p className="text-sm font-bold text-gray-700">No league memberships yet</p>
           <p className="mt-1 text-xs text-gray-400">
@@ -90,20 +101,24 @@ export default function Leagues() {
         )}
         {leagues &&
           leagues.map((league: any) => (
-            <LeagueCard key={league.id} league={league} canManageLeagues={canManageLeagues} />
+            <LeagueCard
+              key={league.id}
+              league={league}
+              canManageLeague={canManageLeagues && adminLeagueIds.has(Number(league.id))}
+            />
           ))}
       </div>
     </div>
   );
 }
 
-const LeagueCard = ({ league, canManageLeagues }: any) => {
+const LeagueCard = ({ league, canManageLeague }: any) => {
   const eventCount = Number(league?._count?.events ?? league?.events?.length ?? 0);
   const playerCount = Number(league?._count?.players ?? league?.players?.length ?? 0);
 
   return (
     <Card className="h-full">
-      {canManageLeagues && (
+      {canManageLeague && (
         <div className="flex justify-end">
           <Link
             to={`/league/${league.id}/edit`}

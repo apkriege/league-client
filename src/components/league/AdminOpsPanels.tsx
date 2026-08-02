@@ -12,6 +12,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import SectionKicker from "@/components/layout/SectionKicker";
 import MuiCheckbox from "@mui/material/Checkbox";
+import { useToast } from "@/context/ToastContext";
 
 export function DrawerActionPanel({
   title,
@@ -121,8 +122,8 @@ export function InvitePlayersPanel({
   const { data: invitations = [] } = useLeagueInvitations(leagueId);
   const createInvites = useCreateLeagueInvitations(leagueId);
   const revokeInvite = useRevokeLeagueInvitation(leagueId);
+  const { show } = useToast();
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
-  const [emails, setEmails] = useState("");
 
   const pendingEmails = new Set(
     invitations
@@ -130,7 +131,10 @@ export function InvitePlayersPanel({
       .map((invite: any) => String(invite.email || "").toLowerCase())
   );
   const unclaimedPlayers = players.filter(
-    (player: any) => !player.userId && !pendingEmails.has(String(player.email || "").toLowerCase())
+    (player: any) =>
+      !player.userId &&
+      Boolean(String(player.email || "").trim()) &&
+      !pendingEmails.has(String(player.email || "").toLowerCase())
   );
 
   const togglePlayer = (playerId: number) => {
@@ -143,16 +147,23 @@ export function InvitePlayersPanel({
     createInvites.mutate(
       {
         playerIds: selectedPlayerIds,
-        emails: emails
-          .split(/[,\n]/)
-          .map((email) => email.trim())
-          .filter(Boolean),
       },
       {
-        onSuccess: () => {
+        onSuccess: (result: any) => {
           setSelectedPlayerIds([]);
-          setEmails("");
+          const failed = (result?.delivery || []).filter(
+            (item: any) => item?.result?.status !== "sent"
+          );
+          if (failed.length > 0) {
+            show(
+              `${failed.length} invitation email${failed.length === 1 ? " was" : "s were"} not sent. You can still copy the invitation link below.`,
+              "warning"
+            );
+          } else {
+            show("Invitation email sent.", "success");
+          }
         },
+        onError: (error: any) => show(error?.message || "Unable to create invitations.", "error"),
       }
     );
   };
@@ -163,7 +174,7 @@ export function InvitePlayersPanel({
       description="Let golfers claim their player profile."
       icon={<Mail size={15} />}
     >
-      <div className="grid gap-3 lg:grid-cols-[1fr_0.9fr]">
+      <div className="grid gap-3">
         <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
           <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
             Unclaimed players
@@ -193,22 +204,14 @@ export function InvitePlayersPanel({
           </div>
         </div>
 
-        <div>
-          <textarea
-            value={emails}
-            onChange={(event) => setEmails(event.target.value)}
-            placeholder="Extra emails, separated by commas or new lines"
-            className="min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-600 focus:bg-white"
-          />
-          <button
-            type="button"
-            disabled={createInvites.isPending || (selectedPlayerIds.length === 0 && !emails.trim())}
-            onClick={submit}
-            className="mt-2 w-full rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {createInvites.isPending ? "Creating invites..." : "Create invites"}
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={createInvites.isPending || selectedPlayerIds.length === 0}
+          onClick={submit}
+          className="w-full rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {createInvites.isPending ? "Sending invitations..." : "Send invitations"}
+        </button>
       </div>
 
       {invitations.length > 0 && (
