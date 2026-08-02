@@ -1,16 +1,13 @@
 import {
   useLeagueAuditLogs,
   useLeagueInvitations,
-  useLeagueOnboarding,
 } from "@api/operations/queries";
 import {
-  useCreateLeagueNotification,
   useCreateLeagueInvitations,
   useRevokeLeagueInvitation,
-  useUpdateLeagueOnboarding,
 } from "@api/operations/mutations";
 import dayjs from "dayjs";
-import { BellPlus, CheckCircle2, ClipboardCheck, Mail, ShieldCheck, X } from "lucide-react";
+import { Mail, ShieldCheck, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import SectionKicker from "@/components/layout/SectionKicker";
@@ -111,54 +108,6 @@ export function DrawerActionPanel({
         </div>
       )}
     </>
-  );
-}
-
-export function OnboardingChecklist({ leagueId }: { leagueId: number }) {
-  const { data } = useLeagueOnboarding(leagueId);
-  const update = useUpdateLeagueOnboarding(leagueId);
-
-  if (!data || data?.onboarding?.dismissed || data?.complete) return null;
-
-  return (
-    <section className="mb-5 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">
-            Setup checklist
-          </p>
-          <h2 className="text-base font-black text-slate-900">Get this league ready to run</h2>
-        </div>
-        <button
-          type="button"
-          onClick={() => update.mutate({ key: "dismissed", dismissed: true })}
-          className="rounded-full p-1 text-blue-400 hover:bg-white hover:text-blue-700"
-          aria-label="Dismiss onboarding"
-        >
-          <X size={15} />
-        </button>
-      </div>
-      <div className="grid gap-2 md:grid-cols-5">
-        {(data.steps || []).map((step: any) => (
-          <button
-            key={step.key}
-            type="button"
-            onClick={() => !step.complete && update.mutate({ key: step.key })}
-            className={`rounded-xl border px-3 py-2 text-left text-xs font-bold transition ${
-              step.complete
-                ? "border-blue-200 bg-white text-blue-700"
-                : "border-white/70 bg-white/60 text-slate-600 hover:bg-white"
-            }`}
-          >
-            <span className="mb-1 flex items-center gap-1.5">
-              <CheckCircle2 size={13} className={step.complete ? "text-blue-600" : "text-slate-300"} />
-              {step.complete ? "Done" : "Open"}
-            </span>
-            {step.label}
-          </button>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -337,95 +286,5 @@ export function AuditLogPanel({ leagueId }: { leagueId: number }) {
         )}
       </div>
     </section>
-  );
-}
-
-export function LeagueNotificationComposer({ leagueId }: { leagueId: number }) {
-  const createNotification = useCreateLeagueNotification(leagueId);
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [includeAdmin, setIncludeAdmin] = useState(true);
-  const [message, setMessage] = useState("");
-
-  const submit = () => {
-    setMessage("");
-    createNotification.mutate(
-      { title, body, includeAdmin },
-      {
-        onSuccess: (result: any) => {
-          setTitle("");
-          setBody("");
-          setMessage(`Sent to ${result?.recipientCount ?? 0} user(s).`);
-        },
-        onError: (error: any) => {
-          setMessage(error?.message || "Failed to send notification.");
-        },
-      }
-    );
-  };
-
-  return (
-    <DrawerActionPanel
-      title="Send league notification"
-      description="Create an in-app message for claimed league users."
-      icon={<BellPlus size={15} />}
-    >
-      <div className="grid gap-2">
-        <input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="Title"
-          maxLength={120}
-          className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold outline-none focus:border-blue-600 focus:bg-white"
-        />
-        <textarea
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          placeholder="Body"
-          maxLength={1000}
-          className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-600 focus:bg-white"
-        />
-        <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-          <MuiCheckbox
-            checked={includeAdmin}
-            onChange={(event) => setIncludeAdmin(event.target.checked)}
-            size="small"
-            sx={{ p: 0.25 }}
-          />
-          Also send to league admin
-        </label>
-        {message && (
-          <p
-            className={`rounded-xl px-3 py-2 text-xs font-bold ${
-              createNotification.isError ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"
-            }`}
-          >
-            {message}
-          </p>
-        )}
-        <button
-          type="button"
-          disabled={createNotification.isPending || !title.trim() || !body.trim()}
-          onClick={submit}
-          className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {createNotification.isPending ? "Sending..." : "Send notification"}
-        </button>
-      </div>
-    </DrawerActionPanel>
-  );
-}
-
-export function ScorecardPrintedButton({ leagueId }: { leagueId: number }) {
-  const update = useUpdateLeagueOnboarding(leagueId);
-  return (
-    <button
-      type="button"
-      onClick={() => update.mutate({ key: "scorecards" })}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100"
-    >
-      <ClipboardCheck size={13} />
-      Mark scorecards printed
-    </button>
   );
 }

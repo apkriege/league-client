@@ -10,10 +10,11 @@ import { useEffect, useRef, useState } from "react";
 import InfoForm from "./forms/InfoForm";
 import { useToast } from "@/context/ToastContext";
 import Stepper from "@/components/layout/Stepper";
-import { BILLING_MIN_GOLFERS } from "@/lib/billing";
+import { getLeagueBillableGolfers } from "@/lib/billing";
 import { useAppStore } from "@/stores/appStore";
 import PageState from "@/components/layout/PageState";
 import { validateLeagueForm } from "./validation";
+import { CREATE_LEAGUE_DRAFT_STORAGE_KEY } from "./leagueDraft";
 
 const getDefaultStartDate = () => new Date();
 const getDefaultEndDate = (startDate = getDefaultStartDate()) => {
@@ -21,81 +22,6 @@ const getDefaultEndDate = (startDate = getDefaultStartDate()) => {
   endDate.setFullYear(endDate.getFullYear() + 1);
   return endDate;
 };
-
-const defaultPlayers = [
-  {
-    id: 1,
-    firstName: "Aiden",
-    lastName: "Brooks",
-    email: "aiden.brooks@test.com",
-    phone: "555-0101",
-    type: "player",
-    handicap: 6,
-  },
-  {
-    id: 2,
-    firstName: "Mason",
-    lastName: "Reed",
-    email: "mason.reed@test.com",
-    phone: "555-0102",
-    type: "player",
-    handicap: 9,
-  },
-  {
-    id: 3,
-    firstName: "Eli",
-    lastName: "Carter",
-    email: "eli.carter@test.com",
-    phone: "555-0103",
-    type: "player",
-    handicap: 12,
-  },
-  {
-    id: 4,
-    firstName: "Logan",
-    lastName: "Price",
-    email: "logan.price@test.com",
-    phone: "555-0104",
-    type: "player",
-    handicap: 14,
-  },
-  {
-    id: 5,
-    firstName: "Noah",
-    lastName: "Walker",
-    email: "noah.walker@test.com",
-    phone: "555-0105",
-    type: "player",
-    handicap: 16,
-  },
-  {
-    id: 6,
-    firstName: "Owen",
-    lastName: "James",
-    email: "owen.james@test.com",
-    phone: "555-0106",
-    type: "player",
-    handicap: 18,
-  },
-  {
-    id: 7,
-    firstName: "Caleb",
-    lastName: "Dunn",
-    email: "caleb.dunn@test.com",
-    phone: "555-0107",
-    type: "player",
-    handicap: 20,
-  },
-  {
-    id: 8,
-    firstName: "Luke",
-    lastName: "Foster",
-    email: "luke.foster@test.com",
-    phone: "555-0108",
-    type: "player",
-    handicap: 22,
-  },
-];
 
 const createDefaultLeagueData = () => ({
   name: "",
@@ -109,11 +35,9 @@ const createDefaultLeagueData = () => ({
   contactPhone: "",
   startDate: getDefaultStartDate(),
   endDate: getDefaultEndDate(),
-  players: defaultPlayers.map((player) => ({ ...player })),
+  players: [],
   teams: [],
 });
-
-const DRAFT_STORAGE_KEY = "create-league-draft";
 
 const modelLeagueData = (league: any) => {
   const { players, teams, access: _legacyAccess, ...info } = league;
@@ -163,7 +87,7 @@ export default function CreateLeague() {
 
   useEffect(() => {
     const freshDefaultLeagueData = createDefaultLeagueData();
-    const draft = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    const draft = window.localStorage.getItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
     if (!draft) {
       if (user) {
         leagueForm.reset({
@@ -195,13 +119,13 @@ export default function CreateLeague() {
         players: resolvedPlayers,
       });
     } catch {
-      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+      window.localStorage.removeItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
     }
   }, [leagueForm, user]);
 
   useEffect(() => {
     const subscription = leagueForm.watch((values) => {
-      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(values));
+      window.localStorage.setItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY, JSON.stringify(values));
     });
 
     return () => subscription.unsubscribe();
@@ -257,55 +181,13 @@ export default function CreateLeague() {
     const modeledData = modelLeagueData(data);
     const includedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
     const allocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
-    const requestedGolfers = Math.max(
-      modeledData.players.length,
-      Number(modeledData.numPlayers || 0)
-    );
+    const requestedGolfers = getLeagueBillableGolfers(modeledData.players);
     const targetIncludedGolfers = allocatedGolfers + requestedGolfers;
-
-    if (!stripeState?.billing?.hasCompletedRegistration || includedGolfers < BILLING_MIN_GOLFERS) {
-      createCheckoutSession.mutate(
-        {
-          purpose: "registration",
-          requestedGolfers: BILLING_MIN_GOLFERS,
-          successUrl: `${window.location.origin}/leagues/create?checkout=registration_success`,
-          cancelUrl: `${window.location.origin}/leagues/create?checkout=registration_cancel`,
-        },
-        {
-          onSuccess: (checkout) => {
-            if ((checkout as any)?.alreadyCovered) {
-              refetchStripeState();
-              show("Golfer slots are already covered. Creating league...", "success");
-              createLeague.mutate(modeledData, {
-                onSuccess: (league) => {
-                  window.localStorage.removeItem(DRAFT_STORAGE_KEY);
-                  navigate(`/league/${league.id}/admin`);
-                },
-                onError: (error) => {
-                  show((error as any)?.message || "Failed to create league.", "error");
-                },
-              });
-              return;
-            }
-
-            if (!checkout?.url) {
-              show("Could not start registration checkout. Please try again.", "error");
-              return;
-            }
-            window.location.href = checkout.url;
-          },
-          onError: (error: any) => {
-            show(error?.message || "Failed to start registration checkout.", "error");
-          },
-        }
-      );
-      return;
-    }
 
     if (targetIncludedGolfers > includedGolfers) {
       createCheckoutSession.mutate(
         {
-          purpose: "seat_upgrade",
+          purpose: includedGolfers === 0 ? "registration" : "seat_upgrade",
           requestedGolfers: targetIncludedGolfers,
           successUrl: `${window.location.origin}/leagues/create?checkout=upgrade_success`,
           cancelUrl: `${window.location.origin}/leagues/create?checkout=upgrade_cancel`,
@@ -317,7 +199,7 @@ export default function CreateLeague() {
               show("Golfer slots are already covered. Creating league...", "success");
               createLeague.mutate(modeledData, {
                 onSuccess: (league) => {
-                  window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+                  window.localStorage.removeItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
                   navigate(`/league/${league.id}/admin`);
                 },
                 onError: (error) => {
@@ -343,7 +225,7 @@ export default function CreateLeague() {
 
     createLeague.mutate(modeledData, {
       onSuccess: (league) => {
-        window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+        window.localStorage.removeItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
         navigate(`/league/${league.id}/admin`);
       },
       onError: (error) => {
@@ -359,16 +241,12 @@ export default function CreateLeague() {
       : ["info", "players", "review"];
   const footerIncludedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
   const footerAllocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
-  const footerRequestedGolfers = (leagueData.players || []).length;
-  const footerNeedsRegistrationPayment =
-    !stripeState?.billing?.hasCompletedRegistration || footerIncludedGolfers < BILLING_MIN_GOLFERS;
+  const footerRequestedGolfers = getLeagueBillableGolfers(leagueData.players || []);
   const footerAdditionalGolfersRequired = Math.max(
     0,
     footerAllocatedGolfers + footerRequestedGolfers - footerIncludedGolfers
   );
-  const finalActionLabel = footerNeedsRegistrationPayment
-    ? `Pay for ${BILLING_MIN_GOLFERS} Golfers`
-    : footerAdditionalGolfersRequired > 0
+  const finalActionLabel = footerAdditionalGolfersRequired > 0
       ? `Pay for ${footerAdditionalGolfersRequired} More Golfers`
       : "Create League";
 

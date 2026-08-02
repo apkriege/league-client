@@ -1,17 +1,12 @@
 import { register } from "@api/auth";
-import { createCheckoutSession } from "@api/payments";
 import { useToast } from "@/context/ToastContext";
 import { useAppStore } from "@/stores/appStore";
-import {
-  BILLING_MIN_GOLFERS,
-  BILLING_PRICE_PER_GOLFER,
-  formatBillingPrice,
-} from "@/lib/billing";
 import { normalizeAuthUser } from "@/lib/authUser";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { ArrowRight, LockKeyhole } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router";
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router";
+import { clearCreateLeagueDraft } from "@/pages/league/leagueDraft";
 
 type RegistrationForm = {
   firstName: string;
@@ -30,6 +25,7 @@ const emptyRegistrationForm: RegistrationForm = {
 export default function RegisterPanel() {
   const { show } = useToast();
   const { setUser } = useAppStore();
+  const navigate = useNavigate();
   const [form, setForm] = useState(emptyRegistrationForm);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -37,18 +33,6 @@ export default function RegisterPanel() {
   const update = (key: keyof RegistrationForm, value: string) => {
     setForm((previous) => ({ ...previous, [key]: value }));
   };
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("checkout") !== "registration_cancel") return;
-
-    setStatus("error");
-    setMessage("Registration checkout was canceled.");
-    params.delete("checkout");
-    const nextQuery = params.toString();
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
-    window.history.replaceState({}, "", nextUrl);
-  }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -61,17 +45,9 @@ export default function RegisterPanel() {
       if (normalizedUser) setUser(normalizedUser);
 
       setStatus("success");
-      setMessage("Account created. Redirecting to secure checkout...");
-
-      const checkout = await createCheckoutSession({
-        purpose: "registration",
-        requestedGolfers: BILLING_MIN_GOLFERS,
-        successUrl: `${window.location.origin}/leagues?checkout=registration_success`,
-        cancelUrl: `${window.location.origin}/?checkout=registration_cancel#register`,
-      });
-      if (!checkout?.url) throw new Error("Could not start registration checkout.");
-
-      window.location.href = checkout.url;
+      setMessage("Account created. Start building your first league.");
+      clearCreateLeagueDraft();
+      navigate("/leagues/create");
     } catch (error: unknown) {
       const errorMessage = getApiErrorMessage(error, "Unable to create account.");
       setStatus("error");
@@ -97,8 +73,7 @@ export default function RegisterPanel() {
           </span>
         </div>
         <p className="mt-4 text-sm leading-7 text-white/62">
-          Includes your admin account and {BILLING_MIN_GOLFERS} golfer slots starting at{" "}
-          {formatBillingPrice(BILLING_PRICE_PER_GOLFER * BILLING_MIN_GOLFERS)}.
+          Create your admin account free. Each league is priced separately when you finish setup.
         </p>
       </div>
 

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   Calendar,
   Check,
+  ChevronRight,
   LandPlot,
   LayoutDashboard,
   LogOut,
@@ -19,7 +20,6 @@ import {
 } from "lucide-react";
 import { useLeague, useLeagueEvents } from "@api/league/queries";
 import { useAdminLeagues } from "@api/admin/queries";
-import NotificationsMenu from "@/components/layout/NotificationsMenu";
 import lnLogo from "@/assets/league-night-logo.png";
 import { formatEventDate } from "@/utils/eventDate";
 
@@ -86,14 +86,23 @@ const NavWithSubLinks = ({
 }) => (
   <ul className="m-0! w-full list-none p-0">
     <li>
-      <details open>
-        <summary className="app-nav-link text-sm px-2 py-2">
+      <details className="group" open>
+        <summary className="app-nav-link flex cursor-pointer list-none items-center px-2 py-2 text-sm [&::-webkit-details-marker]:hidden">
           <span
             className={`${collapsed ? "" : "mr-2"} inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/5`}
           >
             {icon}
           </span>
-          {!collapsed && section}
+          {!collapsed && (
+            <>
+              <span className="font-semibold">{section}</span>
+              <ChevronRight
+                aria-hidden="true"
+                className="ml-auto transition-transform group-open:rotate-90"
+                size={16}
+              />
+            </>
+          )}
         </summary>
         {!collapsed && (
           <ul className="px-2 py-1">
@@ -152,7 +161,6 @@ export default function BaseLayout() {
   const role = String(user?.role || "").toUpperCase();
   const isSuperAdmin = role === "SUPER";
   const isAdmin = role === "ADMIN" || isSuperAdmin;
-  const isLeagueViewer = role === "VIEWER";
   const numericLeagueId = Number(leagueId);
   const isLeagueRoute = Boolean(
     leagueId && leagueId !== "undefined" && Number.isFinite(numericLeagueId)
@@ -171,7 +179,7 @@ export default function BaseLayout() {
   const { data: league } = useLeague(Number(leagueId)!, hasLeagueAccess);
   const { data: events } = useLeagueEvents(Number(leagueId), hasLeagueAccess);
   const evs = events ? modelEvents(events) : [];
-  const isTournamentLeague = String(league?.type || "").toLowerCase() === "tournament";
+  const isTeamLeague = String(league?.format || "").toLowerCase() === "team";
   const displayName =
     `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Account";
 
@@ -285,7 +293,7 @@ export default function BaseLayout() {
             disabled={subDisabled}
             collapsed={!isOpen}
           />
-          {!isTournamentLeague && (
+          {isTeamLeague && (
             <NavLink
               to={`/league/${leagueId}/teams`}
               text="Teams"
@@ -360,7 +368,6 @@ export default function BaseLayout() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {!isLeagueViewer && <NotificationsMenu />}
             <div className="flex items-center gap-3 rounded-full border border-black/5 bg-white/70 px-3 py-1.5 shadow-sm">
               <User size={22} className="rounded-full bg-sky-100 p-1 text-blue-800" />
               <h2 className="text-sm font-black text-slate-900">{displayName}</h2>

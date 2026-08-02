@@ -10,6 +10,7 @@ import { useLeagues } from "@api/league/queries";
 import { Shield, Plus, Globe, ChevronsRight, Lock, Edit } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "react-router";
+import { clearCreateLeagueDraft } from "./leagueDraft";
 
 export default function Leagues() {
   const { user } = useAppStore();
@@ -69,7 +70,11 @@ export default function Leagues() {
       )}
       <div className="grid grid-cols-3 gap-3 mt-2 auto-rows-fr items-stretch">
         {canManageLeagues && (
-          <Link to="/leagues/create" className="block h-full">
+          <Link
+            to="/leagues/create"
+            className="block h-full"
+            onClick={clearCreateLeagueDraft}
+          >
             <Card className="bg-slate-900 h-full flex items-center justify-center cursor-pointer hover:bg-slate-900/95 transition-colors">
               <div className="flex flex-col items-center justify-center text-white text-center">
                 <div className=" bg-gray-300/20 p-3 rounded-full mb-3 mt-3">

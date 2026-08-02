@@ -11,11 +11,7 @@ export default function LeaguesAdmin() {
   const { data: leagues = [], isLoading, isError, error } = useAdminLeagues();
 
   if (isLoading) {
-    return (
-      <LoadingState>
-        Loading leagues...
-      </LoadingState>
-    );
+    return <LoadingState>Loading leagues...</LoadingState>;
   }
 
   if (isError) {
@@ -29,7 +25,10 @@ export default function LeaguesAdmin() {
               ? "Access Denied"
               : "Unable to Load Leagues"
         }
-        message={getApiErrorMessage(error, "The superadmin leagues page could not be loaded right now.")}
+        message={getApiErrorMessage(
+          error,
+          "The superadmin leagues page could not be loaded right now."
+        )}
         variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
       />
     );
@@ -101,7 +100,7 @@ export default function LeaguesAdmin() {
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       <PageHeader
         title="All Leagues"
         subTitle="Browse every league and open the member or admin view."
@@ -109,7 +108,7 @@ export default function LeaguesAdmin() {
         iconText="SUPER ADMIN"
       />
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm mt-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-900">League Directory</p>

@@ -558,8 +558,8 @@ function PricingSection() {
             Start with your first golfers. Add more when your league grows.
           </h2>
           <p className="mt-5 text-base leading-8 text-slate-600">
-            Registration starts with {BILLING_MIN_GOLFERS} golfer slots for {includedTotal}. If you
-            add more golfers during league creation, the app charges only the difference.
+            Each league starts with {BILLING_MIN_GOLFERS} regular golfer spots for {includedTotal}.
+            Regular players above the minimum are {formatBillingPrice(BILLING_PRICE_PER_GOLFER)} each; substitutes do not increase the price.
           </p>
         </div>
 
@@ -574,8 +574,8 @@ function PricingSection() {
             </div>
             <div className="mt-8 grid gap-3">
               {[
-                "Admin account setup",
-                `${BILLING_MIN_GOLFERS} included golfer slots`,
+                "Free admin account setup",
+                `${BILLING_MIN_GOLFERS}-golfer league minimum`,
                 "League creation workflow",
                 "Upgrade only for extra golfers",
               ].map((item) => (
@@ -608,7 +608,7 @@ function PricingSection() {
               href="#register"
               className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-100"
             >
-              Create account and checkout
+              Create free account
               <ArrowRight size={16} />
             </a>
           </div>

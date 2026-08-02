@@ -8,8 +8,6 @@ import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/querie
 import {
   AuditLogPanel,
   InvitePlayersPanel,
-  LeagueNotificationComposer,
-  OnboardingChecklist,
 } from "@/components/league/AdminOpsPanels";
 import LeagueAnnouncementsPanel from "@/components/league/LeagueAnnouncementsPanel";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
@@ -181,8 +179,6 @@ export default function LeagueAdmin() {
         </button>
       </div>
 
-      <OnboardingChecklist leagueId={Number(leagueId)} />
-
       <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3.5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -268,12 +264,11 @@ export default function LeagueAdmin() {
           <div>
             <p className="text-sm font-bold tracking-tight text-gray-900">Communication tools</p>
             <p className="mt-0.5 text-xs font-medium text-gray-500">
-              Manage profile claims, notifications, and league announcements.
+              Manage profile claims and league announcements.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <InvitePlayersPanel leagueId={Number(leagueId)} players={league?.players ?? []} />
-            <LeagueNotificationComposer leagueId={Number(leagueId)} />
             <LeagueAnnouncementsPanel leagueId={Number(leagueId)} canManage />
           </div>
         </div>

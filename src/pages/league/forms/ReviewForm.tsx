@@ -1,7 +1,7 @@
 import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
 import { formatPhone } from "@/utils/format";
-import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice } from "@/lib/billing";
+import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice, getLeagueBillableGolfers } from "@/lib/billing";
 import dayjs from "dayjs";
 import {
   CalendarRange,
@@ -53,15 +53,13 @@ export default function ReviewForm({
   const isTeamSeason = leagueType === "season" && leagueFormat === "team";
   const includedGolfers = Number(billing?.includedGolfers || 0);
   const allocatedGolfers = Number(billing?.allocatedGolfers || 0);
-  const availableGolfers = Math.max(0, includedGolfers - allocatedGolfers);
-  const requestedGolfers = players.length;
+  const requestedGolfers = getLeagueBillableGolfers(players);
   const additionalGolfersRequired = Math.max(
     0,
     allocatedGolfers + requestedGolfers - includedGolfers
   );
   const additionalCost = additionalGolfersRequired * BILLING_PRICE_PER_GOLFER;
-  const needsRegistrationPayment = !isBillingLoading && !billing?.hasCompletedRegistration;
-  const needsPayment = needsRegistrationPayment || additionalGolfersRequired > 0;
+  const needsPayment = !isBillingLoading && additionalGolfersRequired > 0;
 
   const sortedPlayers = [...players].sort((a, b) =>
     `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
@@ -315,14 +313,10 @@ export default function ReviewForm({
                 </p>
                 <div className="flex items-end justify-between">
                   <p className="text-2xl font-extrabold">
-                    {needsRegistrationPayment
-                      ? formatBillingPrice(BILLING_MIN_GOLFERS * BILLING_PRICE_PER_GOLFER)
-                      : formatBillingPrice(additionalCost)}
+                    {formatBillingPrice(additionalCost)}
                   </p>
                   <p className="text-xs opacity-60">
-                    {needsRegistrationPayment
-                      ? `${BILLING_MIN_GOLFERS} golfer minimum`
-                      : `${additionalGolfersRequired} added golfers`}
+                    {`${additionalGolfersRequired} golfers due`}
                   </p>
                 </div>
               </div>
@@ -331,12 +325,12 @@ export default function ReviewForm({
                 {[
                   { label: "League", value: leagueData?.name || "—" },
                   { label: "Roster", value: `${players.length}` },
-                  { label: "Paid Slots", value: `${includedGolfers}` },
-                  { label: "Allocated", value: `${allocatedGolfers}` },
-                  { label: "Available", value: `${availableGolfers}` },
+                  { label: "Regular Players", value: `${players.filter((player) => String(player.type || "player").toLowerCase() === "player").length}` },
+                  { label: "League Minimum", value: `${BILLING_MIN_GOLFERS}` },
+                  { label: "Billable Golfers", value: `${requestedGolfers}` },
                   {
-                    label: needsRegistrationPayment ? "Needed to Start" : "Payment Required",
-                    value: `${needsRegistrationPayment ? BILLING_MIN_GOLFERS : additionalGolfersRequired}`,
+                    label: "Payment Required",
+                    value: `${additionalGolfersRequired}`,
                   },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between gap-2">

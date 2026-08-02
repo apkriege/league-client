@@ -7,22 +7,48 @@ import { useToast } from "@/context/ToastContext";
 import { formatPhone } from "@/utils/format";
 import { useLeague } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { useCreatePlayer, useDeletePlayer, useUpdatePlayer } from "@api/players/mutations";
+import { useCreatePlayers, useDeletePlayer, useUpdatePlayer } from "@api/players/mutations";
+import { useCreateCheckoutSession } from "@api/payments/mutations";
+import { useStripeState } from "@api/payments/queries";
+import { useQueryClient } from "@tanstack/react-query";
 import { SquarePen, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import Table from "@/components/Table";
 import { useAppStore } from "@/stores/appStore";
 import Chip from "@mui/material/Chip";
+import Divider from "@/components/layout/Divider";
 
 const EMPTY_FORM = {
   firstName: "",
   lastName: "",
   email: "",
   phone: "",
-  type: "",
+  type: "player",
   handicap: "",
 };
+
+const pendingPlayerKey = (leagueId: number) => `league-night:pending-player:${leagueId}`;
+
+type PlayerForm = typeof EMPTY_FORM;
+type PendingPlayerCheckout = {
+  form?: PlayerForm;
+  isEditMode?: boolean;
+  editingPlayerId?: number | null;
+  players?: PlayerForm[];
+};
+
+const normalizePlayerForm = (playerForm: PlayerForm) => ({
+  firstName: playerForm.firstName.trim(),
+  lastName: playerForm.lastName.trim(),
+  email: playerForm.email.trim() || null,
+  phone: playerForm.phone.trim() || null,
+  type:
+    String(playerForm.type || "player").toLowerCase() === "sub"
+      ? "substitute"
+      : String(playerForm.type || "player").toLowerCase(),
+  handicap: Number(playerForm.handicap),
+});
 
 const getMissingRequiredFields = (form: typeof EMPTY_FORM) => {
   const missing: string[] = [];
@@ -30,8 +56,6 @@ const getMissingRequiredFields = (form: typeof EMPTY_FORM) => {
 
   if (!form.firstName.trim()) missing.push("first name");
   if (!form.lastName.trim()) missing.push("last name");
-  if (!form.email.trim()) missing.push("email");
-  if (!form.type.trim()) missing.push("type");
   if (!form.handicap.trim() || !Number.isFinite(handicapNum)) missing.push("handicap");
 
   return missing;
@@ -45,14 +69,109 @@ export default function Players() {
   const { leagueId } = useParams();
   const numericLeagueId = Number(leagueId);
   const { data: league, isLoading, isError, error } = useLeague(numericLeagueId);
-  const createPlayer = useCreatePlayer();
+  const createPlayers = useCreatePlayers();
   const updatePlayer = useUpdatePlayer();
   const deletePlayer = useDeletePlayer();
+  const createCheckoutSession = useCreateCheckoutSession();
+  const { refetch: reconcileStripePayment } = useStripeState(false);
+  const queryClient = useQueryClient();
+  const checkoutHandled = useRef(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [pendingPlayers, setPendingPlayers] = useState<(typeof EMPTY_FORM)[]>([]);
+
+  useEffect(() => {
+    if (checkoutHandled.current || !numericLeagueId) return;
+    const params = new URLSearchParams(window.location.search);
+    const checkoutStatus = params.get("checkout");
+    if (checkoutStatus !== "capacity_success" && checkoutStatus !== "capacity_cancel") return;
+    checkoutHandled.current = true;
+
+    const pendingPlayer = window.localStorage.getItem(pendingPlayerKey(numericLeagueId));
+    let pendingCheckout: PendingPlayerCheckout | null = null;
+    try {
+      pendingCheckout = pendingPlayer ? JSON.parse(pendingPlayer) : null;
+    } catch {
+      window.localStorage.removeItem(pendingPlayerKey(numericLeagueId));
+    }
+
+    const restorePendingPlayers = () => {
+      if (!pendingCheckout) return;
+      setForm({ ...EMPTY_FORM, ...(pendingCheckout.form || {}) });
+      setIsEditMode(Boolean(pendingCheckout.isEditMode));
+      setEditingPlayerId(
+        pendingCheckout.editingPlayerId ? Number(pendingCheckout.editingPlayerId) : null
+      );
+      setPendingPlayers(Array.isArray(pendingCheckout.players) ? pendingCheckout.players : []);
+      setIsModalOpen(true);
+    };
+
+    const finishReturn = async () => {
+      if (checkoutStatus === "capacity_success") {
+        const result = await reconcileStripePayment();
+        if (result.isError || !pendingCheckout) {
+          restorePendingPlayers();
+          show(
+            "Payment completed, but the players could not be saved automatically. Please try again.",
+            "warning"
+          );
+        } else {
+          try {
+            await queryClient.invalidateQueries({ queryKey: ["league", numericLeagueId] });
+            if (pendingCheckout.isEditMode && pendingCheckout.editingPlayerId) {
+              await updatePlayer.mutateAsync({
+                id: Number(pendingCheckout.editingPlayerId),
+                data: normalizePlayerForm({ ...EMPTY_FORM, ...(pendingCheckout.form || {}) }),
+              });
+              show("Payment completed and player updated.", "success");
+            } else {
+              const players = Array.isArray(pendingCheckout.players)
+                ? pendingCheckout.players.map(normalizePlayerForm)
+                : [];
+              if (players.length === 0) throw new Error("No pending players were found");
+              await createPlayers.mutateAsync({ leagueId: numericLeagueId, players });
+              show(
+                `Payment completed and ${players.length} ${players.length === 1 ? "player was" : "players were"} added.`,
+                "success"
+              );
+            }
+            window.localStorage.removeItem(pendingPlayerKey(numericLeagueId));
+            setForm(EMPTY_FORM);
+            setPendingPlayers([]);
+            setIsEditMode(false);
+            setEditingPlayerId(null);
+            setIsModalOpen(false);
+          } catch (saveError) {
+            console.error(saveError);
+            restorePendingPlayers();
+            show(
+              getApiErrorMessage(
+                saveError,
+                "Payment completed, but the players could not be saved automatically."
+              ),
+              "error"
+            );
+          }
+        }
+      } else {
+        restorePendingPlayers();
+        show("Additional-player checkout was canceled.", "warning");
+      }
+
+      params.delete("checkout");
+      const query = params.toString();
+      window.history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`
+      );
+    };
+
+    void finishReturn();
+  }, [createPlayers, numericLeagueId, queryClient, reconcileStripePayment, show, updatePlayer]);
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -62,7 +181,13 @@ export default function Players() {
     const status = getApiErrorStatus(error);
     return (
       <PageState
-        title={status === 404 ? "League Not Found" : status === 403 ? "Access Denied" : "Unable to Load Players"}
+        title={
+          status === 404
+            ? "League Not Found"
+            : status === 403
+              ? "Access Denied"
+              : "Unable to Load Players"
+        }
         message={getApiErrorMessage(error, "The players page could not be loaded right now.")}
         variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
       />
@@ -86,31 +211,39 @@ export default function Players() {
     return a.type === "player" ? -1 : 1;
   });
 
-  const submitting = createPlayer.isPending || updatePlayer.isPending;
+  const submitting =
+    createPlayers.isPending || updatePlayer.isPending || createCheckoutSession.isPending;
 
   const resetAndCloseModal = () => {
     setIsModalOpen(false);
     setIsEditMode(false);
     setEditingPlayerId(null);
     setForm(EMPTY_FORM);
+    setPendingPlayers([]);
+    window.localStorage.removeItem(pendingPlayerKey(numericLeagueId));
   };
 
   const openCreate = () => {
     setIsEditMode(false);
     setEditingPlayerId(null);
     setForm(EMPTY_FORM);
+    setPendingPlayers([]);
     setIsModalOpen(true);
   };
 
   const openEdit = (player: any) => {
     setIsEditMode(true);
+    setPendingPlayers([]);
     setEditingPlayerId(Number(player.id));
     setForm({
       firstName: player.firstName || "",
       lastName: player.lastName || "",
       email: player.email || "",
       phone: player.phone || "",
-      type: String(player.type || "player"),
+      type:
+        String(player.type || "player").toLowerCase() === "substitute"
+          ? "sub"
+          : String(player.type || "player"),
       handicap:
         player.handicap != null && !Number.isNaN(Number(player.handicap))
           ? String(player.handicap)
@@ -125,38 +258,107 @@ export default function Players() {
 
   const missingRequiredFields = getMissingRequiredFields(form);
   const validateForm = missingRequiredFields.length === 0;
+  const hasCurrentPlayer = [
+    form.firstName,
+    form.lastName,
+    form.email,
+    form.phone,
+    form.handicap,
+  ].some((value) => value.trim() !== "");
 
-  const savePlayer = async () => {
+  const addPlayerToBatch = () => {
     if (!validateForm) {
       show(`Required: ${missingRequiredFields.join(", ")}.`, "warning");
       return;
     }
+    setPendingPlayers((players) => [...players, { ...form }]);
+    setForm(EMPTY_FORM);
+  };
 
-    const payload = {
-      firstName: form.firstName.trim(),
-      lastName: form.lastName.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim() || null,
-      type: String(form.type || "player").toLowerCase(),
-      handicap: Number(form.handicap),
-    };
-
+  const savePlayer = async () => {
     try {
+      const regularPlayerCount = league.players.filter(
+        (player: any) => player.type === "player"
+      ).length;
+      const paidCapacity = Math.max(0, Number(league.numPlayers || 0));
+
       if (isEditMode && editingPlayerId) {
+        if (!validateForm) {
+          show(`Required: ${missingRequiredFields.join(", ")}.`, "warning");
+          return;
+        }
+        const payload = normalizePlayerForm(form);
+        const existingPlayer = league.players.find(
+          (player: any) => Number(player.id) === editingPlayerId
+        );
+        const addsRegularPlayer = payload.type === "player" && existingPlayer?.type !== "player";
+        if (addsRegularPlayer && regularPlayerCount >= paidCapacity) {
+          window.localStorage.setItem(
+            pendingPlayerKey(numericLeagueId),
+            JSON.stringify({ form, isEditMode, editingPlayerId, players: [] })
+          );
+          const checkout = await createCheckoutSession.mutateAsync({
+            purpose: "league_capacity",
+            leagueId: numericLeagueId,
+            requestedGolfers: Math.max(paidCapacity, regularPlayerCount) + 1,
+            successUrl: `${window.location.origin}/league/${numericLeagueId}/players?checkout=capacity_success`,
+            cancelUrl: `${window.location.origin}/league/${numericLeagueId}/players?checkout=capacity_cancel`,
+          });
+          if (!checkout.alreadyCovered) {
+            if (!checkout.url) throw new Error("Could not start additional-player checkout.");
+            window.location.href = checkout.url;
+            return;
+          }
+        }
         await updatePlayer.mutateAsync({
           id: editingPlayerId,
           data: payload,
         });
         show("Player updated", "success");
       } else {
-        await createPlayer.mutateAsync({
+        if (hasCurrentPlayer && !validateForm) {
+          show(`Required: ${missingRequiredFields.join(", ")}.`, "warning");
+          return;
+        }
+        const playerForms = [...pendingPlayers, ...(hasCurrentPlayer ? [{ ...form }] : [])];
+        if (playerForms.length === 0) {
+          show("Add at least one player.", "warning");
+          return;
+        }
+        const payloads = playerForms.map(normalizePlayerForm);
+        const incomingRegularPlayers = payloads.filter((player) => player.type === "player").length;
+        const additionalRegularPlayers = Math.max(
+          0,
+          regularPlayerCount + incomingRegularPlayers - paidCapacity
+        );
+        if (additionalRegularPlayers > 0) {
+          window.localStorage.setItem(
+            pendingPlayerKey(numericLeagueId),
+            JSON.stringify({
+              form: EMPTY_FORM,
+              isEditMode: false,
+              editingPlayerId: null,
+              players: playerForms,
+            })
+          );
+          const checkout = await createCheckoutSession.mutateAsync({
+            purpose: "league_capacity",
+            leagueId: numericLeagueId,
+            requestedGolfers: paidCapacity + additionalRegularPlayers,
+            successUrl: `${window.location.origin}/league/${numericLeagueId}/players?checkout=capacity_success`,
+            cancelUrl: `${window.location.origin}/league/${numericLeagueId}/players?checkout=capacity_cancel`,
+          });
+          if (!checkout.alreadyCovered) {
+            if (!checkout.url) throw new Error("Could not start additional-player checkout.");
+            window.location.href = checkout.url;
+            return;
+          }
+        }
+        await createPlayers.mutateAsync({
           leagueId: numericLeagueId,
-          data: {
-            ...payload,
-            startingHandicap: Number(form.handicap),
-          },
+          players: payloads,
         });
-        show("Player added", "success");
+        show(`${payloads.length} ${payloads.length === 1 ? "player" : "players"} added`, "success");
       }
       resetAndCloseModal();
     } catch (error) {
@@ -198,11 +400,13 @@ export default function Players() {
             <p className="text-xs font-semibold text-slate-900 mb-0">
               {row.firstName} {row.lastName}
             </p>
-            <p className="font-light text-[10px] text-gray-500 flex items-center gap-1.5">
-              <span>{row.email}</span>
-              <span>/</span>
-              <span>{formatPhone(row.phone)}</span>
-            </p>
+            {(row.email || row.phone) && (
+              <p className="font-light text-[10px] text-gray-500 flex items-center gap-1.5">
+                {row.email && <span>{row.email}</span>}
+                {row.email && row.phone && <span>/</span>}
+                {row.phone && <span>{formatPhone(row.phone)}</span>}
+              </p>
+            )}
           </div>
         </Link>
       ),
@@ -274,10 +478,10 @@ export default function Players() {
 
       <Modal
         isOpen={isModalOpen}
-        title={isEditMode ? "Edit Player" : "Add Player"}
+        title={isEditMode ? "Edit Player" : "Add Players"}
         onClose={resetAndCloseModal}
       >
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-y-2 gap-x-3">
           <Input
             label="First Name"
             value={form.firstName}
@@ -289,7 +493,7 @@ export default function Players() {
             onChange={(e) => onChange("lastName", e.target.value)}
           />
           <Input
-            label="Email"
+            label="Email (optional)"
             value={form.email}
             onChange={(e) => onChange("email", e.target.value)}
           />
@@ -317,16 +521,69 @@ export default function Players() {
           />
         </div>
 
-        <div className="mt-4 flex items-center justify-end gap-2">
+        {!isEditMode && (
+          <div className="mt-4">
+            <div className="flex justify-end">
+              <Button
+                variant="default"
+                onClick={addPlayerToBatch}
+                disabled={!validateForm || submitting}
+              >
+                Add Player
+              </Button>
+            </div>
+            {pendingPlayers.length > 0 && (
+              <div className="mt-3 overflow-hidden rounded-xl border border-slate-200">
+                {pendingPlayers.map((player, index) => (
+                  <div
+                    key={`${player.firstName}-${player.lastName}-${index}`}
+                    className="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 last:border-b-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-slate-900">
+                        {player.firstName} {player.lastName}
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        {player.type === "sub" ? "Substitute" : "Regular player"} · HCP{" "}
+                        {player.handicap}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${player.firstName} ${player.lastName}`}
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() =>
+                        setPendingPlayers((players) =>
+                          players.filter((_player, playerIndex) => playerIndex !== index)
+                        )
+                      }
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <Divider className="my-2!" />
+        <div className="flex items-center justify-end gap-2">
           <Button variant="default" onClick={resetAndCloseModal}>
             Cancel
           </Button>
           <Button
             variant="primary"
             onClick={savePlayer}
-            disabled={!validateForm || submitting}
+            disabled={
+              submitting ||
+              (isEditMode ? !validateForm : pendingPlayers.length === 0 && !validateForm)
+            }
           >
-            {submitting ? "Saving..." : "Save"}
+            {submitting
+              ? "Saving..."
+              : isEditMode
+                ? "Save"
+                : `Save ${pendingPlayers.length + (validateForm ? 1 : 0)} ${pendingPlayers.length + (validateForm ? 1 : 0) === 1 ? "Player" : "Players"}`}
           </Button>
         </div>
       </Modal>

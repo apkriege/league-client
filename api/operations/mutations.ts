@@ -1,32 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   claimInvitation,
-  clearNotification,
   createLeagueAnnouncement,
   createLeagueInvitations,
-  createLeagueNotification,
   deleteLeagueAnnouncement,
-  markNotificationRead,
   revokeLeagueInvitation,
   updateLeagueAnnouncement,
-  updateLeagueOnboarding,
 } from ".";
-
-export const useMarkNotificationRead = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => markNotificationRead(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-  });
-};
-
-export const useClearNotification = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => clearNotification(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-  });
-};
 
 export const useClaimInvitation = () => {
   return useMutation({
@@ -94,26 +74,5 @@ export const useDeleteLeagueAnnouncement = (leagueId: number) => {
       queryClient.invalidateQueries({ queryKey: ["league", leagueId, "announcements"] });
       queryClient.invalidateQueries({ queryKey: ["league", leagueId, "audit-logs"] });
     },
-  });
-};
-
-export const useCreateLeagueNotification = (leagueId: number) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: { title: string; body: string; includeAdmin?: boolean }) =>
-      createLeagueNotification(leagueId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["league", leagueId, "audit-logs"] });
-    },
-  });
-};
-
-export const useUpdateLeagueOnboarding = (leagueId: number) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: { key: string; dismissed?: boolean }) =>
-      updateLeagueOnboarding(leagueId, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["league", leagueId, "onboarding"] }),
   });
 };

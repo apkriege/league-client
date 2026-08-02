@@ -19,4 +19,16 @@ describe("league form validation", () => {
   it("does not require a public/private access setting", () => {
     expect(validateLeagueForm(validLeague)).toBeNull();
   });
+
+  it("only requires first name, last name, and handicap for league players", () => {
+    expect(
+      validateLeagueForm(
+        {
+          ...validLeague,
+          players: [{ firstName: "Ada", lastName: "Lovelace", handicap: 12 }],
+        },
+        { requirePlayers: true }
+      )
+    ).toBeNull();
+  });
 });

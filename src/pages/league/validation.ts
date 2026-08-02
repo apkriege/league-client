@@ -32,11 +32,9 @@ export function validateLeagueForm(data: any, options: { requirePlayers?: boolea
     (player: any) =>
       isBlank(player?.firstName) ||
       isBlank(player?.lastName) ||
-      isBlank(player?.email) ||
-      isBlank(player?.type) ||
       !Number.isFinite(Number(player?.handicap))
   );
-  if (invalidPlayer) return "Each player needs a first name, last name, email, type, and handicap.";
+  if (invalidPlayer) return "Each player needs a first name, last name, and handicap.";
 
   const teams = Array.isArray(data.teams) ? data.teams : [];
   if (options.requireTeams && teams.length === 0) return "Create at least one team.";

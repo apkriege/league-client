@@ -31,7 +31,6 @@ const getMissingRequiredFields = (player: any) => {
 
   if (!String(player?.firstName || "").trim()) missing.push("first name");
   if (!String(player?.lastName || "").trim()) missing.push("last name");
-  if (!String(player?.type || "").trim()) missing.push("type");
   if (!Number.isFinite(handicap)) missing.push("handicap");
 
   return missing;
@@ -65,7 +64,7 @@ export default function PlayersForm() {
       lastName: String(data.lastName).trim(),
       email: String(data.email || "").trim(),
       phone: String(data.phone || "").trim(),
-      type: String(data.type).trim().toLowerCase(),
+      type: String(data.type || "player").trim().toLowerCase(),
       handicap: Number(data.handicap),
     };
 
@@ -125,11 +124,13 @@ export default function PlayersForm() {
             <p className="mb-0.5 text-base font-semibold text-slate-900">
               {row.firstName} {row.lastName}
             </p>
-            <p className="font-light text-[10px] text-gray-500 flex items-center gap-1.5">
-              <span>{row.email}</span>
-              <span>/</span>
-              <span>{formatPhone(row.phone)}</span>
-            </p>
+            {(row.email || row.phone) && (
+              <p className="font-light text-[10px] text-gray-500 flex items-center gap-1.5">
+                {row.email && <span>{row.email}</span>}
+                {row.email && row.phone && <span>/</span>}
+                {row.phone && <span>{formatPhone(row.phone)}</span>}
+              </p>
+            )}
           </div>
         </div>
       ),
@@ -204,7 +205,9 @@ export default function PlayersForm() {
           <Controller
             name="email"
             control={playerForm.control}
-            render={({ field }) => <Input label="Email" placeholder="Enter email" {...field} />}
+            render={({ field }) => (
+              <Input label="Email (optional)" placeholder="Enter email" {...field} />
+            )}
           />
         </div>
         <div className="grid grid-cols-4 items-end gap-2">

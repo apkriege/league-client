@@ -1,7 +1,8 @@
 import apiClient from "../client";
 
 export type CreateCheckoutSessionPayload = {
-  purpose?: "registration" | "seat_upgrade";
+  purpose?: "registration" | "seat_upgrade" | "league_capacity";
+  leagueId?: number;
   requestedGolfers?: number;
   successUrl?: string;
   cancelUrl?: string;
