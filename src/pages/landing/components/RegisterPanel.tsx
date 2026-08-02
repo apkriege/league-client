@@ -27,6 +27,9 @@ export default function RegisterPanel() {
   const { setUser } = useAppStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const requestedReturnTo = new URLSearchParams(location.search).get("redirect");
+  const invitationToken = requestedReturnTo?.match(/^\/invite\/([^/?#]+)/)?.[1];
+  const isInvitationRegistration = Boolean(invitationToken);
   const [form, setForm] = useState(emptyRegistrationForm);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -41,14 +44,16 @@ export default function RegisterPanel() {
     setMessage("");
 
     try {
-      const requestedReturnTo = new URLSearchParams(location.search).get("redirect");
-      const invitationToken = requestedReturnTo?.match(/^\/invite\/([^/?#]+)/)?.[1];
       const response = await register({ ...form, invitationToken });
       const normalizedUser = normalizeAuthUser(response.data?.user);
       if (normalizedUser) setUser(normalizedUser);
 
       setStatus("success");
-      setMessage("Account created. Start building your first league.");
+      setMessage(
+        isInvitationRegistration
+          ? "Account created. Finish accepting your league invitation."
+          : "Account created. Start building your first league.",
+      );
       clearCreateLeagueDraft();
       const returnTo =
         requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//")
@@ -71,16 +76,20 @@ export default function RegisterPanel() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-300">
-              Register
+              {isInvitationRegistration ? "Player invitation" : "Register"}
             </p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight">Start League Night Pro.</h2>
+            <h2 className="mt-2 text-3xl font-black tracking-tight">
+              {isInvitationRegistration ? "Create your player account." : "Start League Night Pro."}
+            </h2>
           </div>
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-300 text-slate-950">
             <LockKeyhole size={18} />
           </span>
         </div>
         <p className="mt-4 text-sm leading-7 text-white/62">
-          Create your admin account free. Each league is priced separately when you finish setup.
+          {isInvitationRegistration
+            ? "Use the email address that received the invitation, then return to the league to finish joining."
+            : "Create your admin account free. Each league is billed separately based on its regular-player roster."}
         </p>
       </div>
 
@@ -130,7 +139,11 @@ export default function RegisterPanel() {
           disabled={status === "submitting"}
           className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-sky-300 px-5 text-sm font-black text-slate-950 transition hover:bg-sky-200 disabled:opacity-60"
         >
-          {status === "submitting" ? "Creating account..." : "Create account"}
+          {status === "submitting"
+            ? "Creating account..."
+            : isInvitationRegistration
+              ? "Create player account"
+              : "Create admin account"}
           <ArrowRight size={16} />
         </button>
       </form>
