@@ -6,6 +6,7 @@ import {
   Calendar,
   Check,
   ChevronRight,
+  CreditCard,
   LandPlot,
   LayoutDashboard,
   LogOut,
@@ -337,6 +338,13 @@ export default function BaseLayout() {
                 text="Manage Courses"
                 icon={<Settings size={19} />}
                 isActive={location.pathname.startsWith("/superadmin/courses")}
+                collapsed={!isOpen}
+              />
+              <NavLink
+                to="/superadmin/billing"
+                text="Billing"
+                icon={<CreditCard size={19} />}
+                isActive={location.pathname.startsWith("/superadmin/billing")}
                 collapsed={!isOpen}
               />
             </>

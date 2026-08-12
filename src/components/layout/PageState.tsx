@@ -13,17 +13,14 @@ type PageStateProps = {
 const CONFIG = {
   error: {
     icon: <AlertTriangle size={14} />,
-    badge: "ERROR",
     panel: "border-red-200 bg-red-50 text-red-700",
   },
   forbidden: {
     icon: <ShieldAlert size={14} />,
-    badge: "ACCESS",
     panel: "border-amber-200 bg-amber-50 text-amber-700",
   },
   notFound: {
     icon: <Search size={14} />,
-    badge: "MISSING",
     panel: "border-gray-200 bg-gray-50 text-gray-700",
   },
 } as const;
@@ -39,7 +36,7 @@ export default function PageState({
 
   return (
     <div>
-      <PageHeader title={title} icon={config.icon} iconText={config.badge} />
+      <PageHeader title={title} />
 
       <div className={`mt-6 rounded-xl border px-5 py-5 shadow-sm ${config.panel}`}>
         <div className="flex items-start gap-3">

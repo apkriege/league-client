@@ -123,8 +123,6 @@ export default function Courses() {
       <PageHeader
         title="Courses"
         subTitle="Browse every course in the system, search by club or location, and open full course details."
-        icon={<BookOpen size={14} />}
-        iconText="COURSES"
       />
 
       <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">

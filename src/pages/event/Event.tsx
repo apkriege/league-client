@@ -15,7 +15,6 @@ import { useAppStore } from "@/stores/appStore";
 import { useToast } from "@/context/ToastContext";
 import {
   BarChart2,
-  Ban,
   Calendar,
   Clock,
   Eye,
@@ -23,21 +22,20 @@ import {
   ListOrdered,
   MapPin,
   Medal,
-  Printer,
   ShieldHalf,
-  Trash2,
   Trophy,
   User,
   X,
   Zap,
 } from "lucide-react";
 import { lazy, Suspense, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import {
   buildEventLeaderboard,
   type EventLeaderboardSort,
 } from "./eventLeaderboard";
 import EventFlightsPreview from "./components/EventFlightsPreview";
+import EventActionsMenu from "./components/EventActionsMenu";
 import EventRoundsTable from "./components/EventRoundsTable";
 import {
   FlightScorecardsDrawer,
@@ -170,6 +168,7 @@ export default function Event() {
   const role = String(user?.role || "").toUpperCase();
   const canManageEvent = role === "ADMIN" || role === "SUPER";
   const isCanceledEvent = normalizedStatus === "canceled";
+  const canModifyEvent = !isCanceledEvent && normalizedStatus !== "complete";
   const handleDeleteEvent = () => {
     const confirmed = window.confirm(
       `Delete "${event.name}"? This removes it from the schedule and league event lists.`
@@ -203,83 +202,53 @@ export default function Event() {
 
   return (
     <div>
-      <PageHeader
-        title={event.name || "Event Details"}
-        icon={status.icon}
-        iconText={event.status.toUpperCase()}
-      />
+      <PageHeader title={event.name || "Event Details"} />
 
-      <div className="mt-4 mb-8 flex flex-wrap gap-2">
-        {[
-          {
-            icon: <Calendar size={12} />,
-            text: date.toLocaleDateString("en-US", {
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <SummaryPill icon={<Calendar size={12} />}>
+            {date.toLocaleDateString("en-US", {
               weekday: "short",
               month: "short",
               day: "numeric",
               year: "numeric",
-            }),
-          },
-          {
-            icon: <MapPin size={12} />,
-            text: event.course.name + (event.tee?.name ? ` · ${event.tee.name}` : ""),
-          },
-          { icon: <Clock size={12} />, text: formatTime(event.startsAt, event.timeZone) },
-          { icon: <ShieldHalf size={12} />, text: event.format },
-          { icon: <Medal size={12} />, text: `${event.scoringFormat} play` },
-        ].map((chip, i) => (
-          <SummaryPill
-            key={i}
-            icon={chip.icon}
-            className="capitalize"
-          >
-            {chip.text}
+            })}
           </SummaryPill>
-        ))}
-        <div
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm ${status.className}`}
-        >
-          {status.icon}
-          {status.label}
+          <SummaryPill icon={<Clock size={12} />}>
+            {formatTime(event.startsAt, event.timeZone)}
+          </SummaryPill>
+          <SummaryPill icon={<MapPin size={12} />}>
+            {event.course.name}
+            {event.tee?.name ? ` · ${event.tee.name}` : ""}
+          </SummaryPill>
+          <SummaryPill icon={<ShieldHalf size={12} />} className="capitalize">
+            {event.format}
+          </SummaryPill>
+          <SummaryPill icon={<Medal size={12} />} className="capitalize">
+            {event.scoringFormat} play
+          </SummaryPill>
+          <SummaryPill icon={status.icon} strong>
+            {status.label}
+          </SummaryPill>
         </div>
-        {canManageEvent &&
-          !isCanceledEvent &&
-          normalizedStatus !== "complete" && (
-            <Link
-              to={`/league/${leagueId}/events/${eventId}/print-scorecards`}
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-            >
-              <Printer size={12} />
-              Print Scorecards
-            </Link>
-          )}
-        {canManageEvent &&
-          !isCanceledEvent &&
-          normalizedStatus !== "complete" && (
-            <button
-              type="button"
-              onClick={handleCancelEvent}
-              disabled={cancelEvent.isPending}
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-60"
-            >
-              <Ban size={12} />
-              {cancelEvent.isPending ? "Canceling..." : "Cancel Event"}
-            </button>
-          )}
+
         {canManageEvent && (
-          <button
-            type="button"
-            onClick={handleDeleteEvent}
-            disabled={deleteEvent.isPending}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border border-red-200 bg-white text-red-600 hover:bg-red-50 disabled:opacity-60"
-          >
-            <Trash2 size={12} />
-            {deleteEvent.isPending ? "Deleting..." : "Delete Event"}
-          </button>
+          <div className="shrink-0">
+            <EventActionsMenu
+              canModify={canModifyEvent}
+              canPrint={!isCanceledEvent}
+              isCanceling={cancelEvent.isPending}
+              isDeleting={deleteEvent.isPending}
+              onEdit={() => navigate(`/league/${leagueId}/events/${eventId}/edit`)}
+              onPrint={() => navigate(`/league/${leagueId}/events/${eventId}/print-scorecards`)}
+              onCancel={handleCancelEvent}
+              onDelete={handleDeleteEvent}
+            />
+          </div>
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
           {
             label: "Players",

@@ -20,12 +20,14 @@ describe("league form validation", () => {
     expect(validateLeagueForm(validLeague)).toBeNull();
   });
 
-  it("only requires first name, last name, and handicap for league players", () => {
+  it("requires the fields used to calculate each player's Course Handicap", () => {
     expect(
       validateLeagueForm(
         {
           ...validLeague,
-          players: [{ firstName: "Ada", lastName: "Lovelace", handicap: 12 }],
+          players: [
+            { firstName: "Ada", lastName: "Lovelace", gender: "female", handicap: 12 },
+          ],
         },
         { requirePlayers: true }
       )

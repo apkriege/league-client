@@ -10,7 +10,7 @@ import { useCreateClub } from "@api/clubs/mutations";
 import { useCoursesWithTees } from "@api/courses";
 import { useCreateCourse, useDeleteCourse, useUpdateCourse } from "@api/courses/mutations";
 import type { ImportedCourse } from "@api/courses";
-import { AlertTriangle, Flag, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { AlertTriangle, Flag, Plus, Trash2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import {
   buildEmptyTee,
@@ -285,8 +285,6 @@ export default function CoursesAdmin() {
       <PageHeader
         title="Course Management"
         subTitle="Create courses, attach multiple tees, and manage hole-by-hole rating data."
-        icon={<ShieldCheck size={14} />}
-        iconText="SUPER ADMIN"
       />
 
       <Card className="mt-6 border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)]">

@@ -24,6 +24,10 @@ export default function InfoForm() {
   const methods = useFormContext();
   const leagueStartDate = getEventDateInputValue(league?.startDate);
   const leagueEndDate = getEventDateInputValue(league?.endDate);
+  const selectedCourse = (courses || []).find(
+    (course: any) => Number(course.id) === Number(methods.watch("courseId"))
+  );
+  const isNineHoleCourse = Number(selectedCourse?.numHoles) <= 9;
 
   useEffect(() => {
     if (!leagueStartDate || !leagueEndDate) return;
@@ -38,6 +42,12 @@ export default function InfoForm() {
       methods.setValue("date", leagueEndDate, { shouldDirty: true });
     }
   }, [leagueStartDate, leagueEndDate, methods]);
+
+  useEffect(() => {
+    if (!isNineHoleCourse) return;
+    methods.setValue("holes", 9, { shouldDirty: true });
+    methods.setValue("startSide", "front", { shouldDirty: true });
+  }, [isNineHoleCourse, methods]);
 
   if (!courses) return null;
 
@@ -57,7 +67,6 @@ export default function InfoForm() {
   }));
 
   const getTeeOptions = () => {
-    const selectedCourse = courses.find((course: any) => course.id === methods.watch("courseId"));
     if (!selectedCourse) return [];
 
     return selectedCourse.tees
@@ -164,7 +173,7 @@ export default function InfoForm() {
               onChange={(value) => methods.setValue("startSide", value)}
               options={[
                 { value: "front", label: "FRONT" },
-                { value: "back", label: "BACK" },
+                ...(!isNineHoleCourse ? [{ value: "back", label: "BACK" }] : []),
               ]}
             />
           </div>
@@ -191,7 +200,7 @@ export default function InfoForm() {
                 onChange={(value) => methods.setValue("holes", Number(value))}
                 options={[
                   { value: "9", label: "9" },
-                  { value: "18", label: "18" },
+                  ...(!isNineHoleCourse ? [{ value: "18", label: "18" }] : []),
                 ]}
               />
             </div>

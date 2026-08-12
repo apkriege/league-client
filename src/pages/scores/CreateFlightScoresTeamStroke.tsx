@@ -18,6 +18,7 @@ import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
 import { useToast } from "@/context/ToastContext";
 import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
+import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
 
 export const CreateFlightScoresTeamStroke = ({
   flight,
@@ -32,10 +33,7 @@ export const CreateFlightScoresTeamStroke = ({
   const { leagueId, eventId } = useParams();
   const { show } = useToast();
 
-  const startingHole = event.startSide === "front" ? 1 : 10;
-  const holes = event.tee.holes
-    .slice(startingHole - 1, startingHole + event.holes - 1)
-    .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
+  const holes = getEventScoringHoles(event);
 
   const team1Id = Number(flight?.teams?.[0]?.teamId ?? 0);
   const team2Id = Number(flight?.teams?.[1]?.teamId ?? 0);
@@ -51,9 +49,7 @@ export const CreateFlightScoresTeamStroke = ({
   const players = [...team1Players, ...team2Players];
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    const preHandicap = Number(playerEntry?.player?.rounds?.[0]?.preHandicap);
-    if (isEditMode && Number.isFinite(preHandicap)) return preHandicap;
-    return Number(playerEntry?.player?.handicap ?? 0);
+    return getPlayerCourseHandicap(playerEntry);
   };
 
   const popsByPlayerId = new Map<number, Map<number, number>>();
@@ -201,9 +197,22 @@ export const CreateFlightScoresTeamStroke = ({
       shouldTouch: true,
     });
     methods.unregister(`players.${currentId}`);
-    if (team === 1) setTeam1Players(nextTeamPlayers);
-    else setTeam2Players(nextTeamPlayers);
-    await onFlightPlayersUpdated?.();
+    const refreshed = await onFlightPlayersUpdated?.();
+    const refreshedPlayers = refreshed?.data?.flights?.find(
+      (candidate: any) => Number(candidate.id) === Number(flight.id)
+    )?.players;
+    if (Array.isArray(refreshedPlayers)) {
+      setTeam1Players(
+        refreshedPlayers.filter((player: any) => Number(player.teamId) === team1Id)
+      );
+      setTeam2Players(
+        refreshedPlayers.filter((player: any) => Number(player.teamId) === team2Id)
+      );
+    } else if (team === 1) {
+      setTeam1Players(nextTeamPlayers);
+    } else {
+      setTeam2Players(nextTeamPlayers);
+    }
   };
 
   const saveScores = () => {

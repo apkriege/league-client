@@ -99,6 +99,7 @@ export function buildSwappedPlayerEntry(baseEntry: any, replacement: any) {
   return {
     ...baseEntry,
     playerId: Number(replacement.id),
+    courseHandicap: replacement?.courseHandicap ?? null,
     teamId: baseEntry?.teamId ?? replacement?.teamId ?? null,
     player: {
       ...baseEntry?.player,

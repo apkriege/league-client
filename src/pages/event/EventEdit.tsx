@@ -11,7 +11,7 @@ import { useUpdateLeagueEvent } from "@api/league/mutations";
 import { useLeague, useLeagueEvent } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useNavigate, useParams } from "react-router";
-import { Flag, Pencil, ShieldHalf } from "lucide-react";
+import { Flag, ShieldHalf } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { validateEventForm } from "./create/validation";
 import { getEventDateInputValue } from "@/utils/eventDate";
@@ -234,8 +234,6 @@ export default function EventEdit() {
       <PageHeader
         title={`Edit: ${event.name}`}
         subTitle="Update event details, teams, and flights."
-        icon={<Pencil size={14} />}
-        iconText="EDIT EVENT"
       />
 
       <div className="flex flex-col gap-6 pb-6 mt-6">

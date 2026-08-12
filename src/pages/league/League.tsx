@@ -370,7 +370,7 @@ export default function League() {
 
   return (
     <div className="pb-8">
-      <PageHeader title={league?.name ?? "League"} icon={<Trophy size={14} />} iconText="LEAGUE" />
+      <PageHeader title={league?.name ?? "League"} />
 
       {/* Info chips */}
       <div className="mt-4 mb-8 flex flex-wrap gap-2">

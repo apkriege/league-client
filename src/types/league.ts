@@ -24,6 +24,7 @@ export type Player = {
   lastName: string;
   email: string;
   type: "player" | "sub" | string;
+  gender: "male" | "female";
   handicap: number;
 };
 

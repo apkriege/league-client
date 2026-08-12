@@ -5,7 +5,6 @@ import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice, getL
 import dayjs from "dayjs";
 import {
   CalendarRange,
-  ClipboardCheck,
   Flag,
   Mail,
   Phone,
@@ -83,8 +82,6 @@ export default function ReviewForm({
       <PageHeader
         title="Review Your League"
         subTitle="Confirm everything looks correct before submitting."
-        icon={<ClipboardCheck size={14} />}
-        iconText="REVIEW"
       />
 
       {/* Stat chips */}

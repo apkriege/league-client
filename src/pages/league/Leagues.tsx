@@ -7,7 +7,7 @@ import { useAppStore } from "@/stores/appStore";
 
 import { useAdminLeagues } from "@api/admin/queries";
 import { useLeagues } from "@api/league/queries";
-import { Shield, Plus, Globe, ChevronsRight, Lock, Edit } from "lucide-react";
+import { Plus, Globe, ChevronsRight, Lock, Edit } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "react-router";
 import { clearCreateLeagueDraft } from "./leagueDraft";
@@ -58,8 +58,6 @@ export default function Leagues() {
       <PageHeader
         title="My Leagues"
         subTitle="Manage your leagues, players, and events"
-        icon={<Shield size={14} />}
-        iconText="DASHBOARD"
       />
       {activeError && (
         <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

@@ -7,7 +7,6 @@ import { getEventLocalDate } from "@/utils/eventDate";
 import { formatTime } from "@/utils/format";
 import {
   Calendar,
-  CalendarDays,
   Ban,
   CheckCircle2,
   ChevronRight,
@@ -97,7 +96,7 @@ export default function Schedule() {
 
   return (
     <div>
-      <PageHeader title="Schedule" icon={<CalendarDays size={14} />} iconText="LEAGUE" />
+      <PageHeader title="Schedule" />
 
       <div className="mt-5 space-y-6">
         <section>

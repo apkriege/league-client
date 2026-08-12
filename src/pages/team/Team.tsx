@@ -13,7 +13,6 @@ import {
   ChevronLeft,
   CircleGauge,
   Medal,
-  ShieldHalf,
   TrendingUp,
   Trophy,
   Users,
@@ -147,8 +146,6 @@ export default function Team() {
       <PageHeader
         title={team.name || "Team"}
         subTitle="Team dashboard with roster, scoring history, and upcoming league schedule."
-        icon={<ShieldHalf size={14} />}
-        iconText="TEAM"
       />
 
       <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">

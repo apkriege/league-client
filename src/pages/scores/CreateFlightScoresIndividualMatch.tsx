@@ -18,6 +18,7 @@ import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
 import { useToast } from "@/context/ToastContext";
 import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
+import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
 
 export const CreateFlightScoresIndividualMatch = ({
   flight,
@@ -32,18 +33,13 @@ export const CreateFlightScoresIndividualMatch = ({
   const { leagueId, eventId } = useParams();
   const { show } = useToast();
 
-  const startingHole = event.startSide === "front" ? 1 : 10;
-  const holes = event.tee.holes
-    .slice(startingHole - 1, startingHole + event.holes - 1)
-    .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
+  const holes = getEventScoringHoles(event);
 
   const [allPlayers, setAllPlayers] = useState<any[]>(flight.players ?? []);
   const allPlayersById = new Map(allPlayers.map((p: any) => [Number(p.playerId), p]));
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    const preHandicap = Number(playerEntry?.player?.rounds?.[0]?.preHandicap);
-    if (isEditMode && Number.isFinite(preHandicap)) return preHandicap;
-    return Number(playerEntry?.player?.handicap ?? 0);
+    return getPlayerCourseHandicap(playerEntry);
   };
 
   // Build pairs: in edit mode use saved opponentId; otherwise pair by position
@@ -265,8 +261,11 @@ export const CreateFlightScoresIndividualMatch = ({
       shouldTouch: true,
     });
     methods.unregister(`players.${currentId}`);
-    setAllPlayers(nextPlayers);
-    await onFlightPlayersUpdated?.();
+    const refreshed = await onFlightPlayersUpdated?.();
+    const refreshedPlayers = refreshed?.data?.flights?.find(
+      (candidate: any) => Number(candidate.id) === Number(flight.id)
+    )?.players;
+    setAllPlayers(Array.isArray(refreshedPlayers) ? refreshedPlayers : nextPlayers);
   };
 
   const saveScores = () => {

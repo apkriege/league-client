@@ -12,7 +12,6 @@ import { compareTimes, formatTime } from "@/utils/format";
 import {
   CalendarDays,
   CheckCircle2,
-  ClipboardList,
   Edit,
   Flag,
   MapPin,
@@ -147,8 +146,6 @@ export default function EventScores() {
       <PageHeader
         title={event.name || "Event Scores"}
         subTitle={event.course?.name}
-        icon={<ClipboardList size={14} />}
-        iconText="SCORES"
       />
 
       {/* Metrics bar */}
@@ -201,8 +198,7 @@ export default function EventScores() {
 
       {isReadOnly && (
         <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Scores can only be entered in chronological order, and only the latest scored event can be
-          edited. This event is view-only.
+          This event is view-only and cannot receive score changes.
         </div>
       )}
 
@@ -251,7 +247,6 @@ export default function EventScores() {
         {visibleFlights.map((flight: any) => {
           const isCompleted = flight.status === "completed";
           const isEditing = editingFlightIds.includes(flight.id);
-
           if ((isCompleted && !isEditing) || isReadOnly) {
             return (
               <SurfaceCard key={flight.id}>

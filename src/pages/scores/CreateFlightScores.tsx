@@ -18,6 +18,7 @@ import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
 import { useToast } from "@/context/ToastContext";
 import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
+import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
 
 export const CreateFlightScores = ({
   flight,
@@ -34,20 +35,12 @@ export const CreateFlightScores = ({
   const numericLeagueId = Number(leagueId);
   const numericEventId = Number(eventId);
 
-  const startingHole = event.startSide === "front" ? 1 : 10;
-  const holes = event.tee.holes
-    .slice(startingHole - 1, startingHole + event.holes - 1)
-    .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
+  const holes = getEventScoringHoles(event);
 
   const { t1Id, t2Id, team1: sortedTeam1, team2: sortedTeam2 } = sortFlightTeamsByHandicap(flight);
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    const preHandicap = Number(playerEntry?.player?.rounds?.[0]?.preHandicap);
-    if (isEditMode && Number.isFinite(preHandicap)) {
-      return preHandicap;
-    }
-
-    return Number(playerEntry?.player?.handicap ?? 0);
+    return getPlayerCourseHandicap(playerEntry);
   };
 
   const getSavedOpponentId = (playerEntry: any) => {
@@ -245,9 +238,9 @@ export const CreateFlightScores = ({
         methods.unregister(`players.${currentId}`);
       }
 
-      setSwappedPlayersBySlot(nextSwaps);
-      cancelSwap();
       await onFlightPlayersUpdated?.();
+      setSwappedPlayersBySlot({});
+      cancelSwap();
     } catch (error) {
       console.error("Failed to persist swapped flight players:", error);
     }

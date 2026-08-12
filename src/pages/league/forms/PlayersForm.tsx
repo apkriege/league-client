@@ -19,6 +19,7 @@ const defaultPlayer = {
   email: "",
   phone: "",
   type: "player", // "player" or "sub"
+  gender: "",
   handicap: "",
 };
 
@@ -31,6 +32,9 @@ const getMissingRequiredFields = (player: any) => {
 
   if (!String(player?.firstName || "").trim()) missing.push("first name");
   if (!String(player?.lastName || "").trim()) missing.push("last name");
+  if (!["male", "female"].includes(String(player?.gender || ""))) {
+    missing.push("gender");
+  }
   if (!Number.isFinite(handicap)) missing.push("handicap");
 
   return missing;
@@ -65,6 +69,7 @@ export default function PlayersForm() {
       email: String(data.email || "").trim(),
       phone: String(data.phone || "").trim(),
       type: String(data.type || "player").trim().toLowerCase(),
+      gender: String(data.gender).trim().toLowerCase(),
       handicap: Number(data.handicap),
     };
 
@@ -153,6 +158,13 @@ export default function PlayersForm() {
       render: (value: any) => <p className="text-base font-bold">{value}</p>,
     },
     {
+      key: "gender",
+      label: "Gender",
+      render: (value: any) => (
+        <p className="text-sm font-semibold capitalize">{value}</p>
+      ),
+    },
+    {
       key: "actions",
       label: "Actions",
       render: (_value: any, row: any) => (
@@ -210,7 +222,7 @@ export default function PlayersForm() {
             )}
           />
         </div>
-        <div className="grid grid-cols-4 items-end gap-2">
+        <div className="grid grid-cols-5 items-end gap-2">
           <Controller
             name="phone"
             control={playerForm.control}
@@ -236,6 +248,21 @@ export default function PlayersForm() {
             control={playerForm.control}
             render={({ field }) => (
               <Input label="Handicap" placeholder="Enter handicap" {...field} />
+            )}
+          />
+          <Controller
+            name="gender"
+            control={playerForm.control}
+            render={({ field }) => (
+              <Select
+                label="Gender"
+                options={[
+                  { label: "Male", value: "male" },
+                  { label: "Female", value: "female" },
+                ]}
+                placeholder="Select gender"
+                {...field}
+              />
             )}
           />
           <Button

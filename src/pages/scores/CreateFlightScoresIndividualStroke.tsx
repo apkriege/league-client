@@ -18,6 +18,7 @@ import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
 import { useToast } from "@/context/ToastContext";
 import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
+import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
 
 export const CreateFlightScoresIndividualStroke = ({
   flight,
@@ -32,17 +33,12 @@ export const CreateFlightScoresIndividualStroke = ({
   const { leagueId, eventId } = useParams();
   const { show } = useToast();
 
-  const startingHole = event.startSide === "front" ? 1 : 10;
-  const holes = event.tee.holes
-    .slice(startingHole - 1, startingHole + event.holes - 1)
-    .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
+  const holes = getEventScoringHoles(event);
 
   const [players, setPlayers] = useState<any[]>(flight.players ?? []);
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    const preHandicap = Number(playerEntry?.player?.rounds?.[0]?.preHandicap);
-    if (isEditMode && Number.isFinite(preHandicap)) return preHandicap;
-    return Number(playerEntry?.player?.handicap ?? 0);
+    return getPlayerCourseHandicap(playerEntry);
   };
 
   // Per-hole handicap stroke allocation for each player
@@ -168,8 +164,11 @@ export const CreateFlightScoresIndividualStroke = ({
       shouldTouch: true,
     });
     methods.unregister(`players.${currentId}`);
-    setPlayers(nextPlayers);
-    await onFlightPlayersUpdated?.();
+    const refreshed = await onFlightPlayersUpdated?.();
+    const refreshedPlayers = refreshed?.data?.flights?.find(
+      (candidate: any) => Number(candidate.id) === Number(flight.id)
+    )?.players;
+    setPlayers(Array.isArray(refreshedPlayers) ? refreshedPlayers : nextPlayers);
   };
 
   const saveScores = () => {

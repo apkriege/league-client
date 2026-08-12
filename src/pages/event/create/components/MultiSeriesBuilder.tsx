@@ -54,6 +54,10 @@ export default function MultiSeriesBuilder() {
   const methods = useFormContext();
   const leagueStartDate = getEventDateInputValue(league?.startDate);
   const leagueEndDate = getEventDateInputValue(league?.endDate);
+  const selectedCourse = (courses || []).find(
+    (course: any) => Number(course.id) === Number(methods.watch("courseId"))
+  );
+  const isNineHoleCourse = Number(selectedCourse?.numHoles) <= 9;
 
   // Shared settings from the parent form context
   const format: string = methods.watch("format") || "team";
@@ -125,9 +129,15 @@ export default function MultiSeriesBuilder() {
     );
   }, [leagueStartDate, leagueEndDate, clampToLeagueDates]);
 
+  useEffect(() => {
+    if (!isNineHoleCourse) return;
+    methods.setValue("holes", 9, { shouldDirty: true });
+    methods.setValue("startSide", "front", { shouldDirty: true });
+  }, [isNineHoleCourse, methods]);
+
   const sharedStartSide = methods.watch("startSide") === "back" ? "back" : "front";
   const getEventStartSide = (index: number) => {
-    if (!alternateStartSides) return sharedStartSide;
+    if (isNineHoleCourse || !alternateStartSides) return sharedStartSide;
     return index % 2 === 0 ? sharedStartSide : sharedStartSide === "front" ? "back" : "front";
   };
 
@@ -155,9 +165,8 @@ export default function MultiSeriesBuilder() {
     ),
   }));
 
-  const selectedCourse = (courses || []).find((c: any) => c.id === methods.watch("courseId"));
   const selectedTee = (selectedCourse?.tees || []).find(
-    (t: any) => t.id === methods.watch("teeId")
+    (t: any) => Number(t.id) === Number(methods.watch("teeId"))
   );
   const teeOptions = (selectedCourse?.tees || [])
     .slice()
@@ -320,10 +329,10 @@ export default function MultiSeriesBuilder() {
                   onChange={(v) => methods.setValue("startSide", v)}
                   options={[
                     { value: "front", label: "FRONT" },
-                    { value: "back", label: "BACK" },
+                    ...(!isNineHoleCourse ? [{ value: "back", label: "BACK" }] : []),
                   ]}
                 />
-                <label className="mt-2 flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
+                {!isNineHoleCourse && <label className="mt-2 flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
                   <MuiCheckbox
                     checked={alternateStartSides}
                     onChange={(e) => setAlternateStartSides(e.target.checked)}
@@ -339,7 +348,7 @@ export default function MultiSeriesBuilder() {
                       {sharedStartSide === "front" ? "back" : "front"}, then repeats.
                     </span>
                   </span>
-                </label>
+                </label>}
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -356,7 +365,7 @@ export default function MultiSeriesBuilder() {
                     onChange={(v) => methods.setValue("holes", Number(v))}
                     options={[
                       { value: "9", label: "9" },
-                      { value: "18", label: "18" },
+                      ...(!isNineHoleCourse ? [{ value: "18", label: "18" }] : []),
                     ]}
                   />
                 </div>

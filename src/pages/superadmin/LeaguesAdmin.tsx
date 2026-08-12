@@ -4,7 +4,7 @@ import PageState from "@/components/layout/PageState";
 import Table from "@/components/Table";
 import { useAdminLeagues } from "@api/admin/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { Eye, ShieldCheck, Users } from "lucide-react";
+import { Eye, ShieldCheck } from "lucide-react";
 import { Link } from "react-router";
 
 export default function LeaguesAdmin() {
@@ -104,8 +104,6 @@ export default function LeaguesAdmin() {
       <PageHeader
         title="All Leagues"
         subTitle="Browse every league and open the member or admin view."
-        icon={<Users size={14} />}
-        iconText="SUPER ADMIN"
       />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm mt-6">

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAdminLeague, getAdminLeagues } from ".";
+import { getAdminBilling, getAdminLeague, getAdminLeagues } from ".";
 
 export const useAdminLeagues = (enabled = true) => {
   return useQuery({
@@ -16,3 +16,10 @@ export const useAdminLeague = (id: number, enabled = true) => {
     enabled: enabled && !!id,
   });
 };
+
+export const useAdminBilling = (enabled = true) =>
+  useQuery({
+    queryKey: ["admin-billing"],
+    queryFn: getAdminBilling,
+    enabled,
+  });

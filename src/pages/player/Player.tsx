@@ -51,6 +51,20 @@ const formatDelta = (delta: number) => {
   return delta < 0 ? delta.toFixed(1) : `+${delta.toFixed(1)}`;
 };
 
+const getHandicapRule = (roundCount: number) => {
+  if (roundCount < 3) return null;
+  if (roundCount === 3) return { count: 1, adjustment: -2 };
+  if (roundCount === 4) return { count: 1, adjustment: -1 };
+  if (roundCount === 5) return { count: 1, adjustment: 0 };
+  if (roundCount <= 8) return { count: 2, adjustment: 0 };
+  if (roundCount <= 11) return { count: 3, adjustment: 0 };
+  if (roundCount <= 14) return { count: 4, adjustment: 0 };
+  if (roundCount <= 16) return { count: 5, adjustment: 0 };
+  if (roundCount <= 18) return { count: 6, adjustment: 0 };
+  if (roundCount === 19) return { count: 7, adjustment: 0 };
+  return { count: 8, adjustment: 0 };
+};
+
 export default function Player() {
   const { leagueId, playerId } = useParams();
   const [roundBreakdownView, setRoundBreakdownView] = useState<"gross" | "net">("gross");
@@ -77,94 +91,40 @@ export default function Player() {
         scores: Array.isArray(r.scores) ? r.scores : [],
       }));
 
-    const allRows = [...chronologicalRows].sort((a, b) => a.differential - b.differential);
-    const usedRows = allRows.length < 5 ? allRows : allRows.slice(0, 5);
+    const handicapWindow = chronologicalRows.slice(-20);
+    const allRows = [...handicapWindow].sort((a, b) => a.differential - b.differential);
+    const rule = getHandicapRule(allRows.length);
+    const usedRows = rule ? allRows.slice(0, rule.count) : [];
 
     return {
-      chronologicalRows,
       allRows,
       usedRows,
+      rule,
     };
   }, [data?.rounds]);
 
   const handicapComputation = useMemo(() => {
     const allRows = handicapDetail.allRows;
     const used = handicapDetail.usedRows;
-    const latestRound =
-      handicapDetail.chronologicalRows[handicapDetail.chronologicalRows.length - 1];
+    const rule = handicapDetail.rule;
+    if (!rule || used.length === 0) return null;
 
-    if (!latestRound || allRows.length === 0) return null;
-
-    const preHandicap = latestRound.preHandicap ?? Number(data?.player?.startingHandicap ?? 0);
     const usedSum = used.reduce((sum, row) => sum + row.differential, 0);
-
-    const isFirstHandicapRound = allRows.length === 1 && Math.abs(preHandicap) < 0.0001;
-
-    let averageBase: number;
-    let numerator: number;
-    let divisor: number;
-    let expression: string;
-
-    if (isFirstHandicapRound) {
-      numerator = allRows[0].differential;
-      divisor = 1;
-      averageBase = numerator;
-      expression = allRows[0].differential.toFixed(1);
-    } else if (allRows.length < 5) {
-      const allDiffSum = allRows.reduce((sum, row) => sum + row.differential, 0);
-      numerator = allDiffSum + preHandicap;
-      divisor = allRows.length + 1;
-      averageBase = numerator / divisor;
-      expression = `${allRows.map((row) => row.differential.toFixed(1)).join(" + ")} + ${preHandicap.toFixed(2)}`;
-    } else {
-      numerator = usedSum;
-      divisor = 5;
-      averageBase = numerator / divisor;
-      expression = used.map((row) => row.differential.toFixed(1)).join(" + ");
-    }
-
-    const handicapPercent = 96;
-    const multiplied = averageBase * 0.96;
-    const handicapAfterPercent = Number(multiplied.toFixed(2));
-
-    const parTotal = latestRound.scores.reduce(
-      (sum: number, score: any) => sum + Number(score.par ?? 0),
-      0
-    );
-    const scratchPar = latestRound.courseRating;
-    const teeAdjustment =
-      scratchPar != null && Number.isFinite(parTotal) ? scratchPar - parTotal : null;
-
-    const finalHandicap = Number(
-      (teeAdjustment != null ? handicapAfterPercent + teeAdjustment : handicapAfterPercent).toFixed(
-        2
-      )
-    );
-    const roundedWhole = Math.round(finalHandicap);
+    const averageBase = usedSum / used.length;
+    const tableIndex = Number((averageBase + rule.adjustment).toFixed(1));
     const currentStored = Number(data?.player?.handicap ?? 0);
-    const differenceFromStored = Number((currentStored - finalHandicap).toFixed(2));
 
     return {
       allRowsCount: allRows.length,
       used,
       usedSum,
-      preHandicap,
-      numerator,
-      divisor,
       averageBase,
-      handicapPercent,
-      multiplied,
-      handicapAfterPercent,
-      scratchPar,
-      parTotal,
-      teeAdjustment,
-      finalHandicap,
-      roundedWhole,
-      expression,
+      adjustment: rule.adjustment,
+      tableIndex,
+      expression: used.map((row) => row.differential.toFixed(1)).join(" + "),
       currentStored,
-      differenceFromStored,
     };
-  }, [data?.player?.handicap, data?.player?.startingHandicap, handicapDetail]);
+  }, [data?.player?.handicap, handicapDetail]);
 
   if (isError) {
     const status = getApiErrorStatus(error);
@@ -215,7 +175,7 @@ export default function Player() {
 
   return (
     <div>
-      <PageHeader title={fullName} icon={<User size={14} />} iconText="PLAYER" />
+      <PageHeader title={fullName} />
 
       <div className="mt-4 mb-4 flex flex-wrap gap-2">
         <InfoChip icon={<User size={12} />} text={player.type} capitalize />
@@ -475,10 +435,8 @@ export default function Player() {
                     label="Differentials"
                     value={
                       handicapComputation
-                        ? handicapComputation.allRowsCount < 5
-                          ? `All ${handicapComputation.allRowsCount} (+ pre-HCP)`
-                          : "Lowest 5"
-                        : "Need rounds"
+                        ? `Lowest ${handicapComputation.used.length} of ${handicapComputation.allRowsCount}`
+                        : "Need 3 rounds"
                     }
                   />
                 </div>
@@ -547,72 +505,34 @@ export default function Player() {
                 </SectionKicker>
                 {handicapComputation ? (
                   <div className="space-y-2.5 text-xs text-gray-600">
-                    <p className="font-medium text-gray-700">Variations are added together...</p>
+                    <p className="font-medium text-gray-700">
+                      The lowest qualifying differentials are added together.
+                    </p>
                     <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                      {handicapComputation.expression} = {handicapComputation.usedSum.toFixed(3)}
+                      {handicapComputation.expression} = {handicapComputation.usedSum.toFixed(1)}
                     </p>
 
                     <p className="font-medium text-gray-700 pt-1">
-                      Then divide by the total number included.
+                      Divide by the number used, then apply the new-player adjustment when needed.
                     </p>
                     <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                      Pre-Handicap = {handicapComputation.numerator.toFixed(3)} /{" "}
-                      {handicapComputation.divisor} = {handicapComputation.averageBase.toFixed(3)}
-                    </p>
-
-                    <p className="font-medium text-gray-700 pt-1">
-                      {fullName} is a {player.type} player, so Handicap Percent is{" "}
-                      {handicapComputation.handicapPercent}%.
+                      {handicapComputation.usedSum.toFixed(1)} / {handicapComputation.used.length} ={" "}
+                      {handicapComputation.averageBase.toFixed(1)}
                     </p>
                     <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                      Handicap = {handicapComputation.averageBase.toFixed(3)} x{" "}
-                      {handicapComputation.handicapPercent}% ={" "}
-                      {handicapComputation.multiplied.toFixed(4)}
+                      Table adjustment: {handicapComputation.adjustment > 0 ? "+" : ""}
+                      {handicapComputation.adjustment.toFixed(1)}
                     </p>
-                    <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                      Handicap = {handicapComputation.handicapAfterPercent.toFixed(2)}
-                    </p>
-
-                    {handicapComputation.teeAdjustment != null ? (
-                      <>
-                        <p className="font-medium text-gray-700 pt-1">
-                          Adjust handicap for play on different tees.
-                        </p>
-                        <p className="font-semibold text-gray-900 tabular-nums">
-                          Tee adjustment = 'Scratch Par' - Par
-                        </p>
-                        <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                          Tee adjustment = ({handicapComputation.scratchPar?.toFixed(1)} -{" "}
-                          {handicapComputation.parTotal}) ={" "}
-                          {handicapComputation.teeAdjustment.toFixed(1)}
-                        </p>
-                        <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                          Handicap = {handicapComputation.handicapAfterPercent.toFixed(2)} +{" "}
-                          {handicapComputation.teeAdjustment.toFixed(1)}
-                        </p>
-                        <p className="font-semibold text-blue-900 tabular-nums bg-blue-50 border border-blue-200 rounded-md px-2.5 py-1.5">
-                          Final Handicap = {handicapComputation.finalHandicap.toFixed(2)}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-[11px] text-gray-400">
-                        Tee adjustment unavailable for this sample.
-                      </p>
-                    )}
-
-                    <p className="font-medium text-gray-700 pt-1">
-                      When converted to whole number, handicap is rounded to{" "}
-                      {handicapComputation.roundedWhole}.
+                    <p className="font-semibold text-blue-900 tabular-nums bg-blue-50 border border-blue-200 rounded-md px-2.5 py-1.5">
+                      Base index = {handicapComputation.tableIndex.toFixed(1)}
                     </p>
                     <p className="font-medium text-gray-700 pt-1">
-                      Current stored handicap: {handicapComputation.currentStored.toFixed(2)}
-                      {Math.abs(handicapComputation.differenceFromStored) > 0.01 && (
-                        <span className="text-amber-600">
-                          {" "}
-                          (difference {handicapComputation.differenceFromStored > 0 ? "+" : ""}
-                          {handicapComputation.differenceFromStored.toFixed(2)})
-                        </span>
-                      )}
+                      Current League Handicap: {handicapComputation.currentStored.toFixed(1)}
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      The saved index is authoritative and also includes any applicable
+                      exceptional-score and cap adjustments. Nine-hole results are normalized
+                      before they enter this list.
                     </p>
                   </div>
                 ) : (

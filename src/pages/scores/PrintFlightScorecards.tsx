@@ -1,6 +1,5 @@
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { useLeagueEvent, useLeaguePlayers } from "@api/league/queries";
-import { useQueryClient } from "@tanstack/react-query";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { formatEventDate } from "@/utils/eventDate";
@@ -19,12 +18,12 @@ export default function PrintFlightScorecards() {
   const { leagueId, eventId } = useParams();
   const numericLeagueId = Number(leagueId);
   const numericEventId = Number(eventId);
-  const queryClient = useQueryClient();
   const {
     data: event,
     isLoading: eventLoading,
     isError: eventIsError,
     error: eventError,
+    refetch: refetchEvent,
   } = useLeagueEvent(numericLeagueId, numericEventId);
   const {
     data: leaguePlayers = [],
@@ -66,14 +65,15 @@ export default function PrintFlightScorecards() {
       players: payload,
     });
 
+    const refreshed = await refetchEvent();
+    const refreshedPlayers = refreshed.data?.flights?.find(
+      (flight: any) => Number(flight.id) === Number(flightId)
+    )?.players;
+
     setFlightPlayersById((prev) => ({
       ...prev,
-      [Number(flightId)]: players,
+      [Number(flightId)]: Array.isArray(refreshedPlayers) ? refreshedPlayers : players,
     }));
-
-    queryClient.invalidateQueries({
-      queryKey: ["league", numericLeagueId, "event", numericEventId],
-    });
   };
 
   const pageError = eventError || playersError;
@@ -426,11 +426,8 @@ function getFlightRows(
 }> {
   const flightPlayers = flight?.players || [];
   const getDisplayHandicap = (entry: any): number | null => {
-    const preHandicap = Number(entry?.player?.rounds?.[0]?.preHandicap);
-    if (Number.isFinite(preHandicap)) return preHandicap;
-
-    const handicap = Number(entry?.player?.handicap);
-    return Number.isFinite(handicap) ? handicap : null;
+    const courseHandicap = Number(entry?.courseHandicap);
+    return Number.isFinite(courseHandicap) ? courseHandicap : null;
   };
 
   const getSortHandicap = (entry: any) => getDisplayHandicap(entry) ?? 999;

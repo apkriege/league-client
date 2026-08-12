@@ -7,6 +7,7 @@ import {
   createTeamScoringHelpers,
   sortFlightTeamsByHandicap,
 } from "./util";
+import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
 
 function PlayerNameLink({
   playerId,
@@ -36,10 +37,7 @@ function PlayerNameLink({
 }
 
 function ViewFlightScores({ event, flight }: any) {
-  const startingHole = event.startSide === "front" ? 1 : 10;
-  const holes = event.tee.holes
-    .slice(startingHole - 1, startingHole + event.holes - 1)
-    .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
+  const holes = getEventScoringHoles(event);
 
   if (event?.format === "individual" && event?.scoringFormat === "match") {
     return <IndividualMatchView flight={flight} event={event} holes={holes} />;
@@ -209,7 +207,7 @@ const PlayerRow = ({ player, holes }: any) => {
   const p = player.player;
   const round = p.rounds[0];
   const scores = round?.scores || [];
-  const hcp = Number(round?.preHandicap ?? p?.handicap ?? 0);
+  const hcp = getPlayerCourseHandicap(player);
 
   return (
     <tr key={player.id} className="text-sm bg-slate-50/50">
@@ -255,9 +253,7 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
   };
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    const preHandicap = Number(playerEntry?.player?.rounds?.[0]?.preHandicap);
-    if (Number.isFinite(preHandicap)) return preHandicap;
-    return Number(playerEntry?.player?.handicap ?? 0);
+    return getPlayerCourseHandicap(playerEntry);
   };
 
   const buildPairs = () => {

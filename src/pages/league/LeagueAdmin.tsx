@@ -171,8 +171,6 @@ export default function LeagueAdmin() {
     <div className="space-y-7">
       <PageHeader
         title={league?.name ?? "League"}
-        icon={<ShieldHalf size={14} />}
-        iconText="ADMIN"
       />
 
       <div className="-mt-1 flex justify-end">

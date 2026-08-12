@@ -174,8 +174,6 @@ export default function TeamsForm() {
       <PageHeader
         title="Build Teams"
         subTitle="Create teams, assign available players, and edit or remove teams before proceeding."
-        icon={<ShieldHalf size={14} />}
-        iconText="TEAMS"
       />
 
       <Card className="mt-6 mb-4">

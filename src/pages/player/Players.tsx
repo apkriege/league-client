@@ -25,6 +25,7 @@ const EMPTY_FORM = {
   email: "",
   phone: "",
   type: "player",
+  gender: "",
   handicap: "",
 };
 
@@ -47,6 +48,7 @@ const normalizePlayerForm = (playerForm: PlayerForm) => ({
     String(playerForm.type || "player").toLowerCase() === "sub"
       ? "substitute"
       : String(playerForm.type || "player").toLowerCase(),
+  gender: playerForm.gender,
   handicap: Number(playerForm.handicap),
 });
 
@@ -56,6 +58,7 @@ const getMissingRequiredFields = (form: typeof EMPTY_FORM) => {
 
   if (!form.firstName.trim()) missing.push("first name");
   if (!form.lastName.trim()) missing.push("last name");
+  if (!['male', 'female'].includes(form.gender)) missing.push("gender");
   if (!form.handicap.trim() || !Number.isFinite(handicapNum)) missing.push("handicap");
 
   return missing;
@@ -244,6 +247,7 @@ export default function Players() {
         String(player.type || "player").toLowerCase() === "substitute"
           ? "sub"
           : String(player.type || "player"),
+      gender: String(player.gender || "male").toLowerCase(),
       handicap:
         player.handicap != null && !Number.isNaN(Number(player.handicap))
           ? String(player.handicap)
@@ -263,6 +267,7 @@ export default function Players() {
     form.lastName,
     form.email,
     form.phone,
+    form.gender,
     form.handicap,
   ].some((value) => value.trim() !== "");
 
@@ -428,6 +433,13 @@ export default function Players() {
       label: "HCP",
       render: (value: any) => <p className="text-xs font-bold">{value}</p>,
     },
+    {
+      key: "gender",
+      label: "Gender",
+      render: (value: any) => (
+        <p className="text-xs font-semibold capitalize">{value || "male"}</p>
+      ),
+    },
   ];
 
   if (canManagePlayers) {
@@ -456,8 +468,6 @@ export default function Players() {
       <PageHeader
         title="Players"
         subTitle="Manage your players, their profiles, and stats"
-        icon={<></>}
-        iconText="PLAYERS"
       />
 
       <div className="mt-5">
@@ -512,6 +522,16 @@ export default function Players() {
             ]}
             onChange={(e) => onChange("type", e.target.value)}
           />
+          <Select
+            label="Gender"
+            value={form.gender}
+            placeholder="Select gender"
+            options={[
+              { value: "male", label: "Male" },
+              { value: "female", label: "Female" },
+            ]}
+            onChange={(e) => onChange("gender", e.target.value)}
+          />
           <Input
             label="Handicap"
             type="number"
@@ -544,7 +564,8 @@ export default function Players() {
                         {player.firstName} {player.lastName}
                       </p>
                       <p className="text-[10px] text-slate-500">
-                        {player.type === "sub" ? "Substitute" : "Regular player"} · HCP{" "}
+                        {player.type === "sub" ? "Substitute" : "Regular player"} ·{" "}
+                        {player.gender === "female" ? "Women’s" : "Men’s"} ratings · HCP{" "}
                         {player.handicap}
                       </p>
                     </div>

@@ -2,7 +2,7 @@ import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
 import { useCourse } from "@api/courses/queries";
-import { BookOpen, Flag, Globe, Landmark, MapPin, Phone, Route, Trees } from "lucide-react";
+import { Flag, Globe, Landmark, MapPin, Phone, Route, Trees } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useParams } from "react-router";
 import Chip from "@mui/material/Chip";
@@ -42,8 +42,6 @@ export default function Course() {
       <PageHeader
         title={course.name}
         subTitle={course.club?.name || course.location || "Course Details"}
-        icon={<BookOpen size={14} />}
-        iconText="COURSE"
       />
 
       <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">

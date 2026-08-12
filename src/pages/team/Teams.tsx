@@ -265,8 +265,6 @@ export default function Teams() {
       <PageHeader
         title="Teams"
         subTitle="Manage team rosters for this league"
-        icon={<ShieldHalf size={14} />}
-        iconText="LEAGUE"
       />
 
       <div className="mt-2">

@@ -12,7 +12,7 @@ import { useLeague } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useToast } from "@/context/ToastContext";
 import { useNavigate, useParams } from "react-router";
-import { Flag, ShieldHalf, Trophy } from "lucide-react";
+import { Flag, ShieldHalf } from "lucide-react";
 import WizardType, { type EventWizardType } from "./components/WizardType";
 import MultiSeriesBuilder from "./components/MultiSeriesBuilder";
 import { DEFAULT_STROKE_POINTS } from "./constants";
@@ -158,8 +158,6 @@ export default function CreateEvent() {
       <PageHeader
         title="Create Event"
         subTitle="Fill in the event details, configure teams if needed, and set up flights before submitting."
-        icon={<Trophy size={14} />}
-        iconText="CREATE EVENT"
       />
 
       <div className="flex flex-col gap-6 pb-6 mt-6">

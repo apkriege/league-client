@@ -3,7 +3,7 @@ import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
 import dayjs from "dayjs";
-import { Info, Trophy, User, Users, CalendarRange } from "lucide-react";
+import { Trophy, User, Users, CalendarRange } from "lucide-react";
 import { useEffect } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
@@ -29,8 +29,6 @@ export default function InfoForm() {
       <PageHeader
         title="Create Your League"
         subTitle="Build the foundation of your tournament season. Complete the sections below to initialize your league."
-        icon={<Info size={14} />}
-        iconText="LEAGUE WIZARD"
       />
 
       <div className="mt-6 space-y-3">
