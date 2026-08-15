@@ -240,7 +240,7 @@ export default function CreateLeague() {
     footerAllocatedGolfers + footerRequestedGolfers - footerIncludedGolfers
   );
   const finalActionLabel = footerAdditionalGolfersRequired > 0
-      ? `Pay for ${footerAdditionalGolfersRequired} More Golfers`
+      ? `Pay for ${footerAdditionalGolfersRequired} Golfers`
       : "Create League";
   const currentStep = checkoutStatus
     ? steps.length

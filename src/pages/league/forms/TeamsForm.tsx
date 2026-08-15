@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { ShieldHalf, SquarePen, Trash2, Users, X } from "lucide-react";
+import { Users } from "lucide-react";
 
 import { Input, MultiSelect } from "@/components/form";
 import Card from "@/components/layout/Card";
@@ -8,6 +8,9 @@ import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
 import { useToast } from "@/context/useToast";
 import Button from "@/components/layout/Button";
+import TeamBuilderCard, {
+  type TeamBuilderPlayer,
+} from "@/components/league/TeamBuilderCard";
 
 type Team = {
   id: number;
@@ -244,70 +247,18 @@ export default function TeamsForm() {
           <SectionKicker className="mb-3">
             Teams · {teams.length}
           </SectionKicker>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-auto pb-1">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             {teams.map((team) => (
-              <div
+              <TeamBuilderCard
                 key={team.id}
-                className="border border-slate-200 rounded-xl w-full bg-white shadow-xs overflow-hidden"
-              >
-                <div className="flex justify-between items-center px-3 py-2 border-b border-slate-200 bg-slate-100/60">
-                  <div className="flex items-center gap-2">
-                    <ShieldHalf size={13} className="text-slate-900/60" />
-                    <span className="font-semibold text-sm text-slate-900">{team.name}</span>
-                    <span className="text-[10px] text-gray-400">· {team.players.length}p</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleEditTeam(team)}
-                      className="text-gray-400 hover:text-slate-900 transition-colors"
-                    >
-                      <SquarePen size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteTeam(team.id)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-1 p-2">
-                  {team.players.map((playerId) => {
-                    const player = getPlayerById(Number(playerId));
-                    if (!player) return null;
-
-                    return (
-                      <div
-                        key={`${team.id}-${player.id}`}
-                        className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 bg-slate-100/60 hover:bg-slate-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="bg-slate-900 text-white rounded-md w-6 h-6 flex items-center justify-center text-[9px] uppercase shrink-0">
-                            {player.firstName[0]}
-                            {player.lastName[0]}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-slate-900 truncate">
-                              {player.firstName} {player.lastName}
-                            </p>
-                            <p className="text-[9px] text-gray-400">HCP {player.handicap ?? "-"}</p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removePlayerFromTeam(team.id, Number(player.id))}
-                          className="text-gray-300 hover:text-red-400 transition-colors shrink-0"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                name={team.name}
+                players={team.players
+                  .map((playerId) => getPlayerById(Number(playerId)))
+                  .filter((player): player is TeamBuilderPlayer => Boolean(player))}
+                onEdit={() => handleEditTeam(team)}
+                onDelete={() => handleDeleteTeam(team.id)}
+                onRemovePlayer={(playerId) => removePlayerFromTeam(team.id, playerId)}
+              />
             ))}
           </div>
         </>

@@ -3,15 +3,15 @@ import { Controller, useForm, useFormContext } from "react-hook-form";
 
 import Input from "@/components/form/Input";
 import Select from "@/components/form/Select";
-import { SquarePen, Trash2, UserPlus } from "lucide-react";
+import { SquarePen, Trash2 } from "lucide-react";
 import { useToast } from "@/context/useToast";
 import Table from "@/components/Table";
 import Card from "@/components/layout/Card";
 import SectionKicker from "@/components/layout/SectionKicker";
 import { formatPhone } from "@/utils/format";
-import Badge from "@/components/layout/Badge";
 import Button from "@/components/layout/Button";
 import Chip from "@mui/material/Chip";
+import PageHeader from "@/components/layout/PageHeader";
 
 const defaultPlayer = {
   firstName: "",
@@ -186,16 +186,16 @@ export default function PlayersForm() {
 
   return (
     <div>
-      <Badge text="Players" icon={<UserPlus size={14} />} variant="secondary" />
-      <h1 className="text-4xl font-bold mb-1">Add Players</h1>
-      <p className="text-sm text-gray-500 mb-6 w-3/5">
-        Build your roster of competitors and substitutes.
-        {hasTeamsStep
-          ? " Add players to your league and assign them to teams in the next step."
-          : " Add players to your league and continue to review."}
-      </p>
+      <PageHeader
+        title="Add Players"
+        subTitle={`Build your roster of competitors and substitutes.${
+          hasTeamsStep
+            ? " Add players to your league and assign them to teams in the next step."
+            : " Add players to your league and continue to review."
+        }`}
+      />
 
-      <Card>
+      <Card className="mt-6">
         <SectionKicker className="mb-3">
           {isEdit ? "Edit Player" : "Add Player"}
         </SectionKicker>
