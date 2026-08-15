@@ -12,3 +12,25 @@ export const getPlayerCourseHandicap = (entry: any): number => {
   }
   return courseHandicap;
 };
+
+type PlayerHandicapEntry = {
+  courseHandicap?: unknown;
+  handicapIndex?: unknown;
+  player?: {
+    handicap?: unknown;
+  };
+};
+
+export const getPlayerHandicapIndex = (entry: PlayerHandicapEntry): number => {
+  const rawHandicapIndex = entry?.handicapIndex;
+  const handicapIndex =
+    rawHandicapIndex === null || rawHandicapIndex === undefined || rawHandicapIndex === ""
+      ? Number(entry?.player?.handicap)
+      : Number(rawHandicapIndex);
+
+  if (!Number.isFinite(handicapIndex)) {
+    throw new Error("Handicap Index is missing from the event scoring setup.");
+  }
+
+  return handicapIndex;
+};

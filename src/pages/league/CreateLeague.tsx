@@ -6,7 +6,7 @@ import { useCreateLeague } from "@api/league/mutations";
 import { useCreateCheckoutSession } from "@api/payments/mutations";
 import { useStripeState } from "@api/payments/queries";
 import { useNavigate } from "react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import InfoForm from "./forms/InfoForm";
 import { useToast } from "@/context/useToast";
 import Stepper from "@/components/layout/Stepper";
@@ -57,9 +57,25 @@ const modelLeagueData = (league: any) => {
   };
 };
 
+const prepareLeagueData = (data: any) => {
+  const isTeamSeason =
+    String(data.type || "").toLowerCase() === "season" &&
+    String(data.format || "").toLowerCase() === "team";
+  const validationMessage = validateLeagueForm(data, {
+    requirePlayers: true,
+    requireTeams: isTeamSeason,
+  });
+
+  return {
+    validationMessage,
+    modeledData: validationMessage ? null : modelLeagueData(data),
+  };
+};
+
 export default function CreateLeague() {
   const { show } = useToast();
   const topRef = useRef<HTMLDivElement>(null);
+  const checkoutResumeStartedRef = useRef(false);
   const createLeague = useCreateLeague();
   const createCheckoutSession = useCreateCheckoutSession();
   const navigate = useNavigate();
@@ -103,6 +119,9 @@ export default function CreateLeague() {
       const resolvedStartDate = parsed?.startDate
         ? new Date(parsed.startDate)
         : freshDefaultLeagueData.startDate;
+      const resolvedEndDate = parsed?.endDate
+        ? new Date(parsed.endDate)
+        : getDefaultEndDate(resolvedStartDate);
       const resolvedPlayers =
         Array.isArray(parsed?.players) && parsed.players.length > 0
           ? parsed.players
@@ -111,7 +130,7 @@ export default function CreateLeague() {
         ...freshDefaultLeagueData,
         ...parsedDraft,
         startDate: resolvedStartDate,
-        endDate: getDefaultEndDate(resolvedStartDate),
+        endDate: resolvedEndDate,
         players: resolvedPlayers,
       });
     } catch {
@@ -130,27 +149,66 @@ export default function CreateLeague() {
     return unsubscribe;
   }, [leagueForm]);
 
+  const createLeagueAndOpenHome = useCallback(
+    async (modeledData: any) => {
+      const league = await createLeague.mutateAsync(modeledData);
+      window.localStorage.removeItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
+      navigate(`/league/${league.id}`);
+    },
+    [createLeague, navigate],
+  );
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
     if (!checkoutStatus) return;
 
-    if (checkoutStatus === "registration_success") {
-      refetchStripeState();
-      show("Golfer slot payment completed successfully.", "success");
-    } else if (checkoutStatus === "registration_cancel") {
-      show("Golfer slot checkout was canceled.", "warning");
-    } else if (checkoutStatus === "upgrade_success") {
-      refetchStripeState();
-      show("Additional golfer payment completed successfully.", "success");
-    } else if (checkoutStatus === "upgrade_cancel") {
-      show("Additional golfer checkout was canceled.", "warning");
-    }
-
+    const params = new URLSearchParams(window.location.search);
     params.delete("checkout");
     const nextQuery = params.toString();
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
     window.history.replaceState({}, "", nextUrl);
-  }, [checkoutStatus, refetchStripeState, show]);
+
+    if (checkoutStatus === "registration_cancel" || checkoutStatus === "upgrade_cancel") {
+      show("Golfer checkout was canceled.", "warning");
+      return;
+    }
+
+    if (
+      !["registration_success", "upgrade_success"].includes(checkoutStatus) ||
+      checkoutResumeStartedRef.current
+    ) {
+      return;
+    }
+
+    checkoutResumeStartedRef.current = true;
+
+    const resumeLeagueCreation = async () => {
+      show("Payment completed. Creating your league...", "success");
+
+      try {
+        await refetchStripeState();
+        const { validationMessage, modeledData } = prepareLeagueData(leagueForm.getValues());
+        if (validationMessage || !modeledData) {
+          show(
+            `Payment completed, but the saved league could not be created. ${validationMessage || "Review the league details and try again."}`,
+            "error",
+          );
+          return;
+        }
+
+        await createLeagueAndOpenHome(modeledData);
+      } catch (error: any) {
+        show(error?.message || "Payment completed, but the league could not be created.", "error");
+      }
+    };
+
+    void resumeLeagueCreation();
+  }, [
+    checkoutStatus,
+    createLeagueAndOpenHome,
+    leagueForm,
+    refetchStripeState,
+    show,
+  ]);
 
   const handleSubmit = () => {
     if (billingLoading) {
@@ -158,20 +216,11 @@ export default function CreateLeague() {
       return;
     }
 
-    const data = leagueForm.getValues();
-    const isTeamSeason =
-      String(data.type || "").toLowerCase() === "season" &&
-      String(data.format || "").toLowerCase() === "team";
-    const validationMessage = validateLeagueForm(data, {
-      requirePlayers: true,
-      requireTeams: isTeamSeason,
-    });
-    if (validationMessage) {
-      show(validationMessage, "error");
+    const { validationMessage, modeledData } = prepareLeagueData(leagueForm.getValues());
+    if (validationMessage || !modeledData) {
+      show(validationMessage || "Review the league details and try again.", "error");
       return;
     }
-
-    const modeledData = modelLeagueData(data);
     const includedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
     const allocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
     const requestedGolfers = getLeagueBillableGolfers(modeledData.players);
@@ -190,14 +239,8 @@ export default function CreateLeague() {
             if ((checkout as any)?.alreadyCovered) {
               refetchStripeState();
               show("Golfer slots are already covered. Creating league...", "success");
-              createLeague.mutate(modeledData, {
-                onSuccess: (league) => {
-                  window.localStorage.removeItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
-                  navigate(`/league/${league.id}/admin`);
-                },
-                onError: (error) => {
-                  show((error as any)?.message || "Failed to create league.", "error");
-                },
+              void createLeagueAndOpenHome(modeledData).catch((error: any) => {
+                show(error?.message || "Failed to create league.", "error");
               });
               return;
             }
@@ -216,14 +259,8 @@ export default function CreateLeague() {
       return;
     }
 
-    createLeague.mutate(modeledData, {
-      onSuccess: (league) => {
-        window.localStorage.removeItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
-        navigate(`/league/${league.id}/admin`);
-      },
-      onError: (error) => {
-        show((error as any)?.message || "Failed to create league.", "error");
-      },
+    void createLeagueAndOpenHome(modeledData).catch((error: any) => {
+      show(error?.message || "Failed to create league.", "error");
     });
   };
 

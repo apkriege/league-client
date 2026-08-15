@@ -19,7 +19,11 @@ import { useScoreDraft } from "./useScoreDraft";
 import { useToast } from "@/context/useToast";
 import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
-import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
+import {
+  getEventScoringHoles,
+  getPlayerCourseHandicap,
+  getPlayerHandicapIndex,
+} from "./scoringSetup";
 
 export const CreateFlightScoresIndividualMatch = ({
   flight,
@@ -329,7 +333,7 @@ export const CreateFlightScoresIndividualMatch = ({
 
   const renderPlayerRow = (player: any, playerIndex: number) => {
     const p = player.player;
-    const displayHandicap = Math.round(getEffectiveHandicap(player));
+    const displayHandicap = getPlayerHandicapIndex(player);
     const { holePoints, matchPoints } = getMatchupPoints(Number(player.playerId));
     const holePointValues = getHolePointValues(Number(player.playerId));
     const swapCandidates = getSwapCandidates({
