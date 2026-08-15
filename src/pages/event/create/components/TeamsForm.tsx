@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
 import { SquarePen, Trash2, Users, X } from "lucide-react";
 
 import { Input, MultiSelect } from "@/components/form";
 import Card from "@/components/layout/Card";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { useLeaguePlayers } from "@api/league/queries";
 import Button from "@/components/layout/Button";
 
@@ -36,11 +36,11 @@ const normalizeTeam = (team: any): Team => ({
 export default function TeamsForm() {
   const { leagueId } = useParams();
   const { show } = useToast();
-  const { watch, setValue } = useFormContext();
+  const { control, setValue } = useFormContext();
   const { data: players = [] } = useLeaguePlayers(Number(leagueId));
 
-  const rawTeams = watch("teams") || [];
-  const rawFlights = watch("flights") || [];
+  const rawTeams = useWatch({ control, name: "teams", defaultValue: [] });
+  const rawFlights = useWatch({ control, name: "flights", defaultValue: [] });
   const teams: Team[] = useMemo(() => rawTeams.map(normalizeTeam), [rawTeams]);
 
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -188,37 +188,39 @@ export default function TeamsForm() {
   return (
     <div>
       <Card className="mb-4 p-2! !bg-white">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,220px)] lg:items-end">
-          <Input
-            label="Team Name"
-            placeholder="Enter team name"
-            value={draft.name}
-            onChange={(e) => {
-              setDraft((prev) => ({ ...prev, name: e.target.value }));
-              if (teamNameError) setTeamNameError("");
-            }}
-            error={teamNameError}
-            className="w-full min-w-0"
-          />
-
-          <div className="w-full min-w-0">
-            <MultiSelect
-              label={`Players (${remainingCount} remaining)`}
-              options={playerOptions}
-              value={draft.players}
-              placeholder={
-                playerOptions.length ? "Select available players" : "No players available"
-              }
-              onChange={(selected) => {
-                setDraft((prev) => ({
-                  ...prev,
-                  players: selected.map(Number),
-                }));
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-end">
+            <Input
+              label="Team Name"
+              placeholder="Enter team name"
+              value={draft.name}
+              onChange={(e) => {
+                setDraft((prev) => ({ ...prev, name: e.target.value }));
+                if (teamNameError) setTeamNameError("");
               }}
+              error={teamNameError}
+              className="w-full min-w-0"
             />
+
+            <div className="w-full min-w-0">
+              <MultiSelect
+                label={`Players (${remainingCount} remaining)`}
+                options={playerOptions}
+                value={draft.players}
+                placeholder={
+                  playerOptions.length ? "Select available players" : "No players available"
+                }
+                onChange={(selected) => {
+                  setDraft((prev) => ({
+                    ...prev,
+                    players: selected.map(Number),
+                  }));
+                }}
+              />
+            </div>
           </div>
 
-          <div className="grid w-full min-w-0 grid-cols-2 gap-2 lg:grid-cols-1 xl:grid-cols-2">
+          <div className="grid w-full grid-cols-2 gap-2 sm:ml-auto sm:w-auto sm:min-w-[240px]">
             <Button
               type="button"
               onClick={handleSaveTeam}
@@ -247,29 +249,40 @@ export default function TeamsForm() {
           <p className="text-sm">No teams created yet. Please create a team.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-auto">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {teams.map((team) => (
             <div
               key={team.id}
-              className="border border-slate-200/80 rounded-lg w-full bg-white shadow-xs"
+              className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
             >
-              <div className="flex justify-between items-center bg-slate-900 p-2 rounded-t-lg text-white">
-                <span className="font-semibold text-sm">{team.name}</span>
-                <div className="flex items-center gap-2">
-                  <SquarePen
-                    size={14}
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-950">{team.name}</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                    {team.players.length} {team.players.length === 1 ? "player" : "players"}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
                     onClick={() => handleEditTeam(team)}
-                    className="cursor-pointer text-blue-400"
-                  />
-                  <Trash2
-                    size={14}
+                    aria-label={`Edit ${team.name}`}
+                    className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+                  >
+                    <SquarePen size={13} />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleDeleteTeam(team.id)}
-                    className="cursor-pointer text-red-400"
-                  />
+                    aria-label={`Delete ${team.name}`}
+                    className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-1.5 p-2">
+              <div className="grid grid-cols-1 gap-1.5 p-2.5">
                 {team.players.map((playerId) => {
                   const player = getPlayerById(Number(playerId));
                   if (!player) return null;
@@ -277,7 +290,7 @@ export default function TeamsForm() {
                   return (
                     <div
                       key={`${team.id}-${player.id}`}
-                      className="border  rounded-lg px-2 py-1 w-full text-sm flex items-center justify-between gap-2"
+                      className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/60 px-2.5 py-2 text-sm"
                     >
                       <div className="flex flex-col">
                         <span className="font-medium text-slate-900 text-xs">
@@ -287,11 +300,14 @@ export default function TeamsForm() {
                           HCP: {player.handicap ?? "-"}
                         </span>
                       </div>
-                      <X
-                        size={14}
+                      <button
+                        type="button"
                         onClick={() => removePlayerFromTeam(team.id, Number(player.id))}
-                        className="cursor-pointer text-red-400"
-                      />
+                        aria-label={`Remove ${player.firstName} ${player.lastName} from ${team.name}`}
+                        className="rounded-md p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                      >
+                        <X size={13} />
+                      </button>
                     </div>
                   );
                 })}

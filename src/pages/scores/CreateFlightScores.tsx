@@ -1,21 +1,23 @@
 import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
-import { useState } from "react";
+import Table from "@/components/Table";
+import { Fragment, useState } from "react";
 import Button from "@/components/layout/Button";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { ArrowLeftRight, Flag } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router";
-import { isSubPlayer } from "./PlayerSwapControl";
+import { isSubPlayer } from "./playerSwapUtils";
 import {
   calculateMatchplayPops,
   createTeamScoringHelpers,
   sortFlightTeamsByHandicap,
 } from "./util";
-import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
-import { useToast } from "@/context/ToastContext";
+import { ScoreDraftStatus } from "./ScoreDraftStatus";
+import { useScoreDraft } from "./useScoreDraft";
+import { useToast } from "@/context/useToast";
 import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
 import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
@@ -711,33 +713,45 @@ export const CreateFlightScores = ({
           />
         </div>
         <div className="border rounded-lg">
-          <div className="w-full overflow-x-auto">
-            <table className="score-table">
-              <thead>
-                <tr className="text-xs text-gray-700">
-                  <th>Player</th>
-                  {holes.map((hole: any) => (
-                    <ScoreHeaderCell key={hole.num}>
-                      {hole.num}
-                    </ScoreHeaderCell>
-                  ))}
-                  <th>Total</th>
-                  <th>Net</th>
-                  <th>Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeTeam1.map((player: any, idx: number) => renderPlayerRow(player, 1, idx))}
-                {activeTeam1.length > 0 &&
-                  activeTeam2.length > 0 &&
-                  renderTeamPointsRow("Team 1 Points", 1)}
-                {activeTeam2.map((player: any, idx: number) => renderPlayerRow(player, 2, idx))}
-                {activeTeam1.length > 0 &&
-                  activeTeam2.length > 0 &&
-                  renderTeamPointsRow("Team 2 Points", 2)}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            data={[1 as const, 2 as const]}
+            search={false}
+            variant="clean"
+            noBorder
+            tableClassName="score-table"
+            renderTable={(visibleTeams) => (
+              <>
+                <thead>
+                  <tr className="text-xs text-gray-700">
+                    <th>Player</th>
+                    {holes.map((hole: any) => (
+                      <ScoreHeaderCell key={hole.num}>
+                        {hole.num}
+                      </ScoreHeaderCell>
+                    ))}
+                    <th>Total</th>
+                    <th>Net</th>
+                    <th>Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleTeams.map((team) => {
+                    const teamPlayers = team === 1 ? activeTeam1 : activeTeam2;
+                    return (
+                      <Fragment key={team}>
+                        {teamPlayers.map((player: any, idx: number) =>
+                          renderPlayerRow(player, team, idx),
+                        )}
+                        {activeTeam1.length > 0 &&
+                          activeTeam2.length > 0 &&
+                          renderTeamPointsRow(`Team ${team} Points`, team)}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </>
+            )}
+          />
         </div>
       </div>
     </SurfaceCard>

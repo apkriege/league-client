@@ -1,4 +1,5 @@
 import ViewFlightScores from "@/pages/scores/ViewFlightScores";
+import Table from "@/components/Table";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import { compareTimes, formatTime } from "@/utils/format";
 import PlayerNameLink from "./PlayerNameLink";
@@ -121,44 +122,53 @@ export const IndividualStrokeScorecardsDrawer = memo(function IndividualStrokeSc
 
   return (
     <SurfaceCard className="overflow-x-auto">
-      <table className="score-table">
-        <thead>
-          <tr className="text-xs text-gray-700">
-            <th className="p-2">Player</th>
-            {holes.map((hole) => <th key={hole} className="p-2 text-center">{hole}</th>)}
-            <th className="p-2 text-center">Total</th>
-            <th className="p-2 text-center">Net</th>
-            <th className="p-2 text-center">Pts</th>
-          </tr>
-        </thead>
-        <tbody>
-          {preparedRounds.map(({ round, scoresByHole }) => (
-            <tr key={round.id ?? round.playerId} className="bg-slate-50/50 text-sm">
-              <td className="p-2 text-xs">
-                <PlayerNameLink playerId={round.playerId}>
-                  {round.player.firstName} {round.player.lastName}
-                </PlayerNameLink>
-                <div className="mt-0.5 text-[10px] leading-tight text-gray-500">
-                  Handicap: {Math.round(Number(round.preHandicap ?? 0))}
-                </div>
-              </td>
-              {holes.map((hole) => {
-                const score = scoresByHole.get(hole);
-                return (
-                  <td key={hole} className="p-2">
-                    <div className="relative flex h-8 min-w-10 items-center justify-center rounded border bg-white text-xs font-semibold">
-                      {score?.gross ?? "-"}
+      <Table
+        data={preparedRounds}
+        search={false}
+        variant="clean"
+        noBorder
+        tableClassName="score-table"
+        renderTable={(visibleRounds) => (
+          <>
+            <thead>
+              <tr className="text-xs text-gray-700">
+                <th className="p-2">Player</th>
+                {holes.map((hole) => <th key={hole} className="p-2 text-center">{hole}</th>)}
+                <th className="p-2 text-center">Total</th>
+                <th className="p-2 text-center">Net</th>
+                <th className="p-2 text-center">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRounds.map(({ round, scoresByHole }) => (
+                <tr key={round.id ?? round.playerId} className="bg-slate-50/50 text-sm">
+                  <td className="p-2 text-xs">
+                    <PlayerNameLink playerId={round.playerId}>
+                      {round.player.firstName} {round.player.lastName}
+                    </PlayerNameLink>
+                    <div className="mt-0.5 text-[10px] leading-tight text-gray-500">
+                      Handicap: {Math.round(Number(round.preHandicap ?? 0))}
                     </div>
                   </td>
-                );
-              })}
-              <td className="text-center text-xs font-bold">{round.gross ?? 0}</td>
-              <td className="text-center text-xs font-bold">{round.net ?? 0}</td>
-              <td className="text-center text-xs font-bold">{getRoundPoints(round)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  {holes.map((hole) => {
+                    const score = scoresByHole.get(hole);
+                    return (
+                      <td key={hole} className="p-2">
+                        <div className="relative flex h-8 min-w-10 items-center justify-center rounded border bg-white text-xs font-semibold">
+                          {score?.gross ?? "-"}
+                        </div>
+                      </td>
+                    );
+                  })}
+                  <td className="text-center text-xs font-bold">{round.gross ?? 0}</td>
+                  <td className="text-center text-xs font-bold">{round.net ?? 0}</td>
+                  <td className="text-center text-xs font-bold">{getRoundPoints(round)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </>
+        )}
+      />
     </SurfaceCard>
   );
 });

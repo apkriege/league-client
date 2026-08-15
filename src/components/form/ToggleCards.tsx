@@ -32,8 +32,10 @@ export default function ToggleCards({
           <button
             key={option.value}
             type="button"
-            className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl p-2 transition-all duration-200 ease-out ${
-              isSelected ? "bg-slate-900 text-white shadow-sm" : "hover:bg-sky-100/70"
+            className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border p-2 transition-all duration-200 ease-out ${
+              isSelected
+                ? "border-sky-300 bg-sky-100/80 text-slate-950 shadow-sm ring-1 ring-sky-200/70"
+                : "border-transparent hover:bg-slate-50"
             } ${optionClassName}`}
             onClick={() => onChange(option.value)}
             aria-pressed={isSelected}

@@ -1,4 +1,5 @@
 import Card from "@/components/layout/Card";
+import Table from "@/components/Table";
 import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
 import { useCourse } from "@api/courses/queries";
@@ -199,10 +200,15 @@ export default function Course() {
                             </div>
                           </div>
                         </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs border-collapse">
+                        <Table
+                          data={scoreRows}
+                          search={false}
+                          variant="clean"
+                          noBorder
+                          tableClassName="w-full text-xs border-collapse"
+                          renderTable={(visibleRows) => (
                             <tbody>
-                              {scoreRows.map(({ key, label }) => {
+                              {visibleRows.map(({ key, label }) => {
                                 const isHoleRow = key === "num";
                                 const isNumeric = key === "dis" || key === "par";
                                 return (
@@ -253,8 +259,8 @@ export default function Course() {
                                 );
                               })}
                             </tbody>
-                          </table>
-                        </div>
+                          )}
+                        />
                       </div>
                     );
                   })()}

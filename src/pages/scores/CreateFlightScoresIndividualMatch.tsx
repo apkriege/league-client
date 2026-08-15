@@ -1,21 +1,22 @@
 import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
+import Table from "@/components/Table";
 import Button from "@/components/layout/Button";
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
 import { Flag } from "lucide-react";
 import { Fragment, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
 import {
-  buildSwappedPlayerEntry,
-  getSwapCandidates,
   PlayerSwapControl,
 } from "./PlayerSwapControl";
+import { buildSwappedPlayerEntry, getSwapCandidates } from "./playerSwapUtils";
 import { calculateMatchplayPops } from "./util";
-import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
-import { useToast } from "@/context/ToastContext";
+import { ScoreDraftStatus } from "./ScoreDraftStatus";
+import { useScoreDraft } from "./useScoreDraft";
+import { useToast } from "@/context/useToast";
 import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
 import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
@@ -116,7 +117,7 @@ export const CreateFlightScoresIndividualMatch = ({
   const createMutation = useCreateEventScores();
   const updateMutation = useUpdateEventScores();
   const updateFlightPlayersMutation = useUpdateFlightPlayers();
-  const watchedPlayers = methods.watch("players");
+  const watchedPlayers = useWatch({ control: methods.control, name: "players" });
   const scoreDraft = useScoreDraft({
     methods,
     leagueId,
@@ -438,44 +439,55 @@ export const CreateFlightScoresIndividualMatch = ({
           />
         </div>
         <div className="border rounded-lg">
-          <div className="w-full overflow-x-auto">
-            <table className="score-table">
-              <thead>
-                <tr className="text-xs text-gray-700">
-                  <th className="p-2">Player</th>
-                  {holes.map((hole: any) => (
-                    <ScoreHeaderCell key={hole.num}>
-                      {hole.num}
-                    </ScoreHeaderCell>
-                  ))}
-                  <th className="w-px whitespace-nowrap p-2 text-center">Total</th>
-                  <th className="w-px whitespace-nowrap p-2 text-center">Net</th>
-                  <th className="w-px whitespace-nowrap p-2 text-center">Hole Pts</th>
-                  <th className="w-px whitespace-nowrap p-2 text-center">Match Pts</th>
-                  <th className="w-px whitespace-nowrap p-2 text-center">Pts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pairs.map(([p1, p2], pairIdx) => (
-                  <Fragment key={pairIdx}>
-                    {pairIdx > 0 && (
-                      <tr aria-hidden="true">
-                        <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
-                      </tr>
-                    )}
-                    <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
-                      <td className="p-2" colSpan={holes.length + 6}>
-                        Matchup {pairIdx + 1}: {p1.player.firstName} {p1.player.lastName} vs{" "}
-                        {p2.player.firstName} {p2.player.lastName}
-                      </td>
-                    </tr>
-                    {renderPlayerRow(p1, allPlayers.findIndex((p: any) => Number(p.playerId) === Number(p1.playerId)))}
-                    {renderPlayerRow(p2, allPlayers.findIndex((p: any) => Number(p.playerId) === Number(p2.playerId)))}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            data={pairs}
+            search={false}
+            variant="clean"
+            noBorder
+            tableClassName="score-table"
+            renderTable={(visiblePairs) => (
+              <>
+                <thead>
+                  <tr className="text-xs text-gray-700">
+                    <th className="p-2">Player</th>
+                    {holes.map((hole: any) => (
+                      <ScoreHeaderCell key={hole.num}>
+                        {hole.num}
+                      </ScoreHeaderCell>
+                    ))}
+                    <th className="w-px whitespace-nowrap p-2 text-center">Total</th>
+                    <th className="w-px whitespace-nowrap p-2 text-center">Net</th>
+                    <th className="w-px whitespace-nowrap p-2 text-center">Hole Pts</th>
+                    <th className="w-px whitespace-nowrap p-2 text-center">Match Pts</th>
+                    <th className="w-px whitespace-nowrap p-2 text-center">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visiblePairs.map((pair) => {
+                    const [p1, p2] = pair;
+                    const pairIdx = pairs.indexOf(pair);
+                    return (
+                      <Fragment key={pairIdx}>
+                        {pairIdx > 0 && (
+                          <tr aria-hidden="true">
+                            <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
+                          </tr>
+                        )}
+                        <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
+                          <td className="p-2" colSpan={holes.length + 6}>
+                            Matchup {pairIdx + 1}: {p1.player.firstName} {p1.player.lastName} vs{" "}
+                            {p2.player.firstName} {p2.player.lastName}
+                          </td>
+                        </tr>
+                        {renderPlayerRow(p1, allPlayers.findIndex((p: any) => Number(p.playerId) === Number(p1.playerId)))}
+                        {renderPlayerRow(p2, allPlayers.findIndex((p: any) => Number(p.playerId) === Number(p2.playerId)))}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </>
+            )}
+          />
         </div>
       </div>
     </SurfaceCard>

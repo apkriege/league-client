@@ -3,7 +3,7 @@ import { MailPlus, Search } from "lucide-react";
 import { Input } from "@/components/form";
 import CourseDirectorySelectionModal from "@/components/course/CourseDirectorySelectionModal";
 import Button from "@/components/layout/Button";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { useCourseDirectorySelection } from "@/hooks/useCourseDirectorySelection";
 import type { ManualCourseRequest } from "@api/courses";
 import { useRequestCourse, useRequestManualCourse } from "@api/courses/mutations";

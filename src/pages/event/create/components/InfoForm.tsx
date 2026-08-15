@@ -2,6 +2,7 @@ import {
   AutocompleteSelect,
   DateInput,
   Input,
+  Select,
   SelectableInfoCard,
   ToggleCards,
 } from "@/components/form";
@@ -16,12 +17,14 @@ import { useFormContext } from "react-hook-form";
 import { useParams } from "react-router";
 import { DEFAULT_STROKE_POINTS } from "../constants";
 import MuiCheckbox from "@mui/material/Checkbox";
+import { useToast } from "@/context/useToast";
 
 export default function InfoForm() {
   const { leagueId } = useParams();
   const { data: courses } = useCoursesWithTees();
   const { data: league } = useLeague(Number(leagueId));
   const methods = useFormContext();
+  const { show } = useToast();
   const leagueStartDate = getEventDateInputValue(league?.startDate);
   const leagueEndDate = getEventDateInputValue(league?.endDate);
   const selectedCourse = (courses || []).find(
@@ -91,8 +94,21 @@ export default function InfoForm() {
   const isTeamFormat = methods.watch("format") === "team";
   const scoringFormat = methods.watch("scoringFormat");
   const pointsEnabled = methods.watch("pointsEnabled") !== false;
+  const clearFlightsForModeChange = () => {
+    const flights = methods.getValues("flights");
+    if (!Array.isArray(flights) || flights.length === 0) return;
+    methods.setValue("flights", [], { shouldDirty: true });
+    show("Flights were cleared because the event format changed.", "info");
+  };
+  const selectFormat = (nextFormat: string) => {
+    if (nextFormat === methods.getValues("format")) return;
+    clearFlightsForModeChange();
+    methods.setValue("format", nextFormat, { shouldDirty: true });
+  };
   const selectScoringFormat = (nextScoringFormat: "stroke" | "match") => {
-    methods.setValue("scoringFormat", nextScoringFormat);
+    if (nextScoringFormat === methods.getValues("scoringFormat")) return;
+    clearFlightsForModeChange();
+    methods.setValue("scoringFormat", nextScoringFormat, { shouldDirty: true });
 
     if (nextScoringFormat === "stroke" && !String(methods.getValues("strokePoints") || "").trim()) {
       methods.setValue("strokePoints", DEFAULT_STROKE_POINTS, { shouldDirty: true });
@@ -108,7 +124,7 @@ export default function InfoForm() {
             Set up the details for your event, including date, time, and format.
           </p>
           <div className="mt-4 flex flex-col gap-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
                 label="Event Name"
                 placeholder="e.g. January Open"
@@ -120,6 +136,20 @@ export default function InfoForm() {
                 max={leagueEndDate || undefined}
                 {...methods.register("date", { required: "Event date is required" })}
               />
+              <Select
+                label="Event Type"
+                value={methods.watch("type")}
+                onChange={(event) =>
+                  methods.setValue("type", event.target.value, { shouldDirty: true })
+                }
+                options={[
+                  { value: "regular", label: "Regular" },
+                  { value: "playoff", label: "Playoff" },
+                  { value: "championship", label: "Championship" },
+                  { value: "tournament", label: "Tournament" },
+                  { value: "makeup", label: "Makeup" },
+                ]}
+              />
             </div>
             {isFormatLocked ? (
               <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
@@ -130,7 +160,7 @@ export default function InfoForm() {
             ) : (
               <ToggleCards
                 value={methods.watch("format")}
-                onChange={(value) => methods.setValue("format", value)}
+                onChange={selectFormat}
                 options={[
                   { value: "individual", label: "INDIVIDUAL", icon: <User /> },
                   { value: "team", label: "TEAM PLAY", icon: <Users /> },
@@ -149,7 +179,12 @@ export default function InfoForm() {
               label="Course"
               placeholder="Select a course"
               options={courseOptions}
-              onChange={(value) => methods.setValue("courseId", value)}
+              onChange={(value) => {
+                if (Number(value) !== Number(methods.getValues("courseId"))) {
+                  methods.setValue("teeId", undefined, { shouldDirty: true });
+                }
+                methods.setValue("courseId", value, { shouldDirty: true });
+              }}
               value={methods.watch("courseId")}
             />
           </div>

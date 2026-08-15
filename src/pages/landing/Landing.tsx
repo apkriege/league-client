@@ -17,6 +17,7 @@ import {
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import lnLogo from "@/assets/league-night-logo.png";
+import { publicLinks } from "@/config/publicLinks";
 
 const RegisterPanel = lazy(() => import("./components/RegisterPanel"));
 
@@ -658,6 +659,11 @@ function DeferredRegisterPanel() {
 
 function LandingFooter() {
   const year = new Date().getFullYear();
+  const policyLinks = [
+    { label: "Privacy", href: publicLinks.privacy },
+    { label: "Terms", href: publicLinks.terms },
+    { label: "Refunds", href: publicLinks.refunds },
+  ].filter((link): link is { label: string; href: string } => Boolean(link.href));
 
   return (
     <footer className="border-t border-white/10 bg-[#071426] px-5 py-6 md:px-8">
@@ -666,9 +672,24 @@ function LandingFooter() {
           <img src={lnLogo} alt="League Night" className="h-12" />
           <p>© {year} League Night LLC. All rights reserved.</p>
         </div>
-        <Link to="/login" className="font-bold text-sky-200 transition hover:text-white">
-          Sign in
-        </Link>
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 font-bold text-sky-200">
+          {publicLinks.supportEmail && (
+            <a
+              href={`mailto:${publicLinks.supportEmail}`}
+              className="transition hover:text-white"
+            >
+              Support
+            </a>
+          )}
+          {policyLinks.map((link) => (
+            <a key={link.label} href={link.href} className="transition hover:text-white">
+              {link.label}
+            </a>
+          ))}
+          <Link to="/login" className="transition hover:text-white">
+            Sign in
+          </Link>
+        </nav>
       </div>
     </footer>
   );

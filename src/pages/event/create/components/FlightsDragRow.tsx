@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, type DragEvent } from "react";
+import { useState, useCallback, type DragEvent } from "react";
 import { Check, SquarePen, Trash2, X } from "lucide-react";
 import { FlightMatchOutput, FlightStrokeOutput, FlightTeamOutput } from "./FlightOutputs";
 import { MultiSelect, Select } from "@/components/form";
@@ -96,23 +96,22 @@ export const FlightsDragRow = ({
   allowDelete = true,
   highlightId = null,
 }: FlightsDragRowProps) => {
-  const [fs, setFs] = useState<any>(flights);
+  const fs = flights;
   const [editingFlightIndex, setEditingFlightIndex] = useState<number | null>(null);
   const [editStrokePlayers, setEditStrokePlayers] = useState<(string | number)[]>([]);
-  const [editPlayer1, setEditPlayer1] = useState<number | undefined>();
-  const [editPlayer2, setEditPlayer2] = useState<number | undefined>();
+  const [editMatchPlayers, setEditMatchPlayers] = useState<(number | undefined)[]>([
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+  ]);
   const [editTeam1, setEditTeam1] = useState<number | undefined>();
   const [editTeam2, setEditTeam2] = useState<number | undefined>();
-
-  useEffect(() => {
-    setFs(flights);
-  }, [flights]);
 
   const [dragState, setDragState] = useState<FlightDragState>(EMPTY_DRAG_STATE);
 
   const removeFlight = (flightIdx: number) => {
     const newFlights = fs.filter((_: any, idx: number) => idx !== flightIdx);
-    setFs(newFlights);
     setFlights(newFlights);
     if (editingFlightIndex === flightIdx) {
       setEditingFlightIndex(null);
@@ -157,8 +156,11 @@ export const FlightsDragRow = ({
     }
 
     if (event.format === "individual" && event.scoringFormat === "match") {
-      setEditPlayer1(Number(flight?.[0]?.[0]));
-      setEditPlayer2(Number(flight?.[0]?.[1]));
+      const playerIds = (Array.isArray(flight) ? flight : [])
+        .slice(0, 2)
+        .flatMap((pair: any) => (Array.isArray(pair) ? pair.slice(0, 2) : []))
+        .map(Number);
+      setEditMatchPlayers([playerIds[0], playerIds[1], playerIds[2], playerIds[3]]);
       return;
     }
 
@@ -174,8 +176,7 @@ export const FlightsDragRow = ({
   const cancelEditFlight = () => {
     setEditingFlightIndex(null);
     setEditStrokePlayers([]);
-    setEditPlayer1(undefined);
-    setEditPlayer2(undefined);
+    setEditMatchPlayers([undefined, undefined, undefined, undefined]);
     setEditTeam1(undefined);
     setEditTeam2(undefined);
   };
@@ -189,8 +190,19 @@ export const FlightsDragRow = ({
     }
 
     if (event.format === "individual" && event.scoringFormat === "match") {
-      if (!editPlayer1 || !editPlayer2 || editPlayer1 === editPlayer2) return;
-      newFlights[flightIdx] = [[editPlayer1, editPlayer2]];
+      const selectedPlayers = editMatchPlayers.filter(
+        (playerId): playerId is number => Number.isInteger(playerId) && Number(playerId) > 0,
+      );
+      if (
+        ![2, 4].includes(selectedPlayers.length) ||
+        new Set(selectedPlayers).size !== selectedPlayers.length
+      ) {
+        return;
+      }
+      newFlights[flightIdx] = Array.from(
+        { length: selectedPlayers.length / 2 },
+        (_, matchupIndex) => selectedPlayers.slice(matchupIndex * 2, matchupIndex * 2 + 2),
+      );
     }
 
     if (
@@ -201,9 +213,21 @@ export const FlightsDragRow = ({
       newFlights[flightIdx] = [editTeam1, editTeam2];
     }
 
-    setFs(newFlights);
     setFlights(newFlights);
     cancelEditFlight();
+  };
+
+  const getMatchPlayerOptions = (flightIdx: number, slotIndex: number) => {
+    const selectedInOtherSlots = new Set(
+      editMatchPlayers
+        .filter((_, index) => index !== slotIndex)
+        .filter((playerId): playerId is number => Number.isInteger(playerId)),
+    );
+    return getPlayerOptionsForFlight(flightIdx).filter(
+      (option) =>
+        !selectedInOtherSlots.has(Number(option.value)) ||
+        Number(option.value) === Number(editMatchPlayers[slotIndex]),
+    );
   };
 
   const handleDragStart = useCallback((e: DragEvent<HTMLDivElement>, columnIndex: number, rowId: string) => {
@@ -261,7 +285,6 @@ export const FlightsDragRow = ({
       const newFlights = [...fs];
       newFlights.splice(cIdx, 1);
       newFlights.splice(targetColumnIndex, 0, moved);
-      setFs(newFlights);
       setFlights(newFlights);
       setDragState(EMPTY_DRAG_STATE);
     },
@@ -373,18 +396,23 @@ export const FlightsDragRow = ({
                   event.format === "individual" &&
                   event.scoringFormat === "match" && (
                     <div className="grid grid-cols-1 gap-2">
-                      <Select
-                        label="Player 1"
-                        value={editPlayer1}
-                        options={getPlayerOptionsForFlight(fIdx)}
-                        onChange={(e) => setEditPlayer1(Number(e.target.value))}
-                      />
-                      <Select
-                        label="Player 2"
-                        value={editPlayer2}
-                        options={getPlayerOptionsForFlight(fIdx)}
-                        onChange={(e) => setEditPlayer2(Number(e.target.value))}
-                      />
+                      {editMatchPlayers.map((playerId, slotIndex) => (
+                        <Select
+                          key={slotIndex}
+                          label={`Match ${Math.floor(slotIndex / 2) + 1} Player ${slotIndex % 2 === 0 ? "A" : "B"}`}
+                          placeholder={slotIndex >= 2 ? "Optional second matchup" : "Select player"}
+                          value={playerId}
+                          options={getMatchPlayerOptions(fIdx, slotIndex)}
+                          onChange={(event) => {
+                            const nextPlayers = [...editMatchPlayers];
+                            nextPlayers[slotIndex] = event.target.value
+                              ? Number(event.target.value)
+                              : undefined;
+                            if (slotIndex === 2 && !event.target.value) nextPlayers[3] = undefined;
+                            setEditMatchPlayers(nextPlayers);
+                          }}
+                        />
+                      ))}
                     </div>
                   )}
                 {editingFlightIndex === fIdx &&

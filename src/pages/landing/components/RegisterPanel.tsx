@@ -1,5 +1,5 @@
 import { register } from "@api/auth";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { useAppStore } from "@/stores/appStore";
 import { normalizeAuthUser } from "@/lib/authUser";
 import { getApiErrorMessage } from "@/lib/apiError";

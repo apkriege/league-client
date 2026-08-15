@@ -1,14 +1,14 @@
 import Players from "./forms/PlayersForm";
 import TeamsForm from "./forms/TeamsForm";
 import ReviewForm from "./forms/ReviewForm";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { useCreateLeague } from "@api/league/mutations";
 import { useCreateCheckoutSession } from "@api/payments/mutations";
 import { useStripeState } from "@api/payments/queries";
 import { useNavigate } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import InfoForm from "./forms/InfoForm";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import Stepper from "@/components/layout/Stepper";
 import { getLeagueBillableGolfers } from "@/lib/billing";
 import { useAppStore } from "@/stores/appStore";
@@ -73,17 +73,13 @@ export default function CreateLeague() {
   } = useStripeState(Boolean(user));
 
   const [step, setStep] = useState(1);
+  const [checkoutStatus, setCheckoutStatus] = useState(
+    () => new URLSearchParams(window.location.search).get("checkout"),
+  );
 
   const leagueForm = useForm({
     defaultValues: createDefaultLeagueData(),
   });
-
-  const currentType = String(leagueForm.watch("type") || "").toLowerCase();
-  const currentFormat = String(leagueForm.watch("format") || "").toLowerCase();
-  const currentSteps =
-    currentType === "season" && currentFormat === "team"
-      ? ["info", "players", "teams", "review"]
-      : ["info", "players", "review"];
 
   useEffect(() => {
     const freshDefaultLeagueData = createDefaultLeagueData();
@@ -124,40 +120,37 @@ export default function CreateLeague() {
   }, [leagueForm, user]);
 
   useEffect(() => {
-    const subscription = leagueForm.watch((values) => {
-      window.localStorage.setItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY, JSON.stringify(values));
+    const unsubscribe = leagueForm.subscribe({
+      formState: { values: true },
+      callback: ({ values }) => {
+        window.localStorage.setItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY, JSON.stringify(values));
+      },
     });
 
-    return () => subscription.unsubscribe();
+    return unsubscribe;
   }, [leagueForm]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const checkoutStatus = params.get("checkout");
-
     if (!checkoutStatus) return;
 
     if (checkoutStatus === "registration_success") {
       refetchStripeState();
       show("Golfer slot payment completed successfully.", "success");
-      setStep(currentSteps.length);
     } else if (checkoutStatus === "registration_cancel") {
       show("Golfer slot checkout was canceled.", "warning");
-      setStep(currentSteps.length);
     } else if (checkoutStatus === "upgrade_success") {
       refetchStripeState();
       show("Additional golfer payment completed successfully.", "success");
-      setStep(currentSteps.length);
     } else if (checkoutStatus === "upgrade_cancel") {
       show("Additional golfer checkout was canceled.", "warning");
-      setStep(currentSteps.length);
     }
 
     params.delete("checkout");
     const nextQuery = params.toString();
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
     window.history.replaceState({}, "", nextUrl);
-  }, [currentSteps.length, refetchStripeState, show]);
+  }, [checkoutStatus, refetchStripeState, show]);
 
   const handleSubmit = () => {
     if (billingLoading) {
@@ -234,7 +227,7 @@ export default function CreateLeague() {
     });
   };
 
-  const leagueData = leagueForm.watch();
+  const leagueData = useWatch({ control: leagueForm.control });
   const steps =
     leagueData.type === "season" && leagueData.format === "team"
       ? ["info", "players", "teams", "review"]
@@ -249,14 +242,14 @@ export default function CreateLeague() {
   const finalActionLabel = footerAdditionalGolfersRequired > 0
       ? `Pay for ${footerAdditionalGolfersRequired} More Golfers`
       : "Create League";
+  const currentStep = checkoutStatus
+    ? steps.length
+    : Math.max(1, Math.min(steps.length, step));
 
   const goToStep = (nextStep: number) => {
+    setCheckoutStatus(null);
     setStep(Math.max(1, Math.min(steps.length, nextStep)));
   };
-
-  useEffect(() => {
-    setStep((prev) => Math.max(1, Math.min(steps.length, prev)));
-  }, [steps.length]);
 
   if (user && !canCreateLeague) {
     return (
@@ -276,10 +269,11 @@ export default function CreateLeague() {
       <div>
         <FormProvider {...leagueForm}>
           <div className="step-body">
-            {step === 1 && <InfoForm />}
-            {step === 2 && <Players />}
-            {steps.length === 4 && step === 3 && <TeamsForm />}
-            {((steps.length === 4 && step === 4) || (steps.length === 3 && step === 3)) && (
+            {currentStep === 1 && <InfoForm />}
+            {currentStep === 2 && <Players />}
+            {steps.length === 4 && currentStep === 3 && <TeamsForm />}
+            {((steps.length === 4 && currentStep === 4) ||
+              (steps.length === 3 && currentStep === 3)) && (
               <ReviewForm
                 leagueData={leagueData}
                 billing={stripeState?.billing}
@@ -289,30 +283,30 @@ export default function CreateLeague() {
           </div>
         </FormProvider>
       </div>
-      {step <= steps.length && (
+      {currentStep <= steps.length && (
         <Stepper
-          step={step}
+          step={currentStep}
           totalSteps={steps.length}
           isSubmitting={createLeague.isPending || createCheckoutSession.isPending || billingLoading}
           smoothScroll
           scrollTargetRef={topRef}
           nextLabel={
-            step === steps.length
+            currentStep === steps.length
               ? billingLoading
                 ? "Checking Billing..."
                 : finalActionLabel
               : undefined
           }
           onBack={() => {
-            goToStep(Math.max(1, step - 1));
+            goToStep(Math.max(1, currentStep - 1));
           }}
           onNext={() => {
-            if (step === steps.length) {
+            if (currentStep === steps.length) {
               handleSubmit();
               return;
             }
 
-            goToStep(step + 1);
+            goToStep(currentStep + 1);
           }}
         />
       )}

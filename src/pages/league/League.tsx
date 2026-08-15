@@ -103,17 +103,15 @@ export default function League() {
   const sortedEvents = useMemo(() => sortEventsByDate(events ?? []), [events]);
   const totalEvents = events?.length ?? 0;
   const standingsMode = metrics?.standingsMode === "team" ? "team" : "player";
-  const teamStandings = metrics?.teamStandings ?? [];
-
   const teamStandingsRows = useMemo<TeamStandingsRow[]>(
     () =>
-      teamStandings.map((team: any, idx: number) => ({
+      (metrics?.teamStandings ?? []).map((team: any, idx: number) => ({
         rank: idx + 1,
         name: team.name,
         points: Number(team.points ?? 0),
         eventsPlayed: Number(team.eventsPlayed ?? 0),
       })),
-    [teamStandings]
+    [metrics?.teamStandings]
   );
 
   const playerStandingsRows = useMemo<PlayerStandingsRow[]>(

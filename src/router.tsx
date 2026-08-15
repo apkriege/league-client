@@ -31,12 +31,16 @@ const BillingAdmin = lazy(() => import("@/pages/superadmin/BillingAdmin"));
 const InviteClaim = lazy(() => import("./pages/invite/InviteClaim.tsx"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword.tsx"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword.tsx"));
+const AppThemeProvider = lazy(() => import("./components/route/AppThemeProvider.tsx"));
 
 const withSuspense = (element: ReactNode) => (
   <Suspense fallback={<div className="p-6 text-sm text-slate-400">Loading...</div>}>
     {element}
   </Suspense>
 );
+
+const withAppTheme = (element: ReactNode) =>
+  withSuspense(<AppThemeProvider>{element}</AppThemeProvider>);
 
 export const router = createBrowserRouter([
   {
@@ -46,27 +50,27 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: withSuspense(<Login />),
+    element: withAppTheme(<Login />),
     errorElement: <AppErrorBoundary />,
   },
   {
     path: "/invite/:token",
-    element: withSuspense(<InviteClaim />),
+    element: withAppTheme(<InviteClaim />),
     errorElement: <AppErrorBoundary />,
   },
   {
     path: "/forgot-password",
-    element: withSuspense(<ForgotPassword />),
+    element: withAppTheme(<ForgotPassword />),
     errorElement: <AppErrorBoundary />,
   },
   {
     path: "/reset-password",
-    element: withSuspense(<ResetPassword />),
+    element: withAppTheme(<ResetPassword />),
     errorElement: <AppErrorBoundary />,
   },
   {
     path: "",
-    element: withSuspense(<BaseLayout />),
+    element: withAppTheme(<BaseLayout />),
     errorElement: <AppErrorBoundary />,
     children: [
       { path: "leagues", element: withSuspense(<Leagues />), errorElement: <AppErrorBoundary /> },
@@ -117,7 +121,7 @@ export const router = createBrowserRouter([
     children: [
       {
         path: "league/:leagueId/events/:eventId/print-scorecards",
-        element: withSuspense(<PrintFlightScorecards />),
+        element: withAppTheme(<PrintFlightScorecards />),
       },
     ],
   },

@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { ShieldHalf, SquarePen, Trash2, Users, X } from "lucide-react";
 
 import { Input, MultiSelect } from "@/components/form";
 import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import Button from "@/components/layout/Button";
 
 type Team = {
@@ -35,10 +35,10 @@ const normalizeTeam = (team: any): Team => ({
 
 export default function TeamsForm() {
   const { show } = useToast();
-  const { watch, setValue } = useFormContext();
-  const players = watch("players") || [];
+  const { control, setValue } = useFormContext();
+  const players = useWatch({ control, name: "players", defaultValue: [] });
 
-  const rawTeams = watch("teams") || [];
+  const rawTeams = useWatch({ control, name: "teams", defaultValue: [] });
   const teams: Team[] = useMemo(() => rawTeams.map(normalizeTeam), [rawTeams]);
 
   const [draft, setDraft] = useState<Draft>(emptyDraft);

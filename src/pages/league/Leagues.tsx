@@ -2,7 +2,7 @@ import Badge from "@/components/layout/Badge";
 import Card from "@/components/layout/Card";
 import Divider from "@/components/layout/Divider";
 import PageHeader from "@/components/layout/PageHeader";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { useAppStore } from "@/stores/appStore";
 
 import { useAdminLeagues } from "@api/admin/queries";

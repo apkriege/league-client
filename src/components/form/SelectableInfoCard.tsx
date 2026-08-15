@@ -27,7 +27,7 @@ export default function SelectableInfoCard({
       disabled={disabled && !active}
       className={`w-full px-3 py-2 flex items-center justify-between gap-2 rounded-2xl border text-left transition-all ${
         active
-          ? "bg-sky-100/70 border-blue-700/25 cursor-pointer shadow-sm"
+          ? "bg-sky-100/70 border-sky-300 cursor-pointer shadow-xs"
           : disabled
             ? "opacity-40 cursor-not-allowed bg-white border-slate-200"
             : "bg-white/70 border-slate-200 hover:bg-white cursor-pointer hover:shadow-sm"
@@ -44,7 +44,7 @@ export default function SelectableInfoCard({
 
       <span className="inline-flex h-6 w-6 items-center justify-center shrink-0">
         {active ? (
-          <CircleCheck size={16} className="text-blue-700" />
+          <CircleCheck size={16} className="text-sky-700" />
         ) : (
           <Circle size={16} className="text-gray-300" />
         )}

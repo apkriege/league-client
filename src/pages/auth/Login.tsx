@@ -1,5 +1,5 @@
 import { login, loginWithLeagueCode } from "@api/auth";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { useAppStore } from "@/stores/appStore";
 import { normalizeAuthUser } from "@/lib/authUser";
 import { ArrowRight, ChevronRight, KeyRound, Lock, Mail } from "lucide-react";

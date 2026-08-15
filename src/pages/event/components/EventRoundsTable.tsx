@@ -1,6 +1,6 @@
 import { TrendingDown, TrendingUp } from "lucide-react";
+import Table from "@/components/Table";
 import PlayerNameLink from "./PlayerNameLink";
-import TableHeaderRow from "@/components/layout/TableHeaderRow";
 import { memo, useMemo } from "react";
 
 type EventScore = {
@@ -71,70 +71,79 @@ function EventRoundsTable({
   );
 
   return (
-    <table className="w-full table-fixed">
-      <colgroup>
-        <col className="w-36" />
-        {holes.map((hole) => <col key={hole} />)}
-        <col className="w-14" />
-        <col className="w-14" />
-      </colgroup>
-      <thead>
-        <TableHeaderRow className="border-b border-gray-100 bg-gray-50">
-          <th className="py-2.5 pl-4 text-left">Player</th>
-          {holes.map((hole) => (
-            <th key={hole} className="py-2.5 text-center">{hole}</th>
-          ))}
-          <th className="py-2.5 text-right">Gross</th>
-          <th className="py-2.5 pr-4 text-right">Net</th>
-        </TableHeaderRow>
-      </thead>
-      <tbody className="divide-y divide-gray-100">
-        {preparedRounds.map(({ round, scoresByHole }) => (
-          <tr key={round.id ?? round.playerId} className="transition-colors hover:bg-gray-50/60">
-            <td className="py-2 pl-4">
-              <div className="flex flex-col gap-0.5">
-                <PlayerNameLink
-                  playerId={round.playerId}
-                  className="truncate text-xs font-semibold text-gray-800 hover:text-slate-900 hover:underline"
-                >
-                  {round.player.firstName} {round.player.lastName}
-                </PlayerNameLink>
-                <HandicapChange before={round.preHandicap} after={round.postHandicap} />
-              </div>
-            </td>
-            {holes.map((hole) => {
-              const score = scoresByHole.get(hole);
-              const isHighlighted = highlightedHoleSets.get(Number(round.playerId))?.has(hole);
-              return (
-                <td key={hole} className="py-2.5 text-center text-xs text-gray-700">
-                  {score ? (
-                    <span
-                      className={
-                        isHighlighted
-                          ? "inline-flex h-6 w-6 items-center justify-center rounded bg-amber-100 font-semibold text-amber-700 ring-2 ring-amber-300"
-                          : highlightUnderPar && score.gross < score.par
-                            ? "inline-flex h-5 w-5 items-center justify-center rounded bg-green-100 font-semibold text-green-700 ring-1 ring-green-200"
-                            : ""
-                      }
+    <Table
+      data={preparedRounds}
+      search={false}
+      variant="clean"
+      noBorder
+      tableClassName="w-full table-fixed"
+      renderTable={(visibleRounds) => (
+        <>
+          <colgroup>
+            <col className="w-36" />
+            {holes.map((hole) => <col key={hole} />)}
+            <col className="w-14" />
+            <col className="w-14" />
+          </colgroup>
+          <thead>
+            <tr className="section-kicker border-b border-gray-100 bg-gray-50">
+              <th className="py-2.5 pl-4 text-left">Player</th>
+              {holes.map((hole) => (
+                <th key={hole} className="py-2.5 text-center">{hole}</th>
+              ))}
+              <th className="py-2.5 text-right">Gross</th>
+              <th className="py-2.5 pr-4 text-right">Net</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {visibleRounds.map(({ round, scoresByHole }) => (
+              <tr key={round.id ?? round.playerId} className="transition-colors hover:bg-gray-50/60">
+                <td className="py-2 pl-4">
+                  <div className="flex flex-col gap-0.5">
+                    <PlayerNameLink
+                      playerId={round.playerId}
+                      className="truncate text-xs font-semibold text-gray-800 hover:text-slate-900 hover:underline"
                     >
-                      {score.gross}
-                    </span>
-                  ) : (
-                    <span className="text-gray-300">—</span>
-                  )}
+                      {round.player.firstName} {round.player.lastName}
+                    </PlayerNameLink>
+                    <HandicapChange before={round.preHandicap} after={round.postHandicap} />
+                  </div>
                 </td>
-              );
-            })}
-            <td className="py-2.5 text-right">
-              <span className="text-sm font-bold text-gray-700">{round.gross}</span>
-            </td>
-            <td className="py-2.5 pr-4 text-right">
-              <span className="text-sm font-semibold text-gray-500">{round.net}</span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+                {holes.map((hole) => {
+                  const score = scoresByHole.get(hole);
+                  const isHighlighted = highlightedHoleSets.get(Number(round.playerId))?.has(hole);
+                  return (
+                    <td key={hole} className="py-2.5 text-center text-xs text-gray-700">
+                      {score ? (
+                        <span
+                          className={
+                            isHighlighted
+                              ? "inline-flex h-6 w-6 items-center justify-center rounded bg-amber-100 font-semibold text-amber-700 ring-2 ring-amber-300"
+                              : highlightUnderPar && score.gross < score.par
+                                ? "inline-flex h-5 w-5 items-center justify-center rounded bg-green-100 font-semibold text-green-700 ring-1 ring-green-200"
+                                : ""
+                          }
+                        >
+                          {score.gross}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="py-2.5 text-right">
+                  <span className="text-sm font-bold text-gray-700">{round.gross}</span>
+                </td>
+                <td className="py-2.5 pr-4 text-right">
+                  <span className="text-sm font-semibold text-gray-500">{round.net}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </>
+      )}
+    />
   );
 }
 

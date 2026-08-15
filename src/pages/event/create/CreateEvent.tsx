@@ -3,14 +3,14 @@ import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { useEffect, useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import InfoForm from "./components/InfoForm";
 import TeamsForm from "./components/TeamsForm";
 import Flights from "./components/Flights";
 import { useCreateLeagueEvent } from "@api/league/mutations";
 import { useLeague } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { useNavigate, useParams } from "react-router";
 import { Flag, ShieldHalf } from "lucide-react";
 import WizardType, { type EventWizardType } from "./components/WizardType";
@@ -52,12 +52,12 @@ export default function CreateEvent() {
     defaultValues: defaultValues,
   });
 
-  const format = eventForm.watch("format");
-  const scoringFormat = eventForm.watch("scoringFormat");
+  const format = useWatch({ control: eventForm.control, name: "format" });
+  const scoringFormat = useWatch({ control: eventForm.control, name: "scoringFormat" });
 
   useEffect(() => {
     eventForm.setValue("flights", [], { shouldDirty: true });
-  }, [format, scoringFormat]);
+  }, [eventForm, format, scoringFormat]);
 
   const isSeasonLeague = String(league?.type || "").toLowerCase() === "season";
   const leagueFormat = String(league?.format || "").toLowerCase();

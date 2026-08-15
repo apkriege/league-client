@@ -3,7 +3,7 @@ import PanelBar from "@/components/layout/PanelBar";
 import SectionKicker from "@/components/layout/SectionKicker";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import { SummaryPillButton } from "@/components/layout/SummaryPill";
-import TableHeaderRow from "@/components/layout/TableHeaderRow";
+import Table from "@/components/Table";
 import SectionIntro from "@/components/layout/SectionIntro";
 import { useParams } from "react-router";
 import { usePlayerStats } from "@api/players/queries";
@@ -449,18 +449,25 @@ export default function Player() {
                 {handicapDetail.allRows.length === 0 ? (
                   <p className="text-xs text-gray-400">No differentials available yet.</p>
                 ) : (
-                  <div className="max-h-64 overflow-auto border border-gray-100 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-                    <table className="w-full text-left text-xs">
-                      <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
-                        <TableHeaderRow>
-                          <th className="px-3 py-2">Round</th>
-                          <th className="px-3 py-2 text-right">Adj</th>
-                          <th className="px-3 py-2 text-right">Rating</th>
-                          <th className="px-3 py-2 text-right">Diff</th>
-                        </TableHeaderRow>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {handicapDetail.allRows.map((row) => {
+                  <div className="max-h-72 overflow-auto border border-gray-100 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                    <Table
+                      data={handicapDetail.allRows}
+                      search={false}
+                      variant="clean"
+                      noBorder
+                      tableClassName="w-full text-left text-xs"
+                      renderTable={(visibleRows) => (
+                        <>
+                          <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
+                            <tr className="section-kicker">
+                              <th className="px-3 py-2">Round</th>
+                              <th className="px-3 py-2 text-right">Adj</th>
+                              <th className="px-3 py-2 text-right">Rating</th>
+                              <th className="px-3 py-2 text-right">Diff</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {visibleRows.map((row) => {
                           const isUsed = handicapDetail.usedRows.some(
                             (used) =>
                               used.eventId === row.eventId &&
@@ -492,9 +499,11 @@ export default function Player() {
                               </td>
                             </tr>
                           );
-                        })}
-                      </tbody>
-                    </table>
+                            })}
+                          </tbody>
+                        </>
+                      )}
+                    />
                   </div>
                 )}
               </SurfaceCard>

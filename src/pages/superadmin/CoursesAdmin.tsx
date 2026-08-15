@@ -1,10 +1,11 @@
 import Button from "@/components/layout/Button";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppStore } from "@/stores/appStore";
 import { Input, Select } from "@/components/form";
 import Card from "@/components/layout/Card";
+import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { useClubs } from "@api/clubs";
 import { useCreateClub } from "@api/clubs/mutations";
 import { useCoursesWithTees } from "@api/courses";
@@ -30,29 +31,50 @@ import ScorecardInputTable from "./components/ScorecardInputTable";
 import CourseImportSearch from "./components/CourseImportSearch";
 
 export default function CoursesAdmin() {
+  const [searchParams] = useSearchParams();
+  const { data: courses = [], isLoading } = useCoursesWithTees();
+  const editCourseId = Number(searchParams.get("edit") || 0);
+  const initialCourse = (courses as CourseRecord[]).find(
+    (course) => Number(course.id) === editCourseId,
+  );
+
+  if (editCourseId && isLoading) {
+    return <LoadingState>Loading course...</LoadingState>;
+  }
+
+  return (
+    <CoursesAdminEditor
+      key={editCourseId || "new-course"}
+      initialCourse={initialCourse}
+    />
+  );
+}
+
+function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord }) {
   const navigate = useNavigate();
   const { show } = useToast();
   const { user } = useAppStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: clubs = [], isLoading: clubsLoading } = useClubs();
-  const { data: courses = [] } = useCoursesWithTees();
 
   const createCourse = useCreateCourse();
   const updateCourse = useUpdateCourse();
   const deleteCourse = useDeleteCourse();
   const createClub = useCreateClub();
 
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<CourseFormData>(emptyCourseForm);
+  const initialEditorState = initialCourse ? courseToEditorState(initialCourse) : null;
+  const [editingId, setEditingId] = useState<number | null>(
+    initialCourse ? Number(initialCourse.id) : null,
+  );
+  const [form, setForm] = useState<CourseFormData>(initialEditorState?.form ?? emptyCourseForm);
   const [clubForm, setClubForm] = useState<ClubFormData>(emptyClubForm);
   const [showClubForm, setShowClubForm] = useState(false);
-  const [tees, setTees] = useState<TeeFormData[]>([]);
+  const [tees, setTees] = useState<TeeFormData[]>(initialEditorState?.tees ?? []);
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const [importAttribution, setImportAttribution] = useState("");
 
   const isSuperAdmin = String(user?.role || "").toUpperCase() === "SUPER";
   const holeCount = Number(form.numHoles) || 18;
-  const editCourseId = Number(searchParams.get("edit") || 0);
 
   const clubOptions = useMemo(
     () =>
@@ -127,16 +149,6 @@ export default function CoursesAdmin() {
       nextParams.delete("edit");
       setSearchParams(nextParams);
     }
-  };
-
-  const startEditing = (course: CourseRecord) => {
-    const editorState = courseToEditorState(course);
-    setEditingId(Number(course.id));
-    setForm(editorState.form);
-    setTees(editorState.tees);
-    setImportWarnings([]);
-    setImportAttribution("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDeleteCourse = (courseId: number) => {
@@ -225,17 +237,6 @@ export default function CoursesAdmin() {
       show("Club confirmed and course data loaded for review.", "success");
     }
   };
-
-  useEffect(() => {
-    if (!editCourseId || !Array.isArray(courses) || editingId === editCourseId) return;
-
-    const courseToEdit = (courses as CourseRecord[]).find(
-      (course) => Number(course.id) === editCourseId
-    );
-    if (courseToEdit) {
-      startEditing(courseToEdit);
-    }
-  }, [courses, editCourseId, editingId]);
 
   const handleSubmit = () => {
     const validationError = getCourseValidationError(form, tees);

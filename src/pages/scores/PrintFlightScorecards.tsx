@@ -5,14 +5,14 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { formatEventDate } from "@/utils/eventDate";
 import { compareTimes, formatTime } from "@/utils/format";
 import { Printer } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import Table from "@/components/Table";
 import { Link, useParams } from "react-router";
 import {
-  buildSwappedPlayerEntry,
-  getSwapCandidates,
   PlayerSwapControl,
 } from "./PlayerSwapControl";
+import { buildSwappedPlayerEntry, getSwapCandidates } from "./playerSwapUtils";
 
 export default function PrintFlightScorecards() {
   const { leagueId, eventId } = useParams();
@@ -31,27 +31,23 @@ export default function PrintFlightScorecards() {
     error: playersError,
   } = useLeaguePlayers(numericLeagueId);
   const updateFlightPlayersMutation = useUpdateFlightPlayers();
-  const [flightPlayersById, setFlightPlayersById] = useState<Record<number, any[]>>({});
-
-  useEffect(() => {
-    if (!event?.flights) return;
-
-    const nextById: Record<number, any[]> = {};
-    event.flights.forEach((flight: any) => {
-      nextById[Number(flight.id)] = [...(flight.players || [])];
-    });
-    setFlightPlayersById(nextById);
-  }, [event]);
-
+  const [flightPlayerOverrides, setFlightPlayerOverrides] = useState<{
+    eventId: number;
+    playersById: Record<number, any[]>;
+  }>({ eventId: numericEventId, playersById: {} });
   const flights = useMemo(() => {
     if (!event?.flights) return [];
+    const flightPlayersById =
+      flightPlayerOverrides.eventId === numericEventId
+        ? flightPlayerOverrides.playersById
+        : {};
     return [...event.flights]
       .sort((a: any, b: any) => compareTimes(a?.startsAt, b?.startsAt))
       .map((flight: any) => ({
         ...flight,
         players: flightPlayersById[Number(flight.id)] || [...(flight.players || [])],
       }));
-  }, [event, flightPlayersById]);
+  }, [event, flightPlayerOverrides, numericEventId]);
 
   const saveFlightPlayers = async (flightId: number, players: any[]) => {
     const payload = players.map((player: any) => ({
@@ -70,9 +66,12 @@ export default function PrintFlightScorecards() {
       (flight: any) => Number(flight.id) === Number(flightId)
     )?.players;
 
-    setFlightPlayersById((prev) => ({
-      ...prev,
-      [Number(flightId)]: Array.isArray(refreshedPlayers) ? refreshedPlayers : players,
+    setFlightPlayerOverrides((current) => ({
+      eventId: numericEventId,
+      playersById: {
+        ...(current.eventId === numericEventId ? current.playersById : {}),
+        [Number(flightId)]: Array.isArray(refreshedPlayers) ? refreshedPlayers : players,
+      },
     }));
   };
 
@@ -371,45 +370,54 @@ function ScorecardGrid({
   const holes = Array.from({ length: holeCount }, (_, idx) => startHole + idx);
 
   return (
-    <table className="scorecard-table w-full border-collapse table-fixed text-[9px]">
-      <thead>
-        <tr className="bg-slate-100 text-slate-700">
-          <th className="scorecard-player-cell w-32 border border-slate-300 px-1.5 py-1 text-left">
-            Player
-          </th>
-          {holes.map((hole) => (
-            <th key={hole} className="border border-slate-300 py-1 text-center">
-              {hole}
-            </th>
-          ))}
-          <th className="scorecard-total-cell w-8 border border-slate-300 py-1 text-center">
-            TOT
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {players.map((player) => (
-          <tr key={player.id}>
-            <td className="scorecard-player-cell border border-slate-300 px-1.5 py-1 align-top">
-              <p className="font-semibold text-slate-800 leading-tight">
-                {player.name}
-                <span className="ml-1 font-normal text-[9px] text-slate-500">
-                  HCP {player.handicap != null ? player.handicap.toFixed(1) : "-"}
-                </span>
-              </p>
-              {player.detail ? <p className="text-[9px] text-slate-500">{player.detail}</p> : null}
-              {renderPlayerActions ? (
-                <div className="no-print mt-1">{renderPlayerActions(player)}</div>
-              ) : null}
-            </td>
-            {holes.map((hole) => (
-              <td key={`${player.id}-${hole}`} className="border border-slate-300 h-7" />
+    <Table
+      data={players}
+      search={false}
+      variant="clean"
+      noBorder
+      tableClassName="scorecard-table w-full border-collapse table-fixed text-[9px]"
+      renderTable={(visiblePlayers) => (
+        <>
+          <thead>
+            <tr className="bg-slate-100 text-slate-700">
+              <th className="scorecard-player-cell w-32 border border-slate-300 px-1.5 py-1 text-left">
+                Player
+              </th>
+              {holes.map((hole) => (
+                <th key={hole} className="border border-slate-300 py-1 text-center">
+                  {hole}
+                </th>
+              ))}
+              <th className="scorecard-total-cell w-8 border border-slate-300 py-1 text-center">
+                TOT
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {visiblePlayers.map((player) => (
+              <tr key={player.id}>
+                <td className="scorecard-player-cell border border-slate-300 px-1.5 py-1 align-top">
+                  <p className="font-semibold text-slate-800 leading-tight">
+                    {player.name}
+                    <span className="ml-1 font-normal text-[9px] text-slate-500">
+                      HCP {player.handicap != null ? player.handicap.toFixed(1) : "-"}
+                    </span>
+                  </p>
+                  {player.detail ? <p className="text-[9px] text-slate-500">{player.detail}</p> : null}
+                  {renderPlayerActions ? (
+                    <div className="no-print mt-1">{renderPlayerActions(player)}</div>
+                  ) : null}
+                </td>
+                {holes.map((hole) => (
+                  <td key={`${player.id}-${hole}`} className="border border-slate-300 h-7" />
+                ))}
+                <td className="scorecard-total-cell border border-slate-300" />
+              </tr>
             ))}
-            <td className="scorecard-total-cell border border-slate-300" />
-          </tr>
-        ))}
-      </tbody>
-    </table>
+          </tbody>
+        </>
+      )}
+    />
   );
 }
 

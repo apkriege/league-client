@@ -17,7 +17,7 @@ import LeagueAnnouncementsPanel from "@/components/league/LeagueAnnouncementsPan
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { formatEventDate, getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
 import { formatTime } from "@/utils/format";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import {
   Award,
   Ban,

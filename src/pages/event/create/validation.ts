@@ -15,6 +15,49 @@ function parseStrokePoints(value: unknown) {
     .filter((point) => Number.isFinite(point) && point >= 0);
 }
 
+const parsePositiveId = (value: unknown) => {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
+};
+
+function validateFlights(flights: unknown[], format: string, scoringFormat: string) {
+  const assignedIds = new Set<number>();
+
+  for (const [flightIndex, flight] of flights.entries()) {
+    if (!Array.isArray(flight)) return `Flight ${flightIndex + 1} has an invalid format.`;
+
+    let ids: Array<number | null> = [];
+    if (format === "team") {
+      if (flight.length !== 2) return `Flight ${flightIndex + 1} must contain two teams.`;
+      ids = flight.map(parsePositiveId);
+    } else if (scoringFormat === "stroke") {
+      if (flight.length < 1 || flight.length > 4) {
+        return `Flight ${flightIndex + 1} must contain one to four players.`;
+      }
+      ids = flight.map(parsePositiveId);
+    } else {
+      const matchups = Array.isArray(flight[0]) ? flight : [flight];
+      if (matchups.length < 1 || matchups.length > 2) {
+        return `Flight ${flightIndex + 1} must contain one or two matchups.`;
+      }
+      if (matchups.some((matchup) => !Array.isArray(matchup) || matchup.length !== 2)) {
+        return `Each matchup in flight ${flightIndex + 1} must contain two players.`;
+      }
+      ids = matchups.flatMap((matchup) => matchup.map(parsePositiveId));
+    }
+
+    if (ids.some((id) => id === null)) return `Flight ${flightIndex + 1} contains an invalid ID.`;
+    for (const id of ids as number[]) {
+      if (assignedIds.has(id)) {
+        return `The same ${format === "team" ? "team" : "player"} cannot be assigned twice.`;
+      }
+      assignedIds.add(id);
+    }
+  }
+
+  return null;
+}
+
 export function validateEventForm(
   data: any,
   options: { showTeamsSection: boolean; leagueStartDate?: unknown; leagueEndDate?: unknown }
@@ -70,6 +113,8 @@ export function validateEventForm(
 
   const flights = Array.isArray(data.flights) ? data.flights : [];
   if (flights.length === 0) return "Please add at least one flight.";
+  const flightError = validateFlights(flights, format, scoringFormat);
+  if (flightError) return flightError;
 
   return null;
 }

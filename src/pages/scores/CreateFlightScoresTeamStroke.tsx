@@ -1,21 +1,22 @@
 import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
-import { useState } from "react";
+import Table from "@/components/Table";
+import { Fragment, useState } from "react";
 import Button from "@/components/layout/Button";
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
 import { Flag } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
 import {
-  buildSwappedPlayerEntry,
-  getSwapCandidates,
   PlayerSwapControl,
 } from "./PlayerSwapControl";
+import { buildSwappedPlayerEntry, getSwapCandidates } from "./playerSwapUtils";
 import { calculateStrokeplayPops } from "./util";
-import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
-import { useToast } from "@/context/ToastContext";
+import { ScoreDraftStatus } from "./ScoreDraftStatus";
+import { useScoreDraft } from "./useScoreDraft";
+import { useToast } from "@/context/useToast";
 import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
 import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
@@ -83,7 +84,7 @@ export const CreateFlightScoresTeamStroke = ({
   const createMutation = useCreateEventScores();
   const updateMutation = useUpdateEventScores();
   const updateFlightPlayersMutation = useUpdateFlightPlayers();
-  const watchedPlayers = methods.watch("players");
+  const watchedPlayers = useWatch({ control: methods.control, name: "players" });
   const scoreDraft = useScoreDraft({
     methods,
     leagueId,
@@ -383,33 +384,46 @@ export const CreateFlightScoresTeamStroke = ({
           />
         </div>
         <div className="border rounded-lg">
-          <div className="w-full overflow-x-auto">
-            <table className="score-table">
-              <thead>
-                <tr className="text-xs text-gray-700">
-                  <th>Player</th>
-                  {holes.map((hole: any) => (
-                    <ScoreHeaderCell key={hole.num}>
-                      {hole.num}
-                    </ScoreHeaderCell>
-                  ))}
-                  <ScoreHeaderCell>Total</ScoreHeaderCell>
-                  <ScoreHeaderCell>Net</ScoreHeaderCell>
-                  <ScoreHeaderCell>Points</ScoreHeaderCell>
-                </tr>
-              </thead>
-              <tbody>
-                {team1Players.map((player: any, idx: number) => renderPlayerRow(player, 1, idx))}
-                {team1Players.length > 0 &&
-                  team2Players.length > 0 &&
-                  renderTeamPointsRow(team1Name, 1)}
-                {team2Players.map((player: any, idx: number) => renderPlayerRow(player, 2, idx))}
-                {team1Players.length > 0 &&
-                  team2Players.length > 0 &&
-                  renderTeamPointsRow(team2Name, 2)}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            data={[1 as const, 2 as const]}
+            search={false}
+            variant="clean"
+            noBorder
+            tableClassName="score-table"
+            renderTable={(visibleTeams) => (
+              <>
+                <thead>
+                  <tr className="text-xs text-gray-700">
+                    <th>Player</th>
+                    {holes.map((hole: any) => (
+                      <ScoreHeaderCell key={hole.num}>
+                        {hole.num}
+                      </ScoreHeaderCell>
+                    ))}
+                    <ScoreHeaderCell>Total</ScoreHeaderCell>
+                    <ScoreHeaderCell>Net</ScoreHeaderCell>
+                    <ScoreHeaderCell>Points</ScoreHeaderCell>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleTeams.map((team) => {
+                    const teamPlayers = team === 1 ? team1Players : team2Players;
+                    const teamName = team === 1 ? team1Name : team2Name;
+                    return (
+                      <Fragment key={team}>
+                        {teamPlayers.map((player: any, idx: number) =>
+                          renderPlayerRow(player, team, idx),
+                        )}
+                        {team1Players.length > 0 &&
+                          team2Players.length > 0 &&
+                          renderTeamPointsRow(teamName, team)}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </>
+            )}
+          />
         </div>
       </div>
     </SurfaceCard>

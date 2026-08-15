@@ -10,7 +10,7 @@ import InfoForm from "./forms/InfoForm";
 import { useLeague } from "@api/league/queries";
 import { useUpdateLeague } from "@api/league/mutations";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { validateLeagueForm } from "./validation";
 
 type LeagueFormData = {

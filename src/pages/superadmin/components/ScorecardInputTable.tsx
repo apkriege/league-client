@@ -1,5 +1,6 @@
 import type { HoleFormData } from "../courseAdminForm";
 import Input from "@/components/form/Input";
+import Table from "@/components/Table";
 
 type HoleChangeHandler = (
   teeIndex: number,
@@ -25,27 +26,54 @@ export default function ScorecardInputTable({
 
   const totalDistance = holes.reduce((sum, hole) => sum + Number(hole.dis || 0), 0);
   const totalPar = holes.reduce((sum, hole) => sum + Number(hole.par || 0), 0);
+  const scoreRows: Array<{
+    label: string;
+    total: string;
+    field: keyof Pick<HoleFormData, "dis" | "par" | "hcp">;
+  }> = [
+    { label: "Yards", total: String(totalDistance), field: "dis" },
+    { label: "Par", total: String(totalPar), field: "par" },
+    { label: "HCP", total: "—", field: "hcp" },
+  ];
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200">
-      <table className="min-w-[820px] border-separate border-spacing-0 bg-white text-xs">
-        <thead>
-          <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-            <th className="w-24 rounded-tl-2xl px-2.5 py-2.5 text-left">{title}</th>
-            {holes.map((hole) => (
-              <th key={`${title}-${hole.num}`} className="px-1.5 py-2.5 text-center">
-                {hole.num}
-              </th>
-            ))}
-            <th className="rounded-tr-2xl px-2.5 py-2.5 text-center">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <ScorecardInputRow label="Yards" holes={holes} total={String(totalDistance)} field="dis" teeIndex={teeIndex} startIndex={startIndex} onHoleChange={onHoleChange} />
-          <ScorecardInputRow label="Par" holes={holes} total={String(totalPar)} field="par" teeIndex={teeIndex} startIndex={startIndex} onHoleChange={onHoleChange} />
-          <ScorecardInputRow label="HCP" holes={holes} total="—" field="hcp" teeIndex={teeIndex} startIndex={startIndex} onHoleChange={onHoleChange} />
-        </tbody>
-      </table>
+      <Table
+        data={scoreRows}
+        search={false}
+        variant="clean"
+        noBorder
+        tableClassName="min-w-[820px] border-separate border-spacing-0 bg-white text-xs"
+        renderTable={(visibleRows) => (
+          <>
+            <thead>
+              <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                <th className="w-24 rounded-tl-2xl px-2.5 py-2.5 text-left">{title}</th>
+                {holes.map((hole) => (
+                  <th key={`${title}-${hole.num}`} className="px-1.5 py-2.5 text-center">
+                    {hole.num}
+                  </th>
+                ))}
+                <th className="rounded-tr-2xl px-2.5 py-2.5 text-center">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.map((row) => (
+                <ScorecardInputRow
+                  key={row.field}
+                  label={row.label}
+                  holes={holes}
+                  total={row.total}
+                  field={row.field}
+                  teeIndex={teeIndex}
+                  startIndex={startIndex}
+                  onHoleChange={onHoleChange}
+                />
+              ))}
+            </tbody>
+          </>
+        )}
+      />
     </div>
   );
 }

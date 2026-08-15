@@ -1,6 +1,6 @@
 import { Medal, TrendingDown, TrendingUp, Trophy, User } from "lucide-react";
+import Table from "@/components/Table";
 import SurfaceCard from "@/components/layout/SurfaceCard";
-import TableHeaderRow from "@/components/layout/TableHeaderRow";
 import type { EventLeaderboardEntry, EventLeaderboardSort } from "../eventLeaderboard";
 import PlayerNameLink from "./PlayerNameLink";
 import { memo } from "react";
@@ -13,63 +13,74 @@ export const ScoreLeaderboard = memo(function ScoreLeaderboard({
   sortBy: EventLeaderboardSort;
 }) {
   return (
-    <div className="max-h-70 overflow-auto">
-      <table className="w-full min-w-[28rem] table-fixed text-left">
-        <colgroup>
-          <col className="w-10" />
-          <col />
-          <col className="w-14" />
-          <col className="w-16" />
-          <col className="w-14" />
-        </colgroup>
-        <thead className="sticky top-0 z-10 bg-gray-50">
-          <TableHeaderRow className="border-b border-gray-100">
-            <th className="w-8 px-3 py-2">#</th>
-            <th className="px-2.5 py-2">
-              <span className="flex items-center gap-1"><User size={10} /> Player</span>
-            </th>
-            <SortHeading label="PTS" column="points" active={sortBy} descending />
-            <SortHeading label="GROSS" column="lowGross" active={sortBy} />
-            <SortHeading label="NET" column="lowNet" active={sortBy} />
-          </TableHeaderRow>
-        </thead>
-        <tbody className="divide-y divide-gray-50">
-          {leaderboard.map((entry, index) => (
-            <tr
-              key={entry.playerId}
-              className={`text-xs ${index === 0 ? "bg-amber-50/40" : "hover:bg-gray-50/60"}`}
-            >
-              <td className="px-3 py-2">
-                <span className={`text-xs font-bold ${rankColor(index)}`}>
-                  {index < 9 ? `0${index + 1}` : index + 1}
-                </span>
-              </td>
-              <td className="px-2.5 py-2">
-                <div className="flex items-center gap-2">
-                  <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[10px] font-bold ${index === 0 ? "border-amber-200 bg-amber-100 text-amber-700" : "border-gray-200 bg-gray-100 text-gray-500"}`}>
-                    {initials(entry.name)}
-                  </div>
-                  <div>
-                    <PlayerNameLink
-                      playerId={entry.playerId}
-                      className="text-xs font-semibold leading-tight text-gray-800 hover:text-slate-900 hover:underline"
-                    >
-                      {entry.name}
-                    </PlayerNameLink>
-                    <p className="text-[10px] text-gray-400">
-                      HCP {entry.handicap != null ? entry.handicap.toFixed(1) : "—"}
-                    </p>
-                  </div>
-                </div>
-              </td>
-              <LeaderboardValueCell value={entry.points} active={sortBy === "points"} />
-              <LeaderboardValueCell value={entry.gross} active={sortBy === "lowGross"} />
-              <LeaderboardValueCell value={entry.net} active={sortBy === "lowNet"} />
+    <Table
+      data={leaderboard}
+      search={false}
+      variant="clean"
+      noBorder
+      className="max-h-80 overflow-auto"
+      tableClassName="w-full min-w-[28rem] table-fixed text-left"
+      renderTable={(visibleLeaderboard) => (
+        <>
+          <colgroup>
+            <col className="w-10" />
+            <col />
+            <col className="w-14" />
+            <col className="w-16" />
+            <col className="w-14" />
+          </colgroup>
+          <thead className="sticky top-0 z-10 bg-gray-50">
+            <tr className="section-kicker border-b border-gray-100">
+              <th className="w-8 px-3 py-2">#</th>
+              <th className="px-2.5 py-2">
+                <span className="flex items-center gap-1"><User size={10} /> Player</span>
+              </th>
+              <SortHeading label="PTS" column="points" active={sortBy} descending />
+              <SortHeading label="GROSS" column="lowGross" active={sortBy} />
+              <SortHeading label="NET" column="lowNet" active={sortBy} />
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {visibleLeaderboard.map((entry) => {
+              const index = leaderboard.indexOf(entry);
+              return (
+                <tr
+                  key={entry.playerId}
+                  className={`text-xs ${index === 0 ? "bg-amber-50/40" : "hover:bg-gray-50/60"}`}
+                >
+                  <td className="px-3 py-2">
+                    <span className={`text-xs font-bold ${rankColor(index)}`}>
+                      {index < 9 ? `0${index + 1}` : index + 1}
+                    </span>
+                  </td>
+                  <td className="px-2.5 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[10px] font-bold ${index === 0 ? "border-amber-200 bg-amber-100 text-amber-700" : "border-gray-200 bg-gray-100 text-gray-500"}`}>
+                        {initials(entry.name)}
+                      </div>
+                      <div>
+                        <PlayerNameLink
+                          playerId={entry.playerId}
+                          className="text-xs font-semibold leading-tight text-gray-800 hover:text-slate-900 hover:underline"
+                        >
+                          {entry.name}
+                        </PlayerNameLink>
+                        <p className="text-[10px] text-gray-400">
+                          HCP {entry.handicap != null ? entry.handicap.toFixed(1) : "—"}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <LeaderboardValueCell value={entry.points} active={sortBy === "points"} />
+                  <LeaderboardValueCell value={entry.gross} active={sortBy === "lowGross"} />
+                  <LeaderboardValueCell value={entry.net} active={sortBy === "lowNet"} />
+                </tr>
+              );
+            })}
+          </tbody>
+        </>
+      )}
+    />
   );
 });
 

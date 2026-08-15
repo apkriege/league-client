@@ -12,6 +12,7 @@ interface SelectProps {
   onChange: (event: any) => void;
   placeholder?: string;
   dense?: boolean;
+  ariaLabel?: string;
 }
 
 export default function Select({
@@ -22,6 +23,7 @@ export default function Select({
   onChange,
   placeholder,
   dense = false,
+  ariaLabel,
 }: SelectProps) {
   const id = useId();
 
@@ -33,6 +35,7 @@ export default function Select({
         value={value ?? ""}
         onChange={onChange}
         displayEmpty={Boolean(placeholder)}
+        inputProps={ariaLabel ? { "aria-label": ariaLabel } : undefined}
         sx={{ minHeight: dense ? 31 : 35, fontSize: dense ? "0.6875rem" : "0.75rem" }}
       >
         {placeholder ? (

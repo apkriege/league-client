@@ -1,4 +1,5 @@
 import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import Table from "@/components/Table";
 import { Fragment, memo } from "react";
 import { Link, useParams } from "react-router";
 import {
@@ -150,53 +151,50 @@ function ViewFlightScores({ event, flight }: any) {
 
   return (
     <div className="border rounded-lg">
-      <div className="w-full overflow-x-auto">
-        <table className="score-table">
-          <thead>
-            <tr className="text-xs text-gray-700">
-              <th>Player</th>
-              {holes.map((hole: any) => (
-                <ScoreHeaderCell key={hole.num}>
-                  {hole.num}
-                </ScoreHeaderCell>
+      <Table
+        data={[1 as const, 2 as const]}
+        search={false}
+        variant="clean"
+        noBorder
+        tableClassName="score-table"
+        renderTable={(visibleTeams) => (
+          <>
+            <thead>
+              <tr className="text-xs text-gray-700">
+                <th>Player</th>
+                {holes.map((hole: any) => (
+                  <ScoreHeaderCell key={hole.num}>
+                    {hole.num}
+                  </ScoreHeaderCell>
+                ))}
+                <th className="text-center">Total</th>
+                <th className="text-center">Net</th>
+                <th className="text-center">Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleTeams.map((team) => (
+                <Fragment key={team}>
+                  {(team === 1 ? team1 : team2).map((player: any) => (
+                    <PlayerRow key={player.id} player={player} holes={holes} />
+                  ))}
+                  {team1.length > 0 && team2.length > 0 && (
+                    <TeamPointsRow
+                      label={`Team ${team} Points`}
+                      team={team}
+                      holes={holes}
+                      getTeamPointsForHole={getTeamPointsForHole}
+                      getTeamMedalPoints={getTeamMedalPoints}
+                      getTeamTotalPoints={getTeamTotalPoints}
+                      isTeamStroke={isTeamStroke}
+                    />
+                  )}
+                </Fragment>
               ))}
-              <th className="text-center">Total</th>
-              <th className="text-center">Net</th>
-              <th className="text-center">Points</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...team1].map((player: any) => (
-              <PlayerRow key={player.id} player={player} holes={holes} />
-            ))}
-            {team1.length > 0 && team2.length > 0 && (
-              <TeamPointsRow
-                label="Team 1 Points"
-                team={1}
-                holes={holes}
-                getTeamPointsForHole={getTeamPointsForHole}
-                getTeamMedalPoints={getTeamMedalPoints}
-                getTeamTotalPoints={getTeamTotalPoints}
-                isTeamStroke={isTeamStroke}
-              />
-            )}
-            {[...team2].map((player: any) => (
-              <PlayerRow key={player.id} player={player} holes={holes} />
-            ))}
-            {team1.length > 0 && team2.length > 0 && (
-              <TeamPointsRow
-                label="Team 2 Points"
-                team={2}
-                holes={holes}
-                getTeamPointsForHole={getTeamPointsForHole}
-                getTeamMedalPoints={getTeamMedalPoints}
-                getTeamTotalPoints={getTeamTotalPoints}
-                isTeamStroke={isTeamStroke}
-              />
-            )}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </>
+        )}
+      />
     </div>
   );
 }
@@ -396,50 +394,61 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
 
   return (
     <div className="border rounded-lg">
-      <div className="w-full overflow-x-auto">
-        <table className="score-table">
-          <thead>
-            <tr className="text-xs text-gray-700">
-              <th className="p-2">Player</th>
-              {holes.map((hole: any) => (
-                <ScoreHeaderCell key={hole.num}>
-                  {hole.num}
-                </ScoreHeaderCell>
-              ))}
-              <th className="w-px whitespace-nowrap text-center">Total</th>
-              <th className="w-px whitespace-nowrap text-center">Net</th>
-              <th className="w-px whitespace-nowrap text-center">Hole Pts</th>
-              <th className="w-px whitespace-nowrap text-center">Match Pts</th>
-              <th className="w-px whitespace-nowrap text-center">Pts</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pairs.map(([p1, p2], pairIdx) => (
-              <Fragment key={pairIdx}>
-                {pairIdx > 0 && (
-                  <tr aria-hidden="true">
-                    <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
-                  </tr>
-                )}
-                <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
-                  <td className="p-2" colSpan={holes.length + 6}>
-                    Matchup {pairIdx + 1}:{" "}
-                    <PlayerNameLink playerId={p1.playerId} className="font-semibold text-gray-600 hover:text-slate-900 hover:underline">
-                      {p1.player.firstName} {p1.player.lastName}
-                    </PlayerNameLink>{" "}
-                    vs{" "}
-                    <PlayerNameLink playerId={p2.playerId} className="font-semibold text-gray-600 hover:text-slate-900 hover:underline">
-                      {p2.player.firstName} {p2.player.lastName}
-                    </PlayerNameLink>
-                  </td>
-                </tr>
-                {renderPlayerRow(p1)}
-                {renderPlayerRow(p2)}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        data={pairs}
+        search={false}
+        variant="clean"
+        noBorder
+        tableClassName="score-table"
+        renderTable={(visiblePairs) => (
+          <>
+            <thead>
+              <tr className="text-xs text-gray-700">
+                <th className="p-2">Player</th>
+                {holes.map((hole: any) => (
+                  <ScoreHeaderCell key={hole.num}>
+                    {hole.num}
+                  </ScoreHeaderCell>
+                ))}
+                <th className="w-px whitespace-nowrap text-center">Total</th>
+                <th className="w-px whitespace-nowrap text-center">Net</th>
+                <th className="w-px whitespace-nowrap text-center">Hole Pts</th>
+                <th className="w-px whitespace-nowrap text-center">Match Pts</th>
+                <th className="w-px whitespace-nowrap text-center">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visiblePairs.map((pair) => {
+                const [p1, p2] = pair;
+                const pairIdx = pairs.indexOf(pair);
+                return (
+                  <Fragment key={pairIdx}>
+                    {pairIdx > 0 && (
+                      <tr aria-hidden="true">
+                        <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
+                      </tr>
+                    )}
+                    <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
+                      <td className="p-2" colSpan={holes.length + 6}>
+                        Matchup {pairIdx + 1}:{" "}
+                        <PlayerNameLink playerId={p1.playerId} className="font-semibold text-gray-600 hover:text-slate-900 hover:underline">
+                          {p1.player.firstName} {p1.player.lastName}
+                        </PlayerNameLink>{" "}
+                        vs{" "}
+                        <PlayerNameLink playerId={p2.playerId} className="font-semibold text-gray-600 hover:text-slate-900 hover:underline">
+                          {p2.player.firstName} {p2.player.lastName}
+                        </PlayerNameLink>
+                      </td>
+                    </tr>
+                    {renderPlayerRow(p1)}
+                    {renderPlayerRow(p2)}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </>
+        )}
+      />
     </div>
   );
 }

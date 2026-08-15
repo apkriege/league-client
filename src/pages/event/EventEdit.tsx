@@ -3,7 +3,7 @@ import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { useEffect } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import InfoForm from "./create/components/InfoForm";
 import TeamsForm from "./create/components/TeamsForm";
 import Flights from "./create/components/Flights";
@@ -12,63 +12,38 @@ import { useLeague, useLeagueEvent } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useNavigate, useParams } from "react-router";
 import { Flag, ShieldHalf } from "lucide-react";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { validateEventForm } from "./create/validation";
 import { getEventDateInputValue } from "@/utils/eventDate";
 import { toTimeInputValue } from "@/utils/format";
+import { transformEventFlights, type EventFlight } from "./eventEditModel";
 
-// Transform Prisma relational flight data into the flat ID-array format the components expect.
-function transformFlights(event: any): { flights: any[]; teams: any[] } {
-  const apiFlights: any[] = event.flights ?? [];
-  if (apiFlights.length === 0) return { flights: [], teams: [] };
+type EventEditTeam = {
+  id: number;
+  name: string;
+  players: number[];
+};
 
-  const format: string = event.format ?? "team";
-  const scoringFormat: string = event.scoringFormat ?? "match";
-
-  if (format === "team") {
-    // Build a deduplicated team map from all flights
-    const teamMap = new Map<number, any>();
-    for (const flight of apiFlights) {
-      for (const ft of flight.teams ?? []) {
-        const t = ft.team;
-        if (t && !teamMap.has(Number(t.id))) {
-          teamMap.set(Number(t.id), {
-            id: Number(t.id),
-            name: t.name,
-            players: (t.players ?? []).map((p: any) => Number(p.id)),
-          });
-        }
-      }
-    }
-    // Each flight becomes [teamId1, teamId2]
-    const flights = apiFlights.map((flight: any) =>
-      (flight.teams ?? []).map((ft: any) => Number(ft.teamId ?? ft.team?.id))
-    );
-    return { flights, teams: Array.from(teamMap.values()) };
-  }
-
-  if (format === "individual" && scoringFormat === "stroke") {
-    const flights = apiFlights.map((flight: any) =>
-      (flight.players ?? []).map((fp: any) => Number(fp.playerId ?? fp.player?.id))
-    );
-    return { flights, teams: [] };
-  }
-
-  if (format === "individual" && scoringFormat === "match") {
-    // Players stored in pairs: p1,p2 = matchup1; p3,p4 = matchup2
-    const flights = apiFlights.map((flight: any) => {
-      const ids = (flight.players ?? []).map((fp: any) => Number(fp.playerId ?? fp.player?.id));
-      const pairs: number[][] = [];
-      for (let i = 0; i + 1 < ids.length; i += 2) {
-        pairs.push([ids[i], ids[i + 1]]);
-      }
-      return pairs;
-    });
-    return { flights, teams: [] };
-  }
-
-  return { flights: [], teams: [] };
-}
+type EventEditFormValues = {
+  name: string;
+  type: string;
+  date: string;
+  startTime: string;
+  interval: number;
+  courseId?: number;
+  teeId?: number;
+  startSide: string;
+  holes: number;
+  format: string;
+  scoringFormat: string;
+  ptsPerHole: number;
+  ptsPerMatch: number;
+  ptsPerTeamWin: number;
+  strokePoints: string;
+  pointsEnabled: boolean;
+  teams: EventEditTeam[];
+  flights: EventFlight[];
+};
 
 export default function EventEdit() {
   const { leagueId, eventId } = useParams();
@@ -87,18 +62,22 @@ export default function EventEdit() {
     navigate(`/league/${leagueId}/events/${eventId}`);
   });
 
+  const eventStatus = String(event?.status || "").toLowerCase();
   const isCompletedEvent =
     Boolean(event?.isComplete) || String(event?.status || "").toLowerCase() === "completed";
+  const isCanceledEvent = eventStatus === "canceled";
+  const hasScores = Number(event?._count?.rounds || 0) > 0;
+  const isLockedEvent = isCompletedEvent || isCanceledEvent || hasScores;
 
-  const eventForm = useForm({
+  const eventForm = useForm<EventEditFormValues>({
     defaultValues: {
       name: "",
       type: "regular",
       date: "",
       startTime: "",
       interval: 10,
-      courseId: undefined as number | undefined,
-      teeId: undefined as number | undefined,
+      courseId: undefined,
+      teeId: undefined,
       startSide: "front",
       holes: 9,
       format: "team",
@@ -118,7 +97,7 @@ export default function EventEdit() {
   // are always populated (season team leagues store teams on the league, not the event).
   useEffect(() => {
     if (!event || !league) return;
-    const { flights, teams: eventTeams } = transformFlights(event);
+    const { flights, teams: eventTeams } = transformEventFlights(event);
     const isSeasonTeamLeague =
       String(league.type || "").toLowerCase() === "season" &&
       String(league.format || "").toLowerCase() === "team";
@@ -155,15 +134,20 @@ export default function EventEdit() {
       teams,
       flights,
     });
-  }, [event, league]);
+  }, [event, eventForm, league]);
 
   useEffect(() => {
-    if (!event || !isCompletedEvent) return;
-    show("Completed events cannot be edited.", "error");
+    if (!event || !isLockedEvent) return;
+    const message = isCompletedEvent
+      ? "Completed events cannot be edited."
+      : isCanceledEvent
+        ? "Canceled events cannot be edited."
+        : "Events with scores cannot have their setup edited.";
+    show(message, "error");
     navigate(`/league/${leagueId}/events/${eventId}`);
-  }, [event, eventId, isCompletedEvent, leagueId, navigate, show]);
+  }, [event, eventId, isCanceledEvent, isCompletedEvent, isLockedEvent, leagueId, navigate, show]);
 
-  const format = eventForm.watch("format");
+  const format = useWatch({ control: eventForm.control, name: "format" });
   const isSeasonLeague = String(league?.type || "").toLowerCase() === "season";
   const leagueFormat = String(league?.format || "").toLowerCase();
   const isSeasonTeamLeague = isSeasonLeague && leagueFormat === "team";
@@ -176,11 +160,17 @@ export default function EventEdit() {
       return;
     }
 
-    mutation.mutate({
-      leagueId: Number(leagueId),
-      eventId: Number(eventId),
-      data,
-    });
+    mutation.mutate(
+      {
+        leagueId: Number(leagueId),
+        eventId: Number(eventId),
+        data,
+      },
+      {
+        onError: (error) =>
+          show(getApiErrorMessage(error, "Unable to save event changes."), "error"),
+      },
+    );
   }, (errors) => {
     const firstError = Object.values(errors)[0] as any;
     show(firstError?.message || "Please fix the required event fields.", "error");
@@ -225,7 +215,7 @@ export default function EventEdit() {
     );
   }
 
-  if (isCompletedEvent) {
+  if (isLockedEvent) {
     return null;
   }
 

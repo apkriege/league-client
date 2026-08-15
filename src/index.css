@@ -231,9 +231,9 @@ h6 {
   color: var(--app-ink);
 }
 
-.app-shell textarea:focus,
-.app-shell input:focus,
-.app-shell select:focus {
+.app-shell textarea:not(.MuiInputBase-input):focus,
+.app-shell input:not(.MuiInputBase-input):not(.MuiSelect-nativeInput):focus,
+.app-shell select:not(.MuiInputBase-input):focus {
   outline: none;
   border-color: rgba(37, 99, 235, 0.72);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);

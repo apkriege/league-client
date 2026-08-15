@@ -12,7 +12,7 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { getEventLocalDate } from "@/utils/eventDate";
 import { formatTime } from "@/utils/format";
 import { useAppStore } from "@/stores/appStore";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import {
   BarChart2,
   Calendar,

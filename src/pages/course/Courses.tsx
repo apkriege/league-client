@@ -14,11 +14,28 @@ type CourseRow = {
   id: number;
   name: string;
   club: string;
-  location: string;
+  city: string;
+  state: string;
   access: string;
   holes: number;
   par: number;
   tees: number;
+};
+
+const getCityAndState = (location: string | null | undefined) => {
+  const parts = String(location || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length < 2) {
+    return { city: parts[0] || "—", state: "—" };
+  }
+
+  return {
+    city: parts.at(-2) || "—",
+    state: parts.at(-1)?.replace(/\s+\d{5}(?:-\d{4})?$/, "") || "—",
+  };
 };
 
 export default function Courses() {
@@ -32,16 +49,21 @@ export default function Courses() {
   const rows = useMemo<CourseRow[]>(
     () =>
       courses
-        .map((course: any) => ({
-          id: Number(course.id),
-          name: course.name,
-          club: course.club?.name || "—",
-          location: course.location || course.club?.location || "—",
-          access: course.accessType || "public",
-          holes: Number(course.numHoles || 0),
-          par: Number(course.par || 0),
-          tees: Array.isArray(course.tees) ? course.tees.length : 0,
-        }))
+        .map((course: any) => {
+          const location = getCityAndState(course.location || course.club?.location);
+
+          return {
+            id: Number(course.id),
+            name: course.name,
+            club: course.club?.name || "—",
+            city: location.city,
+            state: location.state,
+            access: course.accessType || "public",
+            holes: Number(course.numHoles || 0),
+            par: Number(course.par || 0),
+            tees: Array.isArray(course.tees) ? course.tees.length : 0,
+          };
+        })
         .sort((a: any, b: any) => {
           const clubCmp = a.club.localeCompare(b.club);
           return clubCmp !== 0 ? clubCmp : a.name.localeCompare(b.name);
@@ -63,10 +85,14 @@ export default function Courses() {
       // cellWidth: "25%",
     },
     {
-      key: "location",
-      label: "Location",
+      key: "city",
+      label: "City",
       render: (value) => <p className="text-xs text-gray-700">{value}</p>,
-      // cellWidth: "22%",
+    },
+    {
+      key: "state",
+      label: "State",
+      render: (value) => <p className="text-xs text-gray-700">{value}</p>,
     },
     {
       key: "holes",
@@ -185,6 +211,8 @@ export default function Courses() {
           data={rows}
           columns={columns}
           heading="Course Directory"
+          pagination
+          pageSize={10}
           onRowClick={(row) => navigate(`/courses/${row.id}`)}
           headerActions={
             <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-400 pr-2">

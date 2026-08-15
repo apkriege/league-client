@@ -1,5 +1,5 @@
 import Button from "@/components/layout/Button";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 import { useNavigate, useParams } from "react-router";
 import dayjs from "dayjs";
@@ -29,7 +29,7 @@ import TeamsForm from "./TeamsForm";
 import { useLeague } from "@api/league/queries";
 import { useCoursesWithTees } from "@api/courses";
 import { useCreateLeagueEvents } from "@api/league/mutations";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { getEventDateInputValue } from "@/utils/eventDate";
 import { DEFAULT_STROKE_POINTS } from "../constants";
 import {
@@ -110,24 +110,17 @@ export default function MultiSeriesBuilder() {
     [leagueStartDate, leagueEndDate]
   );
 
-  useEffect(() => {
-    if (!leagueStartDate || !leagueEndDate) return;
-
-    setStartDate((currentStart) => {
-      const nextStart = clampToLeagueDates(currentStart);
-      setEndDate((currentEnd) => {
-        const nextEnd = clampToLeagueDates(currentEnd);
-        return nextEnd < nextStart ? nextStart : nextEnd;
-      });
-      return nextStart;
-    });
-    setSchedule((current) =>
-      current.map((round) => ({
+  const resolvedStartDate = clampToLeagueDates(startDate);
+  const clampedEndDate = clampToLeagueDates(endDate);
+  const resolvedEndDate = clampedEndDate < resolvedStartDate ? resolvedStartDate : clampedEndDate;
+  const resolvedSchedule = useMemo(
+    () =>
+      schedule.map((round) => ({
         ...round,
         date: clampToLeagueDates(round.date),
-      }))
-    );
-  }, [leagueStartDate, leagueEndDate, clampToLeagueDates]);
+      })),
+    [clampToLeagueDates, schedule],
+  );
 
   useEffect(() => {
     if (!isNineHoleCourse) return;
@@ -141,11 +134,16 @@ export default function MultiSeriesBuilder() {
     return index % 2 === 0 ? sharedStartSide : sharedStartSide === "front" ? "back" : "front";
   };
 
-  const generatedDates = buildDates(startDate, endDate, selectedDays, frequency);
+  const generatedDates = buildDates(
+    resolvedStartDate,
+    resolvedEndDate,
+    selectedDays,
+    frequency,
+  );
   const eventCount = generatedDates.length;
 
   const mutation = useCreateLeagueEvents(() => {
-    show(`${schedule.length} events created!`, "success");
+    show(`${resolvedSchedule.length} events created!`, "success");
     navigate(`/league/${leagueId}/admin`);
   });
 
@@ -187,32 +185,29 @@ export default function MultiSeriesBuilder() {
   // Schedule generation
   // ---------------------------------------------------------------------------
 
-  const handleGenerate = useCallback(
-    (doShuffle = false) => {
-      if (ids.length < 2) {
-        show(
-          `Add at least 2 ${format === "team" ? "teams" : "players"} before generating.`,
-          "error"
-        );
-        return;
-      }
-      const sourceIds = doShuffle ? shuffleArray(ids) : ids;
-      const rrData = generateRoundRobin(sourceIds);
-      const dates = buildDates(startDate, endDate, selectedDays, frequency);
-      if (!dates.length) {
-        show("Select at least one day of the week within the date range.", "error");
-        return;
-      }
-
-      setSchedule(
-        dates.map((date, i) => ({
-          date,
-          flights: buildFlights(rrData[i % rrData.length] ?? [], format, scoringFormat),
-        }))
+  const handleGenerate = (doShuffle = false) => {
+    if (ids.length < 2) {
+      show(
+        `Add at least 2 ${format === "team" ? "teams" : "players"} before generating.`,
+        "error",
       );
-    },
-    [ids, startDate, endDate, selectedDays, frequency, format, scoringFormat]
-  );
+      return;
+    }
+    const sourceIds = doShuffle ? shuffleArray(ids) : ids;
+    const rrData = generateRoundRobin(sourceIds);
+    const dates = buildDates(resolvedStartDate, resolvedEndDate, selectedDays, frequency);
+    if (!dates.length) {
+      show("Select at least one day of the week within the date range.", "error");
+      return;
+    }
+
+    setSchedule(
+      dates.map((date, i) => ({
+        date,
+        flights: buildFlights(rrData[i % rrData.length] ?? [], format, scoringFormat),
+      })),
+    );
+  };
 
   const updateDate = (i: number, date: string) =>
     setSchedule((prev) =>
@@ -227,11 +222,11 @@ export default function MultiSeriesBuilder() {
   // ---------------------------------------------------------------------------
 
   const handleSubmit = () => {
-    if (!schedule.length) {
+    if (!resolvedSchedule.length) {
       show("Generate a schedule first.", "error");
       return;
     }
-    const outsideLeagueDate = schedule.find(
+    const outsideLeagueDate = resolvedSchedule.find(
       (round) =>
         (leagueStartDate && round.date < leagueStartDate) ||
         (leagueEndDate && round.date > leagueEndDate)
@@ -243,7 +238,7 @@ export default function MultiSeriesBuilder() {
     const shared = methods.getValues();
     mutation.mutate({
       leagueId: Number(leagueId),
-      events: schedule.map((r, i) => ({
+      events: resolvedSchedule.map((r, i) => ({
         name: `${seriesName} - Round ${i + 1}`,
         type: "regular",
         date: r.date,
@@ -500,21 +495,25 @@ export default function MultiSeriesBuilder() {
           />
           <DateInput
             label="Start Date"
-            value={startDate}
+            value={resolvedStartDate}
             min={leagueStartDate || undefined}
             max={leagueEndDate || undefined}
             onChange={(e) => {
               const nextStartDate = clampToLeagueDates(e.target.value);
               setStartDate(nextStartDate);
-              if (dayjs(endDate).isBefore(dayjs(nextStartDate), "day")) {
+              if (dayjs(resolvedEndDate).isBefore(dayjs(nextStartDate), "day")) {
                 setEndDate(nextStartDate);
               }
             }}
           />
           <DateInput
             label="End Date"
-            value={endDate}
-            min={leagueStartDate && leagueStartDate > startDate ? leagueStartDate : startDate}
+            value={resolvedEndDate}
+            min={
+              leagueStartDate && leagueStartDate > resolvedStartDate
+                ? leagueStartDate
+                : resolvedStartDate
+            }
             max={leagueEndDate || undefined}
             onChange={(e) => setEndDate(clampToLeagueDates(e.target.value))}
           />
@@ -583,7 +582,7 @@ export default function MultiSeriesBuilder() {
             <RefreshCw size={12} />
             Generate Schedule
           </Button>
-          {schedule.length > 0 && (
+          {resolvedSchedule.length > 0 && (
             <Button
               type="button"
               variant="ghost"
@@ -597,7 +596,7 @@ export default function MultiSeriesBuilder() {
       </Card>
 
       {/* ── Schedule rounds ── */}
-      {schedule.length > 0 && (
+      {resolvedSchedule.length > 0 && (
         <div className="flex gap-4 items-start">
           {/* Sticky highlight selector */}
           <div className="sticky top-4 w-48 shrink-0">
@@ -664,7 +663,7 @@ export default function MultiSeriesBuilder() {
 
           {/* Scrollable rounds */}
           <div className="flex-1 min-w-0 flex flex-col gap-3">
-            {schedule.map((round, i) => {
+            {resolvedSchedule.map((round, i) => {
               const eventStartSide = getEventStartSide(i);
               const eventForRow = {
                 ...methods.getValues(),
@@ -730,7 +729,7 @@ export default function MultiSeriesBuilder() {
       )}
 
       {/* ── Submit ── */}
-      {schedule.length > 0 && (
+      {resolvedSchedule.length > 0 && (
         <div className="flex justify-end gap-2 pb-4">
           <Button
             type="button"
@@ -746,8 +745,8 @@ export default function MultiSeriesBuilder() {
             disabled={mutation.isPending}
           >
             {mutation.isPending
-              ? `Creating ${schedule.length} events…`
-              : `Create ${schedule.length} Events`}
+              ? `Creating ${resolvedSchedule.length} events…`
+              : `Create ${resolvedSchedule.length} Events`}
           </Button>
         </div>
       )}

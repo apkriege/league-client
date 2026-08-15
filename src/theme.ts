@@ -66,6 +66,10 @@ const appTheme = createTheme({
         root: {
           borderRadius: 16,
           backgroundColor: "#ffffff",
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "rgba(16, 24, 40, 0.38)",
+            borderWidth: 1,
+          },
         },
         notchedOutline: {
           borderColor: "rgba(16, 24, 40, 0.14)",
