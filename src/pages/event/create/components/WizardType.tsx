@@ -1,4 +1,4 @@
-import Card from "@/components/layout/Card";
+import Paper from "@mui/material/Paper";
 import { Check, CircleCheck, Info, Trophy } from "lucide-react";
 
 export type EventWizardType = "single" | "multi";
@@ -18,13 +18,28 @@ const WizardCard = ({
   selected: boolean;
   onSelect: () => void;
 }) => (
-  <Card
-    className={`flex flex-col cursor-pointer transition-all ${
-      selected
-        ? "border-sky-400  bg-sky-300/10"
-        : "hover:border-sky-400/40 hover:bg-sky-300/5"
-    }`}
+  <Paper
+    component="button"
+    type="button"
+    variant="outlined"
+    aria-pressed={selected}
+    className="flex w-full cursor-pointer flex-col p-5 text-left transition-all"
     onClick={onSelect}
+    sx={{
+      borderWidth: 2,
+      borderColor: selected ? "rgb(125 211 252)" : "rgb(226 232 240)",
+      borderRadius: "1.5rem",
+      backgroundColor: selected ? "rgb(240 249 255)" : "rgb(255 255 255)",
+      boxShadow: "0 18px 48px rgb(16 24 40 / 0.08)",
+      "&:hover": {
+        borderColor: "rgb(125 211 252)",
+        backgroundColor: selected ? "rgb(240 249 255)" : "rgb(248 250 252)",
+      },
+      "&:focus-visible": {
+        outline: "3px solid rgb(14 165 233 / 0.3)",
+        outlineOffset: 2,
+      },
+    }}
   >
     <div className="flex justify-between items-start">
       <div className="bg-slate-900 rounded-lg p-2 w-fit mb-3">{icon}</div>
@@ -40,7 +55,7 @@ const WizardCard = ({
         </p>
       ))}
     </div>
-  </Card>
+  </Paper>
 );
 
 export default function WizardType({
@@ -54,7 +69,7 @@ export default function WizardType({
 }) {
   return (
     <div>
-      <div className="flex gap-2 mb-5">
+      <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
         <WizardCard
           icon={<Trophy size={16} className="text-sky-600" />}
           title="Single Event"

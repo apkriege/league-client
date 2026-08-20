@@ -170,11 +170,11 @@ export default function CreateLeague() {
     return unsubscribe;
   }, [leagueForm]);
 
-  const createLeagueAndOpenHome = useCallback(
+  const createLeagueAndOpenAdmin = useCallback(
     async (modeledData: any) => {
       const league = await createLeague.mutateAsync(modeledData);
       window.localStorage.removeItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
-      navigate(`/league/${league.id}`);
+      navigate(`/league/${league.id}/admin`);
     },
     [createLeague, navigate],
   );
@@ -245,7 +245,7 @@ export default function CreateLeague() {
           );
         }
 
-        await createLeagueAndOpenHome(modeledData);
+        await createLeagueAndOpenAdmin(modeledData);
       } catch (error: unknown) {
         setPaymentPipelineError(
           toPaymentPipelineError(
@@ -261,7 +261,7 @@ export default function CreateLeague() {
     void resumeLeagueCreation();
   }, [
     checkoutStatus,
-    createLeagueAndOpenHome,
+    createLeagueAndOpenAdmin,
     confirmationAttempt,
     leagueForm,
     refetchStripeState,
@@ -298,7 +298,7 @@ export default function CreateLeague() {
             if ((checkout as any)?.alreadyCovered) {
               refetchStripeState();
               show("Golfer slots are already covered. Creating league...", "success");
-              void createLeagueAndOpenHome(modeledData).catch((error: any) => {
+              void createLeagueAndOpenAdmin(modeledData).catch((error: any) => {
                 show(error?.message || "Failed to create league.", "error");
               });
               return;
@@ -327,7 +327,7 @@ export default function CreateLeague() {
       return;
     }
 
-    void createLeagueAndOpenHome(modeledData).catch((error: any) => {
+    void createLeagueAndOpenAdmin(modeledData).catch((error: any) => {
       show(error?.message || "Failed to create league.", "error");
     });
   };

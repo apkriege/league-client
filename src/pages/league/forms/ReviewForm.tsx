@@ -18,6 +18,9 @@ import {
   getLeagueHoleFormatLabel,
 } from "@/features/leagues/leagueHoleFormat";
 import PaymentAccessCodeForm from "@/features/payments/components/PaymentAccessCodeForm";
+import TeamBuilderCard, {
+  type TeamBuilderPlayer,
+} from "@/components/league/TeamBuilderCard";
 
 type LeaguePlayer = {
   id: number;
@@ -81,10 +84,21 @@ export default function ReviewForm({
     const d = dayjs(v as string | number | Date | null | undefined);
     return d.isValid() ? d.format("MMM D, YYYY") : "-";
   };
-  const playerName = (id: number) => {
-    const p = players.find((x) => Number(x.id) === Number(id));
-    return p ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : `#${id}`;
-  };
+  const getTeamPlayers = (team: LeagueTeam): TeamBuilderPlayer[] =>
+    (team.players ?? [])
+      .map((playerId) => {
+        const player = players.find((candidate) => Number(candidate.id) === Number(playerId));
+
+        return {
+          id: Number(playerId),
+          firstName: player?.firstName || (player ? "Unnamed" : `Player #${playerId}`),
+          lastName: player?.lastName || "",
+          handicap: player?.handicap,
+        };
+      })
+      .sort((a, b) =>
+        `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+      );
 
   return (
     <div>
@@ -276,38 +290,14 @@ export default function ReviewForm({
               {sortedTeams.length === 0 ? (
                 <p className="text-xs text-gray-400">No teams created.</p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   {sortedTeams.map((team) => (
-                    <div
+                    <TeamBuilderCard
                       key={team.id}
-                      className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden"
-                    >
-                      <div className="flex items-center gap-2 px-3 py-2 bg-slate-100/60 border-b border-slate-100">
-                        <ShieldHalf size={12} className="text-slate-900/50 shrink-0" />
-                        <span className="text-xs font-bold text-gray-800 truncate flex-1">
-                          {team.name || `Team #${team.id}`}
-                        </span>
-                        <span className="text-[10px] text-gray-400 shrink-0">
-                          {team.players?.length ?? 0}p
-                        </span>
-                      </div>
-                      <div className="p-2 flex flex-wrap gap-1">
-                        {(team.players ?? [])
-                          .sort((a, b) => playerName(a).localeCompare(playerName(b)))
-                          .map((pid) => {
-                            const p = players.find((x) => Number(x.id) === Number(pid));
-                            return (
-                              <span
-                                key={pid}
-                                className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] text-gray-600"
-                              >
-                                {playerName(pid)}
-                                <span className="text-gray-400">· {p?.handicap ?? "—"}</span>
-                              </span>
-                            );
-                          })}
-                      </div>
-                    </div>
+                      name={team.name || `Team #${team.id}`}
+                      players={getTeamPlayers(team)}
+                      density="compact"
+                    />
                   ))}
                 </div>
               )}
