@@ -9,7 +9,7 @@ import { useLeague } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useCreatePlayers, useDeletePlayer, useUpdatePlayer } from "@api/players/mutations";
 import { useCreateCheckoutSession } from "@api/payments/mutations";
-import { useStripeState } from "@api/payments/queries";
+import { confirmCheckoutSession } from "@api/payments";
 import { useQueryClient } from "@tanstack/react-query";
 import { SquarePen, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +18,17 @@ import Table from "@/components/Table";
 import { useAppStore } from "@/stores/appStore";
 import Chip from "@mui/material/Chip";
 import Divider from "@/components/layout/Divider";
+import PaymentReturnNotice from "@/features/payments/components/PaymentReturnNotice";
+import {
+  clearCheckoutReturnFromUrl,
+  getCheckoutReturn,
+} from "@/features/payments/checkoutReturn";
+import {
+  PaymentPipelineError,
+  toPaymentPipelineError,
+} from "@/features/payments/PaymentPipelineError";
+import PaymentAccessCodeForm from "@/features/payments/components/PaymentAccessCodeForm";
+import { getHandicapHoleCount } from "@/features/leagues/leagueHoleFormat";
 
 const EMPTY_FORM = {
   firstName: "",
@@ -76,22 +87,28 @@ export default function Players() {
   const updatePlayer = useUpdatePlayer();
   const deletePlayer = useDeletePlayer();
   const createCheckoutSession = useCreateCheckoutSession();
-  const { refetch: reconcileStripePayment } = useStripeState(false);
   const queryClient = useQueryClient();
-  const checkoutHandled = useRef(false);
+  const checkoutReturnStartedRef = useRef(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [pendingPlayers, setPendingPlayers] = useState<(typeof EMPTY_FORM)[]>([]);
+  const [checkoutStatus, setCheckoutStatus] = useState(
+    () => getCheckoutReturn(window.location.search).checkout
+  );
+  const [checkoutReturnMessage, setCheckoutReturnMessage] = useState<string | null>(null);
+  const [isConfirmingCheckout, setIsConfirmingCheckout] = useState(false);
+  const [confirmationAttempt, setConfirmationAttempt] = useState(0);
+  const [paymentPipelineError, setPaymentPipelineError] = useState<PaymentPipelineError | null>(
+    null
+  );
 
   useEffect(() => {
-    if (checkoutHandled.current || !numericLeagueId) return;
-    const params = new URLSearchParams(window.location.search);
-    const checkoutStatus = params.get("checkout");
+    if (checkoutReturnStartedRef.current || !numericLeagueId) return;
     if (checkoutStatus !== "capacity_success" && checkoutStatus !== "capacity_cancel") return;
-    checkoutHandled.current = true;
+    checkoutReturnStartedRef.current = true;
 
     const pendingPlayer = window.localStorage.getItem(pendingPlayerKey(numericLeagueId));
     let pendingCheckout: PendingPlayerCheckout | null = null;
@@ -114,67 +131,110 @@ export default function Players() {
 
     const finishReturn = async () => {
       if (checkoutStatus === "capacity_success") {
-        const result = await reconcileStripePayment();
-        if (result.isError || !pendingCheckout) {
-          restorePendingPlayers();
-          show(
-            "Payment completed, but the players could not be saved automatically. Please try again.",
-            "warning"
+        const { sessionId } = getCheckoutReturn(window.location.search);
+        if (!sessionId) {
+          setPaymentPipelineError(
+            new PaymentPipelineError(
+              "We could not identify the returned checkout. Your saved player changes are safe. Refresh before trying another payment."
+            )
           );
-        } else {
-          try {
-            await queryClient.invalidateQueries({ queryKey: ["league", numericLeagueId] });
-            if (pendingCheckout.isEditMode && pendingCheckout.editingPlayerId) {
-              await updatePlayer.mutateAsync({
-                id: Number(pendingCheckout.editingPlayerId),
-                data: normalizePlayerForm({ ...EMPTY_FORM, ...(pendingCheckout.form || {}) }),
-              });
-              show("Payment completed and player updated.", "success");
-            } else {
-              const players = Array.isArray(pendingCheckout.players)
-                ? pendingCheckout.players.map(normalizePlayerForm)
-                : [];
-              if (players.length === 0) throw new Error("No pending players were found");
-              await createPlayers.mutateAsync({ leagueId: numericLeagueId, players });
-              show(
-                `Payment completed and ${players.length} ${players.length === 1 ? "player was" : "players were"} added.`,
-                "success"
-              );
-            }
-            window.localStorage.removeItem(pendingPlayerKey(numericLeagueId));
-            setForm(EMPTY_FORM);
-            setPendingPlayers([]);
-            setIsEditMode(false);
-            setEditingPlayerId(null);
-            setIsModalOpen(false);
-          } catch (saveError) {
-            console.error(saveError);
+          return;
+        }
+
+        setCheckoutReturnMessage(null);
+        setIsConfirmingCheckout(true);
+        try {
+          const confirmation = await confirmCheckoutSession(sessionId);
+          if (confirmation.status === "processing") {
             restorePendingPlayers();
-            show(
-              getApiErrorMessage(
-                saveError,
-                "Payment completed, but the players could not be saved automatically."
-              ),
-              "error"
+            setCheckoutReturnMessage(
+              confirmation.message || "Your payment is still processing. Check again shortly."
+            );
+            return;
+          }
+
+          if (confirmation.status === "failed") {
+            restorePendingPlayers();
+            clearCheckoutReturnFromUrl();
+            setCheckoutStatus(null);
+            setPaymentPipelineError(
+              new PaymentPipelineError(
+                confirmation.message ||
+                  "The payment pipeline did not complete. Your saved player changes are safe."
+              )
+            );
+            return;
+          }
+
+          if (!pendingCheckout) {
+            throw new PaymentPipelineError(
+              "Payment was confirmed, but the saved player changes could not be found. Refresh before making another payment."
             );
           }
+
+          await queryClient.invalidateQueries({ queryKey: ["league", numericLeagueId] });
+          if (pendingCheckout.isEditMode && pendingCheckout.editingPlayerId) {
+            await updatePlayer.mutateAsync({
+              id: Number(pendingCheckout.editingPlayerId),
+              data: normalizePlayerForm({ ...EMPTY_FORM, ...(pendingCheckout.form || {}) }),
+            });
+            show("Payment completed and player updated.", "success");
+          } else {
+            const players = Array.isArray(pendingCheckout.players)
+              ? pendingCheckout.players.map(normalizePlayerForm)
+              : [];
+            if (players.length === 0) {
+              throw new PaymentPipelineError(
+                "Payment was confirmed, but no saved players were available to add. Refresh before making another payment."
+              );
+            }
+            await createPlayers.mutateAsync({ leagueId: numericLeagueId, players });
+            show(
+              `Payment completed and ${players.length} ${players.length === 1 ? "player was" : "players were"} added.`,
+              "success"
+            );
+          }
+          clearCheckoutReturnFromUrl();
+          setCheckoutStatus(null);
+          window.localStorage.removeItem(pendingPlayerKey(numericLeagueId));
+          setForm(EMPTY_FORM);
+          setPendingPlayers([]);
+          setIsEditMode(false);
+          setEditingPlayerId(null);
+          setIsModalOpen(false);
+        } catch (returnError: unknown) {
+          restorePendingPlayers();
+          setPaymentPipelineError(
+            toPaymentPipelineError(
+              returnError,
+              "We could not safely finish the payment. Your saved player changes are safe. Refresh before trying another payment."
+            )
+          );
+        } finally {
+          setIsConfirmingCheckout(false);
         }
       } else {
         restorePendingPlayers();
+        clearCheckoutReturnFromUrl();
+        setCheckoutStatus(null);
         show("Additional-player checkout was canceled.", "warning");
       }
-
-      params.delete("checkout");
-      const query = params.toString();
-      window.history.replaceState(
-        {},
-        "",
-        `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`
-      );
     };
 
     void finishReturn();
-  }, [createPlayers, numericLeagueId, queryClient, reconcileStripePayment, show, updatePlayer]);
+  }, [
+    checkoutStatus,
+    confirmationAttempt,
+    createPlayers,
+    numericLeagueId,
+    queryClient,
+    show,
+    updatePlayer,
+  ]);
+
+  if (paymentPipelineError) {
+    throw paymentPipelineError;
+  }
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -206,6 +266,8 @@ export default function Players() {
       />
     );
   }
+
+  const handicapHoleCount = getHandicapHoleCount(league.holeFormat);
 
   const p = [...league.players].sort((a: any, b: any) => {
     if (a.type === b.type) {
@@ -280,6 +342,34 @@ export default function Players() {
     setForm(EMPTY_FORM);
   };
 
+  const startCapacityCheckout = async (requestedGolfers: number) => {
+    try {
+      const checkout = await createCheckoutSession.mutateAsync({
+        purpose: "league_capacity",
+        leagueId: numericLeagueId,
+        requestedGolfers,
+        successUrl: `${window.location.origin}/league/${numericLeagueId}/players?checkout=capacity_success`,
+        cancelUrl: `${window.location.origin}/league/${numericLeagueId}/players?checkout=capacity_cancel`,
+      });
+      if (checkout.alreadyCovered) return false;
+      if (!checkout.url) {
+        throw new PaymentPipelineError(
+          "The payment provider did not return a checkout URL. Your saved player changes are safe."
+        );
+      }
+      window.location.href = checkout.url;
+      return true;
+    } catch (error: unknown) {
+      setPaymentPipelineError(
+        toPaymentPipelineError(
+          error,
+          "The payment pipeline could not start. Your saved player changes are safe."
+        )
+      );
+      return true;
+    }
+  };
+
   const savePlayer = async () => {
     try {
       const regularPlayerCount = league.players.filter(
@@ -302,18 +392,10 @@ export default function Players() {
             pendingPlayerKey(numericLeagueId),
             JSON.stringify({ form, isEditMode, editingPlayerId, players: [] })
           );
-          const checkout = await createCheckoutSession.mutateAsync({
-            purpose: "league_capacity",
-            leagueId: numericLeagueId,
-            requestedGolfers: Math.max(paidCapacity, regularPlayerCount) + 1,
-            successUrl: `${window.location.origin}/league/${numericLeagueId}/players?checkout=capacity_success`,
-            cancelUrl: `${window.location.origin}/league/${numericLeagueId}/players?checkout=capacity_cancel`,
-          });
-          if (!checkout.alreadyCovered) {
-            if (!checkout.url) throw new Error("Could not start additional-player checkout.");
-            window.location.href = checkout.url;
-            return;
-          }
+          const checkoutStarted = await startCapacityCheckout(
+            Math.max(paidCapacity, regularPlayerCount) + 1
+          );
+          if (checkoutStarted) return;
         }
         await updatePlayer.mutateAsync({
           id: editingPlayerId,
@@ -346,18 +428,10 @@ export default function Players() {
               players: playerForms,
             })
           );
-          const checkout = await createCheckoutSession.mutateAsync({
-            purpose: "league_capacity",
-            leagueId: numericLeagueId,
-            requestedGolfers: paidCapacity + additionalRegularPlayers,
-            successUrl: `${window.location.origin}/league/${numericLeagueId}/players?checkout=capacity_success`,
-            cancelUrl: `${window.location.origin}/league/${numericLeagueId}/players?checkout=capacity_cancel`,
-          });
-          if (!checkout.alreadyCovered) {
-            if (!checkout.url) throw new Error("Could not start additional-player checkout.");
-            window.location.href = checkout.url;
-            return;
-          }
+          const checkoutStarted = await startCapacityCheckout(
+            paidCapacity + additionalRegularPlayers
+          );
+          if (checkoutStarted) return;
         }
         await createPlayers.mutateAsync({
           leagueId: numericLeagueId,
@@ -430,7 +504,8 @@ export default function Players() {
     },
     {
       key: "handicap",
-      label: "HCP",
+      label: `${handicapHoleCount}H HCP`,
+      headerClassName: "whitespace-nowrap",
       render: (value: any) => <p className="text-xs font-bold">{value}</p>,
     },
     {
@@ -469,6 +544,21 @@ export default function Players() {
         title="Players"
         subTitle="Manage your players, their profiles, and stats"
       />
+
+      {checkoutStatus && (isConfirmingCheckout || checkoutReturnMessage) && (
+        <PaymentReturnNotice
+          isChecking={isConfirmingCheckout}
+          message={
+            isConfirmingCheckout
+              ? "Confirming your payment..."
+              : checkoutReturnMessage || "We could not confirm your payment."
+          }
+          onRetry={() => {
+            checkoutReturnStartedRef.current = false;
+            setConfirmationAttempt((attempt) => attempt + 1);
+          }}
+        />
+      )}
 
       <div className="mt-5">
         <Table
@@ -533,7 +623,7 @@ export default function Players() {
             onChange={(e) => onChange("gender", e.target.value)}
           />
           <Input
-            label="Handicap"
+            label={`${handicapHoleCount}-Hole Handicap`}
             type="number"
             step="0.1"
             value={form.handicap}
@@ -565,8 +655,8 @@ export default function Players() {
                       </p>
                       <p className="text-[10px] text-slate-500">
                         {player.type === "sub" ? "Substitute" : "Regular player"} ·{" "}
-                        {player.gender === "female" ? "Women’s" : "Men’s"} ratings · HCP{" "}
-                        {player.handicap}
+                        {player.gender === "female" ? "Women’s" : "Men’s"} ratings ·{" "}
+                        {handicapHoleCount}H HCP {player.handicap}
                       </p>
                     </div>
                     <button
@@ -587,6 +677,9 @@ export default function Players() {
             )}
           </div>
         )}
+        <div className="mt-4">
+          <PaymentAccessCodeForm />
+        </div>
         <Divider className="my-2!" />
         <div className="flex items-center justify-end gap-2">
           <Button variant="default" onClick={resetAndCloseModal}>

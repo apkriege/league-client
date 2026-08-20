@@ -1,4 +1,4 @@
-export type BillingCapacityStatus = "active" | "unpaid" | "over_allocated";
+export type BillingCapacityStatus = "active" | "exempt" | "unpaid" | "over_allocated";
 export type BillingTransactionStatus = "paid" | "partially_refunded" | "refunded";
 
 export type AdminBillingSummary = {
@@ -28,6 +28,7 @@ export type AdminBillingAccount = {
   allocatedGolfers: number;
   availableGolfers: number;
   hasCompletedRegistration: boolean;
+  paymentExempt: boolean;
   capacityStatus: BillingCapacityStatus;
 };
 
@@ -59,4 +60,31 @@ export type AdminBillingDashboard = {
   accounts: AdminBillingAccount[];
   transactions: AdminBillingTransaction[];
   transactionLimit: number;
+};
+
+export type PaymentBypassCodeStatus = "active" | "redeemed" | "expired" | "revoked";
+
+export type PaymentBypassCodeUser = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type PaymentBypassCode = {
+  id: number;
+  codeHint: string;
+  label: string | null;
+  status: PaymentBypassCodeStatus;
+  expiresAt: string | null;
+  redeemedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+  createdBy: PaymentBypassCodeUser;
+  redeemedBy: PaymentBypassCodeUser | null;
+};
+
+export type GeneratedPaymentBypassCode = {
+  code: string;
+  record: Omit<PaymentBypassCode, "createdBy" | "redeemedBy">;
 };

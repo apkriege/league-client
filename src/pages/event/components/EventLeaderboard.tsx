@@ -66,7 +66,7 @@ export const ScoreLeaderboard = memo(function ScoreLeaderboard({
                           {entry.name}
                         </PlayerNameLink>
                         <p className="text-[10px] text-gray-400">
-                          HCP {entry.handicap != null ? entry.handicap.toFixed(1) : "—"}
+                          Index {entry.handicap != null ? entry.handicap.toFixed(1) : "—"}
                         </p>
                       </div>
                     </div>
@@ -152,7 +152,7 @@ export const TopThreePlayers = memo(function TopThreePlayers({ players, mode }: 
                       {player.name}
                     </PlayerNameLink>
                     <p className="text-[11px] font-medium text-gray-400">
-                      HCP {player.handicap != null && Number.isFinite(Number(player.handicap)) ? Number(player.handicap).toFixed(1) : "—"}
+                      Index {player.handicap != null && Number.isFinite(Number(player.handicap)) ? Number(player.handicap).toFixed(1) : "—"}
                     </p>
                   </div>
                 </div>

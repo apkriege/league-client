@@ -30,6 +30,7 @@ import { useLeague } from "@api/league/queries";
 import { useCoursesWithTees } from "@api/courses";
 import { useCreateLeagueEvents } from "@api/league/mutations";
 import { useToast } from "@/context/useToast";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { getEventDateInputValue } from "@/utils/eventDate";
 import { DEFAULT_STROKE_POINTS } from "../constants";
 import {
@@ -40,6 +41,10 @@ import {
   type ScheduleRound,
 } from "../multiSeriesSchedule";
 import MuiCheckbox from "@mui/material/Checkbox";
+import {
+  getFixedEventHoleCount,
+  normalizeLeagueHoleFormat,
+} from "@/features/leagues/leagueHoleFormat";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -54,7 +59,12 @@ export default function MultiSeriesBuilder() {
   const methods = useFormContext();
   const leagueStartDate = getEventDateInputValue(league?.startDate);
   const leagueEndDate = getEventDateInputValue(league?.endDate);
-  const selectedCourse = (courses || []).find(
+  const leagueHoleFormat = normalizeLeagueHoleFormat(league?.holeFormat);
+  const fixedEventHoleCount = getFixedEventHoleCount(leagueHoleFormat);
+  const availableCourses = (courses || []).filter(
+    (course: any) => fixedEventHoleCount !== 18 || Number(course.numHoles) >= 18
+  );
+  const selectedCourse = availableCourses.find(
     (course: any) => Number(course.id) === Number(methods.watch("courseId"))
   );
   const isNineHoleCourse = Number(selectedCourse?.numHoles) <= 9;
@@ -123,10 +133,13 @@ export default function MultiSeriesBuilder() {
   );
 
   useEffect(() => {
-    if (!isNineHoleCourse) return;
-    methods.setValue("holes", 9, { shouldDirty: true });
-    methods.setValue("startSide", "front", { shouldDirty: true });
-  }, [isNineHoleCourse, methods]);
+    if (fixedEventHoleCount) {
+      methods.setValue("holes", fixedEventHoleCount, { shouldDirty: true });
+    }
+    if (isNineHoleCourse) {
+      methods.setValue("startSide", "front", { shouldDirty: true });
+    }
+  }, [fixedEventHoleCount, isNineHoleCourse, methods]);
 
   const sharedStartSide = methods.watch("startSide") === "back" ? "back" : "front";
   const getEventStartSide = (index: number) => {
@@ -148,7 +161,7 @@ export default function MultiSeriesBuilder() {
   });
 
   // Course / tee options
-  const courseOptions = (courses || []).map((c: any) => ({
+  const courseOptions = availableCourses.map((c: any) => ({
     value: c.id,
     label: c.name,
     content: (
@@ -236,29 +249,39 @@ export default function MultiSeriesBuilder() {
       return;
     }
     const shared = methods.getValues();
-    mutation.mutate({
-      leagueId: Number(leagueId),
-      events: resolvedSchedule.map((r, i) => ({
-        name: `${seriesName} - Round ${i + 1}`,
-        type: "regular",
-        date: r.date,
-        startTime: shared.startTime,
-        interval: shared.interval,
-        courseId: shared.courseId,
-        teeId: shared.teeId,
-        startSide: getEventStartSide(i),
-        holes: shared.holes,
-        format: shared.format,
-        scoringFormat: shared.scoringFormat,
-        pointsEnabled: shared.pointsEnabled,
-        ptsPerHole: shared.ptsPerHole,
-        ptsPerMatch: shared.ptsPerMatch,
-        ptsPerTeamWin: shared.ptsPerTeamWin,
-        strokePoints: shared.strokePoints,
-        teams: shared.teams,
-        flights: r.flights,
-      })),
-    });
+    mutation.mutate(
+      {
+        leagueId: Number(leagueId),
+        events: resolvedSchedule.map((r, i) => ({
+          name: `${seriesName} - Round ${i + 1}`,
+          type: "regular",
+          date: r.date,
+          startTime: shared.startTime,
+          interval: shared.interval,
+          courseId: shared.courseId,
+          teeId: shared.teeId,
+          startSide: getEventStartSide(i),
+          holes: shared.holes,
+          format: shared.format,
+          scoringFormat: shared.scoringFormat,
+          pointsEnabled: shared.pointsEnabled,
+          ptsPerHole: shared.ptsPerHole,
+          ptsPerMatch: shared.ptsPerMatch,
+          ptsPerTeamWin: shared.ptsPerTeamWin,
+          strokePoints: shared.strokePoints,
+          teams: shared.teams,
+          flights: r.flights,
+        })),
+      },
+      {
+        onError: (error: unknown) => {
+          show(
+            getApiErrorMessage(error, "Unable to create the event series. Please try again."),
+            "error",
+          );
+        },
+      },
+    );
   };
 
   // ---------------------------------------------------------------------------
@@ -355,14 +378,10 @@ export default function MultiSeriesBuilder() {
                 />
                 <div>
                   <Label text="Holes" />
-                  <ToggleCards
-                    value={String(methods.watch("holes"))}
-                    onChange={(v) => methods.setValue("holes", Number(v))}
-                    options={[
-                      { value: "9", label: "9" },
-                      ...(!isNineHoleCourse ? [{ value: "18", label: "18" }] : []),
-                    ]}
-                  />
+                  <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
+                    <span className="font-semibold">{fixedEventHoleCount ?? 18} holes</span>
+                    <span className="ml-1 text-slate-900/60">locked by league settings.</span>
+                  </div>
                 </div>
               </div>
             </div>

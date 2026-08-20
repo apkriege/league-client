@@ -4,6 +4,7 @@ import Chip from "@mui/material/Chip";
 
 const STATUS_LABELS = {
   active: "Active",
+  exempt: "Payment exempt",
   unpaid: "Not paid",
   over_allocated: "Over allocated",
 } as const;
@@ -41,7 +42,13 @@ export default function BillingAccountsTable({ accounts }: BillingAccountsTableP
         <Chip
           label={STATUS_LABELS[value as AdminBillingAccount["capacityStatus"]]}
           size="small"
-          color={value === "active" ? "success" : value === "over_allocated" ? "error" : "default"}
+          color={
+            value === "active" || value === "exempt"
+              ? "success"
+              : value === "over_allocated"
+                ? "error"
+                : "default"
+          }
           variant="outlined"
         />
       ),

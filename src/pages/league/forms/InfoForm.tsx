@@ -3,9 +3,13 @@ import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
 import dayjs from "dayjs";
-import { Trophy, User, Users, CalendarRange } from "lucide-react";
-import { useEffect } from "react";
+import { Trophy, User, Users, CalendarRange, Flag, Repeat2 } from "lucide-react";
 import { Controller, useFormContext } from "react-hook-form";
+import {
+  clampLeagueEndDate,
+  getLeagueDateInputValue,
+  getMaximumLeagueEndDate,
+} from "../leagueDates";
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <SectionKicker className="mb-3">{children}</SectionKicker>
@@ -14,15 +18,8 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 export default function InfoForm() {
   const leagueForm = useFormContext();
   const startDate = leagueForm.watch("startDate");
-  const maxEndDate = dayjs(startDate).add(1, "year").format("YYYY-MM-DD");
-
-  useEffect(() => {
-    if (!startDate || !dayjs(startDate).isValid()) return;
-    const expectedEndDate = dayjs(startDate).add(1, "year");
-    if (!dayjs(leagueForm.getValues("endDate")).isSame(expectedEndDate, "day")) {
-      leagueForm.setValue("endDate", expectedEndDate.toDate(), { shouldDirty: true });
-    }
-  }, [leagueForm, startDate]);
+  const startDateInput = getLeagueDateInputValue(startDate);
+  const maxEndDate = getMaximumLeagueEndDate(startDate);
 
   return (
     <>
@@ -73,9 +70,11 @@ export default function InfoForm() {
                     onChange={(e) => {
                       const nextStartDate = dayjs(e.target.value).toDate();
                       field.onChange(nextStartDate);
-                      leagueForm.setValue("endDate", dayjs(nextStartDate).add(1, "year").toDate(), {
-                        shouldDirty: true,
-                      });
+                      leagueForm.setValue(
+                        "endDate",
+                        clampLeagueEndDate(nextStartDate, leagueForm.getValues("endDate")),
+                        { shouldDirty: true },
+                      );
                     }}
                   />
                 )}
@@ -88,10 +87,10 @@ export default function InfoForm() {
                     type="date"
                     label="End Date"
                     placeholder="YYYY-MM-DD"
+                    min={startDateInput}
                     max={maxEndDate}
-                    disabled
-                    value={dayjs(field.value).format("YYYY-MM-DD")}
-                    onChange={() => field.onChange(dayjs(maxEndDate).toDate())}
+                    value={getLeagueDateInputValue(field.value)}
+                    onChange={(event) => field.onChange(dayjs(event.target.value).toDate())}
                   />
                 )}
               />
@@ -123,6 +122,7 @@ export default function InfoForm() {
               onClick={() => {
                 leagueForm.setValue("type", "tournament");
                 leagueForm.setValue("format", null);
+                leagueForm.setValue("holeFormat", "mixed", { shouldDirty: true });
               }}
             />
           </div>
@@ -150,6 +150,33 @@ export default function InfoForm() {
             </div>
           </Card>
         )}
+
+        <Card>
+          <SectionLabel>League Holes & Handicap</SectionLabel>
+          <div className="grid grid-cols-3 gap-2">
+            <SelectableInfoCard
+              title="9 Holes"
+              description="Every event is 9 holes. Player entries and ongoing calculations use a 9-hole handicap."
+              icon={<Flag size={16} className="text-slate-900" />}
+              active={leagueForm.watch("holeFormat") === "9"}
+              onClick={() => leagueForm.setValue("holeFormat", "9", { shouldDirty: true })}
+            />
+            <SelectableInfoCard
+              title="18 Holes"
+              description="Every event is 18 holes. Player entries and calculations use an 18-hole handicap."
+              icon={<Flag size={16} className="text-slate-900" />}
+              active={leagueForm.watch("holeFormat") === "18"}
+              onClick={() => leagueForm.setValue("holeFormat", "18", { shouldDirty: true })}
+            />
+            <SelectableInfoCard
+              title="Mixed 9/18"
+              description="Events may be 9 or 18 holes and must be added manually. Handicaps use the 18-hole value."
+              icon={<Repeat2 size={16} className="text-slate-900" />}
+              active={leagueForm.watch("holeFormat") === "mixed"}
+              onClick={() => leagueForm.setValue("holeFormat", "mixed", { shouldDirty: true })}
+            />
+          </div>
+        </Card>
 
         {/* Contact */}
         <Card>

@@ -400,7 +400,7 @@ function ScorecardGrid({
                   <p className="font-semibold text-slate-800 leading-tight">
                     {player.name}
                     <span className="ml-1 font-normal text-[9px] text-slate-500">
-                      HCP {player.handicap != null ? player.handicap.toFixed(1) : "-"}
+                      Course HCP {player.handicap != null ? player.handicap.toFixed(1) : "-"}
                     </span>
                   </p>
                   {player.detail ? <p className="text-[9px] text-slate-500">{player.detail}</p> : null}

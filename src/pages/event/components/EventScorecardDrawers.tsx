@@ -147,7 +147,7 @@ export const IndividualStrokeScorecardsDrawer = memo(function IndividualStrokeSc
                       {round.player.firstName} {round.player.lastName}
                     </PlayerNameLink>
                     <div className="mt-0.5 text-[10px] leading-tight text-gray-500">
-                      Handicap: {Math.round(Number(round.preHandicap ?? 0))}
+                      Index: {Number(round.preHandicap ?? 0).toFixed(1)}
                     </div>
                   </td>
                   {holes.map((hole) => {

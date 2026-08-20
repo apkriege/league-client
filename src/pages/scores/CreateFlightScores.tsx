@@ -23,8 +23,8 @@ import { formatTime } from "@/utils/format";
 import {
   getEventScoringHoles,
   getPlayerCourseHandicap,
-  getPlayerHandicapIndex,
 } from "./scoringSetup";
+import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
 
 export const CreateFlightScores = ({
   flight,
@@ -573,7 +573,6 @@ export const CreateFlightScores = ({
 
   const renderPlayerRow = (player: any, team: 1 | 2, idx: number) => {
     const p = player.player;
-    const displayHandicap = getPlayerHandicapIndex(player);
     const slotKey = getSlotKey(team, idx);
     const swapCandidates = getSwapCandidates(team, idx, Number(player.playerId));
     const isEditingSwap = editingSwapSlot === slotKey;
@@ -627,7 +626,7 @@ export const CreateFlightScores = ({
               </div>
             )}
           </div>
-          <span className="text-[10px]">Handicap: {displayHandicap}</span>
+          <PlayerHandicapSummary entry={player} />
         </td>
         {holes.map((hole: any, holeIdx: number) => (
           <td key={hole.num} className="p-2">

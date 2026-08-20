@@ -7,6 +7,7 @@ import { ExternalLink, Info } from "lucide-react";
 import BillingAccountsTable from "./components/BillingAccountsTable";
 import BillingSummaryCards from "./components/BillingSummaryCards";
 import BillingTransactionsTable from "./components/BillingTransactionsTable";
+import PaymentBypassCodes from "./components/PaymentBypassCodes";
 
 export default function BillingAdmin() {
   const { data, isLoading, isError, error } = useAdminBilling();
@@ -52,6 +53,7 @@ export default function BillingAdmin() {
       </div>
 
       <BillingSummaryCards summary={data.summary} />
+      <PaymentBypassCodes />
       <BillingAccountsTable accounts={data.accounts} />
       <BillingTransactionsTable transactions={data.transactions} limit={data.transactionLimit} />
     </div>

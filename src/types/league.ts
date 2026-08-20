@@ -4,6 +4,7 @@ export type League = {
   description: string;
   numPlayers: number;
   type: "season" | "tournament" | string;
+  holeFormat: "9" | "18" | "mixed";
   format?: "individual" | "team" | null | string;
   contactFirstName: string;
   contactLastName: string;

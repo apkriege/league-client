@@ -13,6 +13,11 @@ import {
   User,
   Users,
 } from "lucide-react";
+import {
+  getHandicapHoleCount,
+  getLeagueHoleFormatLabel,
+} from "@/features/leagues/leagueHoleFormat";
+import PaymentAccessCodeForm from "@/features/payments/components/PaymentAccessCodeForm";
 
 type LeaguePlayer = {
   id: number;
@@ -34,6 +39,7 @@ interface ReviewFormProps {
   leagueData: any;
   billing?: any;
   isBillingLoading?: boolean;
+  onPaymentAccessGranted?: () => void | Promise<unknown>;
 }
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
@@ -44,18 +50,21 @@ export default function ReviewForm({
   leagueData,
   billing,
   isBillingLoading = false,
+  onPaymentAccessGranted,
 }: ReviewFormProps) {
   const players: LeaguePlayer[] = leagueData?.players || [];
   const teams: LeagueTeam[] = leagueData?.teams || [];
   const leagueType = String(leagueData?.type || "").toLowerCase();
   const leagueFormat = String(leagueData?.format || "").toLowerCase();
   const isTeamSeason = leagueType === "season" && leagueFormat === "team";
+  const handicapHoleCount = getHandicapHoleCount(leagueData?.holeFormat);
   const includedGolfers = Number(billing?.includedGolfers || 0);
   const allocatedGolfers = Number(billing?.allocatedGolfers || 0);
   const requestedGolfers = getLeagueBillableGolfers(players);
+  const paymentExempt = Boolean(billing?.paymentExempt);
   const additionalGolfersRequired = Math.max(
     0,
-    allocatedGolfers + requestedGolfers - includedGolfers
+    paymentExempt ? 0 : allocatedGolfers + requestedGolfers - includedGolfers
   );
   const additionalCost = additionalGolfersRequired * BILLING_PRICE_PER_GOLFER;
   const needsPayment = !isBillingLoading && additionalGolfersRequired > 0;
@@ -161,6 +170,11 @@ export default function ReviewForm({
                         : fmt(leagueType),
                   },
                   {
+                    icon: <Flag size={12} className="text-gray-400" />,
+                    label: "Holes / Handicap",
+                    value: `${getLeagueHoleFormatLabel(leagueData?.holeFormat)} · ${handicapHoleCount}-hole HCP`,
+                  },
+                  {
                     icon: <User size={12} className="text-gray-400" />,
                     label: "Contact",
                     value:
@@ -176,12 +190,11 @@ export default function ReviewForm({
                     icon: <Phone size={12} className="text-gray-400" />,
                     label: "Phone",
                     value: leagueData?.contactPhone ? formatPhone(leagueData.contactPhone) : "—",
-                    span: true,
                   },
-                ].map(({ icon, label, value, span }) => (
+                ].map(({ icon, label, value }) => (
                   <div
                     key={label}
-                    className={`bg-white px-4 py-2.5 flex items-start gap-2 ${span ? "col-span-2" : ""}`}
+                    className="flex items-start gap-2 bg-white px-4 py-2.5"
                   >
                     <span className="mt-0.5 shrink-0">{icon}</span>
                     <div className="min-w-0">
@@ -209,7 +222,9 @@ export default function ReviewForm({
                 >
                   <span>Player</span>
                   <span className="text-center">Type</span>
-                  <span className="text-right">HCP</span>
+                  <span className="whitespace-nowrap text-right">
+                    {handicapHoleCount}H HCP
+                  </span>
                 </SectionKicker>
                 <div className="max-h-64 divide-y divide-slate-100 overflow-auto">
                   {sortedPlayers.map((p) => {
@@ -343,6 +358,9 @@ export default function ReviewForm({
                 <p className="text-[11px] leading-5 text-gray-500">
                   League creation is locked until your golfer capacity covers this roster.
                 </p>
+                <div className="mt-3">
+                  <PaymentAccessCodeForm onRedeemed={onPaymentAccessGranted} />
+                </div>
               </div>
             </div>
           )}

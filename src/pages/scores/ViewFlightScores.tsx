@@ -9,6 +9,7 @@ import {
   sortFlightTeamsByHandicap,
 } from "./util";
 import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
+import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
 
 function PlayerNameLink({
   playerId,
@@ -205,7 +206,6 @@ const PlayerRow = ({ player, holes }: any) => {
   const p = player.player;
   const round = p.rounds[0];
   const scores = round?.scores || [];
-  const hcp = getPlayerCourseHandicap(player);
 
   return (
     <tr key={player.id} className="text-sm bg-slate-50/50">
@@ -213,9 +213,7 @@ const PlayerRow = ({ player, holes }: any) => {
         <PlayerNameLink playerId={player.playerId}>
           {p.firstName} {p.lastName}
         </PlayerNameLink>
-        <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
-          Handicap: {Math.round(hcp)}
-        </div>
+        <PlayerHandicapSummary entry={player} className="mt-0.5 block text-[10px] leading-tight text-gray-500" />
       </td>
       {holes.map((hole: any, holeIdx: number) => {
         const score = scores[holeIdx]?.gross;
@@ -346,9 +344,10 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
             <PlayerNameLink playerId={playerEntry.playerId} className="block font-semibold text-gray-800 hover:text-slate-900 hover:underline">
               {player.firstName} {player.lastName}
             </PlayerNameLink>
-            <span className="block text-[10px]">
-              Handicap: {Math.round(getEffectiveHandicap(playerEntry))}
-            </span>
+            <PlayerHandicapSummary
+              entry={playerEntry}
+              className="block text-[10px] text-gray-500"
+            />
           </td>
           {holes.map((hole: any) => {
             const score = getScoreByHole(playerEntry, hole.num);

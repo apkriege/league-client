@@ -12,6 +12,7 @@ import { formatPhone } from "@/utils/format";
 import Button from "@/components/layout/Button";
 import Chip from "@mui/material/Chip";
 import PageHeader from "@/components/layout/PageHeader";
+import { getHandicapHoleCount } from "@/features/leagues/leagueHoleFormat";
 
 const defaultPlayer = {
   firstName: "",
@@ -49,6 +50,7 @@ export default function PlayersForm() {
   const teams = watch("teams") || [];
   const leagueType = String(watch("type") || "").toLowerCase();
   const leagueFormat = String(watch("format") || "").toLowerCase();
+  const handicapHoleCount = getHandicapHoleCount(watch("holeFormat"));
   const hasTeamsStep = leagueType === "season" && leagueFormat === "team";
 
   const playerForm = useForm({
@@ -113,7 +115,7 @@ export default function PlayersForm() {
       key: "id",
       label: "ID",
       width: "6%",
-      render: (value: any) => <p className="text-sm text-gray-500">{value}</p>,
+      render: (value: any) => <p className="text-xs text-gray-500">{value}</p>,
     },
     {
       key: "firstName",
@@ -126,7 +128,7 @@ export default function PlayersForm() {
             {row.lastName[0]}
           </div>
           <div>
-            <p className="mb-0.5 text-base font-semibold text-slate-900">
+            <p className="mb-0.5 text-sm font-semibold text-slate-900">
               {row.firstName} {row.lastName}
             </p>
             {(row.email || row.phone) && (
@@ -154,14 +156,15 @@ export default function PlayersForm() {
     },
     {
       key: "handicap",
-      label: "HCP",
-      render: (value: any) => <p className="text-base font-bold">{value}</p>,
+      label: `${handicapHoleCount}H HCP`,
+      headerClassName: "whitespace-nowrap",
+      render: (value: any) => <p className="text-sm font-bold">{value}</p>,
     },
     {
       key: "gender",
       label: "Gender",
       render: (value: any) => (
-        <p className="text-sm font-semibold capitalize">{value}</p>
+        <p className="text-xs font-semibold capitalize">{value}</p>
       ),
     },
     {
@@ -192,7 +195,7 @@ export default function PlayersForm() {
           hasTeamsStep
             ? " Add players to your league and assign them to teams in the next step."
             : " Add players to your league and continue to review."
-        }`}
+        } Enter each player's ${handicapHoleCount}-hole handicap.`}
       />
 
       <Card className="mt-6">
@@ -247,7 +250,13 @@ export default function PlayersForm() {
             name="handicap"
             control={playerForm.control}
             render={({ field }) => (
-              <Input label="Handicap" placeholder="Enter handicap" {...field} />
+              <Input
+                label={`${handicapHoleCount}-Hole Handicap`}
+                placeholder={`Enter ${handicapHoleCount}-hole handicap`}
+                type="number"
+                step="0.1"
+                {...field}
+              />
             )}
           />
           <Controller

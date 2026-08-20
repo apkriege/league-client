@@ -22,8 +22,8 @@ import { formatTime } from "@/utils/format";
 import {
   getEventScoringHoles,
   getPlayerCourseHandicap,
-  getPlayerHandicapIndex,
 } from "./scoringSetup";
+import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
 
 export const CreateFlightScoresIndividualMatch = ({
   flight,
@@ -333,7 +333,6 @@ export const CreateFlightScoresIndividualMatch = ({
 
   const renderPlayerRow = (player: any, playerIndex: number) => {
     const p = player.player;
-    const displayHandicap = getPlayerHandicapIndex(player);
     const { holePoints, matchPoints } = getMatchupPoints(Number(player.playerId));
     const holePointValues = getHolePointValues(Number(player.playerId));
     const swapCandidates = getSwapCandidates({
@@ -359,7 +358,7 @@ export const CreateFlightScoresIndividualMatch = ({
                 onSwap={(replacementId) => savePlayerSwap(playerIndex, replacementId)}
               />
             </div>
-            <span className="block text-[10px]">Handicap: {displayHandicap}</span>
+            <PlayerHandicapSummary entry={player} className="block text-[10px] text-gray-500" />
           </td>
           {holes.map((hole: any, holeIdx: number) => (
             <td key={hole.num} className="p-2">

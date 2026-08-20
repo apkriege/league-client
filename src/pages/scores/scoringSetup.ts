@@ -1,7 +1,15 @@
 export const getEventScoringHoles = (event: any): any[] =>
   Array.isArray(event?.scoringHoles) ? event.scoringHoles : [];
 
-export const getPlayerCourseHandicap = (entry: any): number => {
+export type ScoringHandicapEntry = {
+  courseHandicap?: unknown;
+  handicapIndex?: unknown;
+  player?: {
+    handicap?: unknown;
+  };
+};
+
+export const getPlayerCourseHandicap = (entry: ScoringHandicapEntry): number => {
   const rawCourseHandicap = entry?.courseHandicap;
   const courseHandicap =
     rawCourseHandicap === null || rawCourseHandicap === undefined || rawCourseHandicap === ""
@@ -13,15 +21,7 @@ export const getPlayerCourseHandicap = (entry: any): number => {
   return courseHandicap;
 };
 
-type PlayerHandicapEntry = {
-  courseHandicap?: unknown;
-  handicapIndex?: unknown;
-  player?: {
-    handicap?: unknown;
-  };
-};
-
-export const getPlayerHandicapIndex = (entry: PlayerHandicapEntry): number => {
+export const getPlayerHandicapIndex = (entry: ScoringHandicapEntry): number => {
   const rawHandicapIndex = entry?.handicapIndex;
   const handicapIndex =
     rawHandicapIndex === null || rawHandicapIndex === undefined || rawHandicapIndex === ""

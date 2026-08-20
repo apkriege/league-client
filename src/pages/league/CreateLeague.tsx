@@ -13,8 +13,22 @@ import Stepper from "@/components/layout/Stepper";
 import { getLeagueBillableGolfers } from "@/lib/billing";
 import { useAppStore } from "@/stores/appStore";
 import PageState from "@/components/layout/PageState";
-import { validateLeagueForm } from "./validation";
+import {
+  validateLeagueForm,
+  validateLeagueWizardStep,
+  type LeagueWizardStep,
+} from "./validation";
 import { CREATE_LEAGUE_DRAFT_STORAGE_KEY } from "./leagueDraft";
+import { confirmCheckoutSession } from "@api/payments";
+import PaymentReturnNotice from "@/features/payments/components/PaymentReturnNotice";
+import {
+  clearCheckoutReturnFromUrl,
+  getCheckoutReturn,
+} from "@/features/payments/checkoutReturn";
+import {
+  PaymentPipelineError,
+  toPaymentPipelineError,
+} from "@/features/payments/PaymentPipelineError";
 
 const getDefaultStartDate = () => new Date();
 const getDefaultEndDate = (startDate = getDefaultStartDate()) => {
@@ -28,6 +42,7 @@ const createDefaultLeagueData = () => ({
   description: "",
   numPlayers: 0,
   type: "season",
+  holeFormat: "18",
   format: "individual",
   contactFirstName: "",
   contactLastName: "",
@@ -90,7 +105,13 @@ export default function CreateLeague() {
 
   const [step, setStep] = useState(1);
   const [checkoutStatus, setCheckoutStatus] = useState(
-    () => new URLSearchParams(window.location.search).get("checkout"),
+    () => getCheckoutReturn(window.location.search).checkout,
+  );
+  const [checkoutReturnMessage, setCheckoutReturnMessage] = useState<string | null>(null);
+  const [isConfirmingCheckout, setIsConfirmingCheckout] = useState(false);
+  const [confirmationAttempt, setConfirmationAttempt] = useState(0);
+  const [paymentPipelineError, setPaymentPipelineError] = useState<PaymentPipelineError | null>(
+    null
   );
 
   const leagueForm = useForm({
@@ -161,13 +182,8 @@ export default function CreateLeague() {
   useEffect(() => {
     if (!checkoutStatus) return;
 
-    const params = new URLSearchParams(window.location.search);
-    params.delete("checkout");
-    const nextQuery = params.toString();
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
-    window.history.replaceState({}, "", nextUrl);
-
     if (checkoutStatus === "registration_cancel" || checkoutStatus === "upgrade_cancel") {
+      clearCheckoutReturnFromUrl();
       show("Golfer checkout was canceled.", "warning");
       return;
     }
@@ -182,22 +198,63 @@ export default function CreateLeague() {
     checkoutResumeStartedRef.current = true;
 
     const resumeLeagueCreation = async () => {
-      show("Payment completed. Creating your league...", "success");
+      const { sessionId } = getCheckoutReturn(window.location.search);
+      if (!sessionId) {
+        setPaymentPipelineError(
+          new PaymentPipelineError(
+            "We could not identify the returned checkout. Your saved league is safe. Refresh the page to check billing before trying another payment."
+          )
+        );
+        return;
+      }
 
+      setCheckoutReturnMessage(null);
+      setIsConfirmingCheckout(true);
       try {
-        await refetchStripeState();
-        const { validationMessage, modeledData } = prepareLeagueData(leagueForm.getValues());
-        if (validationMessage || !modeledData) {
-          show(
-            `Payment completed, but the saved league could not be created. ${validationMessage || "Review the league details and try again."}`,
-            "error",
+        const confirmation = await confirmCheckoutSession(sessionId);
+        if (confirmation.status === "processing") {
+          setCheckoutReturnMessage(
+            confirmation.message || "Your payment is still processing. Check again shortly."
           );
           return;
         }
 
+        if (confirmation.status === "failed") {
+          clearCheckoutReturnFromUrl();
+          setCheckoutStatus(null);
+          setStep(Number.MAX_SAFE_INTEGER);
+          setPaymentPipelineError(
+            new PaymentPipelineError(
+              confirmation.message ||
+                "The payment pipeline did not complete. Your saved league is safe. Refresh before trying checkout again."
+            )
+          );
+          return;
+        }
+
+        clearCheckoutReturnFromUrl();
+        setCheckoutStatus(null);
+        setStep(Number.MAX_SAFE_INTEGER);
+        show("Payment confirmed. Creating your league...", "success");
+        const billingResult = await refetchStripeState();
+        if (billingResult.isError) throw billingResult.error;
+        const { validationMessage, modeledData } = prepareLeagueData(leagueForm.getValues());
+        if (validationMessage || !modeledData) {
+          throw new PaymentPipelineError(
+            `Payment completed, but the saved league could not be created. ${validationMessage || "Review the saved league details after refreshing."}`
+          );
+        }
+
         await createLeagueAndOpenHome(modeledData);
-      } catch (error: any) {
-        show(error?.message || "Payment completed, but the league could not be created.", "error");
+      } catch (error: unknown) {
+        setPaymentPipelineError(
+          toPaymentPipelineError(
+            error,
+            "We could not safely finish the payment. Your saved league is safe. Refresh before trying another payment."
+          )
+        );
+      } finally {
+        setIsConfirmingCheckout(false);
       }
     };
 
@@ -205,6 +262,7 @@ export default function CreateLeague() {
   }, [
     checkoutStatus,
     createLeagueAndOpenHome,
+    confirmationAttempt,
     leagueForm,
     refetchStripeState,
     show,
@@ -223,10 +281,11 @@ export default function CreateLeague() {
     }
     const includedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
     const allocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
+    const paymentExempt = Boolean(stripeState?.billing?.paymentExempt);
     const requestedGolfers = getLeagueBillableGolfers(modeledData.players);
     const targetIncludedGolfers = allocatedGolfers + requestedGolfers;
 
-    if (targetIncludedGolfers > includedGolfers) {
+    if (!paymentExempt && targetIncludedGolfers > includedGolfers) {
       createCheckoutSession.mutate(
         {
           purpose: includedGolfers === 0 ? "registration" : "seat_upgrade",
@@ -246,13 +305,22 @@ export default function CreateLeague() {
             }
 
             if (!checkout?.url) {
-              show("Could not start golfer upgrade checkout. Please try again.", "error");
+              setPaymentPipelineError(
+                new PaymentPipelineError(
+                  "The payment provider did not return a checkout URL. Your saved league is safe."
+                )
+              );
               return;
             }
             window.location.href = checkout.url;
           },
-          onError: (error: any) => {
-            show(error?.message || "Failed to start golfer upgrade checkout.", "error");
+          onError: (error: unknown) => {
+            setPaymentPipelineError(
+              toPaymentPipelineError(
+                error,
+                "The payment pipeline could not start. Your saved league is safe."
+              )
+            );
           },
         }
       );
@@ -265,21 +333,26 @@ export default function CreateLeague() {
   };
 
   const leagueData = useWatch({ control: leagueForm.control });
-  const steps =
+  const steps: LeagueWizardStep[] =
     leagueData.type === "season" && leagueData.format === "team"
       ? ["info", "players", "teams", "review"]
       : ["info", "players", "review"];
   const footerIncludedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
   const footerAllocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
   const footerRequestedGolfers = getLeagueBillableGolfers(leagueData.players || []);
+  const footerPaymentExempt = Boolean(stripeState?.billing?.paymentExempt);
   const footerAdditionalGolfersRequired = Math.max(
     0,
-    footerAllocatedGolfers + footerRequestedGolfers - footerIncludedGolfers
+    footerPaymentExempt
+      ? 0
+      : footerAllocatedGolfers + footerRequestedGolfers - footerIncludedGolfers
   );
   const finalActionLabel = footerAdditionalGolfersRequired > 0
       ? `Pay for ${footerAdditionalGolfersRequired} Golfers`
       : "Create League";
-  const currentStep = checkoutStatus
+  const hasActiveCheckoutReturn =
+    checkoutStatus !== null && ["registration_success", "upgrade_success"].includes(checkoutStatus);
+  const currentStep = hasActiveCheckoutReturn
     ? steps.length
     : Math.max(1, Math.min(steps.length, step));
 
@@ -287,6 +360,10 @@ export default function CreateLeague() {
     setCheckoutStatus(null);
     setStep(Math.max(1, Math.min(steps.length, nextStep)));
   };
+
+  if (paymentPipelineError) {
+    throw paymentPipelineError;
+  }
 
   if (user && !canCreateLeague) {
     return (
@@ -303,6 +380,20 @@ export default function CreateLeague() {
   return (
     <div>
       <div ref={topRef} />
+      {checkoutStatus && (isConfirmingCheckout || checkoutReturnMessage) && (
+        <PaymentReturnNotice
+          isChecking={isConfirmingCheckout}
+          message={
+            isConfirmingCheckout
+              ? "Confirming your payment..."
+              : checkoutReturnMessage || "We could not confirm your payment."
+          }
+          onRetry={() => {
+            checkoutResumeStartedRef.current = false;
+            setConfirmationAttempt((attempt) => attempt + 1);
+          }}
+        />
+      )}
       <div>
         <FormProvider {...leagueForm}>
           <div className="step-body">
@@ -315,6 +406,7 @@ export default function CreateLeague() {
                 leagueData={leagueData}
                 billing={stripeState?.billing}
                 isBillingLoading={billingLoading}
+                onPaymentAccessGranted={() => refetchStripeState()}
               />
             )}
           </div>
@@ -324,7 +416,12 @@ export default function CreateLeague() {
         <Stepper
           step={currentStep}
           totalSteps={steps.length}
-          isSubmitting={createLeague.isPending || createCheckoutSession.isPending || billingLoading}
+          isSubmitting={
+            createLeague.isPending ||
+            createCheckoutSession.isPending ||
+            billingLoading ||
+            hasActiveCheckoutReturn
+          }
           smoothScroll
           scrollTargetRef={topRef}
           nextLabel={
@@ -340,6 +437,16 @@ export default function CreateLeague() {
           onNext={() => {
             if (currentStep === steps.length) {
               handleSubmit();
+              return;
+            }
+
+            const currentStepName = steps[currentStep - 1];
+            const validationMessage = validateLeagueWizardStep(
+              leagueForm.getValues(),
+              currentStepName,
+            );
+            if (validationMessage) {
+              show(validationMessage, "error");
               return;
             }
 

@@ -18,6 +18,10 @@ import { useParams } from "react-router";
 import { DEFAULT_STROKE_POINTS } from "../constants";
 import MuiCheckbox from "@mui/material/Checkbox";
 import { useToast } from "@/context/useToast";
+import {
+  getFixedEventHoleCount,
+  normalizeLeagueHoleFormat,
+} from "@/features/leagues/leagueHoleFormat";
 
 export default function InfoForm() {
   const { leagueId } = useParams();
@@ -27,7 +31,12 @@ export default function InfoForm() {
   const { show } = useToast();
   const leagueStartDate = getEventDateInputValue(league?.startDate);
   const leagueEndDate = getEventDateInputValue(league?.endDate);
-  const selectedCourse = (courses || []).find(
+  const leagueHoleFormat = normalizeLeagueHoleFormat(league?.holeFormat);
+  const fixedEventHoleCount = getFixedEventHoleCount(leagueHoleFormat);
+  const availableCourses = (courses || []).filter(
+    (course: any) => fixedEventHoleCount !== 18 || Number(course.numHoles) >= 18
+  );
+  const selectedCourse = availableCourses.find(
     (course: any) => Number(course.id) === Number(methods.watch("courseId"))
   );
   const isNineHoleCourse = Number(selectedCourse?.numHoles) <= 9;
@@ -47,14 +56,19 @@ export default function InfoForm() {
   }, [leagueStartDate, leagueEndDate, methods]);
 
   useEffect(() => {
-    if (!isNineHoleCourse) return;
-    methods.setValue("holes", 9, { shouldDirty: true });
-    methods.setValue("startSide", "front", { shouldDirty: true });
-  }, [isNineHoleCourse, methods]);
+    if (fixedEventHoleCount) {
+      methods.setValue("holes", fixedEventHoleCount, { shouldDirty: true });
+    } else if (isNineHoleCourse) {
+      methods.setValue("holes", 9, { shouldDirty: true });
+    }
+    if (isNineHoleCourse) {
+      methods.setValue("startSide", "front", { shouldDirty: true });
+    }
+  }, [fixedEventHoleCount, isNineHoleCourse, methods]);
 
   if (!courses) return null;
 
-  const courseOptions = courses.map((course: any) => ({
+  const courseOptions = availableCourses.map((course: any) => ({
     value: course.id,
     label: course.name,
     content: (
@@ -230,14 +244,21 @@ export default function InfoForm() {
             />
             <div>
               <Label text="Holes" />
-              <ToggleCards
-                value={String(methods.watch("holes"))}
-                onChange={(value) => methods.setValue("holes", Number(value))}
-                options={[
-                  { value: "9", label: "9" },
-                  ...(!isNineHoleCourse ? [{ value: "18", label: "18" }] : []),
-                ]}
-              />
+              {fixedEventHoleCount ? (
+                <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
+                  <span className="font-semibold">{fixedEventHoleCount} holes</span>
+                  <span className="ml-1 text-slate-900/60">locked by league settings.</span>
+                </div>
+              ) : (
+                <ToggleCards
+                  value={String(methods.watch("holes"))}
+                  onChange={(value) => methods.setValue("holes", Number(value))}
+                  options={[
+                    { value: "9", label: "9" },
+                    ...(!isNineHoleCourse ? [{ value: "18", label: "18" }] : []),
+                  ]}
+                />
+              )}
             </div>
           </div>
         </Card>

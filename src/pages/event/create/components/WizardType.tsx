@@ -46,9 +46,11 @@ const WizardCard = ({
 export default function WizardType({
   wizardType,
   setWizardType,
+  allowMulti = true,
 }: {
   wizardType: EventWizardType;
   setWizardType: (type: EventWizardType) => void;
+  allowMulti?: boolean;
 }) {
   return (
     <div>
@@ -61,26 +63,29 @@ export default function WizardType({
           selected={wizardType === "single"}
           onSelect={() => setWizardType("single")}
         />
-        <WizardCard
-          icon={<Trophy size={18} className="text-sky-600" />}
-          title="Multi-Event Series"
-          description="Set up a series of events with recurring dates and times."
-          pros={[
-            "Manage multiple events in one place",
-            "Track player performance over time",
-            "Ideal for leagues or tournaments",
-          ]}
-          selected={wizardType === "multi"}
-          onSelect={() => setWizardType("multi")}
-        />
+        {allowMulti && (
+          <WizardCard
+            icon={<Trophy size={18} className="text-sky-600" />}
+            title="Multi-Event Series"
+            description="Set up a series of events with recurring dates and times."
+            pros={[
+              "Manage multiple events in one place",
+              "Track player performance over time",
+              "Ideal for leagues or tournaments",
+            ]}
+            selected={wizardType === "multi"}
+            onSelect={() => setWizardType("multi")}
+          />
+        )}
       </div>
       <div className="bg-white border-l-4 border-red-700/50 rounded-lg p-3 flex gap-3 items-start">
         <Info size={18} strokeWidth={2} className="inline-block text-red-700 mt-0.5" />
         <div>
           <h4 className="text-sm font-bold mb-1">Caddy Tip</h4>
           <p className="text-xs text-gray-500 italic">
-            Choosing the Full Season model enables automated round scheduling and the point
-            distribution.You can still customize individual events within the season later.
+            {allowMulti
+              ? "The multi-event series builder can automate recurring round scheduling. You can still customize individual events later."
+              : "Mixed 9/18-hole leagues require each event to be added manually so its hole count can be chosen individually."}
           </p>
         </div>
       </div>

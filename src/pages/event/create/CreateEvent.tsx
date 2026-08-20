@@ -17,15 +17,19 @@ import WizardType, { type EventWizardType } from "./components/WizardType";
 import MultiSeriesBuilder from "./components/MultiSeriesBuilder";
 import { DEFAULT_STROKE_POINTS } from "./constants";
 import { validateEventForm } from "./validation";
+import {
+  getFixedEventHoleCount,
+  normalizeLeagueHoleFormat,
+} from "@/features/leagues/leagueHoleFormat";
 
 const defaultValues = {
-  name: "Test Event",
+  name: "",
   type: "regular",
   date: new Date().toISOString().split("T")[0],
   startTime: "08:30",
   interval: 10,
-  courseId: 1,
-  teeId: 2,
+  courseId: "",
+  teeId: "",
   startSide: "front",
   holes: 9,
   format: "team",
@@ -54,10 +58,19 @@ export default function CreateEvent() {
 
   const format = useWatch({ control: eventForm.control, name: "format" });
   const scoringFormat = useWatch({ control: eventForm.control, name: "scoringFormat" });
+  const leagueHoleFormat = normalizeLeagueHoleFormat(league?.holeFormat);
+  const fixedEventHoleCount = getFixedEventHoleCount(leagueHoleFormat);
+  const isMixedHoleLeague = leagueHoleFormat === "mixed";
+  const activeWizardType = isMixedHoleLeague ? "single" : wizardType;
 
   useEffect(() => {
     eventForm.setValue("flights", [], { shouldDirty: true });
   }, [eventForm, format, scoringFormat]);
+
+  useEffect(() => {
+    if (!fixedEventHoleCount) return;
+    eventForm.setValue("holes", fixedEventHoleCount, { shouldDirty: true });
+  }, [eventForm, fixedEventHoleCount]);
 
   const isSeasonLeague = String(league?.type || "").toLowerCase() === "season";
   const leagueFormat = String(league?.format || "").toLowerCase();
@@ -108,8 +121,8 @@ export default function CreateEvent() {
         onSuccess: () => {
           navigate(`/league/${leagueId}/admin`);
         },
-        onError: (error) => {
-          console.error("Failed to create event:", error);
+        onError: (error: unknown) => {
+          show(getApiErrorMessage(error, "Unable to create the event. Please try again."), "error");
         },
       }
     );
@@ -162,10 +175,14 @@ export default function CreateEvent() {
 
       <div className="flex flex-col gap-6 pb-6 mt-6">
         <div>
-          <WizardType wizardType={wizardType} setWizardType={setWizardType} />
+          <WizardType
+            wizardType={activeWizardType}
+            setWizardType={setWizardType}
+            allowMulti={!isMixedHoleLeague}
+          />
         </div>
 
-        {wizardType === "single" && (
+        {activeWizardType === "single" && (
           <>
             <div>
               <InfoForm />
@@ -220,7 +237,7 @@ export default function CreateEvent() {
           </>
         )}
 
-        {wizardType === "multi" && <MultiSeriesBuilder />}
+        {activeWizardType === "multi" && <MultiSeriesBuilder />}
       </div>
     </FormProvider>
   );

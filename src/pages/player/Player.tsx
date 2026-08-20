@@ -72,6 +72,7 @@ export default function Player() {
   const numericLeagueId = Number(leagueId);
   const { data, isLoading, isError, error } = usePlayerStats(numericLeagueId, Number(playerId));
   const { data: leagueMetrics } = useLeagueMetrics(numericLeagueId);
+  const handicapHoleCount = Number(data?.handicapHoleBasis) === 9 ? 9 : 18;
 
 
   const handicapDetail = useMemo(() => {
@@ -193,7 +194,9 @@ export default function Player() {
           <span className="text-gray-400">
             <Target size={12} />
           </span>
-          <span className="font-semibold text-gray-800">HCP {formatValue(player.handicap)}</span>
+          <span className="font-semibold text-gray-800">
+            {handicapHoleCount}H HCP {formatValue(player.handicap)}
+          </span>
         </SummaryPillButton>
         <div
           className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border bg-white ${hcpColor}`}
@@ -405,7 +408,7 @@ export default function Player() {
                   How Handicap Is Calculated
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Based on completed rounds and scoring differential
+                  Based on completed rounds and {handicapHoleCount}-hole scoring differentials
                 </p>
               </div>
               <button
@@ -423,10 +426,13 @@ export default function Player() {
                 <SectionKicker className="mb-2.5">1. Handicap Setup</SectionKicker>
                 <div className="grid grid-cols-2 gap-3">
                   <StatMini
-                    label="Starting"
+                    label={`Starting ${handicapHoleCount}H`}
                     value={formatValue(stats?.startingHandicap ?? player.startingHandicap)}
                   />
-                  <StatMini label="Current" value={formatValue(player.handicap)} />
+                  <StatMini
+                    label={`Current ${handicapHoleCount}H`}
+                    value={formatValue(player.handicap)}
+                  />
                   <StatMini
                     label="Completed Rounds"
                     value={formatValue(stats?.rounds ?? rounds.length)}
@@ -536,12 +542,13 @@ export default function Player() {
                       Base index = {handicapComputation.tableIndex.toFixed(1)}
                     </p>
                     <p className="font-medium text-gray-700 pt-1">
-                      Current League Handicap: {handicapComputation.currentStored.toFixed(1)}
+                      Current {handicapHoleCount}-Hole League Handicap: {handicapComputation.currentStored.toFixed(1)}
                     </p>
                     <p className="text-[11px] text-gray-400">
                       The saved index is authoritative and also includes any applicable
-                      exceptional-score and cap adjustments. Nine-hole results are normalized
-                      before they enter this list.
+                      exceptional-score and cap adjustments. {handicapHoleCount === 9
+                        ? "Nine-hole differentials remain on the 9-hole scale."
+                        : "Nine-hole results are normalized to the 18-hole scale before they enter this list."}
                     </p>
                   </div>
                 ) : (

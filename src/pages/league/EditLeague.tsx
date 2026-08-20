@@ -12,6 +12,10 @@ import { useUpdateLeague } from "@api/league/mutations";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useToast } from "@/context/useToast";
 import { validateLeagueForm } from "./validation";
+import {
+  normalizeLeagueHoleFormat,
+  type LeagueHoleFormat,
+} from "@/features/leagues/leagueHoleFormat";
 
 type LeagueFormData = {
   id?: number;
@@ -20,6 +24,7 @@ type LeagueFormData = {
   description: string;
   numPlayers: number;
   type: string;
+  holeFormat: LeagueHoleFormat;
   format: string | null;
   contactFirstName: string;
   contactLastName: string;
@@ -35,6 +40,7 @@ const defaultLeagueData: LeagueFormData = {
   description: "",
   numPlayers: 0,
   type: "season",
+  holeFormat: "18",
   format: "team",
   contactFirstName: "",
   contactLastName: "",
@@ -52,6 +58,7 @@ const mapLeagueToForm = (league: any): LeagueFormData => {
     description: league.description || "",
     numPlayers: Number(league.numPlayers ?? 0),
     type: String(league.type || "season").toLowerCase(),
+    holeFormat: normalizeLeagueHoleFormat(league.holeFormat),
     format: league.format ? String(league.format).toLowerCase() : null,
     contactFirstName: league.contactFirstName || "",
     contactLastName: league.contactLastName || "",
