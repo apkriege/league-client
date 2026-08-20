@@ -183,7 +183,7 @@ export default function TeamsForm() {
         <SectionKicker className="mb-3">
           {isEditing ? "Edit Team" : "Add Team"}
         </SectionKicker>
-        <div className="flex flex-col lg:flex-row lg:items-end gap-2">
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(140px,1fr)_minmax(320px,3fr)_auto] lg:items-end">
           <Input
             label="Team Name"
             placeholder="Enter team name"
@@ -193,14 +193,15 @@ export default function TeamsForm() {
               if (teamNameError) setTeamNameError("");
             }}
             error={teamNameError}
-            className="w-full xl:w-1/4"
+            className="w-full min-w-0"
           />
 
-          <div className="w-full lg:w-1/2">
+          <div className="w-full min-w-0">
             <MultiSelect
               label={`Players (${remainingCount} remaining)`}
               options={playerOptions}
               value={draft.players}
+              variant="dropdown"
               placeholder={
                 playerOptions.length ? "Select available players" : "No players available"
               }
@@ -213,7 +214,7 @@ export default function TeamsForm() {
             />
           </div>
 
-          <div className="flex gap-2 shrink-0">
+          <div className="flex shrink-0 gap-2">
             <div className="flex gap-2">
               <Button type="button" onClick={handleSaveTeam} variant="primary" size="md">
                 {isEditing ? "Update Team" : "Add Team"}

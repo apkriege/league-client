@@ -13,10 +13,7 @@ import { Link } from "react-router";
 import { clearCreateLeagueDraft } from "./leagueDraft";
 import { confirmCheckoutSession } from "@api/payments";
 import PaymentReturnNotice from "@/features/payments/components/PaymentReturnNotice";
-import {
-  clearCheckoutReturnFromUrl,
-  getCheckoutReturn,
-} from "@/features/payments/checkoutReturn";
+import { clearCheckoutReturnFromUrl, getCheckoutReturn } from "@/features/payments/checkoutReturn";
 import {
   PaymentPipelineError,
   toPaymentPipelineError,
@@ -121,10 +118,7 @@ export default function Leagues() {
 
   return (
     <div className="flex flex-col">
-      <PageHeader
-        title="My Leagues"
-        subTitle="Manage your leagues, players, and events"
-      />
+      <PageHeader title="My Leagues" subTitle="Manage your leagues, players, and events" />
       {canManageLeagues && (
         <div
           role="alert"
@@ -133,7 +127,9 @@ export default function Leagues() {
           <div className="flex items-start gap-3">
             <Info className="mt-0.5 shrink-0 text-sky-600" size={17} />
             <div>
-              <p className="text-sm font-bold">Please check for your course before creating a league</p>
+              <p className="text-sm font-bold">
+                Please check for your course before creating a league
+              </p>
               <p className="mt-0.5 text-xs leading-5 text-sky-900/80">
                 We’re actively building out our courses database. Search the Courses tab first to
                 confirm your course is available. If it isn’t listed, submit a course request from
@@ -178,20 +174,17 @@ export default function Leagues() {
         <div className="mt-3 rounded-xl border border-gray-200 bg-white px-5 py-8 text-center">
           <p className="text-sm font-bold text-gray-700">No league memberships yet</p>
           <p className="mt-1 text-xs text-gray-400">
-            When a league admin invites you or links your player profile, your leagues will appear here.
+            When a league admin invites you or links your player profile, your leagues will appear
+            here.
           </p>
         </div>
       )}
       <div className="grid grid-cols-3 gap-3 mt-2 auto-rows-fr items-stretch">
         {canManageLeagues && (
-          <Link
-            to="/leagues/create"
-            className="block h-full"
-            onClick={clearCreateLeagueDraft}
-          >
+          <Link to="/leagues/create" className="block h-full" onClick={clearCreateLeagueDraft}>
             <Card className="bg-slate-900 h-full flex items-center justify-center cursor-pointer hover:bg-slate-900/95 transition-colors">
-              <div className="flex flex-col items-center justify-center text-white text-center">
-                <div className=" bg-gray-300/20 p-3 rounded-full mb-3 mt-3">
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className=" bg-gray-200 p-3 rounded-full mb-3 mt-3">
                   <Plus size={24} />
                 </div>
                 <p className="text-lg font-semibold mb-2">Create New League</p>
