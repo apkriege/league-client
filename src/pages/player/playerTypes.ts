@@ -18,7 +18,10 @@ export type PlayerRound = {
   id?: number | string;
   eventId: number | string;
   eventName?: string;
-  date: string;
+  date?: string | null;
+  startsAt?: string | null;
+  timeZone?: string | null;
+  holesPlayed?: number | string | null;
   gross?: number | string | null;
   net?: number | string | null;
   points?: number | string | null;

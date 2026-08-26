@@ -47,33 +47,27 @@ export const CreateFlightScoresIndividualMatch = ({
     return getPlayerCourseHandicap(playerEntry);
   };
 
-  // Build pairs: in edit mode use saved opponentId; otherwise pair by position
+  // Prefer the persisted flight pairing, then pair any unassigned players by position.
   const buildPairs = (playersToPair: any[] = allPlayers): [any, any][] => {
     const playersById = new Map(playersToPair.map((p: any) => [Number(p.playerId), p]));
-    if (isEditMode) {
-      const usedIds = new Set<number>();
-      const pairs: [any, any][] = [];
-      for (const player of playersToPair) {
-        if (usedIds.has(Number(player.playerId))) continue;
-        const opponentId = Number(player?.player?.rounds?.[0]?.opponentId ?? 0);
-        const opponent = playersById.get(opponentId);
-        if (opponent && !usedIds.has(Number(opponent.playerId))) {
-          pairs.push([player, opponent]);
-          usedIds.add(Number(player.playerId));
-          usedIds.add(Number(opponent.playerId));
-        }
+    const usedIds = new Set<number>();
+    const pairs: [any, any][] = [];
+    for (const player of playersToPair) {
+      if (usedIds.has(Number(player.playerId))) continue;
+      const opponentId = Number(
+        player?.opponentId ?? player?.player?.rounds?.[0]?.opponentId ?? 0
+      );
+      const opponent = playersById.get(opponentId);
+      if (opponent && !usedIds.has(Number(opponent.playerId))) {
+        pairs.push([player, opponent]);
+        usedIds.add(Number(player.playerId));
+        usedIds.add(Number(opponent.playerId));
       }
-      // Pair any remaining players by position
-      const remaining = playersToPair.filter((p: any) => !usedIds.has(Number(p.playerId)));
-      for (let i = 0; i + 1 < remaining.length; i += 2) {
-        pairs.push([remaining[i], remaining[i + 1]]);
-      }
-      return pairs;
     }
 
-    const pairs: [any, any][] = [];
-    for (let i = 0; i + 1 < playersToPair.length; i += 2) {
-      pairs.push([playersToPair[i], playersToPair[i + 1]]);
+    const remaining = playersToPair.filter((player: any) => !usedIds.has(Number(player.playerId)));
+    for (let i = 0; i + 1 < remaining.length; i += 2) {
+      pairs.push([remaining[i], remaining[i + 1]]);
     }
     return pairs;
   };
@@ -358,7 +352,10 @@ export const CreateFlightScoresIndividualMatch = ({
                 onSwap={(replacementId) => savePlayerSwap(playerIndex, replacementId)}
               />
             </div>
-            <PlayerHandicapSummary entry={player} className="block text-[10px] text-gray-500" />
+            <PlayerHandicapSummary
+              entry={player}
+              className="block text-[10px] text-gray-500"
+            />
           </td>
           {holes.map((hole: any, holeIdx: number) => (
             <td key={hole.num} className="p-2">
@@ -445,6 +442,7 @@ export const CreateFlightScoresIndividualMatch = ({
           <Table
             data={pairs}
             search={false}
+            pagination={false}
             variant="clean"
             noBorder
             tableClassName="score-table"
@@ -452,7 +450,7 @@ export const CreateFlightScoresIndividualMatch = ({
               <>
                 <thead>
                   <tr className="text-xs text-gray-700">
-                    <th className="p-2">Player</th>
+                    <th className="py-2 pr-2 pl-4">Player</th>
                     {holes.map((hole: any) => (
                       <ScoreHeaderCell key={hole.num}>
                         {hole.num}

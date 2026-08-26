@@ -11,7 +11,7 @@ import { useLeagueMetrics } from "@api/league/queries";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import useAnimatedDrawer from "@/hooks/useAnimatedDrawer";
 import {
   BarChart2,
@@ -26,11 +26,14 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import dayjs from "dayjs";
 import PlayerScoreDistributionChart from "./components/PlayerScoreDistributionChart";
 import { InfoChip, StatMini } from "./components/PlayerSummary";
 import { PlayerRoundBreakdown, RoundHistory } from "./components/PlayerRoundTables";
 import type { ScoreDistribution } from "./playerTypes";
+import { formatHandicap } from "./playerFormatters";
+import { buildHandicapDifferentialPool, getHandicapRule } from "./playerHandicap";
+import { calculatePlayerRoundAverages } from "./playerRoundAverages";
+import { formatPlayerRoundDate, getPlayerRoundTimestamp } from "./playerRoundDate";
 
 const EMPTY_DIST: ScoreDistribution = {
   eagles: 0,
@@ -47,22 +50,21 @@ const formatValue = (value: any, fallback: string | number = "-") => {
 };
 
 const formatDelta = (delta: number) => {
-  if (Math.abs(delta) < 0.05) return "-";
-  return delta < 0 ? delta.toFixed(1) : `+${delta.toFixed(1)}`;
+  if (Math.abs(delta) < 0.005) return "0.00";
+  return delta < 0 ? delta.toFixed(2) : `+${delta.toFixed(2)}`;
 };
 
-const getHandicapRule = (roundCount: number) => {
-  if (roundCount < 3) return null;
-  if (roundCount === 3) return { count: 1, adjustment: -2 };
-  if (roundCount === 4) return { count: 1, adjustment: -1 };
-  if (roundCount === 5) return { count: 1, adjustment: 0 };
-  if (roundCount <= 8) return { count: 2, adjustment: 0 };
-  if (roundCount <= 11) return { count: 3, adjustment: 0 };
-  if (roundCount <= 14) return { count: 4, adjustment: 0 };
-  if (roundCount <= 16) return { count: 5, adjustment: 0 };
-  if (roundCount <= 18) return { count: 6, adjustment: 0 };
-  if (roundCount === 19) return { count: 7, adjustment: 0 };
-  return { count: 8, adjustment: 0 };
+type OverviewTile = {
+  label: string;
+  icon: ReactNode;
+  accent: string;
+  value?: string | number;
+  sub?: string;
+  split?: Array<{
+    label: "9H" | "18H";
+    value: string | number;
+    sub: string;
+  }>;
 };
 
 export default function Player() {
@@ -73,17 +75,23 @@ export default function Player() {
   const { data, isLoading, isError, error } = usePlayerStats(numericLeagueId, Number(playerId));
   const { data: leagueMetrics } = useLeagueMetrics(numericLeagueId);
   const handicapHoleCount = Number(data?.handicapHoleBasis) === 9 ? 9 : 18;
+  const roundAverages = useMemo(
+    () => calculatePlayerRoundAverages(data?.rounds ?? []),
+    [data?.rounds],
+  );
 
 
   const handicapDetail = useMemo(() => {
     const chronologicalRows = [...(data?.rounds ?? [])]
       .filter((r: any) => r?.differential != null && Number.isFinite(Number(r.differential)))
-      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .sort((a: any, b: any) => getPlayerRoundTimestamp(a) - getPlayerRoundTimestamp(b))
       .map((r: any) => ({
         roundId: r.id,
         eventId: r.eventId,
         eventName: r.eventName,
         date: r.date,
+        startsAt: r.startsAt,
+        timeZone: r.timeZone,
         differential: Number(r.differential),
         adjustedGross: r.adjusted != null ? Number(r.adjusted) : null,
         courseRating: r.courseRating != null ? Number(r.courseRating) : null,
@@ -94,35 +102,52 @@ export default function Player() {
 
     const handicapWindow = chronologicalRows.slice(-20);
     const allRows = [...handicapWindow].sort((a, b) => a.differential - b.differential);
-    const rule = getHandicapRule(allRows.length);
-    const usedRows = rule ? allRows.slice(0, rule.count) : [];
+    const differentialPool = buildHandicapDifferentialPool(
+      handicapWindow,
+      (row) => row.differential,
+      Number(data?.player?.startingHandicap),
+    );
+    const rule = getHandicapRule(differentialPool.length);
+    const usedEntries = rule
+      ? [...differentialPool]
+          .sort((left, right) => left.differential - right.differential)
+          .slice(0, rule.count)
+      : [];
+    const usedRows = usedEntries.flatMap((entry) => (entry.row ? [entry.row] : []));
 
     return {
       allRows,
+      differentialPool,
+      usedEntries,
       usedRows,
       rule,
     };
-  }, [data?.rounds]);
+  }, [data?.player?.startingHandicap, data?.rounds]);
 
   const handicapComputation = useMemo(() => {
     const allRows = handicapDetail.allRows;
-    const used = handicapDetail.usedRows;
+    const used = handicapDetail.usedEntries;
     const rule = handicapDetail.rule;
     if (!rule || used.length === 0) return null;
 
-    const usedSum = used.reduce((sum, row) => sum + row.differential, 0);
+    const usedSum = used.reduce((sum, entry) => sum + entry.differential, 0);
     const averageBase = usedSum / used.length;
-    const tableIndex = Number((averageBase + rule.adjustment).toFixed(1));
+    const tableIndex = Number((averageBase + rule.adjustment).toFixed(2));
     const currentStored = Number(data?.player?.handicap ?? 0);
 
     return {
-      allRowsCount: allRows.length,
+      recordedRowsCount: allRows.length,
+      modeledCount: handicapDetail.differentialPool.length - allRows.length,
       used,
       usedSum,
       averageBase,
       adjustment: rule.adjustment,
       tableIndex,
-      expression: used.map((row) => row.differential.toFixed(1)).join(" + "),
+      expression: used
+        .map((entry) =>
+          `${entry.differential.toFixed(2)}${entry.isStartingIndex ? " start" : ""}`,
+        )
+        .join(" + "),
       currentStored,
     };
   }, [data?.player?.handicap, handicapDetail]);
@@ -173,6 +198,55 @@ export default function Player() {
   const leagueDistribution: ScoreDistribution =
     leagueMetrics?.scoreDistribution || EMPTY_DIST;
   const leagueRoundCount = Number(leagueMetrics?.seasonSummary?.totalRounds || 0);
+  const averageValue = (holes: 9 | 18, key: "avgGross" | "avgNet" | "avgPutts") =>
+    roundAverages[holes]?.[key] ?? "—";
+  const overviewTiles: OverviewTile[] = [
+    {
+      label: "Season Points",
+      value: stats?.totalPoints ?? 0,
+      sub: `9H ${roundAverages[9]?.avgPoints ?? "—"} avg · 18H ${roundAverages[18]?.avgPoints ?? "—"} avg`,
+      icon: <Zap size={15} className="text-slate-900" />,
+      accent: "from-slate-50 to-white border-slate-200",
+    },
+    {
+      label: "Avg Gross",
+      split: ([9, 18] as const).map((holes) => ({
+        label: `${holes}H` as const,
+        value: averageValue(holes, "avgGross"),
+        sub: `Low ${roundAverages[holes]?.lowGross ?? "—"}`,
+      })),
+      icon: <BarChart2 size={15} className="text-blue-500" />,
+      accent: "from-blue-50 to-white border-blue-100",
+    },
+    {
+      label: "Avg Net",
+      split: ([9, 18] as const).map((holes) => ({
+        label: `${holes}H` as const,
+        value: averageValue(holes, "avgNet"),
+        sub: `Low ${roundAverages[holes]?.lowNet ?? "—"}`,
+      })),
+      icon: <Target size={15} className="text-emerald-500" />,
+      accent: "from-emerald-50 to-white border-emerald-100",
+    },
+    {
+      label: "Rounds Played",
+      value: stats?.rounds ?? 0,
+      sub: `${roundAverages[9]?.rounds ?? 0} nine-hole · ${roundAverages[18]?.rounds ?? 0} eighteen-hole`,
+      icon: <Trophy size={15} className="text-amber-500" />,
+      accent: "from-amber-50 to-white border-amber-100",
+    },
+    // TODO: Restore this card when putt tracking is added to score entry.
+    // {
+    //   label: "Avg Putts",
+    //   split: ([9, 18] as const).map((holes) => ({
+    //     label: `${holes}H` as const,
+    //     value: averageValue(holes, "avgPutts"),
+    //     sub: `${roundAverages[holes]?.rounds ?? 0} rounds`,
+    //   })),
+    //   icon: <Flag size={15} className="text-amber-500" />,
+    //   accent: "from-amber-50 to-white border-amber-100",
+    // },
+  ];
 
   return (
     <div>
@@ -195,7 +269,7 @@ export default function Player() {
             <Target size={12} />
           </span>
           <span className="font-semibold text-gray-800">
-            {handicapHoleCount}H HCP {formatValue(player.handicap)}
+            {handicapHoleCount}H HCP {formatHandicap(player.handicap)}
           </span>
         </SummaryPillButton>
         <div
@@ -218,36 +292,7 @@ export default function Player() {
               description="Season snapshot and key scoring metrics"
             />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                {
-                  label: "Season Points",
-                  value: stats.totalPoints,
-                  sub: `${stats.avgPoints} avg / round`,
-                  icon: <Zap size={15} className="text-slate-900" />,
-                  accent: "from-slate-50 to-white border-slate-200",
-                },
-                {
-                  label: "Avg Gross",
-                  value: stats.avgGross,
-                  sub: `Low ${stats.lowGross}`,
-                  icon: <BarChart2 size={15} className="text-blue-500" />,
-                  accent: "from-blue-50 to-white border-blue-100",
-                },
-                {
-                  label: "Avg Net",
-                  value: stats.avgNet,
-                  sub: `Low ${stats.lowNet}`,
-                  icon: <Target size={15} className="text-emerald-500" />,
-                  accent: "from-emerald-50 to-white border-emerald-100",
-                },
-                {
-                  label: "Avg Putts",
-                  value: stats.avgPutts,
-                  sub: `${stats.totalBirdies} birdies`,
-                  icon: <Flag size={15} className="text-amber-500" />,
-                  accent: "from-amber-50 to-white border-amber-100",
-                },
-              ].map((tile) => (
+              {overviewTiles.map((tile) => (
                 <div
                   key={tile.label}
                   className={`relative overflow-hidden bg-linear-to-br ${tile.accent} border rounded-xl px-4 py-3 shadow-sm flex items-start justify-between gap-3`}
@@ -256,10 +301,28 @@ export default function Player() {
                     <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
                       {tile.label}
                     </p>
-                    <p className="text-2xl font-black leading-tight text-gray-900 mt-1">
-                      {tile.value}
-                    </p>
-                    <p className="text-[10px] text-gray-500 truncate mt-0.5">{tile.sub}</p>
+                    {tile.split ? (
+                      <div className="mt-1.5 flex items-start gap-5">
+                        {tile.split.map((metric) => (
+                          <div key={metric.label}>
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                              {metric.label}
+                            </p>
+                            <p className="text-xl font-black leading-tight text-gray-900">
+                              {metric.value}
+                            </p>
+                            <p className="mt-0.5 text-[9px] text-gray-500">{metric.sub}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        <p className="mt-1 text-2xl font-black leading-tight text-gray-900">
+                          {tile.value}
+                        </p>
+                        <p className="mt-0.5 truncate text-[10px] text-gray-500">{tile.sub}</p>
+                      </>
+                    )}
                   </div>
                   <div className="shrink-0 p-2.5 bg-white/70 rounded-lg border border-white/70 shadow-[0_1px_0_rgba(255,255,255,0.8)]">
                     {tile.icon}
@@ -427,11 +490,11 @@ export default function Player() {
                 <div className="grid grid-cols-2 gap-3">
                   <StatMini
                     label={`Starting ${handicapHoleCount}H`}
-                    value={formatValue(stats?.startingHandicap ?? player.startingHandicap)}
+                    value={formatHandicap(stats?.startingHandicap ?? player.startingHandicap)}
                   />
                   <StatMini
                     label={`Current ${handicapHoleCount}H`}
-                    value={formatValue(player.handicap)}
+                    value={formatHandicap(player.handicap)}
                   />
                   <StatMini
                     label="Completed Rounds"
@@ -441,8 +504,8 @@ export default function Player() {
                     label="Differentials"
                     value={
                       handicapComputation
-                        ? `Lowest ${handicapComputation.used.length} of ${handicapComputation.allRowsCount}`
-                        : "Need 3 rounds"
+                        ? `${handicapComputation.recordedRowsCount} recorded · ${handicapComputation.modeledCount} baseline`
+                        : "No eligible rounds"
                     }
                   />
                 </div>
@@ -475,15 +538,12 @@ export default function Player() {
                           <tbody className="divide-y divide-gray-100">
                             {visibleRows.map((row) => {
                           const isUsed = handicapDetail.usedRows.some(
-                            (used) =>
-                              used.eventId === row.eventId &&
-                              used.differential === row.differential &&
-                              used.date === row.date
+                            (used) => used.roundId === row.roundId
                           );
 
                           return (
                             <tr
-                              key={`${row.eventId}-${row.date}-${row.differential}`}
+                              key={row.roundId ?? `${row.eventId}-${row.differential}`}
                               className={isUsed ? "bg-blue-50/50" : "bg-white hover:bg-gray-50/60"}
                             >
                               <td className="px-3 py-2 min-w-0">
@@ -491,7 +551,7 @@ export default function Player() {
                                   {row.eventName}
                                 </p>
                                 <p className="text-[10px] text-gray-400">
-                                  {dayjs(row.date).format("MMM D, YYYY")}
+                                  {formatPlayerRoundDate(row)}
                                 </p>
                               </td>
                               <td className="px-3 py-2 text-right font-semibold text-gray-700 tabular-nums">
@@ -501,7 +561,7 @@ export default function Player() {
                                 {row.courseRating != null ? `${row.courseRating.toFixed(1)}` : "-"}
                               </td>
                               <td className="px-3 py-2 text-right font-bold text-gray-800 tabular-nums">
-                                {row.differential.toFixed(1)}
+                                {row.differential.toFixed(2)}
                               </td>
                             </tr>
                           );
@@ -520,29 +580,35 @@ export default function Player() {
                 </SectionKicker>
                 {handicapComputation ? (
                   <div className="space-y-2.5 text-xs text-gray-600">
+                    {handicapComputation.modeledCount > 0 && (
+                      <p className="rounded-md border border-blue-100 bg-blue-50/60 px-2.5 py-2 text-[11px] text-blue-800">
+                        Until 20 league rounds are available, the starting handicap fills the
+                        missing history so one score cannot replace the entire index.
+                      </p>
+                    )}
                     <p className="font-medium text-gray-700">
                       The lowest qualifying differentials are added together.
                     </p>
                     <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                      {handicapComputation.expression} = {handicapComputation.usedSum.toFixed(1)}
+                      {handicapComputation.expression} = {handicapComputation.usedSum.toFixed(2)}
                     </p>
 
                     <p className="font-medium text-gray-700 pt-1">
-                      Divide by the number used, then apply the new-player adjustment when needed.
+                      Divide by the number used, then apply the configured table adjustment.
                     </p>
                     <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                      {handicapComputation.usedSum.toFixed(1)} / {handicapComputation.used.length} ={" "}
-                      {handicapComputation.averageBase.toFixed(1)}
+                      {handicapComputation.usedSum.toFixed(2)} / {handicapComputation.used.length} ={" "}
+                      {handicapComputation.averageBase.toFixed(2)}
                     </p>
                     <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
                       Table adjustment: {handicapComputation.adjustment > 0 ? "+" : ""}
-                      {handicapComputation.adjustment.toFixed(1)}
+                      {handicapComputation.adjustment.toFixed(2)}
                     </p>
                     <p className="font-semibold text-blue-900 tabular-nums bg-blue-50 border border-blue-200 rounded-md px-2.5 py-1.5">
-                      Base index = {handicapComputation.tableIndex.toFixed(1)}
+                      Base index = {handicapComputation.tableIndex.toFixed(2)}
                     </p>
                     <p className="font-medium text-gray-700 pt-1">
-                      Current {handicapHoleCount}-Hole League Handicap: {handicapComputation.currentStored.toFixed(1)}
+                      Current {handicapHoleCount}-Hole League Handicap: {handicapComputation.currentStored.toFixed(2)}
                     </p>
                     <p className="text-[11px] text-gray-400">
                       The saved index is authoritative and also includes any applicable
@@ -553,7 +619,8 @@ export default function Player() {
                   </div>
                 ) : (
                   <p className="text-xs text-gray-400">
-                    At least 3 completed rounds are needed before a handicap can be calculated.
+                    A completed round with a valid differential is needed before the handicap can
+                    be recalculated.
                   </p>
                 )}
               </SurfaceCard>

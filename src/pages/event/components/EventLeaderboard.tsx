@@ -4,6 +4,7 @@ import SurfaceCard from "@/components/layout/SurfaceCard";
 import type { EventLeaderboardEntry, EventLeaderboardSort } from "../eventLeaderboard";
 import PlayerNameLink from "./PlayerNameLink";
 import { memo } from "react";
+import { formatHandicap } from "@/utils/handicap";
 
 export const ScoreLeaderboard = memo(function ScoreLeaderboard({
   leaderboard,
@@ -66,7 +67,7 @@ export const ScoreLeaderboard = memo(function ScoreLeaderboard({
                           {entry.name}
                         </PlayerNameLink>
                         <p className="text-[10px] text-gray-400">
-                          Index {entry.handicap != null ? entry.handicap.toFixed(1) : "—"}
+                          Index {formatHandicap(entry.handicap)}
                         </p>
                       </div>
                     </div>
@@ -152,7 +153,7 @@ export const TopThreePlayers = memo(function TopThreePlayers({ players, mode }: 
                       {player.name}
                     </PlayerNameLink>
                     <p className="text-[11px] font-medium text-gray-400">
-                      Index {player.handicap != null && Number.isFinite(Number(player.handicap)) ? Number(player.handicap).toFixed(1) : "—"}
+                      Index {formatHandicap(player.handicap)}
                     </p>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import Autocomplete from "@mui/material/Autocomplete";
+import { createFilterOptions } from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { useId } from "react";
 import { Label } from "./Label";
@@ -6,8 +7,14 @@ import { Label } from "./Label";
 export type AutocompleteOption = {
   value: string | number;
   label: string;
+  searchText?: string;
   content?: React.ReactNode;
 };
+
+const filterOptions = createFilterOptions<AutocompleteOption>({
+  stringify: (option) => `${option.label} ${option.searchText ?? ""}`,
+  trim: true,
+});
 
 type AutocompleteSelectProps = {
   label?: string;
@@ -19,6 +26,7 @@ type AutocompleteSelectProps = {
   noResultsText?: string;
   disabled?: boolean;
   clearable?: boolean;
+  denseOptions?: boolean;
 };
 
 export default function AutocompleteSelect({
@@ -31,9 +39,11 @@ export default function AutocompleteSelect({
   noResultsText = "No results found",
   disabled = false,
   clearable = true,
+  denseOptions = false,
 }: AutocompleteSelectProps) {
   const id = useId();
-  const selectedOption = options.find((option) => option.value === value) ?? null;
+  const selectedOption =
+    options.find((option) => String(option.value) === String(value ?? "")) ?? null;
 
   return (
     <div className={className}>
@@ -42,17 +52,43 @@ export default function AutocompleteSelect({
         id={id}
         options={options}
         value={selectedOption}
+        filterOptions={filterOptions}
+        openOnFocus
+        autoHighlight
         disabled={disabled}
         disableClearable={!clearable}
+        slotProps={
+          denseOptions
+            ? {
+                listbox: {
+                  sx: {
+                    py: 0.5,
+                    "& .MuiAutocomplete-option": {
+                      minHeight: 32,
+                      px: 1,
+                      py: 0.5,
+                      fontSize: "0.6875rem",
+                    },
+                  },
+                },
+              }
+            : undefined
+        }
         noOptionsText={noResultsText}
-        isOptionEqualToValue={(option, selected) => option.value === selected.value}
+        isOptionEqualToValue={(option, selected) =>
+          String(option.value) === String(selected.value)
+        }
         getOptionLabel={(option) => option.label}
         onChange={(_, option) => onChange(option?.value, option ?? undefined)}
-        renderOption={(props, option) => (
-          <li {...props} key={option.value}>
-            {option.content ?? option.label}
-          </li>
-        )}
+        renderOption={(optionProps, option) => {
+          const { key, ...props } = optionProps;
+
+          return (
+            <li {...props} key={key}>
+              {option.content ?? option.label}
+            </li>
+          );
+        }}
         renderInput={(params) => (
           <TextField {...params} placeholder={placeholder} size="small" />
         )}

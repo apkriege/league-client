@@ -28,10 +28,14 @@ const Courses = lazy(() => import("./pages/course/Courses.tsx"));
 const CoursesAdmin = lazy(() => import("@/pages/superadmin/CoursesAdmin"));
 const LeaguesAdmin = lazy(() => import("@/pages/superadmin/LeaguesAdmin"));
 const BillingAdmin = lazy(() => import("@/pages/superadmin/BillingAdmin"));
+const ContactSupport = lazy(() => import("./pages/support/ContactSupport.tsx"));
 const InviteClaim = lazy(() => import("./pages/invite/InviteClaim.tsx"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword.tsx"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword.tsx"));
 const AppThemeProvider = lazy(() => import("./components/route/AppThemeProvider.tsx"));
+const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy.tsx"));
+const TermsOfService = lazy(() => import("./pages/legal/TermsOfService.tsx"));
+const RefundPolicy = lazy(() => import("./pages/legal/RefundPolicy.tsx"));
 
 const withSuspense = (element: ReactNode) => (
   <Suspense fallback={<div className="p-6 text-sm text-slate-400">Loading...</div>}>
@@ -69,6 +73,21 @@ export const router = createBrowserRouter([
     errorElement: <AppErrorBoundary />,
   },
   {
+    path: "/privacy",
+    element: withAppTheme(<PrivacyPolicy />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
+    path: "/terms",
+    element: withAppTheme(<TermsOfService />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
+    path: "/refunds",
+    element: withAppTheme(<RefundPolicy />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
     path: "",
     element: withAppTheme(<BaseLayout />),
     errorElement: <AppErrorBoundary />,
@@ -76,6 +95,7 @@ export const router = createBrowserRouter([
       { path: "leagues", element: withSuspense(<Leagues />), errorElement: <AppErrorBoundary /> },
       { path: "courses", element: withSuspense(<Courses />), errorElement: <AppErrorBoundary /> },
       { path: "courses/:courseId", element: withSuspense(<Course />), errorElement: <AppErrorBoundary /> },
+      { path: "support", element: withSuspense(<ContactSupport />), errorElement: <AppErrorBoundary /> },
       {
         element: <LeagueRouteGuard />,
         errorElement: <AppErrorBoundary />,

@@ -9,6 +9,7 @@ import {
   CreditCard,
   LandPlot,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Menu,
   PanelsTopLeft,
@@ -185,6 +186,9 @@ export default function BaseLayout() {
   const isTeamLeague = String(league?.format || "").toLowerCase() === "team";
   const displayName =
     `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Account";
+  const footerActionClass = `flex w-full cursor-pointer items-center rounded-xl text-xs font-semibold text-white/55 transition-colors hover:bg-white/8 hover:text-white ${
+    isOpen ? "gap-3 px-2 py-1.5" : "justify-center p-1.5"
+  }`;
 
   useEffect(() => {
     if (!user) {
@@ -246,6 +250,32 @@ export default function BaseLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 px-2 md:px-3 space-y-1 overflow-y-auto">
+          {isSuperAdmin && (
+            <>
+              <Section section="Super Admin" collapsed={!isOpen} />
+              <NavLink
+                to="/superadmin/leagues"
+                text="View Leagues"
+                icon={<ScanSearch size={19} />}
+                isActive={location.pathname.startsWith("/superadmin/leagues")}
+                collapsed={!isOpen}
+              />
+              <NavLink
+                to="/superadmin/courses"
+                text="Manage Courses"
+                icon={<Settings size={19} />}
+                isActive={location.pathname.startsWith("/superadmin/courses")}
+                collapsed={!isOpen}
+              />
+              <NavLink
+                to="/superadmin/billing"
+                text="Billing"
+                icon={<CreditCard size={19} />}
+                isActive={location.pathname.startsWith("/superadmin/billing")}
+                collapsed={!isOpen}
+              />
+            </>
+          )}
           <Section section="Leagues" collapsed={!isOpen} />
           <NavLink
             to="/leagues"
@@ -322,46 +352,27 @@ export default function BaseLayout() {
               collapsed={!isOpen}
             />
           )}
-
-          {isSuperAdmin && (
-            <>
-              <Section section="Super Admin" collapsed={!isOpen} />
-              <NavLink
-                to="/superadmin/leagues"
-                text="View Leagues"
-                icon={<ScanSearch size={19} />}
-                isActive={location.pathname.startsWith("/superadmin/leagues")}
-                collapsed={!isOpen}
-              />
-              <NavLink
-                to="/superadmin/courses"
-                text="Manage Courses"
-                icon={<Settings size={19} />}
-                isActive={location.pathname.startsWith("/superadmin/courses")}
-                collapsed={!isOpen}
-              />
-              <NavLink
-                to="/superadmin/billing"
-                text="Billing"
-                icon={<CreditCard size={19} />}
-                isActive={location.pathname.startsWith("/superadmin/billing")}
-                collapsed={!isOpen}
-              />
-            </>
-          )}
         </nav>
 
         {/* Footer */}
-        <div className="p-2 md:p-3 border-t border-white/10">
+        <div className="space-y-0.5 border-t border-white/10 p-2 md:p-2.5">
+          <Link
+            to="/support"
+            aria-label="Contact support"
+            className={`${footerActionClass} ${
+              location.pathname === "/support" ? "bg-white/10 text-white" : ""
+            }`}
+          >
+            <LifeBuoy size={16} />
+            {isOpen && <span>Contact Support</span>}
+          </Link>
           <button
             onClick={handleLogout}
-            className={`flex items-center rounded-2xl w-full text-white/52 hover:bg-white/8 hover:text-white transition-colors ${
-              isOpen ? "gap-4 px-2 py-2" : "justify-center p-2"
-            }`}
+            className={footerActionClass}
             aria-label="Sign out"
           >
-            <LogOut size={19} />
-            {isOpen && <span className="text-sm">Sign Out</span>}
+            <LogOut size={16} />
+            {isOpen && <span>Sign Out</span>}
           </button>
         </div>
       </div>

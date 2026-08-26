@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_PRIVACY_POLICY_URL?: string;
   readonly VITE_TERMS_URL?: string;
   readonly VITE_REFUND_POLICY_URL?: string;
+  readonly VITE_GOOGLE_ANALYTICS_ID?: string;
 }
 
 interface ImportMeta {

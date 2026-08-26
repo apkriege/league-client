@@ -14,7 +14,7 @@ import { getEventDateInputValue } from "@/utils/eventDate";
 import { CircleCheck, Tally5, User, Users, Zap } from "lucide-react";
 import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { DEFAULT_STROKE_POINTS } from "../constants";
 import MuiCheckbox from "@mui/material/Checkbox";
 import { useToast } from "@/context/useToast";
@@ -22,6 +22,7 @@ import {
   getFixedEventHoleCount,
   normalizeLeagueHoleFormat,
 } from "@/features/leagues/leagueHoleFormat";
+import { createCourseAutocompleteOptions } from "../courseAutocompleteOptions";
 
 export default function InfoForm() {
   const { leagueId } = useParams();
@@ -68,20 +69,7 @@ export default function InfoForm() {
 
   if (!courses) return null;
 
-  const courseOptions = availableCourses.map((course: any) => ({
-    value: course.id,
-    label: course.name,
-    content: (
-      <div className="flex flex-col">
-        <span>
-          {course.name}, {course.location}
-        </span>
-        <span className="text-[10px] text-gray-500">
-          {course.par} &bull; {course.numHoles} HOLES
-        </span>
-      </div>
-    ),
-  }));
+  const courseOptions = createCourseAutocompleteOptions(availableCourses);
 
   const getTeeOptions = () => {
     if (!selectedCourse) return [];
@@ -191,8 +179,10 @@ export default function InfoForm() {
             </p>
             <AutocompleteSelect
               label="Course"
-              placeholder="Select a course"
+              placeholder="Search by course, club, or location"
               options={courseOptions}
+              noResultsText="No matching courses"
+              denseOptions
               onChange={(value) => {
                 if (Number(value) !== Number(methods.getValues("courseId"))) {
                   methods.setValue("teeId", undefined, { shouldDirty: true });
@@ -201,6 +191,12 @@ export default function InfoForm() {
               }}
               value={methods.watch("courseId")}
             />
+            <Link
+              to="/courses"
+              className="mt-1 block text-right text-[10px] font-medium text-sky-700 hover:text-sky-900 hover:underline"
+            >
+              Can&apos;t find your course?
+            </Link>
           </div>
           {methods.watch("courseId") && (
             <div className="w-full">

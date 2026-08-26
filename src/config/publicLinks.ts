@@ -14,7 +14,7 @@ const supportEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredSupportEmail)
 
 export const publicLinks = {
   supportEmail,
-  privacy: getHttpsUrl(import.meta.env.VITE_PRIVACY_POLICY_URL),
-  terms: getHttpsUrl(import.meta.env.VITE_TERMS_URL),
-  refunds: getHttpsUrl(import.meta.env.VITE_REFUND_POLICY_URL),
+  privacy: getHttpsUrl(import.meta.env.VITE_PRIVACY_POLICY_URL) ?? "/privacy",
+  terms: getHttpsUrl(import.meta.env.VITE_TERMS_URL) ?? "/terms",
+  refunds: getHttpsUrl(import.meta.env.VITE_REFUND_POLICY_URL) ?? "/refunds",
 };

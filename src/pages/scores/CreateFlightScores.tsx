@@ -9,7 +9,7 @@ import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { ArrowLeftRight, Flag } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router";
-import { isSubPlayer } from "./playerSwapUtils";
+import { buildSwappedPlayerEntry, isSubPlayer } from "./playerSwapUtils";
 import {
   calculateMatchplayPops,
   createTeamScoringHelpers,
@@ -133,18 +133,6 @@ export const CreateFlightScores = ({
     return playerPayload;
   };
 
-  const buildSwappedEntry = (baseEntry: any, replacement: any) => ({
-    ...baseEntry,
-    playerId: Number(replacement.id),
-    teamId: baseEntry?.teamId ?? replacement?.teamId ?? null,
-    player: {
-      ...baseEntry?.player,
-      ...replacement,
-      id: Number(replacement.id),
-      rounds: [],
-    },
-  });
-
   const activeTeam1 = team1.map(
     (player: any, idx: number) => swappedPlayersBySlot[getSlotKey(1, idx)] ?? player
   );
@@ -221,7 +209,7 @@ export const CreateFlightScores = ({
 
       nextSwaps = {
         ...nextSwaps,
-        [slotKey]: buildSwappedEntry(baseEntry, replacement),
+        [slotKey]: buildSwappedPlayerEntry(baseEntry, replacement),
       };
     }
 
@@ -719,6 +707,7 @@ export const CreateFlightScores = ({
           <Table
             data={[1 as const, 2 as const]}
             search={false}
+            pagination={false}
             variant="clean"
             noBorder
             tableClassName="score-table"
@@ -726,7 +715,7 @@ export const CreateFlightScores = ({
               <>
                 <thead>
                   <tr className="text-xs text-gray-700">
-                    <th>Player</th>
+                    <th className="pl-4">Player</th>
                     {holes.map((hole: any) => (
                       <ScoreHeaderCell key={hole.num}>
                         {hole.num}

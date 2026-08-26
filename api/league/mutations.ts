@@ -113,8 +113,16 @@ export const useCreateLeagueEvents = (onSuccess: any) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ leagueId, events }: { leagueId: number; events: any[] }) => {
-      return await createLeagueEvents(leagueId, events);
+    mutationFn: async ({
+      leagueId,
+      events,
+      scoringPeriods,
+    }: {
+      leagueId: number;
+      events: any[];
+      scoringPeriods?: any[];
+    }) => {
+      return await createLeagueEvents(leagueId, { events, scoringPeriods });
     },
     onSuccess: (_, variables) => {
       // Invalidate the events list for the league

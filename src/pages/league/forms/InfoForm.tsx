@@ -15,7 +15,15 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <SectionKicker className="mb-3">{children}</SectionKicker>
 );
 
-export default function InfoForm() {
+type InfoFormProps = {
+  competitiveSettingsLocked?: boolean;
+  isEditing?: boolean;
+};
+
+export default function InfoForm({
+  competitiveSettingsLocked = false,
+  isEditing = false,
+}: InfoFormProps) {
   const leagueForm = useFormContext();
   const startDate = leagueForm.watch("startDate");
   const startDateInput = getLeagueDateInputValue(startDate);
@@ -24,8 +32,12 @@ export default function InfoForm() {
   return (
     <>
       <PageHeader
-        title="Create Your League"
-        subTitle="Build the foundation of your tournament season. Complete the sections below to initialize your league."
+        title={isEditing ? "Edit League" : "Create Your League"}
+        subTitle={
+          isEditing
+            ? "Update league details and settings."
+            : "Build the foundation of your tournament season. Complete the sections below to initialize your league."
+        }
       />
 
       <div className="mt-6 space-y-3">
@@ -66,6 +78,7 @@ export default function InfoForm() {
                     type="date"
                     label="Start Date"
                     placeholder="YYYY-MM-DD"
+                    disabled={isEditing}
                     value={dayjs(field.value).format("YYYY-MM-DD")}
                     onChange={(e) => {
                       const nextStartDate = dayjs(e.target.value).toDate();
@@ -87,6 +100,7 @@ export default function InfoForm() {
                     type="date"
                     label="End Date"
                     placeholder="YYYY-MM-DD"
+                    disabled={isEditing}
                     min={startDateInput}
                     max={maxEndDate}
                     value={getLeagueDateInputValue(field.value)}
@@ -107,6 +121,7 @@ export default function InfoForm() {
               description="A collection of events. Players earn points across events and compete for the season championship."
               icon={<CalendarRange size={16} className="text-slate-900" />}
               active={leagueForm.watch("type") === "season"}
+              disabled={competitiveSettingsLocked}
               onClick={() => {
                 leagueForm.setValue("type", "season");
                 if (!["individual", "team"].includes(leagueForm.watch("format"))) {
@@ -119,6 +134,7 @@ export default function InfoForm() {
               description="Single standalone events not tied to a season. Ideal for one-off competitions or casual play."
               icon={<Trophy size={16} className="text-slate-900" />}
               active={leagueForm.watch("type") === "tournament"}
+              disabled={competitiveSettingsLocked}
               onClick={() => {
                 leagueForm.setValue("type", "tournament");
                 leagueForm.setValue("format", null);
@@ -138,6 +154,7 @@ export default function InfoForm() {
                 description="Players compete as individuals throughout the season. No team assignment required."
                 icon={<User size={16} className="text-slate-900" />}
                 active={leagueForm.watch("format") === "individual"}
+                disabled={competitiveSettingsLocked}
                 onClick={() => leagueForm.setValue("format", "individual")}
               />
               <SelectableInfoCard
@@ -145,6 +162,7 @@ export default function InfoForm() {
                 description="Players are grouped into fixed teams for season standings and team-based play."
                 icon={<Users size={16} className="text-slate-900" />}
                 active={leagueForm.watch("format") === "team"}
+                disabled={competitiveSettingsLocked}
                 onClick={() => leagueForm.setValue("format", "team")}
               />
             </div>
@@ -159,6 +177,7 @@ export default function InfoForm() {
               description="Every event is 9 holes. Player entries and ongoing calculations use a 9-hole handicap."
               icon={<Flag size={16} className="text-slate-900" />}
               active={leagueForm.watch("holeFormat") === "9"}
+              disabled={competitiveSettingsLocked}
               onClick={() => leagueForm.setValue("holeFormat", "9", { shouldDirty: true })}
             />
             <SelectableInfoCard
@@ -166,6 +185,7 @@ export default function InfoForm() {
               description="Every event is 18 holes. Player entries and calculations use an 18-hole handicap."
               icon={<Flag size={16} className="text-slate-900" />}
               active={leagueForm.watch("holeFormat") === "18"}
+              disabled={competitiveSettingsLocked}
               onClick={() => leagueForm.setValue("holeFormat", "18", { shouldDirty: true })}
             />
             <SelectableInfoCard
@@ -173,6 +193,7 @@ export default function InfoForm() {
               description="Events may be 9 or 18 holes and must be added manually. Handicaps use the 18-hole value."
               icon={<Repeat2 size={16} className="text-slate-900" />}
               active={leagueForm.watch("holeFormat") === "mixed"}
+              disabled={competitiveSettingsLocked}
               onClick={() => leagueForm.setValue("holeFormat", "mixed", { shouldDirty: true })}
             />
           </div>

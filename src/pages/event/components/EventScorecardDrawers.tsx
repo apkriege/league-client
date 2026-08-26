@@ -2,6 +2,7 @@ import ViewFlightScores from "@/pages/scores/ViewFlightScores";
 import Table from "@/components/Table";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import { compareTimes, formatTime } from "@/utils/format";
+import { formatHandicap } from "@/utils/handicap";
 import PlayerNameLink from "./PlayerNameLink";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 
@@ -147,7 +148,7 @@ export const IndividualStrokeScorecardsDrawer = memo(function IndividualStrokeSc
                       {round.player.firstName} {round.player.lastName}
                     </PlayerNameLink>
                     <div className="mt-0.5 text-[10px] leading-tight text-gray-500">
-                      Index: {Number(round.preHandicap ?? 0).toFixed(1)}
+                      Index: {formatHandicap(round.preHandicap)}
                     </div>
                   </td>
                   {holes.map((hole) => {

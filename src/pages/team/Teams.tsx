@@ -13,6 +13,7 @@ import { useCreateTeam, useDeleteTeam, useUpdateTeam } from "@api/teams/mutation
 import { ShieldHalf, SquarePen, Trash2, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { formatHandicap } from "@/utils/handicap";
 
 type TeamPlayer = {
   id: number | string;
@@ -93,7 +94,7 @@ export default function Teams() {
       )
       .map((player) => ({
         value: Number(player.id),
-        label: `${player.firstName} ${player.lastName} (HCP ${player.handicap ?? "-"})`,
+        label: `${player.firstName} ${player.lastName} (HCP ${formatHandicap(player.handicap)})`,
       }));
   }, [allPlayers, editingTeamId, form.players, teams]);
 
@@ -378,7 +379,7 @@ export default function Teams() {
                               </p>
                               {player.handicap != null && (
                                 <p className="text-[10px] text-gray-400">
-                                  HCP {Number(player.handicap).toFixed(1)}
+                                  HCP {formatHandicap(player.handicap)}
                                 </p>
                               )}
                             </div>

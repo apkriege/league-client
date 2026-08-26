@@ -155,6 +155,7 @@ function ViewFlightScores({ event, flight }: any) {
       <Table
         data={[1 as const, 2 as const]}
         search={false}
+        pagination={false}
         variant="clean"
         noBorder
         tableClassName="score-table"
@@ -396,6 +397,7 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
       <Table
         data={pairs}
         search={false}
+        pagination={false}
         variant="clean"
         noBorder
         tableClassName="score-table"

@@ -29,6 +29,7 @@ import {
 } from "@/features/payments/PaymentPipelineError";
 import PaymentAccessCodeForm from "@/features/payments/components/PaymentAccessCodeForm";
 import { getHandicapHoleCount } from "@/features/leagues/leagueHoleFormat";
+import { formatHandicap } from "./playerFormatters";
 
 const EMPTY_FORM = {
   firstName: "",
@@ -506,7 +507,7 @@ export default function Players() {
       key: "handicap",
       label: `${handicapHoleCount}H HCP`,
       headerClassName: "whitespace-nowrap",
-      render: (value: any) => <p className="text-xs font-bold">{value}</p>,
+      render: (value: any) => <p className="text-xs font-bold">{formatHandicap(value)}</p>,
     },
     {
       key: "gender",
@@ -656,7 +657,7 @@ export default function Players() {
                       <p className="text-[10px] text-slate-500">
                         {player.type === "sub" ? "Substitute" : "Regular player"} ·{" "}
                         {player.gender === "female" ? "Women’s" : "Men’s"} ratings ·{" "}
-                        {handicapHoleCount}H HCP {player.handicap}
+                        {handicapHoleCount}H HCP {formatHandicap(player.handicap)}
                       </p>
                     </div>
                     <button

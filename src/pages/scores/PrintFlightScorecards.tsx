@@ -4,6 +4,7 @@ import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { formatEventDate } from "@/utils/eventDate";
 import { compareTimes, formatTime } from "@/utils/format";
+import { formatHandicap } from "@/utils/handicap";
 import { Printer } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -358,7 +359,7 @@ function ScorecardGrid({
   players: Array<{
     id: string;
     name: string;
-    detail?: string;
+    teamName?: string;
     handicap?: number | null;
     slotIndex: number;
     entry: any;
@@ -373,8 +374,10 @@ function ScorecardGrid({
     <Table
       data={players}
       search={false}
+      pagination={false}
       variant="clean"
       noBorder
+      className="rounded-none! shadow-none!"
       tableClassName="scorecard-table w-full border-collapse table-fixed text-[9px]"
       renderTable={(visiblePlayers) => (
         <>
@@ -397,13 +400,13 @@ function ScorecardGrid({
             {visiblePlayers.map((player) => (
               <tr key={player.id}>
                 <td className="scorecard-player-cell border border-slate-300 px-1.5 py-1 align-top">
-                  <p className="font-semibold text-slate-800 leading-tight">
-                    {player.name}
-                    <span className="ml-1 font-normal text-[9px] text-slate-500">
-                      Course HCP {player.handicap != null ? player.handicap.toFixed(1) : "-"}
-                    </span>
+                  <p className="font-semibold leading-tight text-slate-800">{player.name}</p>
+                  <p className="text-[9px] leading-tight text-slate-500">
+                    HCP {formatHandicap(player.handicap)}
                   </p>
-                  {player.detail ? <p className="text-[9px] text-slate-500">{player.detail}</p> : null}
+                  {player.teamName ? (
+                    <p className="text-[9px] leading-tight text-slate-500">{player.teamName}</p>
+                  ) : null}
                   {renderPlayerActions ? (
                     <div className="no-print mt-1">{renderPlayerActions(player)}</div>
                   ) : null}
@@ -427,7 +430,7 @@ function getFlightRows(
 ): Array<{
   id: string;
   name: string;
-  detail?: string;
+  teamName?: string;
   handicap?: number | null;
   slotIndex: number;
   entry: any;
@@ -483,7 +486,7 @@ function getFlightRows(
       return {
         id: `p-${playerId}`,
         name,
-        detail: teamName,
+        teamName,
         handicap: getDisplayHandicap(entry),
         slotIndex,
         entry,
@@ -500,7 +503,7 @@ function getFlightRows(
     const rows: Array<{
       id: string;
       name: string;
-      detail?: string;
+      teamName?: string;
       handicap?: number | null;
       slotIndex: number;
       entry: any;
@@ -517,9 +520,6 @@ function getFlightRows(
       rows.push({
         id: `p-${id}`,
         name,
-        detail: opponent
-          ? `vs ${opponent.player.firstName} ${opponent.player.lastName}`
-          : "Match: TBD",
         handicap: getDisplayHandicap(entry),
         slotIndex: Number(slotByPlayerId.get(id) ?? 0),
         entry,
@@ -531,7 +531,6 @@ function getFlightRows(
         rows.push({
           id: `p-${opponentId}`,
           name: `${opponent.player.firstName} ${opponent.player.lastName}`,
-          detail: `vs ${name}`,
           handicap: getDisplayHandicap(opponent),
           slotIndex: Number(slotByPlayerId.get(opponentId) ?? 0),
           entry: opponent,

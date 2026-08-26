@@ -48,6 +48,13 @@ const validatePublicLinks = (env: Record<string, string>) => {
   }
 }
 
+const validateGoogleAnalytics = (value: string | undefined) => {
+  const measurementId = value?.trim()
+  if (measurementId && !/^G-[A-Z0-9]+$/i.test(measurementId)) {
+    throw new Error('VITE_GOOGLE_ANALYTICS_ID must be a valid GA4 measurement ID')
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   if (mode === 'production') {
@@ -56,6 +63,7 @@ export default defineConfig(({ mode }) => {
       Boolean(env.RAILWAY_ENVIRONMENT || env.RAILWAY_PROJECT_ID || env.RAILWAY_SERVICE_ID),
     )
     validatePublicLinks(env)
+    validateGoogleAnalytics(env.VITE_GOOGLE_ANALYTICS_ID)
   }
 
   return {

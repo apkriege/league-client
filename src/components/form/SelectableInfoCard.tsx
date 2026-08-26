@@ -23,12 +23,14 @@ export default function SelectableInfoCard({
   return (
     <button
       type="button"
-      onClick={disabled && !active ? undefined : onClick}
-      disabled={disabled && !active}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       className={`w-full px-3 py-2 flex items-center justify-between gap-2 rounded-2xl border text-left transition-all ${
-        active
+        active && !disabled
           ? "bg-sky-100/70 border-sky-300 cursor-pointer shadow-xs"
-          : disabled
+          : active
+            ? "bg-sky-100/70 border-sky-300 cursor-not-allowed shadow-xs opacity-70"
+            : disabled
             ? "opacity-40 cursor-not-allowed bg-white border-slate-200"
             : "bg-white/70 border-slate-200 hover:bg-white cursor-pointer hover:shadow-sm"
       } ${className}`}

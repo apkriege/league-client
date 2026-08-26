@@ -1,8 +1,6 @@
-import { useState, type MouseEvent } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import Divider from "@mui/material/Divider";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
+import Popover from "@mui/material/Popover";
 import { Ban, ChevronDown, PencilLine, Printer, Settings2, Trash2 } from "lucide-react";
 import { SummaryPillButton } from "@/components/layout/SummaryPill";
 
@@ -16,6 +14,43 @@ type EventActionsMenuProps = {
   onCancel: () => void;
   onDelete: () => void;
 };
+
+type EventActionButtonProps = {
+  children: ReactNode;
+  disabled?: boolean;
+  icon: ReactNode;
+  onClick: () => void;
+  tone?: "default" | "warning" | "danger";
+};
+
+const actionToneClasses = {
+  default: "text-slate-700 hover:bg-slate-100",
+  warning: "text-amber-700 hover:bg-amber-50",
+  danger: "text-red-600 hover:bg-red-50",
+} as const;
+
+function EventActionButton({
+  children,
+  disabled = false,
+  icon,
+  onClick,
+  tone = "default",
+}: EventActionButtonProps) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      disabled={disabled}
+      onClick={onClick}
+      className={`flex min-h-8.5 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${actionToneClasses[tone]}`}
+    >
+      <span aria-hidden="true" className="flex w-4 shrink-0 items-center justify-center opacity-70">
+        {icon}
+      </span>
+      {children}
+    </button>
+  );
+}
 
 export default function EventActionsMenu({
   canModify,
@@ -56,7 +91,7 @@ export default function EventActionsMenu({
         />
       </SummaryPillButton>
 
-      <Menu
+      <Popover
         id="event-actions-menu"
         anchorEl={anchorElement}
         open={isOpen}
@@ -74,69 +109,40 @@ export default function EventActionsMenu({
               boxShadow: "0 12px 30px rgba(15, 23, 42, 0.12)",
             },
           },
-          list: { dense: true, sx: { py: 0.75 } },
         }}
       >
-        {canModify && (
-          <MenuItem
-            onClick={() => runAction(onEdit)}
-            sx={{ mx: 0.75, minHeight: 34, borderRadius: 2, fontSize: 12, fontWeight: 600 }}
+        <div role="menu" aria-label="Event actions" className="p-1.5">
+          {canModify && (
+            <EventActionButton icon={<PencilLine size={14} />} onClick={() => runAction(onEdit)}>
+              Edit Event
+            </EventActionButton>
+          )}
+          {canPrint && (
+            <EventActionButton icon={<Printer size={14} />} onClick={() => runAction(onPrint)}>
+              Print Scorecards
+            </EventActionButton>
+          )}
+          {(canModify || canPrint) && <Divider sx={{ my: 0.5 }} />}
+          {canModify && (
+            <EventActionButton
+              disabled={isCanceling}
+              icon={<Ban size={14} />}
+              onClick={() => runAction(onCancel)}
+              tone="warning"
+            >
+              {isCanceling ? "Canceling..." : "Cancel Event"}
+            </EventActionButton>
+          )}
+          <EventActionButton
+            disabled={isDeleting}
+            icon={<Trash2 size={14} />}
+            onClick={() => runAction(onDelete)}
+            tone="danger"
           >
-            <ListItemIcon sx={{ minWidth: "28px !important", color: "text.secondary" }}>
-              <PencilLine size={14} />
-            </ListItemIcon>
-            Edit Event
-          </MenuItem>
-        )}
-        {canPrint && (
-          <MenuItem
-            onClick={() => runAction(onPrint)}
-            sx={{ mx: 0.75, minHeight: 34, borderRadius: 2, fontSize: 12, fontWeight: 600 }}
-          >
-            <ListItemIcon sx={{ minWidth: "28px !important", color: "text.secondary" }}>
-              <Printer size={14} />
-            </ListItemIcon>
-            Print Scorecards
-          </MenuItem>
-        )}
-        {(canModify || canPrint) && <Divider sx={{ my: 0.5 }} />}
-        {canModify && (
-          <MenuItem
-            disabled={isCanceling}
-            onClick={() => runAction(onCancel)}
-            sx={{
-              mx: 0.75,
-              minHeight: 34,
-              borderRadius: 2,
-              color: "warning.dark",
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: "28px !important", color: "inherit" }}>
-              <Ban size={14} />
-            </ListItemIcon>
-            {isCanceling ? "Canceling..." : "Cancel Event"}
-          </MenuItem>
-        )}
-        <MenuItem
-          disabled={isDeleting}
-          onClick={() => runAction(onDelete)}
-          sx={{
-            mx: 0.75,
-            minHeight: 34,
-            borderRadius: 2,
-            color: "error.main",
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
-          <ListItemIcon sx={{ minWidth: "28px !important", color: "inherit" }}>
-            <Trash2 size={14} />
-          </ListItemIcon>
-          {isDeleting ? "Deleting..." : "Delete Event"}
-        </MenuItem>
-      </Menu>
+            {isDeleting ? "Deleting..." : "Delete Event"}
+          </EventActionButton>
+        </div>
+      </Popover>
     </div>
   );
 }

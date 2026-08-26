@@ -146,6 +146,17 @@ export default function RegisterPanel() {
               : "Create admin account"}
           <ArrowRight size={16} />
         </button>
+        <p className="px-2 text-center text-[10px] leading-4 text-slate-400">
+          By creating an account, you agree to the{" "}
+          <Link to="/terms" className="font-bold text-slate-600 underline hover:text-slate-950">
+            Terms of Service
+          </Link>{" "}
+          and acknowledge the{" "}
+          <Link to="/privacy" className="font-bold text-slate-600 underline hover:text-slate-950">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
 
       <p className="mt-4 text-center text-xs text-slate-500">

@@ -390,6 +390,7 @@ export const CreateFlightScoresTeamStroke = ({
           <Table
             data={[1 as const, 2 as const]}
             search={false}
+            pagination={false}
             variant="clean"
             noBorder
             tableClassName="score-table"
@@ -397,7 +398,7 @@ export const CreateFlightScoresTeamStroke = ({
               <>
                 <thead>
                   <tr className="text-xs text-gray-700">
-                    <th>Player</th>
+                    <th className="pl-4">Player</th>
                     {holes.map((hole: any) => (
                       <ScoreHeaderCell key={hole.num}>
                         {hole.num}

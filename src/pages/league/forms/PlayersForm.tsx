@@ -13,6 +13,7 @@ import Button from "@/components/layout/Button";
 import Chip from "@mui/material/Chip";
 import PageHeader from "@/components/layout/PageHeader";
 import { getHandicapHoleCount } from "@/features/leagues/leagueHoleFormat";
+import { formatHandicap } from "@/utils/handicap";
 
 const defaultPlayer = {
   firstName: "",
@@ -158,7 +159,7 @@ export default function PlayersForm() {
       key: "handicap",
       label: `${handicapHoleCount}H HCP`,
       headerClassName: "whitespace-nowrap",
-      render: (value: any) => <p className="text-sm font-bold">{value}</p>,
+      render: (value: any) => <p className="text-sm font-bold">{formatHandicap(value)}</p>,
     },
     {
       key: "gender",

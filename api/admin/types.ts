@@ -88,3 +88,38 @@ export type GeneratedPaymentBypassCode = {
   code: string;
   record: Omit<PaymentBypassCode, "createdBy" | "redeemedBy">;
 };
+
+export type AdminLeagueListItem = {
+  id: number;
+  name: string;
+  type: string;
+  format?: string | null;
+  completedRoundCount: number;
+  roundCount: number;
+  contactFirstName?: string | null;
+  contactLastName?: string | null;
+  contactEmail?: string | null;
+  _count: {
+    players: number;
+    events: number;
+  };
+};
+
+export type SeasonSyncResult = {
+  leagueId: number;
+  eventsProcessed: number;
+  roundsUpdated: number;
+  scoresUpdated: number;
+  playersUpdated: number;
+  teamPointRowsUpdated: number;
+  skippedEvents: Array<{
+    eventId: number;
+    name: string;
+    reason: string;
+  }>;
+};
+
+export type SeasonSyncResponse = {
+  message: string;
+  result: SeasonSyncResult;
+};

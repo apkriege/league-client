@@ -1,13 +1,24 @@
 import Badge from "@/components/layout/Badge";
 import Card from "@/components/layout/Card";
-import Divider from "@/components/layout/Divider";
 import PageHeader from "@/components/layout/PageHeader";
 import { useToast } from "@/context/useToast";
 import { useAppStore } from "@/stores/appStore";
 
 import { useAdminLeagues } from "@api/admin/queries";
 import { useLeagues } from "@api/league/queries";
-import { Plus, Globe, ChevronsRight, Lock, Edit, Info, Search } from "lucide-react";
+import {
+  Plus,
+  Globe,
+  ArrowUpRight,
+  Lock,
+  Edit,
+  Info,
+  Search,
+  CalendarDays,
+  CheckCircle2,
+  Users,
+  Trophy,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { clearCreateLeagueDraft } from "./leagueDraft";
@@ -18,6 +29,7 @@ import {
   PaymentPipelineError,
   toPaymentPipelineError,
 } from "@/features/payments/PaymentPipelineError";
+import dayjs from "dayjs";
 
 export default function Leagues() {
   const { user } = useAppStore();
@@ -179,7 +191,7 @@ export default function Leagues() {
           </p>
         </div>
       )}
-      <div className="grid grid-cols-3 gap-3 mt-2 auto-rows-fr items-stretch">
+      <div className="mt-2 grid auto-rows-fr grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {canManageLeagues && (
           <Link to="/leagues/create" className="block h-full" onClick={clearCreateLeagueDraft}>
             <Card className="bg-slate-900 h-full flex items-center justify-center cursor-pointer hover:bg-slate-900/95 transition-colors">
@@ -211,37 +223,97 @@ export default function Leagues() {
 const LeagueCard = ({ league, canManageLeague }: any) => {
   const eventCount = Number(league?._count?.events ?? league?.events?.length ?? 0);
   const playerCount = Number(league?._count?.players ?? league?.players?.length ?? 0);
+  const rawRoundCount = Number(league?.roundCount ?? eventCount);
+  const roundCount = Number.isFinite(rawRoundCount) ? Math.max(0, rawRoundCount) : 0;
+  const rawCompletedRoundCount = Number(league?.completedRoundCount ?? 0);
+  const completedRoundCount = Number.isFinite(rawCompletedRoundCount)
+    ? Math.min(roundCount, Math.max(0, rawCompletedRoundCount))
+    : 0;
+  const leaguePath = canManageLeague
+    ? `/league/${league.id}/admin`
+    : `/league/${league.id}`;
+  const dateRange =
+    league?.startDate && league?.endDate
+      ? `${dayjs(league.startDate).format("MMM D, YYYY")} – ${dayjs(league.endDate).format(
+          "MMM D, YYYY"
+        )}`
+      : null;
 
   return (
-    <Card className="h-full">
-      {canManageLeague && (
-        <div className="flex justify-end">
+    <Card className="group flex h-full flex-col border-slate-200 bg-white p-4! transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg">
+      <div className="flex items-center justify-between gap-2">
+        <Badge
+          className="mb-0!"
+          size="xs"
+          text={roundCount > 0 ? "Live" : "Not Started"}
+          icon={roundCount > 0 ? <Globe size={12} /> : <Lock size={12} />}
+          variant={roundCount > 0 ? "primary" : ""}
+        />
+        {canManageLeague && (
           <Link
             to={`/league/${league.id}/edit`}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-gray-500 hover:bg-slate-100"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
           >
             <Edit size={10} />
             Edit
           </Link>
-        </div>
-      )}
-      <Link to={`/league/${league.id}`} className="block h-full cursor-pointer mt-2">
-        <div className="flex flex-col ">
-          <Badge
-            size="xs"
-            text={eventCount > 0 ? "Live" : "Not Started"}
-            icon={eventCount > 0 ? <Globe size={12} /> : <Lock size={12} />}
-            variant={eventCount > 0 ? "primary" : ""}
-          />
-          <h3 className="text-lg font-bold mt-2">{league.name}</h3>
-          <p className="text-gray-400 text-[11px] mb-8">
-            <span>{playerCount} Players</span>
-          </p>
-          <Divider className="my-2!" />
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span className="text-[10px] font-semibold">OPEN LEAGUE</span>
-            <span>
-              <ChevronsRight size={12} />
+        )}
+      </div>
+      <Link to={leaguePath} className="mt-2.5 flex flex-1 cursor-pointer flex-col">
+        <div className="flex flex-1 flex-col">
+          <h3 className="text-lg font-black tracking-tight text-slate-900 transition-colors group-hover:text-blue-700">
+            {league.name}
+          </h3>
+
+          <div className="mt-2 flex flex-col items-start gap-1.5 text-xs font-semibold text-slate-500">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              {league?.type && (
+                <span className="inline-flex items-center gap-1.5 capitalize">
+                  <Trophy
+                    aria-hidden="true"
+                    className="text-slate-400"
+                    size={11}
+                    strokeWidth={1.75}
+                  />
+                  {league.type}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5">
+                <Users
+                  aria-hidden="true"
+                  className="text-slate-400"
+                  size={11}
+                  strokeWidth={1.75}
+                />
+                {playerCount} {playerCount === 1 ? "Player" : "Players"}
+              </span>
+            </div>
+            {dateRange && (
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays
+                  aria-hidden="true"
+                  className="text-slate-400"
+                  size={11}
+                  strokeWidth={1.75}
+                />
+                <span>{dateRange}</span>
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2
+                aria-hidden="true"
+                className="text-slate-400"
+                size={11}
+                strokeWidth={1.75}
+              />
+              {completedRoundCount} / {roundCount} {roundCount === 1 ? "round" : "rounds"} complete
+            </span>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-slate-500">
+            <span className="text-[10px] font-bold tracking-wider">OPEN LEAGUE</span>
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 transition-all group-hover:bg-blue-600 group-hover:text-white">
+              <ArrowUpRight size={12} />
             </span>
           </div>
         </div>

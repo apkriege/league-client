@@ -119,7 +119,7 @@ export default function EditLeague() {
           navigate(`/league/${numericLeagueId}/admin`);
         },
         onError: (error) => {
-          console.error("Failed to update league:", error);
+          show(getApiErrorMessage(error, "Unable to update the league."), "error");
         },
       }
     );
@@ -172,7 +172,10 @@ export default function EditLeague() {
     <div className="pb-4">
       <FormProvider {...leagueForm}>
         <div className="step-body">
-          <InfoForm />
+          <InfoForm
+            competitiveSettingsLocked={Boolean(league.hasRecordedScores)}
+            isEditing
+          />
         </div>
 
         <div className="step-footer mt-4 w-full bg-white px-4 py-3 flex items-center justify-end border border-slate-200 rounded-xl shadow-xs gap-2">

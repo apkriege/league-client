@@ -7,7 +7,7 @@ import PlayerNameLink from "./PlayerNameLink";
 export type SkinsDrawerContent = {
   label: string;
   skins: any[];
-  valueKey: string;
+  valueKey: "gross" | "net";
   iconClass: string;
   badgeClass: string;
 };
@@ -95,6 +95,7 @@ export function SkinsRoundScoresDrawer({
             rounds={rounds}
             highlightedHolesByPlayer={highlightedHolesByPlayer}
             highlightUnderPar={false}
+            holeScoreKey={content.valueKey}
           />
         </div>
       </SurfaceCard>

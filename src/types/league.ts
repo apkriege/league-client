@@ -15,6 +15,16 @@ export type League = {
   players: Player[];
   teams: Teams[];
   events?: Event[];
+  scoringPeriods?: LeagueScoringPeriod[];
+  hasRecordedScores?: boolean;
+};
+
+export type LeagueScoringPeriod = {
+  id: number;
+  name: string;
+  position: number;
+  startDate: string | Date;
+  endDate: string | Date;
 };
 
 export type Player = {

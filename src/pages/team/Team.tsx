@@ -6,6 +6,7 @@ import PanelBar from "@/components/layout/PanelBar";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { formatTime } from "@/utils/format";
 import { formatEventDate } from "@/utils/eventDate";
+import { formatHandicap } from "@/utils/handicap";
 import { useTeam } from "@api/teams/queries";
 import dayjs from "dayjs";
 import {
@@ -163,7 +164,7 @@ export default function Team() {
         />
         <StatCard
           label="Avg Handicap"
-          value={players.length ? avgHandicap.toFixed(1) : "—"}
+          value={players.length ? formatHandicap(avgHandicap) : "—"}
           subText="Current roster"
           icon={<CircleGauge size={18} />}
         />
@@ -211,7 +212,7 @@ export default function Team() {
                         {playerName(player)}
                       </span>
                       <span className="text-[10px] text-gray-400">
-                        HCP {player.handicap == null ? "—" : numberValue(player.handicap).toFixed(1)}
+                        HCP {formatHandicap(player.handicap)}
                       </span>
                     </span>
                   </Link>

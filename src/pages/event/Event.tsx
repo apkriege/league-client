@@ -14,7 +14,6 @@ import { formatTime } from "@/utils/format";
 import { useAppStore } from "@/stores/appStore";
 import { useToast } from "@/context/useToast";
 import {
-  BarChart2,
   Calendar,
   Clock,
   Eye,
@@ -28,7 +27,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   buildEventLeaderboard,
@@ -37,6 +36,7 @@ import {
 import EventFlightsPreview from "./components/EventFlightsPreview";
 import EventActionsMenu from "./components/EventActionsMenu";
 import EventRoundsTable from "./components/EventRoundsTable";
+import EventTeamStandings from "./components/EventTeamStandings";
 import {
   FlightScorecardsDrawer,
   IndividualStrokeScorecardsDrawer,
@@ -56,8 +56,6 @@ const LEADERBOARD_TABS = [
   { id: "lowNet", label: "Low Net" },
 ] satisfies Array<{ id: EventLeaderboardSort; label: string }>;
 const SCORE_ONLY_LEADERBOARD_TABS = LEADERBOARD_TABS.filter((tab) => tab.id !== "points");
-const ScoreDistributionChart = lazy(() => import("./components/ScoreDistributionChart"));
-
 const buildEventView = (event: any, activeTab: EventLeaderboardSort) => {
   const rounds = event.metrics?.scores ?? [];
   const pointsEnabled = event.pointsEnabled !== false;
@@ -106,6 +104,7 @@ export default function Event() {
     show("Event canceled.", "success");
   });
   const [activeTab, setActiveTab] = useState<EventLeaderboardSort>("points");
+  const [roundScoreMode, setRoundScoreMode] = useState<"gross" | "net">("gross");
   const scorecardDrawer = useAnimatedDrawer();
   const skinsDrawer = useAnimatedDrawer<SkinsDrawerContent>();
   const eventView = useMemo(
@@ -373,21 +372,8 @@ export default function Event() {
                       sortBy={leaderboardSort}
                     />
                   </SurfaceCard>
-                  {event.metrics.scoreDistribution && (
-                    <SurfaceCard>
-                      <PanelBar>
-                        <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
-                        <h3 className="text-sm font-semibold text-gray-800">Score Distribution</h3>
-                        <span className="ml-auto text-[10px] text-gray-400">
-                          This event vs. season avg
-                        </span>
-                      </PanelBar>
-                      <div className="px-4 py-3">
-                        <Suspense fallback={<div className="h-45 animate-pulse rounded-lg bg-gray-50" />}>
-                          <ScoreDistributionChart distribution={event.metrics.scoreDistribution} />
-                        </Suspense>
-                      </div>
-                    </SurfaceCard>
+                  {event.format === "team" && event.metrics.teamStandings?.length > 0 && (
+                    <EventTeamStandings standings={event.metrics.teamStandings} />
                   )}
                 </div>
               </div>
@@ -396,21 +382,48 @@ export default function Event() {
             <div className="pt-2 [content-visibility:auto] [contain-intrinsic-size:auto_560px]">
               <SectionIntro title="Round Scores" description="All player scores for this event" />
               <SurfaceCard>
-                <div className="flex items-center justify-between gap-2 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                   <div className="flex items-center gap-2">
                     <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
                     <h3 className="text-sm font-semibold text-gray-800">Round Scores</h3>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => scorecardDrawer.open()}
-                    className="flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                  >
-                    <Eye size={12} strokeWidth={2.5} />
-                    Scorecards
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="flex items-center rounded-md border border-gray-200 bg-gray-50 p-0.5"
+                      role="group"
+                      aria-label="Hole score display"
+                    >
+                      {(["gross", "net"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setRoundScoreMode(mode)}
+                          aria-pressed={roundScoreMode === mode}
+                          className={`rounded px-2 py-1 text-[10px] font-bold capitalize transition-colors ${
+                            roundScoreMode === mode
+                              ? "bg-white text-gray-800 shadow-sm"
+                              : "text-gray-400 hover:text-gray-600"
+                          }`}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => scorecardDrawer.open()}
+                      className="flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      <Eye size={12} strokeWidth={2.5} />
+                      Scorecards
+                    </button>
+                  </div>
                 </div>
-                <EventRoundsTable rounds={event.metrics.scores} />
+                <EventRoundsTable
+                  rounds={event.metrics.scores}
+                  holeScoreKey={roundScoreMode}
+                  showRoundStats
+                />
               </SurfaceCard>
             </div>
           </>

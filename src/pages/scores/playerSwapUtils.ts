@@ -12,10 +12,16 @@ export function sortPlayersByName(players: any[]) {
 }
 
 export function buildSwappedPlayerEntry(baseEntry: any, replacement: any) {
+  const handicapIndex = Number(replacement?.handicap);
+  const fallbackPlayingHandicap = Number.isFinite(handicapIndex)
+    ? Math.round(handicapIndex)
+    : null;
+
   return {
     ...baseEntry,
     playerId: Number(replacement.id),
-    courseHandicap: replacement?.courseHandicap ?? null,
+    handicapIndex: Number.isFinite(handicapIndex) ? handicapIndex : null,
+    courseHandicap: replacement?.courseHandicap ?? fallbackPlayingHandicap,
     teamId: baseEntry?.teamId ?? replacement?.teamId ?? null,
     player: {
       ...baseEntry?.player,

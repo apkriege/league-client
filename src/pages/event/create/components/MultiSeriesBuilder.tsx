@@ -1,10 +1,12 @@
 import Button from "@/components/layout/Button";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import ScoringPeriodDivider from "@/components/league/ScoringPeriodDivider";
+import { useState, useCallback, useEffect, useMemo, Fragment } from "react";
 import { useFormContext } from "react-hook-form";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import dayjs from "dayjs";
 import {
   CalendarDays,
+  CalendarRange,
   RefreshCw,
   ShieldHalf,
   Shuffle,
@@ -32,6 +34,8 @@ import { useCreateLeagueEvents } from "@api/league/mutations";
 import { useToast } from "@/context/useToast";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { getEventDateInputValue } from "@/utils/eventDate";
+import { getScoringPeriodBoundariesBeforeEvent } from "@/features/leagues/scoringPeriodBoundaries";
+import type { LeagueScoringPeriod } from "@/types/league";
 import { DEFAULT_STROKE_POINTS } from "../constants";
 import {
   buildDates,
@@ -40,11 +44,16 @@ import {
   shuffleArray,
   type ScheduleRound,
 } from "../multiSeriesSchedule";
+import { createCourseAutocompleteOptions } from "../courseAutocompleteOptions";
 import MuiCheckbox from "@mui/material/Checkbox";
 import {
   getFixedEventHoleCount,
   normalizeLeagueHoleFormat,
 } from "@/features/leagues/leagueHoleFormat";
+import {
+  buildHalfScoringPeriods,
+  suggestFirstHalfEndDate,
+} from "../scoringPeriods";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -110,6 +119,22 @@ export default function MultiSeriesBuilder() {
   const [schedule, setSchedule] = useState<ScheduleRound[]>([]);
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const [alternateStartSides, setAlternateStartSides] = useState(false);
+  const existingScoringPeriods = useMemo(
+    () => (Array.isArray(league?.scoringPeriods) ? league.scoringPeriods : []),
+    [league]
+  );
+  const [statsPeriodMode, setStatsPeriodMode] = useState<"overall" | "halves">(() =>
+    existingScoringPeriods.length === 2 ? "halves" : "overall"
+  );
+  const [firstHalfEndDate, setFirstHalfEndDate] = useState(() =>
+    existingScoringPeriods.length === 2
+      ? getEventDateInputValue(existingScoringPeriods[0]?.endDate)
+      : ""
+  );
+  const hasUnsupportedScoringPeriods =
+    existingScoringPeriods.length > 0 && existingScoringPeriods.length !== 2;
+  const scoringPeriodsLocked =
+    Boolean(league?.hasRecordedScores) || hasUnsupportedScoringPeriods;
 
   const clampToLeagueDates = useCallback(
     (date: string) => {
@@ -129,8 +154,33 @@ export default function MultiSeriesBuilder() {
         ...round,
         date: clampToLeagueDates(round.date),
       })),
-    [clampToLeagueDates, schedule],
+    [clampToLeagueDates, schedule]
   );
+  const previewScoringPeriods = useMemo<LeagueScoringPeriod[]>(() => {
+    if (statsPeriodMode !== "halves") return [];
+
+    const configuredPeriods = scoringPeriodsLocked
+      ? existingScoringPeriods
+      : buildHalfScoringPeriods(resolvedStartDate, resolvedEndDate, firstHalfEndDate) ?? [];
+
+    return configuredPeriods.map((period: any, index: number) => {
+      const storedId = Number(period.id);
+      return {
+        id: Number.isFinite(storedId) ? storedId : -(index + 1),
+        name: String(period.name),
+        position: Number(period.position ?? index + 1),
+        startDate: period.startDate,
+        endDate: period.endDate,
+      };
+    });
+  }, [
+    existingScoringPeriods,
+    firstHalfEndDate,
+    resolvedEndDate,
+    resolvedStartDate,
+    scoringPeriodsLocked,
+    statsPeriodMode,
+  ]);
 
   useEffect(() => {
     if (fixedEventHoleCount) {
@@ -147,12 +197,7 @@ export default function MultiSeriesBuilder() {
     return index % 2 === 0 ? sharedStartSide : sharedStartSide === "front" ? "back" : "front";
   };
 
-  const generatedDates = buildDates(
-    resolvedStartDate,
-    resolvedEndDate,
-    selectedDays,
-    frequency,
-  );
+  const generatedDates = buildDates(resolvedStartDate, resolvedEndDate, selectedDays, frequency);
   const eventCount = generatedDates.length;
 
   const mutation = useCreateLeagueEvents(() => {
@@ -161,20 +206,7 @@ export default function MultiSeriesBuilder() {
   });
 
   // Course / tee options
-  const courseOptions = availableCourses.map((c: any) => ({
-    value: c.id,
-    label: c.name,
-    content: (
-      <div className="flex flex-col">
-        <span>
-          {c.name}, {c.location}
-        </span>
-        <span className="text-[10px] text-gray-500">
-          {c.par} &bull; {c.numHoles} HOLES
-        </span>
-      </div>
-    ),
-  }));
+  const courseOptions = createCourseAutocompleteOptions(availableCourses);
 
   const selectedTee = (selectedCourse?.tees || []).find(
     (t: any) => Number(t.id) === Number(methods.watch("teeId"))
@@ -200,10 +232,7 @@ export default function MultiSeriesBuilder() {
 
   const handleGenerate = (doShuffle = false) => {
     if (ids.length < 2) {
-      show(
-        `Add at least 2 ${format === "team" ? "teams" : "players"} before generating.`,
-        "error",
-      );
+      show(`Add at least 2 ${format === "team" ? "teams" : "players"} before generating.`, "error");
       return;
     }
     const sourceIds = doShuffle ? shuffleArray(ids) : ids;
@@ -214,11 +243,19 @@ export default function MultiSeriesBuilder() {
       return;
     }
 
+    if (
+      statsPeriodMode === "halves" &&
+      !scoringPeriodsLocked &&
+      (!firstHalfEndDate || firstHalfEndDate < resolvedStartDate || firstHalfEndDate >= resolvedEndDate)
+    ) {
+      setFirstHalfEndDate(suggestFirstHalfEndDate(dates, resolvedStartDate));
+    }
+
     setSchedule(
       dates.map((date, i) => ({
         date,
         flights: buildFlights(rrData[i % rrData.length] ?? [], format, scoringFormat),
-      })),
+      }))
     );
   };
 
@@ -249,9 +286,24 @@ export default function MultiSeriesBuilder() {
       return;
     }
     const shared = methods.getValues();
+    const halfScoringPeriods = buildHalfScoringPeriods(
+      resolvedStartDate,
+      resolvedEndDate,
+      firstHalfEndDate
+    );
+    if (statsPeriodMode === "halves" && !scoringPeriodsLocked && !halfScoringPeriods) {
+      show("Choose a first-half end date before the series end date.", "error");
+      return;
+    }
+
     mutation.mutate(
       {
         leagueId: Number(leagueId),
+        scoringPeriods: scoringPeriodsLocked
+          ? undefined
+          : statsPeriodMode === "halves"
+            ? halfScoringPeriods ?? []
+            : [],
         events: resolvedSchedule.map((r, i) => ({
           name: `${seriesName} - Round ${i + 1}`,
           type: "regular",
@@ -277,10 +329,10 @@ export default function MultiSeriesBuilder() {
         onError: (error: unknown) => {
           show(
             getApiErrorMessage(error, "Unable to create the event series. Please try again."),
-            "error",
+            "error"
           );
         },
-      },
+      }
     );
   };
 
@@ -322,11 +374,24 @@ export default function MultiSeriesBuilder() {
 
               <AutocompleteSelect
                 label="Course"
-                placeholder="Select a course"
+                placeholder="Search by course, club, or location"
                 options={courseOptions}
-                onChange={(v) => methods.setValue("courseId", v)}
+                noResultsText="No matching courses"
+                denseOptions
+                onChange={(v) => {
+                  if (Number(v) !== Number(methods.getValues("courseId"))) {
+                    methods.setValue("teeId", undefined, { shouldDirty: true });
+                  }
+                  methods.setValue("courseId", v, { shouldDirty: true });
+                }}
                 value={methods.watch("courseId")}
               />
+              <Link
+                to="/courses"
+                className="-mt-3 block w-full text-right text-[10px] font-medium text-sky-700 hover:text-sky-900 hover:underline"
+              >
+                Can't find your course?
+              </Link>
 
               {methods.watch("courseId") && teeOptions.length > 0 && (
                 <div>
@@ -350,23 +415,25 @@ export default function MultiSeriesBuilder() {
                     ...(!isNineHoleCourse ? [{ value: "back", label: "BACK" }] : []),
                   ]}
                 />
-                {!isNineHoleCourse && <label className="mt-2 flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
-                  <MuiCheckbox
-                    checked={alternateStartSides}
-                    onChange={(e) => setAlternateStartSides(e.target.checked)}
-                    size="small"
-                    sx={{ mt: -0.5, p: 0.5 }}
-                  />
-                  <span>
-                    <span className="block font-semibold text-slate-900">
-                      Alternate front/back each event
+                {!isNineHoleCourse && (
+                  <label className="mt-2 flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
+                    <MuiCheckbox
+                      checked={alternateStartSides}
+                      onChange={(e) => setAlternateStartSides(e.target.checked)}
+                      size="small"
+                      sx={{ mt: -0.5, p: 0.5 }}
+                    />
+                    <span>
+                      <span className="block font-semibold text-slate-900">
+                        Alternate front/back each event
+                      </span>
+                      <span className="block text-slate-900/60">
+                        Event 1 starts on {sharedStartSide}; event 2 starts on{" "}
+                        {sharedStartSide === "front" ? "back" : "front"}, then repeats.
+                      </span>
                     </span>
-                    <span className="block text-slate-900/60">
-                      Event 1 starts on {sharedStartSide}; event 2 starts on{" "}
-                      {sharedStartSide === "front" ? "back" : "front"}, then repeats.
-                    </span>
-                  </span>
-                </label>}
+                  </label>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -540,6 +607,59 @@ export default function MultiSeriesBuilder() {
 
         <div className="flex flex-col gap-3">
           <div>
+            <Label text="Stats View" />
+            {scoringPeriodsLocked ? (
+              <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">
+                {statsPeriodMode === "halves"
+                  ? `Two halves · 1st Half through ${dayjs(firstHalfEndDate).format("MMM D, YYYY")}`
+                  : hasUnsupportedScoringPeriods
+                    ? existingScoringPeriods.map((period: any) => period.name).join(" · ")
+                    : "Full season only"}
+              </div>
+            ) : (
+              <ToggleCards
+                value={statsPeriodMode}
+                onChange={(value) => {
+                  const nextMode = value as "overall" | "halves";
+                  setStatsPeriodMode(nextMode);
+                  if (nextMode === "halves" && !firstHalfEndDate) {
+                    setFirstHalfEndDate(
+                      suggestFirstHalfEndDate(generatedDates, resolvedStartDate)
+                    );
+                  }
+                }}
+                options={[
+                  { value: "overall", label: "FULL SEASON", icon: <CalendarDays size={14} /> },
+                  { value: "halves", label: "TWO HALVES", icon: <CalendarRange size={14} /> },
+                ]}
+              />
+            )}
+            {statsPeriodMode === "halves" && (
+              <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                <DateInput
+                  label="1st Half Ends"
+                  value={firstHalfEndDate}
+                  min={resolvedStartDate}
+                  max={dayjs(resolvedEndDate).subtract(1, "day").format("YYYY-MM-DD")}
+                  disabled={scoringPeriodsLocked}
+                  onChange={(event) => setFirstHalfEndDate(event.target.value)}
+                />
+                <div>
+                  <Label text="2nd Half Begins" />
+                  <div className="flex min-h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-600">
+                    {firstHalfEndDate
+                      ? dayjs(firstHalfEndDate).add(1, "day").format("MMM D, YYYY")
+                      : "Select a cutoff date"}
+                  </div>
+                </div>
+                <p className="col-span-2 text-[11px] text-slate-500">
+                  This only separates the statistics shown on the league page. Flights and
+                  matchups continue normally.
+                </p>
+              </div>
+            )}
+          </div>
+          <div>
             <Label text="Frequency" />
             <ToggleCards
               value={frequency}
@@ -593,21 +713,13 @@ export default function MultiSeriesBuilder() {
         )}
 
         <div className="flex gap-2 mt-2">
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => handleGenerate(false)}
-          >
-            <RefreshCw size={12} />
+          <Button type="button" variant="primary" onClick={() => handleGenerate(false)}>
+            <RefreshCw size={12} className="mr-2" />
             Generate Schedule
           </Button>
           {resolvedSchedule.length > 0 && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => handleGenerate(true)}
-            >
-              <Shuffle size={12} />
+            <Button type="button" variant="secondary" onClick={() => handleGenerate(true)}>
+              <Shuffle size={12} className="mr-2" />
               Shuffle Matchups
             </Button>
           )}
@@ -623,6 +735,9 @@ export default function MultiSeriesBuilder() {
               <div className="px-3 py-2.5 border-b bg-slate-100/40">
                 <p className="text-[10px] font-semibold tracking-wide text-slate-900/50">
                   {format === "team" ? "Filter by Team" : "Filter by Player"}
+                </p>
+                <p className="mt-1 text-[9px] leading-3 text-slate-500">
+                  Drag a flight card left or right to change its order and starting time.
                 </p>
               </div>
               <div className="p-2 flex flex-col gap-1">
@@ -684,63 +799,67 @@ export default function MultiSeriesBuilder() {
           <div className="flex-1 min-w-0 flex flex-col gap-3">
             {resolvedSchedule.map((round, i) => {
               const eventStartSide = getEventStartSide(i);
+              const boundaries = getScoringPeriodBoundariesBeforeEvent(
+                resolvedSchedule,
+                i,
+                previewScoringPeriods
+              );
               const eventForRow = {
                 ...methods.getValues(),
                 date: round.date,
                 startSide: eventStartSide,
               };
               return (
-                <div key={i} className="border rounded-xl bg-white shadow-xs overflow-hidden">
-                  {/* Row header */}
-                  <div className="flex items-center justify-between px-4 py-2.5 border-b bg-slate-100/40">
-                    <div className="flex items-center gap-3">
-                      <CalendarDays size={14} className="text-slate-900/40" />
-                      <span className="text-sm font-semibold">Round {i + 1}</span>
-                      {selectedCourse && (
-                        <>
-                          <span className="text-xs text-slate-900/50">
-                            {selectedCourse.name}
-                          </span>
-                          <span className="text-xs text-slate-900/30">&bull;</span>
-                        </>
-                      )}
-                      {selectedTee && (
-                        <>
-                          <span className="text-xs text-slate-900/50">
-                            {selectedTee.name} Tees
-                          </span>
-                          <span className="text-xs text-slate-900/30">&bull;</span>
-                        </>
-                      )}
-                      <span className="text-xs text-slate-900/50 capitalize">
-                        {eventStartSide}
-                      </span>
-                      <span className="text-xs text-slate-900/30">&bull;</span>
-                      <span className="text-xs text-slate-900/50">
-                        {dayjs(round.date).format("ddd, MMM D, YYYY")}
-                      </span>
+                <Fragment key={i}>
+                  {boundaries.map((period) => (
+                    <ScoringPeriodDivider key={period.id} period={period} />
+                  ))}
+                  <div className="border rounded-xl bg-white shadow-xs overflow-hidden">
+                    {/* Row header */}
+                    <div className="flex items-center justify-between px-4 py-2.5 border-b bg-slate-100/40">
+                      <div className="flex items-center gap-3">
+                        <CalendarDays size={14} className="text-slate-900/40" />
+                        <span className="text-sm font-semibold">Round {i + 1}</span>
+                        {selectedCourse && (
+                          <>
+                            <span className="text-xs text-slate-900/50">{selectedCourse.name}</span>
+                            <span className="text-xs text-slate-900/30">&bull;</span>
+                          </>
+                        )}
+                        {selectedTee && (
+                          <>
+                            <span className="text-xs text-slate-900/50">{selectedTee.name} Tees</span>
+                            <span className="text-xs text-slate-900/30">&bull;</span>
+                          </>
+                        )}
+                        <span className="text-xs text-slate-900/50 capitalize">{eventStartSide}</span>
+                        <span className="text-xs text-slate-900/30">&bull;</span>
+                        <span className="text-xs text-slate-900/50">
+                          {dayjs(round.date).format("ddd, MMM D, YYYY")}
+                        </span>
+                      </div>
+                      {/* Editable date */}
+                      <DateInput
+                        value={round.date}
+                        min={resolvedStartDate}
+                        max={resolvedEndDate}
+                        onChange={(e) => updateDate(i, e.target.value)}
+                        className="w-40"
+                      />
                     </div>
-                    {/* Editable date */}
-                    <DateInput
-                      value={round.date}
-                      min={leagueStartDate || undefined}
-                      max={leagueEndDate || undefined}
-                      onChange={(e) => updateDate(i, e.target.value)}
-                      className="w-40"
-                    />
+                    {/* Draggable flights */}
+                    <div className="p-3 overflow-x-auto">
+                      <FlightsDragRow
+                        event={eventForRow}
+                        flights={round.flights}
+                        players={players}
+                        setFlights={(flights) => updateFlights(i, flights)}
+                        allowDelete={false}
+                        highlightId={highlightId}
+                      />
+                    </div>
                   </div>
-                  {/* Draggable flights */}
-                  <div className="p-3 overflow-x-auto">
-                    <FlightsDragRow
-                      event={eventForRow}
-                      flights={round.flights}
-                      players={players}
-                      setFlights={(flights) => updateFlights(i, flights)}
-                      allowDelete={false}
-                      highlightId={highlightId}
-                    />
-                  </div>
-                </div>
+                </Fragment>
               );
             })}
           </div>

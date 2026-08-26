@@ -1,6 +1,7 @@
 import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
 import { formatPhone } from "@/utils/format";
+import { formatHandicap } from "@/utils/handicap";
 import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice, getLeagueBillableGolfers } from "@/lib/billing";
 import dayjs from "dayjs";
 import {
@@ -21,6 +22,7 @@ import PaymentAccessCodeForm from "@/features/payments/components/PaymentAccessC
 import TeamBuilderCard, {
   type TeamBuilderPlayer,
 } from "@/components/league/TeamBuilderCard";
+import { Link } from "react-router";
 
 type LeaguePlayer = {
   id: number;
@@ -273,7 +275,7 @@ export default function ReviewForm({
                           </span>
                         </div>
                         <p className="text-right text-xs font-bold text-gray-700">
-                          {p.handicap ?? "—"}
+                          {formatHandicap(p.handicap)}
                         </p>
                       </div>
                     );
@@ -347,6 +349,13 @@ export default function ReviewForm({
               <div className="px-4 py-3">
                 <p className="text-[11px] leading-5 text-gray-500">
                   League creation is locked until your golfer capacity covers this roster.
+                </p>
+                <p className="mt-2 text-[10px] leading-4 text-gray-400">
+                  Payment is subject to the{" "}
+                  <Link to="/refunds" className="font-bold text-slate-600 underline hover:text-slate-900">
+                    Refund Policy
+                  </Link>
+                  .
                 </p>
                 <div className="mt-3">
                   <PaymentAccessCodeForm onRedeemed={onPaymentAccessGranted} />

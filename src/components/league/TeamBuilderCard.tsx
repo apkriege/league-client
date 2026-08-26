@@ -1,4 +1,5 @@
 import { SquarePen, Trash2, X } from "lucide-react";
+import { formatHandicap } from "@/utils/handicap";
 
 export type TeamBuilderPlayer = {
   id: number;
@@ -92,7 +93,9 @@ export default function TeamBuilderCard({
                 {player.firstName} {player.lastName}
               </span>
               <span className="shrink-0 text-[9px] text-slate-500">
-                {isCompact ? `· ${player.handicap ?? "-"}` : `HCP: ${player.handicap ?? "-"}`}
+                {isCompact
+                  ? `· ${formatHandicap(player.handicap)}`
+                  : `HCP: ${formatHandicap(player.handicap)}`}
               </span>
             </div>
             {onRemovePlayer ? (

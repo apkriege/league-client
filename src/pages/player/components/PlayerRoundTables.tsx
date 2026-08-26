@@ -1,8 +1,9 @@
-import dayjs from "dayjs";
-import { ChevronRight, Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Minus } from "lucide-react";
 import { Link } from "react-router";
 import Table from "@/components/Table";
 import type { PlayerRound } from "../playerTypes";
+import { formatHandicap } from "../playerFormatters";
+import { formatPlayerRoundDate, getPlayerRoundTimestamp } from "../playerRoundDate";
 
 const formatValue = (
   value: number | string | null | undefined,
@@ -12,9 +13,9 @@ const formatValue = (
   return value;
 };
 
-const formatDelta = (delta: number) => {
-  if (Math.abs(delta) < 0.05) return "-";
-  return delta < 0 ? delta.toFixed(1) : `+${delta.toFixed(1)}`;
+const formatDeltaMagnitude = (delta: number) => {
+  if (Math.abs(delta) < 0.005) return "0.00";
+  return Math.abs(delta).toFixed(2);
 };
 
 export function RoundHistory({
@@ -25,7 +26,7 @@ export function RoundHistory({
   leagueId?: string;
 }) {
   const sorted = [...rounds].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    (a, b) => getPlayerRoundTimestamp(a) - getPlayerRoundTimestamp(b),
   );
 
   return (
@@ -59,13 +60,13 @@ export function RoundHistory({
                   ? Number(round.postHandicap) - Number(round.preHandicap)
                   : null;
               const DeltaIcon =
-                delta == null || Math.abs(delta) < 0.05
+                delta == null || Math.abs(delta) < 0.005
                   ? Minus
                   : delta < 0
-                    ? TrendingDown
-                    : TrendingUp;
+                    ? ChevronDown
+                    : ChevronUp;
               const deltaClass =
-                delta == null || Math.abs(delta) < 0.05
+                delta == null || Math.abs(delta) < 0.005
                   ? "text-gray-300"
                   : delta < 0
                     ? "text-emerald-600"
@@ -83,7 +84,7 @@ export function RoundHistory({
                           {round.eventName}
                         </span>
                         <span className="block text-[10px] text-gray-400">
-                          {dayjs(round.date).format("MMM D, YYYY")}
+                          {formatPlayerRoundDate(round)}
                         </span>
                       </span>
                       <ChevronRight
@@ -100,17 +101,31 @@ export function RoundHistory({
                   <NumericCell value={round.birdies} />
                   <NumericCell value={round.pars} />
                   <NumericCell value={round.bogeys} />
-                  <NumericCell value={round.differential} />
+                  <NumericCell
+                    value={
+                      round.differential == null
+                        ? null
+                        : Number(round.differential).toFixed(2)
+                    }
+                  />
                   <td className="pl-3 pr-4 py-2.5 text-right">
-                    <span
-                      className={`inline-flex items-center justify-end gap-1 font-semibold ${deltaClass}`}
-                    >
-                      <DeltaIcon size={11} strokeWidth={2.5} />
-                      {delta == null ? "-" : formatDelta(delta)}
-                    </span>
-                    <span className="block text-[10px] text-gray-400">
-                      {formatValue(round.postHandicap)}
-                    </span>
+                    {round.postHandicap == null ? (
+                      <span className="text-[10px] font-semibold text-gray-400">
+                        Not recorded
+                      </span>
+                    ) : (
+                      <>
+                        <span className="block text-sm font-bold text-gray-700">
+                          {formatHandicap(round.postHandicap)}
+                        </span>
+                        <span
+                          className={`inline-flex items-center justify-end gap-0.5 text-[10px] font-semibold ${deltaClass}`}
+                        >
+                          <DeltaIcon size={11} strokeWidth={2.5} />
+                          {delta == null ? "Not recorded" : formatDeltaMagnitude(delta)}
+                        </span>
+                      </>
+                    )}
                   </td>
                 </tr>
               );
@@ -132,7 +147,7 @@ export function PlayerRoundBreakdown({
   scoreView: "gross" | "net";
 }) {
   const sorted = [...rounds].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    (a, b) => getPlayerRoundTimestamp(b) - getPlayerRoundTimestamp(a),
   );
   const holes = Array.from(
     new Set(sorted.flatMap((round) => (round.scores ?? []).map((score) => Number(score.hole))))
@@ -180,7 +195,7 @@ export function PlayerRoundBreakdown({
                       {round.eventName || "Round"}
                     </span>
                     <span className="text-[10px] font-medium text-gray-400">
-                      {dayjs(round.date).format("MMM D, YYYY")}
+                      {formatPlayerRoundDate(round)}
                       {round.course?.name ? ` · ${round.course.name}` : ""}
                       {round.tee?.name ? ` · ${round.tee.name}` : ""}
                       {round.event?.startSide ? ` · ${round.event.startSide}` : ""}

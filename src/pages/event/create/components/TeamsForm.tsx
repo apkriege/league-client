@@ -11,6 +11,7 @@ import Button from "@/components/layout/Button";
 import TeamBuilderCard, {
   type TeamBuilderPlayer,
 } from "@/components/league/TeamBuilderCard";
+import { formatHandicap } from "@/utils/handicap";
 
 type Team = {
   id: number;
@@ -78,7 +79,7 @@ export default function TeamsForm() {
       availablePlayers
         .map((p: any) => ({
           value: Number(p.id),
-          label: `${p.firstName} ${p.lastName} (HCP ${p.handicap ?? "-"})`,
+          label: `${p.firstName} ${p.lastName} (HCP ${formatHandicap(p.handicap)})`,
         }))
         .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label)),
     [availablePlayers]

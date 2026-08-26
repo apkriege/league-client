@@ -42,6 +42,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
+import Tooltip from "@mui/material/Tooltip";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   upcoming: {
@@ -618,48 +619,58 @@ function AdminEventRow({
         {/* Actions */}
         <div className="flex items-center pr-3 pl-1 gap-1.5">
           {canEditEvent && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
-              className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-slate-900/30 hover:bg-slate-900/10 hover:text-slate-900 transition-colors shadow-xs"
-              title="Edit"
-            >
-              <Edit size={13} strokeWidth={2} />
-            </button>
+            <Tooltip title="Edit event" placement="top" arrow>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                className="cursor-pointer p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-slate-900/30 hover:bg-slate-900/10 hover:text-slate-900 transition-colors shadow-xs"
+                aria-label="Edit event"
+              >
+                <Edit size={13} strokeWidth={2} />
+              </button>
+            </Tooltip>
           )}
           {!isCanceledEvent && canEditEvent && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onCancel();
-              }}
-              disabled={isCanceling}
-              className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50 shadow-xs"
-              title="Cancel"
-            >
-              <Ban size={13} strokeWidth={2} />
-            </button>
+            <Tooltip title="Cancel event" placement="top" arrow>
+              <span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancel();
+                  }}
+                  disabled={isCanceling}
+                  className="cursor-pointer p-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-700 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 shadow-xs"
+                  aria-label="Cancel event"
+                >
+                  <Ban size={13} strokeWidth={2} />
+                </button>
+              </span>
+            </Tooltip>
           )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            disabled={isDeleting}
-            className="p-1.5 rounded-lg border border-red-100 bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50 shadow-xs"
-            title="Delete"
-          >
-            <Trash2 size={13} strokeWidth={2} />
-          </button>
+          <Tooltip title="Delete event" placement="top" arrow>
+            <span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                disabled={isDeleting}
+                className="cursor-pointer p-1.5 rounded-lg border border-red-100 bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 shadow-xs"
+                aria-label="Delete event"
+              >
+                <Trash2 size={13} strokeWidth={2} />
+              </button>
+            </span>
+          </Tooltip>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onScores();
             }}
             disabled={isCanceledEvent}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`flex cursor-pointer items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
               !isCanceledEvent && (event.canEnterScores || event.canEditScores)
                 ? "bg-slate-900 text-white hover:bg-slate-900/90 shadow-xs"
                 : "border border-gray-200 bg-white text-gray-700 hover:border-slate-900/30 hover:bg-slate-900/10 hover:text-slate-900 shadow-xs"

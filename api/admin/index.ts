@@ -2,13 +2,20 @@
 import apiClient from "../client";
 import type {
   AdminBillingDashboard,
+  AdminLeagueListItem,
   GeneratedPaymentBypassCode,
   PaymentBypassCode,
+  SeasonSyncResponse,
 } from "./types";
 
 // calls
 export async function getAdminLeagues() {
-  const response = await apiClient.get("/admin/leagues");
+  const response = await apiClient.get<AdminLeagueListItem[]>("/admin/leagues");
+  return response.data;
+}
+
+export async function syncAdminLeagueSeason(leagueId: number) {
+  const response = await apiClient.post<SeasonSyncResponse>(`/leagues/${leagueId}/season-sync`);
   return response.data;
 }
 

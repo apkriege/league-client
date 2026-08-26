@@ -7,8 +7,24 @@ import ToastContainer from "@/components/layout/ToastContainer";
 import RootErrorBoundary from "@/components/route/RootErrorBoundary";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { emitToast } from "@/lib/toastEvents";
+import {
+  initializeGoogleAnalytics,
+  trackGoogleAnalyticsPageView,
+} from "@/lib/googleAnalytics";
 import { router } from "./router";
 import "./index.css";
+
+if (initializeGoogleAnalytics()) {
+  let lastTrackedPath = window.location.pathname;
+  trackGoogleAnalyticsPageView(lastTrackedPath);
+
+  router.subscribe((state) => {
+    const nextPath = state.location.pathname;
+    if (nextPath === lastTrackedPath) return;
+    lastTrackedPath = nextPath;
+    trackGoogleAnalyticsPageView(nextPath);
+  });
+}
 
 // Lazy load devtools in development
 const ReactQueryDevtools = import.meta.env.DEV
