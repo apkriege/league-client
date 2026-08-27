@@ -28,6 +28,7 @@ const Courses = lazy(() => import("./pages/course/Courses.tsx"));
 const CoursesAdmin = lazy(() => import("@/pages/superadmin/CoursesAdmin"));
 const LeaguesAdmin = lazy(() => import("@/pages/superadmin/LeaguesAdmin"));
 const BillingAdmin = lazy(() => import("@/pages/superadmin/BillingAdmin"));
+const UsersAdmin = lazy(() => import("@/pages/superadmin/UsersAdmin"));
 const ContactSupport = lazy(() => import("./pages/support/ContactSupport.tsx"));
 const InviteClaim = lazy(() => import("./pages/invite/InviteClaim.tsx"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword.tsx"));
@@ -137,6 +138,7 @@ export const router = createBrowserRouter([
           { path: "superadmin/courses", element: withSuspense(<CoursesAdmin />) },
           { path: "superadmin/leagues", element: withSuspense(<LeaguesAdmin />) },
           { path: "superadmin/billing", element: withSuspense(<BillingAdmin />) },
+          { path: "superadmin/users", element: withSuspense(<UsersAdmin />) },
         ],
       },
     ],

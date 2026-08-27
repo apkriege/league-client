@@ -257,6 +257,13 @@ export default function BaseLayout() {
                 collapsed={!isOpen}
               />
               <NavLink
+                to="/superadmin/users"
+                text="Users"
+                icon={<Users size={19} />}
+                isActive={location.pathname.startsWith("/superadmin/users")}
+                collapsed={!isOpen}
+              />
+              <NavLink
                 to="/superadmin/courses"
                 text="Manage Courses"
                 icon={<Settings size={19} />}

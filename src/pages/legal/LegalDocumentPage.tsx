@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Link } from "react-router";
 import lnLogo from "@/assets/league-night-logo.png";
 import { publicLinks } from "@/config/publicLinks";
@@ -15,14 +14,6 @@ const policyLinks = [
 ];
 
 export default function LegalDocumentPage({ document }: LegalDocumentPageProps) {
-  useEffect(() => {
-    const previousTitle = window.document.title;
-    window.document.title = `${document.title} | League Night Pro`;
-    return () => {
-      window.document.title = previousTitle;
-    };
-  }, [document.title]);
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">

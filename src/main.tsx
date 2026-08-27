@@ -7,8 +7,12 @@ import ToastContainer from "@/components/layout/ToastContainer";
 import RootErrorBoundary from "@/components/route/RootErrorBoundary";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { emitToast } from "@/lib/toastEvents";
+import { applySeoForPath } from "@/lib/seo";
 import { router } from "./router";
 import "./index.css";
+
+applySeoForPath(window.location.pathname);
+router.subscribe((state) => applySeoForPath(state.location.pathname));
 
 // Lazy load devtools in development
 const ReactQueryDevtools = import.meta.env.DEV

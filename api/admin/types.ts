@@ -141,3 +141,18 @@ export type SeasonSyncResponse = {
   message: string;
   result: SeasonSyncResult;
 };
+
+export type AdminUser = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  username: string | null;
+  role: "USER" | "ADMIN" | "SUPER" | string;
+  phone: string | null;
+  emailVerifiedAt: string | null;
+  managedLeagueCount: number;
+  playerProfileCount: number;
+  createdAt: string;
+  updatedAt: string;
+};

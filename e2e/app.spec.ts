@@ -13,6 +13,12 @@ async function signIn(page: Page, email: string) {
 
 test('public landing and login pages expose the primary entry points', async ({ page }) => {
   await page.goto('/');
+  await expect(page).toHaveTitle('Golf League Management Software | League Night Pro');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://leaguenightpro.com/',
+  );
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /index, follow/);
   await expect(
     page.getByRole('heading', { name: 'Run league night like a professional operation.' }),
   ).toBeVisible();
@@ -20,6 +26,20 @@ test('public landing and login pages expose the primary entry points', async ({ 
   await page.getByRole('link', { name: /sign in/i }).first().click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+});
+
+test('super admins can search the protected user directory', async ({ page }) => {
+  await signIn(page, 'super@test.com');
+  await page.getByRole('link', { name: 'Users', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/superadmin\/users$/);
+  await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible();
+  await expect(page.getByText('admin@test.com')).toBeVisible();
+  await page.getByPlaceholder('Search by name, email, role, or status...').fill('super@test.com');
+  await expect(page.getByText('super@test.com')).toBeVisible();
+  await expect(page.getByText('admin@test.com')).toHaveCount(0);
 });
 
 test('invalid credentials show the API error without leaving the login page', async ({ page }) => {

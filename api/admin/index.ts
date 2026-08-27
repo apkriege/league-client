@@ -3,6 +3,7 @@ import apiClient from "../client";
 import type {
   AdminBillingDashboard,
   AdminLeagueListItem,
+  AdminUser,
   GeneratedPaymentBypassCode,
   PaymentBypassCode,
   SeasonSyncResponse,
@@ -11,6 +12,11 @@ import type {
 // calls
 export async function getAdminLeagues() {
   const response = await apiClient.get<AdminLeagueListItem[]>("/admin/leagues");
+  return response.data;
+}
+
+export async function getAdminUsers() {
+  const response = await apiClient.get<AdminUser[]>("/users");
   return response.data;
 }
 

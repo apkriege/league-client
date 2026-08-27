@@ -2,8 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getAdminBilling,
   getAdminLeagues,
+  getAdminUsers,
   getPaymentBypassCodes,
 } from ".";
+
+export const useAdminUsers = (enabled = true) =>
+  useQuery({
+    queryKey: ["admin-users"],
+    queryFn: getAdminUsers,
+    enabled,
+  });
 
 export const useAdminLeagues = (enabled = true) => {
   return useQuery({
