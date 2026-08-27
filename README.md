@@ -9,7 +9,8 @@ Copy `.env.example` to `.env` and set:
 Optional:
 
 - Billing display overrides (`VITE_BILLING_MIN_GOLFERS` and `VITE_BILLING_PRICE_PER_GOLFER`)
-- Public support and policy links (`VITE_SUPPORT_EMAIL`, `VITE_PRIVACY_POLICY_URL`,
+- Public support and policy links (`VITE_SUPPORT_EMAIL`, which defaults to
+  `support@leaguenightpro.com`, plus `VITE_PRIVACY_POLICY_URL`,
   `VITE_TERMS_URL`, and `VITE_REFUND_POLICY_URL`)
 - Google Analytics 4 (`VITE_GOOGLE_ANALYTICS_ID`)
 

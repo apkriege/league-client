@@ -66,10 +66,10 @@ export default function ReviewForm({
   const includedGolfers = Number(billing?.includedGolfers || 0);
   const allocatedGolfers = Number(billing?.allocatedGolfers || 0);
   const requestedGolfers = getLeagueBillableGolfers(players);
-  const paymentExempt = Boolean(billing?.paymentExempt);
+  const bypassesLeaguePayment = Boolean(billing?.hasPendingLeagueBypass);
   const additionalGolfersRequired = Math.max(
     0,
-    paymentExempt ? 0 : allocatedGolfers + requestedGolfers - includedGolfers
+    bypassesLeaguePayment ? 0 : allocatedGolfers + requestedGolfers - includedGolfers
   );
   const additionalCost = additionalGolfersRequired * BILLING_PRICE_PER_GOLFER;
   const needsPayment = !isBillingLoading && additionalGolfersRequired > 0;

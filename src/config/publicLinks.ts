@@ -7,7 +7,10 @@ const getHttpsUrl = (value: string | undefined) => {
   }
 };
 
-const configuredSupportEmail = import.meta.env.VITE_SUPPORT_EMAIL?.trim() || "";
+export const DEFAULT_SUPPORT_EMAIL = "support@leaguenightpro.com";
+
+const configuredSupportEmail =
+  import.meta.env.VITE_SUPPORT_EMAIL?.trim() || DEFAULT_SUPPORT_EMAIL;
 const supportEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredSupportEmail)
   ? configuredSupportEmail
   : null;

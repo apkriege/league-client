@@ -281,11 +281,11 @@ export default function CreateLeague() {
     }
     const includedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
     const allocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
-    const paymentExempt = Boolean(stripeState?.billing?.paymentExempt);
+    const bypassesLeaguePayment = Boolean(stripeState?.billing?.hasPendingLeagueBypass);
     const requestedGolfers = getLeagueBillableGolfers(modeledData.players);
     const targetIncludedGolfers = allocatedGolfers + requestedGolfers;
 
-    if (!paymentExempt && targetIncludedGolfers > includedGolfers) {
+    if (!bypassesLeaguePayment && targetIncludedGolfers > includedGolfers) {
       createCheckoutSession.mutate(
         {
           purpose: includedGolfers === 0 ? "registration" : "seat_upgrade",
@@ -340,10 +340,10 @@ export default function CreateLeague() {
   const footerIncludedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
   const footerAllocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
   const footerRequestedGolfers = getLeagueBillableGolfers(leagueData.players || []);
-  const footerPaymentExempt = Boolean(stripeState?.billing?.paymentExempt);
+  const footerBypassesLeaguePayment = Boolean(stripeState?.billing?.hasPendingLeagueBypass);
   const footerAdditionalGolfersRequired = Math.max(
     0,
-    footerPaymentExempt
+    footerBypassesLeaguePayment
       ? 0
       : footerAllocatedGolfers + footerRequestedGolfers - footerIncludedGolfers
   );

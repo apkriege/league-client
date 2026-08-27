@@ -27,7 +27,6 @@ import {
   PaymentPipelineError,
   toPaymentPipelineError,
 } from "@/features/payments/PaymentPipelineError";
-import PaymentAccessCodeForm from "@/features/payments/components/PaymentAccessCodeForm";
 import { getHandicapHoleCount } from "@/features/leagues/leagueHoleFormat";
 import { formatHandicap } from "./playerFormatters";
 
@@ -678,9 +677,6 @@ export default function Players() {
             )}
           </div>
         )}
-        <div className="mt-4">
-          <PaymentAccessCodeForm />
-        </div>
         <Divider className="my-2!" />
         <div className="flex items-center justify-end gap-2">
           <Button variant="default" onClick={resetAndCloseModal}>
