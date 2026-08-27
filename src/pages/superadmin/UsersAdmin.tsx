@@ -44,14 +44,15 @@ export default function UsersAdmin() {
   const summary = summarizeAdminUsers(users);
   const columns: Column<AdminUserListItem>[] = [
     {
+      key: "id",
+      label: "User ID",
+      width: "90px",
+      render: (value) => <span className="text-xs font-semibold text-slate-600">#{Number(value)}</span>,
+    },
+    {
       key: "displayName",
       label: "Name",
-      render: (_value, row) => (
-        <div>
-          <p className="text-sm font-semibold text-slate-900">{row.displayName}</p>
-          <p className="text-[11px] text-slate-500">User #{row.id}</p>
-        </div>
-      ),
+      render: (value) => <span className="text-sm font-semibold text-slate-900">{String(value)}</span>,
     },
     {
       key: "email",
