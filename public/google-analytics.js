@@ -1,8 +1,20 @@
-window.dataLayer = window.dataLayer || [];
+(function initializeGoogleAnalytics() {
+  const productionHosts = new Set(["leaguenightpro.com", "www.leaguenightpro.com"]);
+  if (!productionHosts.has(window.location.hostname.toLowerCase())) {
+    return;
+  }
 
-function gtag() {
-  window.dataLayer.push(arguments);
-}
+  window.dataLayer = window.dataLayer || [];
 
-gtag("js", new Date());
-gtag("config", "G-BX9JRRYPQY");
+  function gtag() {
+    window.dataLayer.push(arguments);
+  }
+
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = "https://www.googletagmanager.com/gtag/js?id=G-BX9JRRYPQY";
+  document.head.appendChild(script);
+
+  gtag("js", new Date());
+  gtag("config", "G-BX9JRRYPQY");
+})();
