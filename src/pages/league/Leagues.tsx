@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Users,
   Trophy,
+  RefreshCw,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
@@ -30,6 +31,7 @@ import {
   toPaymentPipelineError,
 } from "@/features/payments/PaymentPipelineError";
 import dayjs from "dayjs";
+import { getLeagueDateInputValue } from "./leagueDates";
 
 export default function Leagues() {
   const { user } = useAppStore();
@@ -193,7 +195,11 @@ export default function Leagues() {
       )}
       <div className="mt-2 grid auto-rows-fr grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {canManageLeagues && (
-          <Link to="/leagues/create" className="block h-full" onClick={clearCreateLeagueDraft}>
+          <Link
+            to="/leagues/create"
+            className="block h-full"
+            onClick={() => clearCreateLeagueDraft(Number(user?.id))}
+          >
             <Card className="bg-slate-900 h-full flex items-center justify-center cursor-pointer hover:bg-slate-900/95 transition-colors">
               <div className="flex flex-col items-center justify-center text-center">
                 <div className=" bg-gray-200 p-3 rounded-full mb-3 mt-3">
@@ -213,6 +219,7 @@ export default function Leagues() {
               key={league.id}
               league={league}
               canManageLeague={canManageLeagues && adminLeagueIds.has(Number(league.id))}
+              canRenewLeague={Number(league.adminId) === Number(user?.id)}
             />
           ))}
       </div>
@@ -220,7 +227,7 @@ export default function Leagues() {
   );
 }
 
-const LeagueCard = ({ league, canManageLeague }: any) => {
+const LeagueCard = ({ league, canManageLeague, canRenewLeague }: any) => {
   const eventCount = Number(league?._count?.events ?? league?.events?.length ?? 0);
   const playerCount = Number(league?._count?.players ?? league?.players?.length ?? 0);
   const rawRoundCount = Number(league?.roundCount ?? eventCount);
@@ -229,12 +236,37 @@ const LeagueCard = ({ league, canManageLeague }: any) => {
   const completedRoundCount = Number.isFinite(rawCompletedRoundCount)
     ? Math.min(roundCount, Math.max(0, rawCompletedRoundCount))
     : 0;
+  const today = dayjs().startOf("day");
+  const startDateKey = getLeagueDateInputValue(league?.startDate);
+  const endDateKey = getLeagueDateInputValue(league?.endDate);
+  const seasonEnded = Boolean(endDateKey) && dayjs(endDateKey).endOf("day").isBefore(today);
+  const seasonUpcoming =
+    Boolean(startDateKey) && dayjs(startDateKey).startOf("day").isAfter(today);
+  const daysUntilEnd = endDateKey ? dayjs(endDateKey).startOf("day").diff(today, "day") : null;
+  const renewalDue =
+    daysUntilEnd !== null &&
+    daysUntilEnd >= 0 &&
+    daysUntilEnd <= 30 &&
+    !league?.renewedLeague?.id;
+  const seasonStatus = league?.billingStatus === "payment_due"
+    ? "Payment Due"
+    : league?.seasonStatus === "reopened"
+      ? "Reopened"
+    : seasonEnded || league?.seasonStatus === "archived"
+    ? "Past Season"
+    : renewalDue
+      ? "Renewal Due"
+    : seasonUpcoming
+      ? "Upcoming"
+      : roundCount > 0
+        ? "Live"
+        : "Not Started";
   const leaguePath = canManageLeague
     ? `/league/${league.id}/admin`
     : `/league/${league.id}`;
   const dateRange =
-    league?.startDate && league?.endDate
-      ? `${dayjs(league.startDate).format("MMM D, YYYY")} – ${dayjs(league.endDate).format(
+    startDateKey && endDateKey
+      ? `${dayjs(startDateKey).format("MMM D, YYYY")} – ${dayjs(endDateKey).format(
           "MMM D, YYYY"
         )}`
       : null;
@@ -245,9 +277,17 @@ const LeagueCard = ({ league, canManageLeague }: any) => {
         <Badge
           className="mb-0!"
           size="xs"
-          text={roundCount > 0 ? "Live" : "Not Started"}
-          icon={roundCount > 0 ? <Globe size={12} /> : <Lock size={12} />}
-          variant={roundCount > 0 ? "primary" : ""}
+          text={seasonStatus}
+          icon={
+            seasonStatus === "Live" ? (
+              <Globe size={12} />
+            ) : seasonStatus === "Not Started" ? (
+              <Lock size={12} />
+            ) : (
+              <CalendarDays size={12} />
+            )
+          }
+          variant={seasonStatus === "Live" ? "primary" : ""}
         />
         {canManageLeague && (
           <Link
@@ -318,6 +358,22 @@ const LeagueCard = ({ league, canManageLeague }: any) => {
           </div>
         </div>
       </Link>
+      {canRenewLeague && String(league?.type).toLowerCase() === "season" && (
+        <Link
+          to={
+            league?.renewedLeague?.id
+              ? `/league/${league.renewedLeague.id}/admin`
+              : `/leagues/create?renewFrom=${league.id}`
+          }
+          onClick={() => {
+            if (!league?.renewedLeague?.id) clearCreateLeagueDraft(Number(league.adminId));
+          }}
+          className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-800 transition hover:bg-sky-100"
+        >
+          <RefreshCw size={13} />
+          {league?.renewedLeague?.id ? "Open Next Season" : "Create Next Season"}
+        </Link>
+      )}
     </Card>
   );
 };

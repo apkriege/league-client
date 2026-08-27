@@ -30,7 +30,7 @@ export default function BillingAdmin() {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <PageHeader
           title="Billing"
-          subTitle="Monitor paid golfer capacity and completed Stripe checkouts across every administrator."
+          subTitle="Monitor paid league-season access and completed Stripe checkouts across every administrator."
         />
         <a
           href="https://dashboard.stripe.com/"

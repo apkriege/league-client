@@ -151,41 +151,4 @@ export const router = createBrowserRouter([
       },
     ],
   },
-
-  // {
-  //   path: "/superadmin",
-  //   element: <BaseLayout />,
-  //   children: [
-  //     { index: true, element: <div>Admin Home Page</div> },
-  //     { path: "leagues", element: <SuperAdminLeagues /> },
-  //   ],
-  // },
-  // {
-  //   path: "/admin",
-  //   element: <BaseLayout />,
-  //   children: [
-  //     { path: "dashboard", element: <AdminDashboard /> },
-  //     { path: "league/create", element: <CreateLeague /> },
-  //     { path: "league/:leagueId", element: <AdminLeague /> },
-  //     { path: "league/:leagueId/events", element: <div>Admin Events List</div> },
-  //     { path: "league/:leagueId/events/:eventId", element: <div>Admin Single Event</div> },
-  //     { path: "league/:leagueId/events/:eventId/scores", element: <div>Admin Event Scores</div> },
-  //     { path: "league/:leagueId/events/create", element: <CreateEvent /> },
-  //     { path: "league/:leagueId/events/create/single", element: <SingleEvent /> },
-  //     { path: "league/:leagueId/events/create/multiple", element: <MultipleEvents /> },
-  //   ],
-  // },
-  // {
-  //   path: "",
-  //   element: <BaseLayout />,
-  //   children: [
-  //     { path: "dashboard", element: <Dashboard /> },
-  //     { path: "league/:leagueId", element: <League /> },
-  //     { path: "league/:leagueId/players", element: <Players /> },
-  //     { path: "league/:leagueId/player/:playerId", element: <Player /> },
-  //     { path: "league/:leagueId/teams", element: <Teams /> },
-  //     { path: "league/:leagueId/schedule", element: <Schedule /> },
-  //     { path: "league/:leagueId/event/:eventId", element: <Event /> },
-  //   ],
-  // },
 ]);

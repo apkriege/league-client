@@ -3,7 +3,35 @@ import {
   createPaymentBypassCode,
   revokePaymentBypassCode,
   syncAdminLeagueSeason,
+  updateLeagueLifecycle,
+  correctLeagueRenewalLink,
 } from ".";
+
+export const useUpdateLeagueLifecycle = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateLeagueLifecycle,
+    onSuccess: async (_, input) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["league", input.leagueId] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-leagues"] }),
+      ]);
+    },
+  });
+};
+
+export const useCorrectLeagueRenewalLink = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: correctLeagueRenewalLink,
+    onSuccess: async (_, leagueId) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["league", leagueId] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-leagues"] }),
+      ]);
+    },
+  });
+};
 
 export const useCreatePaymentBypassCode = () => {
   const queryClient = useQueryClient();

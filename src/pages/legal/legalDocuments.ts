@@ -142,7 +142,7 @@ export const getTermsOfService = (supportEmail: string | null): LegalDocument =>
     {
       title: "Purchases and refunds",
       paragraphs: [
-        "Paid golfer capacity is purchased through a one-time Stripe Checkout payment unless the checkout page expressly states otherwise. Prices, quantities, and applicable taxes are shown before payment. You authorize Stripe and League Night Pro to process the displayed charge.",
+        "Golfer access is purchased separately for each league season through a one-time Stripe Checkout payment. A season purchase covers only the league season for which it is allocated and does not renew automatically. Starting a renewed or successor season requires a new purchase based on that season’s regular-golfer roster. Prices, quantities, and applicable taxes are shown before payment. You authorize Stripe and League Night Pro to process the displayed charge.",
         "Refunds are governed by the Refund Policy available on this site. Payment-provider and financial-institution processing times may apply.",
       ],
     },
@@ -219,14 +219,14 @@ export const getRefundPolicy = (supportEmail: string | null): LegalDocument => (
     {
       title: "Scope",
       paragraphs: [
-        "This policy applies to one-time purchases of golfer capacity sold directly by League Night LLC through League Night Pro. It does not govern charges made by an unrelated third party or payment arrangements covered by a separate written agreement.",
+        "This policy applies to one-time purchases of golfer access for a specific league season sold directly by League Night LLC through League Night Pro. It does not govern charges made by an unrelated third party or payment arrangements covered by a separate written agreement.",
       ],
     },
     {
       title: "Refund eligibility",
       paragraphs: [
-        "You may request a refund within 14 calendar days after purchase. Refunds are generally available for duplicate charges, erroneous purchases, or paid golfer capacity that has not been allocated to or used by an active league.",
-        "Capacity that has already been allocated, used to create or expand a league, or relied upon to manage participants is generally non-refundable. We may make exceptions when required by law or when a verified service failure prevented meaningful use of the purchase.",
+        "You may request a refund within 14 calendar days after purchase. Refunds are generally available for duplicate charges, erroneous purchases, or paid golfer access that has not been allocated to or used by a league season.",
+        "Access that has already been allocated, used to create or expand a league season, or relied upon to manage participants is generally non-refundable. We may make exceptions when required by law or when a verified service failure prevented meaningful use of the purchase.",
       ],
     },
     {

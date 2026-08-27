@@ -6,8 +6,7 @@ import {
   getLeagueMetrics,
   getLeagues,
   getLeaguePlayers,
-  getLeagueTeams,
-  getLeagueEventScores,
+  getLeagueRenewalTemplate,
 } from ".";
 
 export const useLeagues = (enabled = true) => {
@@ -23,6 +22,15 @@ export const useLeague = (id: number, enabled = true) => {
     queryKey: ["league", id],
     queryFn: () => getLeague(id),
     enabled: enabled && !!id,
+  });
+};
+
+export const useLeagueRenewalTemplate = (id: number, enabled = true) => {
+  return useQuery({
+    queryKey: ["league", id, "renewal-template"],
+    queryFn: () => getLeagueRenewalTemplate(id),
+    enabled: enabled && !!id,
+    staleTime: 0,
   });
 };
 
@@ -54,26 +62,10 @@ export const useLeagueEvent = (leagueId: number, eventId: number, enabled = true
   });
 };
 
-export const useLeagueEventScores = (leagueId: number, eventId: number, enabled = true) => {
-  return useQuery({
-    queryKey: ["league", leagueId, "event", eventId, "scores"],
-    queryFn: async () => getLeagueEventScores(leagueId, eventId),
-    enabled: enabled && !!leagueId && !!eventId,
-  });
-};
-
 export const useLeaguePlayers = (leagueId: number, enabled = true) => {
   return useQuery({
     queryKey: ["players", leagueId],
     queryFn: () => getLeaguePlayers(leagueId),
-    enabled: enabled && !!leagueId,
-  });
-};
-
-export const useLeagueTeams = (leagueId: number, enabled = true) => {
-  return useQuery({
-    queryKey: ["teams", leagueId],
-    queryFn: () => getLeagueTeams(leagueId),
     enabled: enabled && !!leagueId,
   });
 };

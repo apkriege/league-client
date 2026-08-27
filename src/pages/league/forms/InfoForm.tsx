@@ -2,14 +2,15 @@ import { Input, SelectableInfoCard } from "@/components/form";
 import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
-import dayjs from "dayjs";
 import { Trophy, User, Users, CalendarRange, Flag, Repeat2 } from "lucide-react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   clampLeagueEndDate,
   getLeagueDateInputValue,
   getMaximumLeagueEndDate,
+  parseLeagueDateInput,
 } from "../leagueDates";
+import { addCalendarYear } from "@/features/leagues/seasonDates";
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <SectionKicker className="mb-3">{children}</SectionKicker>
@@ -26,6 +27,7 @@ export default function InfoForm({
 }: InfoFormProps) {
   const leagueForm = useFormContext();
   const startDate = leagueForm.watch("startDate");
+  const isSeason = leagueForm.watch("type") === "season";
   const startDateInput = getLeagueDateInputValue(startDate);
   const maxEndDate = getMaximumLeagueEndDate(startDate);
 
@@ -79,13 +81,15 @@ export default function InfoForm({
                     label="Start Date"
                     placeholder="YYYY-MM-DD"
                     disabled={isEditing}
-                    value={dayjs(field.value).format("YYYY-MM-DD")}
+                    value={getLeagueDateInputValue(field.value)}
                     onChange={(e) => {
-                      const nextStartDate = dayjs(e.target.value).toDate();
+                      const nextStartDate = parseLeagueDateInput(e.target.value);
                       field.onChange(nextStartDate);
                       leagueForm.setValue(
                         "endDate",
-                        clampLeagueEndDate(nextStartDate, leagueForm.getValues("endDate")),
+                        isSeason
+                          ? addCalendarYear(nextStartDate)
+                          : clampLeagueEndDate(nextStartDate, leagueForm.getValues("endDate")),
                         { shouldDirty: true },
                       );
                     }}
@@ -100,11 +104,11 @@ export default function InfoForm({
                     type="date"
                     label="End Date"
                     placeholder="YYYY-MM-DD"
-                    disabled={isEditing}
+                    disabled={isEditing || isSeason}
                     min={startDateInput}
                     max={maxEndDate}
                     value={getLeagueDateInputValue(field.value)}
-                    onChange={(event) => field.onChange(dayjs(event.target.value).toDate())}
+                    onChange={(event) => field.onChange(parseLeagueDateInput(event.target.value))}
                   />
                 )}
               />
@@ -124,6 +128,9 @@ export default function InfoForm({
               disabled={competitiveSettingsLocked}
               onClick={() => {
                 leagueForm.setValue("type", "season");
+                leagueForm.setValue("endDate", addCalendarYear(leagueForm.getValues("startDate")), {
+                  shouldDirty: true,
+                });
                 if (!["individual", "team"].includes(leagueForm.watch("format"))) {
                   leagueForm.setValue("format", "team");
                 }

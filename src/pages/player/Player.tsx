@@ -235,17 +235,6 @@ export default function Player() {
       icon: <Trophy size={15} className="text-amber-500" />,
       accent: "from-amber-50 to-white border-amber-100",
     },
-    // TODO: Restore this card when putt tracking is added to score entry.
-    // {
-    //   label: "Avg Putts",
-    //   split: ([9, 18] as const).map((holes) => ({
-    //     label: `${holes}H` as const,
-    //     value: averageValue(holes, "avgPutts"),
-    //     sub: `${roundAverages[holes]?.rounds ?? 0} rounds`,
-    //   })),
-    //   icon: <Flag size={15} className="text-amber-500" />,
-    //   accent: "from-amber-50 to-white border-amber-100",
-    // },
   ];
 
   return (

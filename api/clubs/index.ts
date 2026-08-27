@@ -20,8 +20,3 @@ export const createClub = async (data: ClubPayload) => {
   const response = await apiClient.post("/clubs", data);
   return response.data;
 };
-
-export const updateClub = async (id: number, data: ClubPayload) => {
-  const response = await apiClient.put(`/clubs/${id}`, data);
-  return response.data;
-};

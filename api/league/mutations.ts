@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createLeague,
   updateLeague,
-  deleteLeague,
   createLeagueEvent,
   createLeagueEvents,
   createEventScores,
@@ -52,28 +51,6 @@ export const useUpdateLeague = () => {
     },
     onError: (error) => {
       console.error("Failed to update league:", error);
-    },
-  });
-};
-
-/**
- * Delete a league
- */
-export const useDeleteLeague = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: number) => {
-      return await deleteLeague(id);
-    },
-    onSuccess: (_, id) => {
-      // Invalidate the specific league query
-      queryClient.invalidateQueries({ queryKey: ["league", id] });
-      // Invalidate the leagues list
-      queryClient.invalidateQueries({ queryKey: ["leagues"] });
-    },
-    onError: (error) => {
-      console.error("Failed to delete league:", error);
     },
   });
 };

@@ -5,7 +5,8 @@ import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { useCreateLeague } from "@api/league/mutations";
 import { useCreateCheckoutSession } from "@api/payments/mutations";
 import { useStripeState } from "@api/payments/queries";
-import { useNavigate } from "react-router";
+import { useLeagueRenewalTemplate } from "@api/league/queries";
+import { useNavigate, useSearchParams } from "react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import InfoForm from "./forms/InfoForm";
 import { useToast } from "@/context/useToast";
@@ -18,7 +19,7 @@ import {
   validateLeagueWizardStep,
   type LeagueWizardStep,
 } from "./validation";
-import { CREATE_LEAGUE_DRAFT_STORAGE_KEY } from "./leagueDraft";
+import { clearCreateLeagueDraft, getCreateLeagueDraftStorageKey } from "./leagueDraft";
 import { confirmCheckoutSession } from "@api/payments";
 import PaymentReturnNotice from "@/features/payments/components/PaymentReturnNotice";
 import {
@@ -29,15 +30,42 @@ import {
   PaymentPipelineError,
   toPaymentPipelineError,
 } from "@/features/payments/PaymentPipelineError";
+import type { Player, Teams } from "@/types/league";
+import { addCalendarYear } from "@/features/leagues/seasonDates";
+import { useAdminLeagues } from "@api/admin/queries";
+import PreviousSeasonPicker from "@/features/leagues/components/PreviousSeasonPicker";
+
+type CreateLeagueFormData = {
+  name: string;
+  description: string;
+  numPlayers: number;
+  type: string;
+  holeFormat: "9" | "18" | "mixed";
+  format: string | null;
+  contactFirstName: string;
+  contactLastName: string;
+  contactEmail: string;
+  contactPhone: string;
+  startDate: Date;
+  endDate: Date;
+  players: Array<Player & { phone?: string }>;
+  teams: Teams[];
+  renewedFromLeagueId: number | null;
+  billingDraftKey: string;
+  scoringPeriods: Array<{
+    name: string;
+    position: number;
+    startDate: Date;
+    endDate: Date;
+  }>;
+};
 
 const getDefaultStartDate = () => new Date();
 const getDefaultEndDate = (startDate = getDefaultStartDate()) => {
-  const endDate = new Date(startDate);
-  endDate.setFullYear(endDate.getFullYear() + 1);
-  return endDate;
+  return addCalendarYear(startDate);
 };
 
-const createDefaultLeagueData = () => ({
+const createDefaultLeagueData = (): CreateLeagueFormData => ({
   name: "",
   description: "",
   numPlayers: 0,
@@ -52,6 +80,9 @@ const createDefaultLeagueData = () => ({
   endDate: getDefaultEndDate(),
   players: [],
   teams: [],
+  renewedFromLeagueId: null as number | null,
+  billingDraftKey: crypto.randomUUID(),
+  scoringPeriods: [],
 });
 
 const modelLeagueData = (league: any) => {
@@ -91,12 +122,25 @@ export default function CreateLeague() {
   const { show } = useToast();
   const topRef = useRef<HTMLDivElement>(null);
   const checkoutResumeStartedRef = useRef(false);
+  const renewalTemplateAppliedRef = useRef(false);
   const createLeague = useCreateLeague();
   const createCheckoutSession = useCreateCheckoutSession();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAppStore();
   const role = String(user?.role || "").toUpperCase();
   const canCreateLeague = role === "ADMIN" || role === "SUPER";
+  const draftStorageKey = getCreateLeagueDraftStorageKey(Number(user?.id || 0));
+  const renewalSourceIdValue = Number(searchParams.get("renewFrom") || 0);
+  const renewalSourceId =
+    Number.isInteger(renewalSourceIdValue) && renewalSourceIdValue > 0
+      ? renewalSourceIdValue
+      : 0;
+  const renewalTemplateQuery = useLeagueRenewalTemplate(
+    renewalSourceId,
+    canCreateLeague && renewalSourceId > 0,
+  );
+  const previousSeasonsQuery = useAdminLeagues(canCreateLeague);
   const {
     data: stripeState,
     isLoading: billingLoading,
@@ -114,14 +158,15 @@ export default function CreateLeague() {
     null
   );
 
-  const leagueForm = useForm({
+  const leagueForm = useForm<CreateLeagueFormData>({
     defaultValues: createDefaultLeagueData(),
   });
 
   useEffect(() => {
     const freshDefaultLeagueData = createDefaultLeagueData();
-    const draft = window.localStorage.getItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
+    const draft = window.localStorage.getItem(draftStorageKey);
     if (!draft) {
+      if (renewalSourceId) return;
       if (user) {
         leagueForm.reset({
           ...freshDefaultLeagueData,
@@ -136,47 +181,91 @@ export default function CreateLeague() {
 
     try {
       const parsed = JSON.parse(draft);
+      const draftRenewalSourceId = Number(parsed?.renewedFromLeagueId || 0);
+      if (renewalSourceId && draftRenewalSourceId !== renewalSourceId) {
+        window.localStorage.removeItem(draftStorageKey);
+        return;
+      }
+      if (!renewalSourceId && draftRenewalSourceId) {
+        window.localStorage.removeItem(draftStorageKey);
+        return;
+      }
       const { access: _legacyAccess, ...parsedDraft } = parsed ?? {};
       const resolvedStartDate = parsed?.startDate
         ? new Date(parsed.startDate)
         : freshDefaultLeagueData.startDate;
-      const resolvedEndDate = parsed?.endDate
-        ? new Date(parsed.endDate)
-        : getDefaultEndDate(resolvedStartDate);
+      const resolvedEndDate =
+        parsed?.type === "season"
+          ? getDefaultEndDate(resolvedStartDate)
+          : parsed?.endDate
+            ? new Date(parsed.endDate)
+            : getDefaultEndDate(resolvedStartDate);
       const resolvedPlayers =
         Array.isArray(parsed?.players) && parsed.players.length > 0
           ? parsed.players
           : freshDefaultLeagueData.players;
+      const resolvedScoringPeriods = Array.isArray(parsed?.scoringPeriods)
+        ? parsed.scoringPeriods.map((period: any) => ({
+            ...period,
+            startDate: new Date(period.startDate),
+            endDate: new Date(period.endDate),
+          }))
+        : [];
       leagueForm.reset({
         ...freshDefaultLeagueData,
         ...parsedDraft,
         startDate: resolvedStartDate,
         endDate: resolvedEndDate,
         players: resolvedPlayers,
+        scoringPeriods: resolvedScoringPeriods,
+        billingDraftKey: parsed?.billingDraftKey || crypto.randomUUID(),
       });
+      if (renewalSourceId) renewalTemplateAppliedRef.current = true;
     } catch {
-      window.localStorage.removeItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
+      window.localStorage.removeItem(draftStorageKey);
     }
-  }, [leagueForm, user]);
+  }, [draftStorageKey, leagueForm, renewalSourceId, user]);
+
+  useEffect(() => {
+    const template = renewalTemplateQuery.data?.league;
+    if (!template || renewalTemplateAppliedRef.current) return;
+    renewalTemplateAppliedRef.current = true;
+    leagueForm.reset({
+      ...createDefaultLeagueData(),
+      ...template,
+      startDate: new Date(template.startDate),
+      endDate:
+        template.type === "season"
+          ? getDefaultEndDate(new Date(template.startDate))
+          : new Date(template.endDate),
+      players: template.players || [],
+      teams: template.teams || [],
+      scoringPeriods: (template.scoringPeriods || []).map((period: any) => ({
+        ...period,
+        startDate: new Date(period.startDate),
+        endDate: new Date(period.endDate),
+      })),
+    });
+  }, [leagueForm, renewalTemplateQuery.data]);
 
   useEffect(() => {
     const unsubscribe = leagueForm.subscribe({
       formState: { values: true },
       callback: ({ values }) => {
-        window.localStorage.setItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY, JSON.stringify(values));
+        window.localStorage.setItem(draftStorageKey, JSON.stringify(values));
       },
     });
 
     return unsubscribe;
-  }, [leagueForm]);
+  }, [draftStorageKey, leagueForm]);
 
   const createLeagueAndOpenAdmin = useCallback(
     async (modeledData: any) => {
       const league = await createLeague.mutateAsync(modeledData);
-      window.localStorage.removeItem(CREATE_LEAGUE_DRAFT_STORAGE_KEY);
+      window.localStorage.removeItem(draftStorageKey);
       navigate(`/league/${league.id}/admin`);
     },
-    [createLeague, navigate],
+    [createLeague, draftStorageKey, navigate],
   );
 
   useEffect(() => {
@@ -279,19 +368,19 @@ export default function CreateLeague() {
       show(validationMessage || "Review the league details and try again.", "error");
       return;
     }
-    const includedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
-    const allocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
     const bypassesLeaguePayment = Boolean(stripeState?.billing?.hasPendingLeagueBypass);
     const requestedGolfers = getLeagueBillableGolfers(modeledData.players);
-    const targetIncludedGolfers = allocatedGolfers + requestedGolfers;
 
-    if (!bypassesLeaguePayment && targetIncludedGolfers > includedGolfers) {
+    if (!bypassesLeaguePayment) {
+      const renewalQuery = renewalSourceId ? `&renewFrom=${renewalSourceId}` : "";
       createCheckoutSession.mutate(
         {
-          purpose: includedGolfers === 0 ? "registration" : "seat_upgrade",
-          requestedGolfers: targetIncludedGolfers,
-          successUrl: `${window.location.origin}/leagues/create?checkout=upgrade_success`,
-          cancelUrl: `${window.location.origin}/leagues/create?checkout=upgrade_cancel`,
+          purpose: "league_season",
+          requestedGolfers,
+          billingDraftKey: modeledData.billingDraftKey,
+          renewedFromLeagueId: renewalSourceId || undefined,
+          successUrl: `${window.location.origin}/leagues/create?checkout=upgrade_success${renewalQuery}`,
+          cancelUrl: `${window.location.origin}/leagues/create?checkout=upgrade_cancel${renewalQuery}`,
         },
         {
           onSuccess: (checkout) => {
@@ -337,16 +426,11 @@ export default function CreateLeague() {
     leagueData.type === "season" && leagueData.format === "team"
       ? ["info", "players", "teams", "review"]
       : ["info", "players", "review"];
-  const footerIncludedGolfers = Number(stripeState?.billing?.includedGolfers || 0);
-  const footerAllocatedGolfers = Number(stripeState?.billing?.allocatedGolfers || 0);
   const footerRequestedGolfers = getLeagueBillableGolfers(leagueData.players || []);
   const footerBypassesLeaguePayment = Boolean(stripeState?.billing?.hasPendingLeagueBypass);
-  const footerAdditionalGolfersRequired = Math.max(
-    0,
-    footerBypassesLeaguePayment
-      ? 0
-      : footerAllocatedGolfers + footerRequestedGolfers - footerIncludedGolfers
-  );
+  const footerAdditionalGolfersRequired = footerBypassesLeaguePayment
+    ? 0
+    : footerRequestedGolfers;
   const finalActionLabel = footerAdditionalGolfersRequired > 0
       ? `Pay for ${footerAdditionalGolfersRequired} Golfers`
       : "Create League";
@@ -359,6 +443,25 @@ export default function CreateLeague() {
   const goToStep = (nextStep: number) => {
     setCheckoutStatus(null);
     setStep(Math.max(1, Math.min(steps.length, nextStep)));
+  };
+
+  const handleClearPreviousSeason = () => {
+    if (!user?.id) return;
+    if (!window.confirm("Clear all copied season data and start with a blank league?")) return;
+
+    clearCreateLeagueDraft(Number(user.id));
+    renewalTemplateAppliedRef.current = false;
+    leagueForm.reset({
+      ...createDefaultLeagueData(),
+      contactFirstName: user.firstName || "",
+      contactLastName: user.lastName || "",
+      contactEmail: user.email || "",
+      contactPhone: user.phone || "",
+    });
+    setCheckoutStatus(null);
+    setStep(1);
+    navigate("/leagues/create", { replace: true });
+    show("Previous-season data cleared.", "success");
   };
 
   if (paymentPipelineError) {
@@ -377,9 +480,44 @@ export default function CreateLeague() {
     );
   }
 
+  if (renewalSourceId && renewalTemplateQuery.isLoading) {
+    return <PageState title="Preparing next season" message="Copying the league setup and roster…" />;
+  }
+
+  if (renewalSourceId && renewalTemplateQuery.isError) {
+    return (
+      <PageState
+        title="Unable to renew this league"
+        message="The previous season could not be prepared. It may already have a next season."
+        variant="error"
+        actionTo="/leagues"
+        actionLabel="Back to Leagues"
+      />
+    );
+  }
+
   return (
     <div>
       <div ref={topRef} />
+      {renewalSourceId > 0 && renewalTemplateQuery.data?.sourceLeague && (
+        <div className="mb-4 gap-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-950 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-black">Creating the next season</p>
+            <p className="mt-1 text-xs leading-5 text-sky-900/80">
+              League settings, players, teams, current handicaps, and scoring periods were copied
+              from <strong>{renewalTemplateQuery.data.sourceLeague.name}</strong>. Previous events,
+              scores, and standings remain in that season and are not copied.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleClearPreviousSeason}
+            className="mt-3 shrink-0 rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs font-bold text-sky-950 transition hover:bg-sky-100 sm:mt-0"
+          >
+            Clear copied data
+          </button>
+        </div>
+      )}
       {checkoutStatus && (isConfirmingCheckout || checkoutReturnMessage) && (
         <PaymentReturnNotice
           isChecking={isConfirmingCheckout}
@@ -397,7 +535,17 @@ export default function CreateLeague() {
       <div>
         <FormProvider {...leagueForm}>
           <div className="step-body">
-            {currentStep === 1 && <InfoForm />}
+            {currentStep === 1 && (
+              <>
+                {renewalSourceId === 0 && user?.id && (
+                  <PreviousSeasonPicker
+                    leagues={previousSeasonsQuery.data ?? []}
+                    ownerId={Number(user.id)}
+                  />
+                )}
+                <InfoForm />
+              </>
+            )}
             {currentStep === 2 && <Players />}
             {steps.length === 4 && currentStep === 3 && <TeamsForm />}
             {((steps.length === 4 && currentStep === 4) ||

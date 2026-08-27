@@ -1,5 +1,6 @@
 // api calls
 import apiClient from "../client";
+import type { LeagueRenewalTemplate } from "@/types/league";
 
 // calls
 export async function getLeagueMetrics(leagueId: number, periodId?: number | null) {
@@ -19,6 +20,13 @@ export async function getLeagues() {
   return response.data;
 }
 
+export async function getLeagueRenewalTemplate(leagueId: number) {
+  const response = await apiClient.get<LeagueRenewalTemplate>(
+    `/leagues/${leagueId}/renewal-template`
+  );
+  return response.data;
+}
+
 export async function createLeague(leagueData: any) {
   const response = await apiClient.post("/leagues", leagueData);
   return response.data;
@@ -29,11 +37,6 @@ export async function updateLeague(id: number, leagueData: any) {
   return response.data;
 }
 
-export async function deleteLeague(id: number) {
-  const response = await apiClient.delete(`/leagues/${id}`);
-  return response.data;
-}
-
 export async function rotateLeagueViewerAccessCode(leagueId: number) {
   const response = await apiClient.post(`/leagues/${leagueId}/viewer-access-code/rotate`);
   return response.data;
@@ -41,16 +44,6 @@ export async function rotateLeagueViewerAccessCode(leagueId: number) {
 
 export async function getLeaguePlayers(leagueId: number) {
   const response = await apiClient.get(`/leagues/${leagueId}/players`);
-  return response.data;
-}
-
-export async function getLeagueTeams(leagueId: number) {
-  const response = await apiClient.get(`/leagues/${leagueId}/teams`);
-  return response.data;
-}
-
-export async function getUserLeagues(userId: number) {
-  const response = await apiClient.get(`/users/${userId}/leagues`);
   return response.data;
 }
 
@@ -66,11 +59,6 @@ export async function getLeagueEvent(leagueId: number, eventId: number) {
 
 export async function createLeagueEvent(leagueId: number, eventData: any) {
   const response = await apiClient.post(`/leagues/${leagueId}/event`, eventData);
-  return response.data;
-}
-
-export async function getLeagueEventScores(leagueId: number, eventId: number) {
-  const response = await apiClient.get(`/leagues/${leagueId}/events/${eventId}/scores`);
   return response.data;
 }
 

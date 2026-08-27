@@ -33,6 +33,7 @@ import {
   MapPin,
   Plus,
   RotateCw,
+  RefreshCw,
   ShieldHalf,
   Timer,
   Trash2,
@@ -41,8 +42,19 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import Tooltip from "@mui/material/Tooltip";
+import { useAppStore } from "@/stores/appStore";
+import {
+  useCorrectLeagueRenewalLink,
+  useUpdateLeagueLifecycle,
+} from "@api/admin/mutations";
+import { useCreateCheckoutSession } from "@api/payments/mutations";
+import { confirmCheckoutSession } from "@api/payments";
+import { clearCheckoutReturnFromUrl, getCheckoutReturn } from "@/features/payments/checkoutReturn";
+import PaymentReturnNotice from "@/features/payments/components/PaymentReturnNotice";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   upcoming: {
@@ -71,6 +83,13 @@ export default function LeagueAdmin() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
   const { show } = useToast();
+  const { user } = useAppStore();
+  const queryClient = useQueryClient();
+  const restorePayment = useCreateCheckoutSession();
+  const paymentReturnStartedRef = useRef(false);
+  const [paymentReturnMessage, setPaymentReturnMessage] = useState<string | null>(null);
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
+  const [paymentConfirmationAttempt, setPaymentConfirmationAttempt] = useState(0);
 
   const {
     data: league,
@@ -96,6 +115,56 @@ export default function LeagueAdmin() {
     show("Event canceled.", "success");
   });
   const rotateViewerCode = useRotateLeagueViewerAccessCode(Number(leagueId));
+  const updateLifecycle = useUpdateLeagueLifecycle();
+  const correctRenewalLink = useCorrectLeagueRenewalLink();
+
+  useEffect(() => {
+    const checkoutReturn = getCheckoutReturn(window.location.search);
+    if (!checkoutReturn.checkout?.startsWith("season_payment_") || paymentReturnStartedRef.current) {
+      return;
+    }
+    paymentReturnStartedRef.current = true;
+
+    if (checkoutReturn.checkout === "season_payment_cancel") {
+      clearCheckoutReturnFromUrl();
+      show("Season payment was canceled.", "warning");
+      return;
+    }
+    if (!checkoutReturn.sessionId) {
+      queueMicrotask(() => {
+        setPaymentReturnMessage("The returned payment could not be identified.");
+      });
+      return;
+    }
+
+    const confirmPayment = async () => {
+      setIsConfirmingPayment(true);
+      setPaymentReturnMessage(null);
+      try {
+        const confirmation = await confirmCheckoutSession(checkoutReturn.sessionId!);
+        if (confirmation.status === "processing") {
+          setPaymentReturnMessage(confirmation.message || "Payment is still processing.");
+          return;
+        }
+        if (confirmation.status === "failed") {
+          clearCheckoutReturnFromUrl();
+          setPaymentReturnMessage(confirmation.message || "Payment was not completed.");
+          return;
+        }
+        clearCheckoutReturnFromUrl();
+        await queryClient.invalidateQueries({ queryKey: ["league", Number(leagueId)] });
+        show("Season payment restored.", "success");
+      } catch (error) {
+        setPaymentReturnMessage(
+          error instanceof Error ? error.message : "Payment could not be confirmed."
+        );
+      } finally {
+        setIsConfirmingPayment(false);
+      }
+    };
+
+    void confirmPayment();
+  }, [leagueId, paymentConfirmationAttempt, queryClient, show]);
 
   const pageError = leagueError || eventsError || metricsError;
   const errorStatus = getApiErrorStatus(pageError);
@@ -135,9 +204,18 @@ export default function LeagueAdmin() {
   const totalPlayers = league?.players?.length ?? 0;
   const totalTeams = league?.teams?.length ?? 0;
   const nextEvent = upcoming[0] ?? null;
+  const role = String(user?.role || "").toUpperCase();
+  const isSuperAdmin = role === "SUPER";
+  const ownsLeague = Number(league?.adminId) === Number(user?.id);
+  const isReadOnly =
+    league?.seasonStatus === "archived" || league?.billingStatus === "payment_due";
 
   const leader = metrics?.standings?.[0] ?? null;
   const handleDeleteEvent = (event: any) => {
+    if (isReadOnly) {
+      show("This season is read-only.", "warning");
+      return;
+    }
     const confirmed = window.confirm(
       `Delete "${event.name}"? This removes it from the schedule and league event lists.`
     );
@@ -153,6 +231,10 @@ export default function LeagueAdmin() {
     );
   };
   const handleCancelEvent = (event: any) => {
+    if (isReadOnly) {
+      show("This season is read-only.", "warning");
+      return;
+    }
     const confirmed = window.confirm(
       `Cancel "${event.name}"? This keeps it on the schedule but removes it from scoring.`
     );
@@ -174,14 +256,136 @@ export default function LeagueAdmin() {
         title={league?.name ?? "League"}
       />
 
-      <div className="-mt-1 flex justify-end">
-        <button
+      {(isConfirmingPayment || paymentReturnMessage) && (
+        <PaymentReturnNotice
+          isChecking={isConfirmingPayment}
+          message={
+            isConfirmingPayment
+              ? "Confirming the season payment..."
+              : paymentReturnMessage || "Payment could not be confirmed."
+          }
+          onRetry={() => {
+            paymentReturnStartedRef.current = false;
+            setPaymentConfirmationAttempt((attempt) => attempt + 1);
+          }}
+        />
+      )}
+
+      {isReadOnly && (
+        <div className={`rounded-xl border px-4 py-3 ${
+          league?.billingStatus === "payment_due"
+            ? "border-red-200 bg-red-50 text-red-900"
+            : "border-amber-200 bg-amber-50 text-amber-950"
+        }`}>
+          <p className="text-sm font-black">
+            {league?.billingStatus === "payment_due" ? "Season payment needs attention" : "Past season — read only"}
+          </p>
+          <p className="mt-1 text-xs leading-5 opacity-80">
+            {league?.billingStatus === "payment_due"
+              ? "A refund or dispute left this season underpaid. Results remain visible, but changes are blocked until payment is restored."
+              : "Historical players, events, scores, and announcements are locked. Renew the league to manage the next season."}
+          </p>
+          {league?.billingStatus === "payment_due" && ownsLeague && (
+            <button
+              type="button"
+              disabled={restorePayment.isPending}
+              onClick={async () => {
+                try {
+                  const checkout = await restorePayment.mutateAsync({
+                    purpose: "league_capacity",
+                    leagueId: Number(leagueId),
+                    requestedGolfers: Number(league.numPlayers),
+                    successUrl: `${window.location.origin}/league/${leagueId}/admin?checkout=season_payment_success`,
+                    cancelUrl: `${window.location.origin}/league/${leagueId}/admin?checkout=season_payment_cancel`,
+                  });
+                  if (checkout.alreadyCovered) {
+                    await queryClient.invalidateQueries({
+                      queryKey: ["league", Number(leagueId)],
+                    });
+                    return;
+                  }
+                  if (!checkout.url) throw new Error("The payment provider did not return a checkout URL.");
+                  window.location.href = checkout.url;
+                } catch (error) {
+                  show(error instanceof Error ? error.message : "Unable to restore payment.", "error");
+                }
+              }}
+              className="mt-3 rounded-lg bg-red-700 px-3 py-2 text-xs font-black text-white transition hover:bg-red-800 disabled:opacity-60"
+            >
+              {restorePayment.isPending ? "Preparing Checkout..." : "Restore Season Payment"}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="-mt-1 flex flex-wrap justify-end gap-2">
+        {league?.renewedFromLeague && (
+          <Link
+            to={`/league/${league.renewedFromLeague.id}/admin`}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-50"
+          >
+            Previous Season
+          </Link>
+        )}
+        {league?.renewedLeague ? (
+          <Link
+            to={`/league/${league.renewedLeague.id}/admin`}
+            className="flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 transition-colors hover:bg-sky-100"
+          >
+            Next Season
+          </Link>
+        ) : String(league?.type).toLowerCase() === "season" && ownsLeague ? (
+          <Link
+            to={`/leagues/create?renewFrom=${league.id}`}
+            className="flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 transition-colors hover:bg-sky-100"
+          >
+            <RefreshCw size={12} strokeWidth={2.5} />
+            Renew for Next Season
+          </Link>
+        ) : null}
+        {!isReadOnly && <button
           onClick={() => navigate(`/league/${leagueId}/edit`)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
         >
           <Edit size={12} strokeWidth={2.5} />
           Edit League
-        </button>
+        </button>}
+        {isSuperAdmin && (
+          <button
+            type="button"
+            disabled={updateLifecycle.isPending}
+            onClick={() => {
+              const nextStatus = league?.seasonStatus === "reopened" ? "archived" : "reopened";
+              if (!window.confirm(`${nextStatus === "reopened" ? "Reopen" : "Archive"} this season? This action is audited.`)) return;
+              updateLifecycle.mutate(
+                { leagueId: Number(leagueId), status: nextStatus },
+                {
+                  onSuccess: () => show(`Season ${nextStatus}.`, "success"),
+                  onError: (error: any) => show(error?.message || "Unable to update season status.", "error"),
+                }
+              );
+            }}
+            className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800"
+          >
+            {league?.seasonStatus === "reopened" ? "Lock Historical Season" : "Temporarily Unlock"}
+          </button>
+        )}
+        {isSuperAdmin && league?.renewedFromLeagueId && (
+          <button
+            type="button"
+            disabled={correctRenewalLink.isPending}
+            onClick={() => {
+              if (!window.confirm("Remove this previous-season link? Both leagues and all billing records will be preserved.")) return;
+              correctRenewalLink.mutate(Number(leagueId), {
+                onSuccess: () => show("Renewal link corrected.", "success"),
+                onError: (error: any) => show(error?.message || "Unable to correct the renewal link.", "error"),
+              });
+            }}
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-800"
+          >
+            Correct Renewal Link
+          </button>
+        )}
       </div>
 
       <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3.5 shadow-sm">
@@ -210,7 +414,7 @@ export default function LeagueAdmin() {
             </button>
             <button
               type="button"
-              disabled={rotateViewerCode.isPending}
+              disabled={rotateViewerCode.isPending || isReadOnly}
               onClick={() => {
                 const confirmed = window.confirm(
                   "Generate a new view-only code? The current code will stop working immediately."
@@ -292,8 +496,14 @@ export default function LeagueAdmin() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <InvitePlayersPanel leagueId={Number(leagueId)} players={league?.players ?? []} />
-            <LeagueAnnouncementsPanel leagueId={Number(leagueId)} canManage />
+            {!isReadOnly ? (
+              <>
+                <InvitePlayersPanel leagueId={Number(leagueId)} players={league?.players ?? []} />
+                <LeagueAnnouncementsPanel leagueId={Number(leagueId)} canManage />
+              </>
+            ) : (
+              <span className="text-xs font-semibold text-gray-500">Communication changes are locked.</span>
+            )}
           </div>
         </div>
       </section>

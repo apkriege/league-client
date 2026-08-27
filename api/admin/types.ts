@@ -34,6 +34,7 @@ export type AdminBillingAccount = {
 
 export type AdminBillingTransaction = {
   id: number;
+  adminId: number;
   sessionId: string;
   paymentIntentId: string | null;
   purpose: string;
@@ -91,6 +92,7 @@ export type GeneratedPaymentBypassCode = {
 
 export type AdminLeagueListItem = {
   id: number;
+  adminId: number;
   name: string;
   type: string;
   format?: string | null;
@@ -99,6 +101,22 @@ export type AdminLeagueListItem = {
   contactFirstName?: string | null;
   contactLastName?: string | null;
   contactEmail?: string | null;
+  startDate: string;
+  endDate: string;
+  seasonStatus?: "active" | "archived" | "reopened" | string;
+  billingStatus?: "active" | "exempt" | "payment_due" | string;
+  renewedFromLeague?: {
+    id: number;
+    name: string;
+    startDate: string;
+    endDate: string;
+  } | null;
+  renewedLeague?: {
+    id: number;
+    name: string;
+    startDate: string;
+    endDate: string;
+  } | null;
   _count: {
     players: number;
     events: number;

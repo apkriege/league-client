@@ -11,7 +11,7 @@ const validLeague = {
   contactLastName: "Admin",
   contactEmail: "admin@test.com",
   startDate: "2026-05-01",
-  endDate: "2026-09-01",
+  endDate: "2027-05-01",
   players: [],
   teams: [],
 };
@@ -35,8 +35,10 @@ describe("league form validation", () => {
     ).toBeNull();
   });
 
-  it("accepts a league end date earlier than the one-year maximum", () => {
-    expect(validateLeagueForm(validLeague)).toBeNull();
+  it("requires a season to span exactly one calendar year", () => {
+    expect(validateLeagueForm({ ...validLeague, endDate: "2026-09-01" })).toBe(
+      "A league season must cover exactly one calendar year."
+    );
   });
 
   it("rejects a league end date beyond the one-year maximum", () => {
@@ -45,7 +47,7 @@ describe("league form validation", () => {
         ...validLeague,
         endDate: "2027-05-02",
       }),
-    ).toBe("End date cannot be more than one year after the start date.");
+    ).toBe("A league season must cover exactly one calendar year.");
   });
 
   it("rejects invalid dates before leaving league information", () => {

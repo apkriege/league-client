@@ -310,13 +310,6 @@ export const FlightsDragRow = ({
   return (
     <div className="w-full">
       <div className="flex flex-row flex-wrap gap-2">
-        {/* <p className="text-xs min-w-[100px] flex flex-col bg-white rounded-lg p-2 border">
-          <span className="font-bold mb-1">{event.name}</span>
-          <span className="text-[11px] font-">{course?.name}</span>
-          <span className="font-medium capitalize text-[11px]">
-            {event.holes} Holes &bull; {event.startSide}
-          </span>
-        </p> */}
         {fs.map((flight: any, fIdx: number) => {
           const isHighlighted = flightContainsId(flight, highlightId);
           const isEditing = editingFlightIndex === fIdx;

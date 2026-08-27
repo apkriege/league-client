@@ -212,4 +212,3 @@ class ApiClient {
 const apiClient = new ApiClient();
 
 export default apiClient;
-export { ApiClient, type ApiResponse, type ApiErrorResponse, type ApiClientConfig };

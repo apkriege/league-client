@@ -2,21 +2,6 @@
 import apiClient from "../client";
 
 // calls
-export async function getPlayers() {
-  const response = await apiClient.get("/players");
-  return response.data;
-}
-
-export async function getPlayerById(id: number) {
-  const response = await apiClient.get(`/players/${id}`);
-  return response.data;
-}
-
-export async function createPlayer(leagueId: number, playerData: any) {
-  const response = await apiClient.post(`/leagues/${leagueId}/players`, playerData);
-  return response.data;
-}
-
 export async function createPlayers(leagueId: number, players: any[]) {
   const response = await apiClient.post(`/leagues/${leagueId}/players/batch`, { players });
   return response.data;

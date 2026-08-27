@@ -1,10 +1,12 @@
 import apiClient from "../client";
 
-export type CheckoutPurpose = "registration" | "seat_upgrade" | "league_capacity";
+export type CheckoutPurpose = "registration" | "seat_upgrade" | "league_season" | "league_capacity";
 
 export type CreateCheckoutSessionPayload = {
   purpose?: CheckoutPurpose;
   leagueId?: number;
+  renewedFromLeagueId?: number;
+  billingDraftKey?: string;
   requestedGolfers?: number;
   successUrl?: string;
   cancelUrl?: string;

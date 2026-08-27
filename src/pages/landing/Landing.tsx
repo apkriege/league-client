@@ -557,8 +557,8 @@ function PricingSection() {
             Start with your first golfers. Add more when your league grows.
           </h2>
           <p className="mt-5 text-base leading-8 text-slate-600">
-            Each league starts with {BILLING_MIN_GOLFERS} regular golfer spots for {includedTotal}.
-            Regular players above the minimum are {formatBillingPrice(BILLING_PRICE_PER_GOLFER)} each; substitutes do not increase the price.
+            Each league season starts with {BILLING_MIN_GOLFERS} regular golfer spots for {includedTotal}.
+            Regular players above the minimum are {formatBillingPrice(BILLING_PRICE_PER_GOLFER)} each per season; substitutes do not increase the price.
           </p>
         </div>
 
@@ -568,7 +568,7 @@ function PricingSection() {
             <div className="mt-6 flex items-end gap-2">
               <span className="text-6xl font-black tracking-tight">{includedTotal}</span>
               <span className="mb-2 text-sm font-bold text-slate-500">
-                / first {BILLING_MIN_GOLFERS}
+                / season minimum
               </span>
             </div>
             <div className="mt-8 grid gap-3">
@@ -599,7 +599,7 @@ function PricingSection() {
                 <p className="text-5xl font-black tracking-tight">
                   {formatBillingPrice(BILLING_PRICE_PER_GOLFER)}
                 </p>
-                <p className="text-xs font-black uppercase tracking-wide">per regular golfer</p>
+                <p className="text-xs font-black uppercase tracking-wide">per league season</p>
               </div>
             </div>
 

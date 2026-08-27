@@ -1,29 +1,43 @@
 import dayjs from "dayjs";
+import { addCalendarYear } from "@/features/leagues/seasonDates";
 
-export const getLeagueDateInputValue = (value: unknown) => {
-  const parsed = dayjs(value as string | number | Date | null | undefined);
-  return parsed.isValid() ? parsed.format("YYYY-MM-DD") : "";
+const getDateOnlyKey = (value: unknown) => {
+  if (typeof value === "string") {
+    const match = value.trim().match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+
+  const parsed = new Date(value as string | number | Date);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
 };
 
+export const parseLeagueDateInput = (value: string) =>
+  new Date(`${value}T00:00:00.000Z`);
+
+export const getLeagueDateInputValue = (value: unknown) => getDateOnlyKey(value);
+
 export const getMaximumLeagueEndDate = (startDate: unknown) => {
-  const parsedStartDate = dayjs(startDate as string | number | Date | null | undefined);
-  return parsedStartDate.isValid() ? parsedStartDate.add(1, "year").format("YYYY-MM-DD") : "";
+  const startDateKey = getDateOnlyKey(startDate);
+  if (!startDateKey) return "";
+  return addCalendarYear(parseLeagueDateInput(startDateKey)).toISOString().slice(0, 10);
 };
 
 export const clampLeagueEndDate = (startDate: unknown, endDate: unknown) => {
-  const parsedStartDate = dayjs(startDate as string | number | Date | null | undefined);
-  if (!parsedStartDate.isValid()) return endDate;
+  const startDateKey = getDateOnlyKey(startDate);
+  if (!startDateKey) return endDate;
+  const parsedStartDate = dayjs(startDateKey);
 
-  const parsedEndDate = dayjs(endDate as string | number | Date | null | undefined);
-  const maximumEndDate = parsedStartDate.add(1, "year");
+  const endDateKey = getDateOnlyKey(endDate);
+  const parsedEndDate = dayjs(endDateKey);
+  const maximumEndDate = dayjs(getMaximumLeagueEndDate(startDateKey));
 
   if (!parsedEndDate.isValid() || parsedEndDate.isBefore(parsedStartDate, "day")) {
-    return parsedStartDate.toDate();
+    return parseLeagueDateInput(startDateKey);
   }
 
   if (parsedEndDate.isAfter(maximumEndDate, "day")) {
-    return maximumEndDate.toDate();
+    return parseLeagueDateInput(maximumEndDate.format("YYYY-MM-DD"));
   }
 
-  return parsedEndDate.toDate();
+  return parseLeagueDateInput(endDateKey);
 };

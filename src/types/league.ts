@@ -17,6 +17,25 @@ export type League = {
   events?: Event[];
   scoringPeriods?: LeagueScoringPeriod[];
   hasRecordedScores?: boolean;
+  renewedFromLeagueId?: number | null;
+  renewedFromLeague?: LeagueSeasonLink | null;
+  renewedLeague?: LeagueSeasonLink | null;
+  billingDraftKey?: string;
+  seasonStatus?: "active" | "archived" | "reopened" | string;
+  billingStatus?: "active" | "exempt" | "payment_due" | string;
+  archivedAt?: string | Date | null;
+};
+
+export type LeagueSeasonLink = {
+  id: number;
+  name: string;
+  startDate: string | Date;
+  endDate: string | Date;
+};
+
+export type LeagueRenewalTemplate = {
+  sourceLeague: LeagueSeasonLink;
+  league: League & { renewedFromLeagueId: number };
 };
 
 export type LeagueScoringPeriod = {
@@ -37,12 +56,13 @@ export type Player = {
   type: "player" | "sub" | string;
   gender: "male" | "female";
   handicap: number;
+  sourcePlayerId?: number;
 };
 
 export type Teams = {
   id?: number;
   name: string;
-  players: Player[];
+  players: number[];
 };
 
 export type Event = {

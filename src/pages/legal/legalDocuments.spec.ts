@@ -26,6 +26,6 @@ describe("legal documents", () => {
     const text = documentText(getRefundPolicy(null));
 
     expect(text).toContain("14 calendar days");
-    expect(text).toContain("has not been allocated to or used by an active league");
+    expect(text).toContain("has not been allocated to or used by a league season");
   });
 });

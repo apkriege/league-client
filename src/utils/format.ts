@@ -116,9 +116,6 @@ export const formatTimeWithOffset = (value: unknown, offsetMinutes: number) => {
   return minutes === null ? formatTime(value) : formatMinutes(minutes + offsetMinutes);
 };
 
-export const convertTime = (time24: string) => formatTime(time24);
-
-// format phone
 export const formatPhone = (phone: string) => {
   if (!phone) return "N/A";
   const cleaned = ("" + phone).replace(/\D/g, "");

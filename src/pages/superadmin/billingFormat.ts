@@ -16,6 +16,6 @@ export const formatBillingDate = (value: string) =>
 export const formatCheckoutPurpose = (purpose: string) =>
   ({
     registration: "League registration",
-    seat_upgrade: "Account capacity",
-    league_capacity: "League capacity",
+    seat_upgrade: "League season access",
+    league_capacity: "Current season expansion",
   })[purpose] || purpose.replaceAll("_", " ");

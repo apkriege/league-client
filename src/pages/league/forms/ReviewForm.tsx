@@ -4,6 +4,7 @@ import { formatPhone } from "@/utils/format";
 import { formatHandicap } from "@/utils/handicap";
 import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice, getLeagueBillableGolfers } from "@/lib/billing";
 import dayjs from "dayjs";
+import { getLeagueDateInputValue } from "../leagueDates";
 import {
   CalendarRange,
   Flag,
@@ -83,7 +84,7 @@ export default function ReviewForm({
 
   const fmt = (v: string, fb = "-") => (v ? v.charAt(0).toUpperCase() + v.slice(1) : fb);
   const fmtDate = (v: unknown) => {
-    const d = dayjs(v as string | number | Date | null | undefined);
+    const d = dayjs(getLeagueDateInputValue(v));
     return d.isValid() ? d.format("MMM D, YYYY") : "-";
   };
   const getTeamPlayers = (team: LeagueTeam): TeamBuilderPlayer[] =>
@@ -348,7 +349,8 @@ export default function ReviewForm({
 
               <div className="px-4 py-3">
                 <p className="text-[11px] leading-5 text-gray-500">
-                  League creation is locked until your golfer capacity covers this roster.
+                  Each league season requires paid access for its regular-golfer roster. Previous
+                  season payments are not reused.
                 </p>
                 <p className="mt-2 text-[10px] leading-4 text-gray-400">
                   Payment is subject to the{" "}

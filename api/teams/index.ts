@@ -22,8 +22,3 @@ export async function getTeam(id: number): Promise<TeamProfile> {
   const response = await apiClient.get<TeamProfile>(`/teams/${id}`);
   return response.data;
 }
-
-export async function getTeamPlayers(teamId: number) {
-  const response = await apiClient.get(`/team/${teamId}/players`);
-  return response.data;
-}

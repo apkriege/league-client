@@ -3,6 +3,7 @@ import {
   clampLeagueEndDate,
   getLeagueDateInputValue,
   getMaximumLeagueEndDate,
+  parseLeagueDateInput,
 } from "./leagueDates";
 
 describe("league date helpers", () => {
@@ -23,5 +24,12 @@ describe("league date helpers", () => {
 
     expect(getLeagueDateInputValue(endDate)).toBe("2027-05-01");
     expect(getMaximumLeagueEndDate("2026-05-01")).toBe("2027-05-01");
+  });
+
+  it("keeps API and input dates as calendar dates instead of shifting them by local timezone", () => {
+    expect(getLeagueDateInputValue("2026-01-01T00:00:00.000Z")).toBe("2026-01-01");
+    expect(parseLeagueDateInput("2026-01-01").toISOString()).toBe(
+      "2026-01-01T00:00:00.000Z"
+    );
   });
 });

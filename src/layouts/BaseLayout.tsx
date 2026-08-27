@@ -204,10 +204,6 @@ export default function BaseLayout() {
       navigate("/leagues");
       return;
     }
-    // can't do this if the user is new a creating a fresh league
-    // if (!leagueId) {
-    //   navigate("/dashboard");
-    // }
   }, [user, leagueId, navigate, location.pathname, location.search, location.hash, isSuperAdmin]);
 
   const handleLogout = async () => {

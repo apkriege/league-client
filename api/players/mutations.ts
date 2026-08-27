@@ -1,22 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createPlayer, createPlayers, deletePlayer, updatePlayer } from ".";
-
-export const useCreatePlayer = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ leagueId, data }: { leagueId: number; data: any }) => {
-      return await createPlayer(leagueId, data);
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId] });
-      queryClient.invalidateQueries({ queryKey: ["players", variables.leagueId] });
-    },
-    onError: (error) => {
-      console.error("Failed to create player:", error);
-    },
-  });
-};
+import { createPlayers, deletePlayer, updatePlayer } from ".";
 
 export const useCreatePlayers = () => {
   const queryClient = useQueryClient();

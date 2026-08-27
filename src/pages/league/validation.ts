@@ -1,3 +1,5 @@
+import { addCalendarYear } from "@/features/leagues/seasonDates";
+
 const isBlank = (value: unknown) => value == null || String(value).trim() === "";
 const isPositiveNumber = (value: unknown) => Number.isFinite(Number(value)) && Number(value) > 0;
 
@@ -58,9 +60,11 @@ export function validateLeagueInfo(data: LeagueFormInput) {
   if (endDate < startDate) {
     return "End date must be on or after the start date.";
   }
-  const maxEndDate = new Date(startDate);
-  maxEndDate.setFullYear(maxEndDate.getFullYear() + 1);
-  if (endDate > maxEndDate) {
+  const maxEndDate = addCalendarYear(startDate);
+  if (String(data.type).toLowerCase() === "season" && endDate.getTime() !== maxEndDate.getTime()) {
+    return "A league season must cover exactly one calendar year.";
+  }
+  if (String(data.type).toLowerCase() !== "season" && endDate > maxEndDate) {
     return "End date cannot be more than one year after the start date.";
   }
 
