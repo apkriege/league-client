@@ -13,6 +13,7 @@ export function register(data: {
   lastName: string;
   email: string;
   password: string;
+  acceptedPolicies: boolean;
   invitationToken?: string;
 }) {
   return apiClient.post("/auth/register", data);
@@ -28,4 +29,12 @@ export function requestPasswordReset(email: string) {
 
 export function completePasswordReset(token: string, password: string) {
   return apiClient.post("/auth/password-reset/complete", { token, password });
+}
+
+export function verifyEmail(token: string) {
+  return apiClient.post("/auth/email-verification/verify", { token });
+}
+
+export function resendEmailVerification(email: string) {
+  return apiClient.post("/auth/email-verification/resend", { email });
 }

@@ -1,4 +1,4 @@
-import { login, loginWithLeagueCode } from "@api/auth";
+import { login, loginWithLeagueCode, resendEmailVerification } from "@api/auth";
 import { useToast } from "@/context/useToast";
 import { useAppStore } from "@/stores/appStore";
 import { normalizeAuthUser } from "@/lib/authUser";
@@ -22,6 +22,8 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCodeSubmitting, setIsCodeSubmitting] = useState(false);
+  const [verificationRequired, setVerificationRequired] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
   const stateReturnTo = (location.state as { from?: string } | null)?.from;
   const queryReturnTo = new URLSearchParams(location.search).get("redirect");
   const passwordResetComplete = new URLSearchParams(location.search).get("passwordReset") === "success";
@@ -35,6 +37,7 @@ export default function Login() {
     event.preventDefault();
     setIsSubmitting(true);
     setError("");
+    setVerificationRequired(false);
 
     try {
       const auth: any = await login(email, password);
@@ -49,10 +52,28 @@ export default function Login() {
       navigate(returnTo, { replace: true });
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.message || "Unable to sign in.";
+      setVerificationRequired(Boolean(err?.response?.data?.verificationRequired));
       setError(message);
       show(message, "error");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    if (!email.trim()) return;
+    setIsResendingVerification(true);
+    try {
+      const response = await resendEmailVerification(email.trim());
+      const message = response.data?.message || "A new verification email has been sent.";
+      setError(message);
+      show(message, "success");
+    } catch (requestError: any) {
+      const message = requestError?.response?.data?.message || "Unable to resend verification email.";
+      setError(message);
+      show(message, "error");
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -154,6 +175,16 @@ export default function Login() {
                 {error && (
                   <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                     {error}
+                    {verificationRequired && (
+                      <button
+                        type="button"
+                        disabled={isResendingVerification}
+                        onClick={() => void resendVerification()}
+                        className="mt-2 block text-xs font-black underline disabled:opacity-60"
+                      >
+                        {isResendingVerification ? "Sending…" : "Resend verification email"}
+                      </button>
+                    )}
                   </div>
                 )}
 

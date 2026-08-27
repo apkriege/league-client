@@ -1,18 +1,17 @@
-import { register } from "@api/auth";
+import { register, resendEmailVerification } from "@api/auth";
 import { useToast } from "@/context/useToast";
-import { useAppStore } from "@/stores/appStore";
-import { normalizeAuthUser } from "@/lib/authUser";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
-import { clearCreateLeagueDraft } from "@/pages/league/leagueDraft";
+import { Link, useLocation } from "react-router";
 
 type RegistrationForm = {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
+  confirmPassword: string;
+  acceptedPolicies: boolean;
 };
 
 const emptyRegistrationForm: RegistrationForm = {
@@ -20,23 +19,41 @@ const emptyRegistrationForm: RegistrationForm = {
   lastName: "",
   email: "",
   password: "",
+  confirmPassword: "",
+  acceptedPolicies: false,
 };
+
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
 export default function RegisterPanel() {
   const { show } = useToast();
-  const { setUser } = useAppStore();
-  const navigate = useNavigate();
   const location = useLocation();
   const requestedReturnTo = new URLSearchParams(location.search).get("redirect");
   const invitationToken = requestedReturnTo?.match(/^\/invite\/([^/?#]+)/)?.[1];
   const isInvitationRegistration = Boolean(invitationToken);
   const [form, setForm] = useState(emptyRegistrationForm);
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "submitting" | "resending" | "success" | "error"
+  >("idle");
   const [message, setMessage] = useState("");
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
-  const update = (key: keyof RegistrationForm, value: string) => {
+  const update = (
+    key: Exclude<keyof RegistrationForm, "acceptedPolicies">,
+    value: string,
+  ) => {
     setForm((previous) => ({ ...previous, [key]: value }));
   };
+
+  const passwordsMatch = form.password === form.confirmPassword;
+  const formIsComplete =
+    Boolean(form.firstName.trim()) &&
+    Boolean(form.lastName.trim()) &&
+    isValidEmail(form.email) &&
+    form.password.length >= 8 &&
+    Boolean(form.confirmPassword) &&
+    passwordsMatch &&
+    form.acceptedPolicies;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -44,24 +61,42 @@ export default function RegisterPanel() {
     setMessage("");
 
     try {
-      const response = await register({ ...form, invitationToken });
-      const normalizedUser = normalizeAuthUser(response.data?.user);
-      if (normalizedUser) setUser(normalizedUser);
-
+      if (!passwordsMatch) {
+        setStatus("error");
+        setMessage("Passwords must match.");
+        return;
+      }
+      const response = await register({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        acceptedPolicies: form.acceptedPolicies,
+        invitationToken,
+      });
       setStatus("success");
+      setRegisteredEmail(form.email.trim().toLowerCase());
+      setForm((current) => ({ ...current, password: "", confirmPassword: "" }));
       setMessage(
-        isInvitationRegistration
-          ? "Account created. Finish accepting your league invitation."
-          : "Account created. Start building your first league.",
+        response.data?.message || "Account created. Check your email to verify your account.",
       );
-      clearCreateLeagueDraft();
-      const returnTo =
-        requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//")
-          ? requestedReturnTo
-          : "/leagues/create";
-      navigate(returnTo);
     } catch (error: unknown) {
       const errorMessage = getApiErrorMessage(error, "Unable to create account.");
+      setStatus("error");
+      setMessage(errorMessage);
+      show(errorMessage, "error");
+    }
+  };
+
+  const resend = async () => {
+    if (!registeredEmail) return;
+    setStatus("resending");
+    try {
+      const response = await resendEmailVerification(registeredEmail);
+      setMessage(response.data?.message || "A new verification email has been sent.");
+      setStatus("success");
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, "Unable to resend verification email.");
       setStatus("error");
       setMessage(errorMessage);
       show(errorMessage, "error");
@@ -94,7 +129,7 @@ export default function RegisterPanel() {
       </div>
 
       <form onSubmit={submit} className="mt-5 grid gap-3">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <TextField
             label="First name"
             value={form.firstName}
@@ -123,6 +158,40 @@ export default function RegisterPanel() {
           onChange={(value) => update("password", value)}
           autoComplete="new-password"
         />
+        <TextField
+          label="Confirm password"
+          type="password"
+          minLength={8}
+          value={form.confirmPassword}
+          onChange={(value) => update("confirmPassword", value)}
+          autoComplete="new-password"
+        />
+        {form.confirmPassword && !passwordsMatch && (
+          <p className="px-2 text-xs font-bold text-red-600">Passwords must match.</p>
+        )}
+
+        <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
+          <input
+            required
+            type="checkbox"
+            checked={form.acceptedPolicies}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, acceptedPolicies: event.target.checked }))
+            }
+            className="mt-0.5 h-4 w-4 shrink-0 accent-sky-500"
+          />
+          <span>
+            I agree to the{" "}
+            <Link to="/terms" className="font-bold text-slate-700 underline hover:text-slate-950">
+              Terms of Service
+            </Link>{" "}
+            and acknowledge the{" "}
+            <Link to="/privacy" className="font-bold text-slate-700 underline hover:text-slate-950">
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
 
         {message && (
           <p
@@ -134,9 +203,20 @@ export default function RegisterPanel() {
           </p>
         )}
 
+        {registeredEmail && (
+          <button
+            type="button"
+            disabled={status === "resending"}
+            onClick={() => void resend()}
+            className="text-xs font-black text-slate-700 underline disabled:opacity-60"
+          >
+            {status === "resending" ? "Sending…" : "Resend verification email"}
+          </button>
+        )}
+
         <button
           type="submit"
-          disabled={status === "submitting"}
+          disabled={!formIsComplete || status === "submitting" || Boolean(registeredEmail)}
           className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-sky-300 px-5 text-sm font-black text-slate-950 transition hover:bg-sky-200 disabled:opacity-60"
         >
           {status === "submitting"
@@ -146,17 +226,6 @@ export default function RegisterPanel() {
               : "Create admin account"}
           <ArrowRight size={16} />
         </button>
-        <p className="px-2 text-center text-[10px] leading-4 text-slate-400">
-          By creating an account, you agree to the{" "}
-          <Link to="/terms" className="font-bold text-slate-600 underline hover:text-slate-950">
-            Terms of Service
-          </Link>{" "}
-          and acknowledge the{" "}
-          <Link to="/privacy" className="font-bold text-slate-600 underline hover:text-slate-950">
-            Privacy Policy
-          </Link>
-          .
-        </p>
       </form>
 
       <p className="mt-4 text-center text-xs text-slate-500">
@@ -185,7 +254,7 @@ function TextField({
   autoComplete?: string;
 }) {
   return (
-    <label className="grid gap-1.5">
+    <label className="grid min-w-0 gap-1.5">
       <span className="text-xs font-black text-slate-600">{label}</span>
       <input
         required
@@ -194,7 +263,7 @@ function TextField({
         value={value}
         autoComplete={autoComplete}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-800/10"
+        className="h-11 min-w-0 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-800/10"
       />
     </label>
   );

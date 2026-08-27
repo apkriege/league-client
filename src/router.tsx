@@ -32,6 +32,7 @@ const ContactSupport = lazy(() => import("./pages/support/ContactSupport.tsx"));
 const InviteClaim = lazy(() => import("./pages/invite/InviteClaim.tsx"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword.tsx"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword.tsx"));
+const VerifyEmail = lazy(() => import("./pages/auth/VerifyEmail.tsx"));
 const AppThemeProvider = lazy(() => import("./components/route/AppThemeProvider.tsx"));
 const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy.tsx"));
 const TermsOfService = lazy(() => import("./pages/legal/TermsOfService.tsx"));
@@ -70,6 +71,11 @@ export const router = createBrowserRouter([
   {
     path: "/reset-password",
     element: withAppTheme(<ResetPassword />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
+    path: "/verify-email",
+    element: withAppTheme(<VerifyEmail />),
     errorElement: <AppErrorBoundary />,
   },
   {
