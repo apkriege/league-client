@@ -32,13 +32,15 @@ export const calculateStrokeplayPops = (hcp: number, holes: any) => {
   hcp = Math.round(Number(hcp));
   const sortedHoles = [...holes].sort((a, b) => a.hcp - b.hcp);
   const popsMap = new Map<number, number>();
+  const direction = hcp < 0 ? -1 : 1;
+  let remaining = Math.abs(hcp);
+  let holeIndex = 0;
 
-  while (hcp > 0) {
-    for (const hole of sortedHoles) {
-      if (hcp <= 0) break;
-      popsMap.set(hole.num, (popsMap.get(hole.num) || 0) + 1);
-      hcp--;
-    }
+  while (remaining > 0 && sortedHoles.length > 0) {
+    const hole = sortedHoles[holeIndex % sortedHoles.length];
+    popsMap.set(hole.num, (popsMap.get(hole.num) || 0) + direction);
+    remaining -= 1;
+    holeIndex += 1;
   }
 
   return popsMap;
@@ -49,17 +51,9 @@ export const sortFlightTeamsByHandicap = (flight: any) => {
   const t2Id = flight.teams?.[1]?.teamId;
 
   const getSortHandicap = (playerEntry: any) => {
-    const preHandicapRaw = playerEntry?.player?.rounds?.[0]?.preHandicap;
-    if (preHandicapRaw !== null && preHandicapRaw !== undefined && preHandicapRaw !== "") {
-      const preHandicap = Number(preHandicapRaw);
-      if (Number.isFinite(preHandicap)) {
-        return preHandicap;
-      }
-    }
-
-    const handicap = Number(playerEntry?.player?.handicap);
-    if (Number.isFinite(handicap)) {
-      return handicap;
+    const courseHandicap = Number(playerEntry?.courseHandicap);
+    if (Number.isFinite(courseHandicap)) {
+      return courseHandicap;
     }
 
     return 999;

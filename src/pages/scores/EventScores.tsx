@@ -1,3 +1,6 @@
+import LoadingState from "@/components/layout/LoadingState";
+import PanelBar from "@/components/layout/PanelBar";
+import SurfaceCard from "@/components/layout/SurfaceCard";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -5,10 +8,10 @@ import { useLeagueEvent, useLeaguePlayers } from "@api/league/queries";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { formatEventDate } from "@/utils/eventDate";
+import { compareTimes, formatTime } from "@/utils/format";
 import {
   CalendarDays,
   CheckCircle2,
-  ClipboardList,
   Edit,
   Flag,
   MapPin,
@@ -40,9 +43,9 @@ export default function EventScores() {
 
   if (isLoading) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Loading event...
-      </div>
+      </LoadingState>
     );
   }
 
@@ -113,9 +116,12 @@ export default function EventScores() {
   }).length;
 
   // Filter
+  const sortedFlights = [...event.flights].sort((left: any, right: any) =>
+    compareTimes(left?.startsAt, right?.startsAt),
+  );
   const visibleFlights = selectedFlightId
-    ? event.flights.filter((f: any) => f.id === selectedFlightId)
-    : event.flights;
+    ? sortedFlights.filter((f: any) => f.id === selectedFlightId)
+    : sortedFlights;
 
   const getFlightScoresComponent = () => {
     if (event.format === "individual" && event.scoringFormat === "stroke") {
@@ -140,8 +146,6 @@ export default function EventScores() {
       <PageHeader
         title={event.name || "Event Scores"}
         subTitle={event.course?.name}
-        icon={<ClipboardList size={14} />}
-        iconText="SCORES"
       />
 
       {/* Metrics bar */}
@@ -150,8 +154,8 @@ export default function EventScores() {
           {
             label: "Flights Done",
             value: `${completedFlights} / ${totalFlights}`,
-            icon: <Flag size={14} className="text-primary" />,
-            bg: "bg-primary/5 border-primary/10",
+            icon: <Flag size={14} className="text-slate-900" />,
+            bg: "bg-slate-900/5 border-slate-900/10",
           },
           {
             label: "Scores Entered",
@@ -161,7 +165,12 @@ export default function EventScores() {
           },
           {
             label: "Date",
-            value: formatEventDate(event.date, { month: "short", day: "numeric", year: "numeric" }),
+            value: formatEventDate(
+              event.startsAt,
+              { month: "short", day: "numeric", year: "numeric" },
+              "en-US",
+              event.timeZone,
+            ),
             icon: <CalendarDays size={14} className="text-amber-400" />,
             bg: "bg-amber-50 border-amber-100",
           },
@@ -189,8 +198,7 @@ export default function EventScores() {
 
       {isReadOnly && (
         <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Scores can only be entered in chronological order, and only the latest scored event can be
-          edited. This event is view-only.
+          This event is view-only and cannot receive score changes.
         </div>
       )}
 
@@ -201,13 +209,13 @@ export default function EventScores() {
             onClick={() => setSelectedFlightId(null)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               selectedFlightId === null
-                ? "bg-primary text-white shadow-sm"
+                ? "bg-slate-900 text-white shadow-sm"
                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
             All Flights
           </button>
-          {event.flights.map((flight: any) => {
+          {sortedFlights.map((flight: any) => {
             const isCompleted = flight.status === "completed";
             const isActive = selectedFlightId === flight.id;
             return (
@@ -216,7 +224,7 @@ export default function EventScores() {
                 onClick={() => setSelectedFlightId(isActive ? null : flight.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                   isActive
-                    ? "bg-primary text-white shadow-sm"
+                    ? "bg-slate-900 text-white shadow-sm"
                     : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
               >
@@ -227,7 +235,7 @@ export default function EventScores() {
                     className={isActive ? "text-green-300" : "text-green-500"}
                   />
                 )}
-                Flight {flight.startTime}
+                Flight {formatTime(flight.startsAt, event.timeZone)}
               </button>
             );
           })}
@@ -239,14 +247,10 @@ export default function EventScores() {
         {visibleFlights.map((flight: any) => {
           const isCompleted = flight.status === "completed";
           const isEditing = editingFlightIds.includes(flight.id);
-
           if ((isCompleted && !isEditing) || isReadOnly) {
             return (
-              <div
-                key={flight.id}
-                className="surface-card"
-              >
-                <div className="panel-header">
+              <SurfaceCard key={flight.id}>
+                <PanelBar variant="header">
                   <div className="flex items-center gap-2">
                     <CheckCircle2
                       size={14}
@@ -254,7 +258,7 @@ export default function EventScores() {
                       strokeWidth={2.5}
                     />
                     <h3 className="text-sm font-semibold text-gray-800">
-                      Flight {flight.startTime}
+                      Flight {formatTime(flight.startsAt, event.timeZone)}
                     </h3>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
@@ -275,11 +279,11 @@ export default function EventScores() {
                       Edit Scores
                     </button>
                   )}
-                </div>
+                </PanelBar>
                 <div className="p-4">
                   <ViewFlightScores flight={flight} event={event} />
                 </div>
-              </div>
+              </SurfaceCard>
             );
           }
 

@@ -1,42 +1,13 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
 @import "tailwindcss";
-@plugin "daisyui";
-
-@plugin "daisyui/theme" {
-  name: "light";
-  default: true;
-  --color-primary: #101828;
-  --color-primary-content: #ffffff;
-  --color-secondary: #7dd3fc;
-  --color-secondary-content: #101828;
-  --color-accent: #2563eb;
-  --color-accent-content: #ffffff;
-  --color-neutral: #1f2937;
-  --color-neutral-content: #ffffff;
-  --color-base-100: #ffffff;
-  --color-base-200: #f4f7fb;
-  --color-base-300: #e7dfcf;
-  --color-base-content: #101828;
-  --color-info: #0f766e;
-  --color-info-content: #ffffff;
-  --color-success: #2563eb;
-  --color-success-content: #ffffff;
-  --color-warning: #d97706;
-  --color-warning-content: #101828;
-  --color-error: #b91c1c;
-  --color-error-content: #ffffff;
-  --color-danger: #b91c1c;
-  --color-danger-content: #ffffff;
-}
 
 @layer base {
   * {
-    @apply border-base-300;
+    @apply border-slate-200;
   }
 }
 
 body {
-  color: var(--color-base-content);
+  color: #101828;
   background:
     radial-gradient(circle at top left, rgba(125, 211, 252, 0.16), transparent 32rem),
     linear-gradient(180deg, #f8fafc 0%, #f4f7fb 42%, #ffffff 100%);
@@ -49,18 +20,6 @@ h4,
 h5,
 h6 {
   font-family: "Manrope", sans-serif;
-}
-
-.btn {
-  @apply rounded-full font-black tracking-tight;
-}
-
-.btn-md {
-  @apply h-[38px] text-xs rounded-full;
-}
-
-.btn-ghost {
-  @apply bg-white/10 border-white/20 text-white;
 }
 
 @layer components {
@@ -77,7 +36,7 @@ h6 {
   }
 
   .score-table {
-    @apply min-w-max w-full table-auto text-left table-sm;
+    @apply min-w-max w-full table-auto text-left text-xs;
   }
 
   .summary-pill {
@@ -100,6 +59,19 @@ h6 {
     @apply pointer-events-none absolute bottom-1 left-1 flex items-center justify-center gap-0.5;
   }
 
+  .event-scorecard-flight {
+    content-visibility: auto;
+    contain: layout paint style;
+  }
+
+  .scorecards-drawer {
+    scrollbar-gutter: stable;
+  }
+
+  .scorecards-drawer .surface-card {
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  }
+
   .auth-field {
     @apply flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-blue-700 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-800/10;
   }
@@ -108,9 +80,6 @@ h6 {
     @apply font-black uppercase tracking-[0.18em] text-gray-500;
   }
 
-  .form-input {
-    @apply w-full rounded-2xl border-base-300 bg-white/70 font-semibold;
-  }
 }
 
 /* APP STYLE OVERHAUL START
@@ -118,7 +87,7 @@ h6 {
 .app-shell {
   --app-ink: #101828;
   --app-muted: #647067;
-  --app-card: rgba(255, 255, 255, 0.84);
+  --app-card: #ffffff;
   --app-line: rgba(16, 24, 40, 0.1);
   --app-accent: #7dd3fc;
   color: var(--app-ink);
@@ -205,17 +174,19 @@ h6 {
 }
 
 .app-shell .app-page-card,
-.app-shell .card,
-.app-shell .modal-box {
+.app-shell .MuiDialog-paper {
   border: 1px solid var(--app-line);
   border-radius: 1.5rem;
   background: var(--app-card);
   box-shadow: 0 18px 48px rgba(16, 24, 40, 0.08);
+}
+
+.app-shell .MuiDialog-paper {
   backdrop-filter: blur(18px);
 }
 
 .app-shell :where(.bg-white, .surface-card, .summary-pill) {
-  background-color: rgba(255, 255, 255, 0.84);
+  background-color: #ffffff;
 }
 
 .app-shell :where(.app-slideout-drawer) {
@@ -226,7 +197,7 @@ h6 {
   background-color: #ffffff;
 }
 
-.app-shell :where(.border-gray-200, .border-slate-200, .border-base-300, .surface-card, .summary-pill) {
+.app-shell :where(.border-gray-200, .border-slate-200, .surface-card, .summary-pill) {
   border-color: var(--app-line);
 }
 
@@ -242,18 +213,10 @@ h6 {
   border-radius: 1rem;
 }
 
-.app-shell .input,
-.app-shell .select,
 .app-shell textarea,
 .app-shell input,
 .app-shell select {
   border-color: rgba(16, 24, 40, 0.11);
-}
-
-.app-shell .input,
-.app-shell .select {
-  background: rgba(255, 255, 255, 0.72);
-  border-radius: 1rem;
 }
 
 .app-shell select option {
@@ -268,40 +231,15 @@ h6 {
   color: var(--app-ink);
 }
 
-.app-shell .input:focus,
-.app-shell .select:focus,
-.app-shell textarea:focus,
-.app-shell input:focus,
-.app-shell select:focus {
+.app-shell textarea:not(.MuiInputBase-input):focus,
+.app-shell input:not(.MuiInputBase-input):not(.MuiSelect-nativeInput):focus,
+.app-shell select:not(.MuiInputBase-input):focus {
   outline: none;
   border-color: rgba(37, 99, 235, 0.72);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
-.app-shell .badge-secondary {
-  border: 1px solid rgba(37, 99, 235, 0.14);
-  background: rgba(125, 211, 252, 0.32);
-  color: #1e3a8a;
-}
-
-.app-shell .btn-primary {
-  border: 0;
-  background: #101828;
-  color: #ffffff;
-  box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
-}
-
-.app-shell .btn-primary:hover {
-  background: #1e293b;
-}
-
-.app-shell .btn-secondary {
-  border: 0;
-  background: var(--app-accent);
-  color: var(--app-ink);
-}
-
-.app-shell .table :where(th) {
+.app-shell table :where(th) {
   color: var(--app-muted);
 }
 

@@ -1,18 +1,23 @@
+import LoadingState from "@/components/layout/LoadingState";
+import PanelBar from "@/components/layout/PanelBar";
+import SurfaceCard from "@/components/layout/SurfaceCard";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
-import { useCancelLeagueEvent, useDeleteLeagueEvent } from "@api/league/mutations";
+import {
+  useCancelLeagueEvent,
+  useDeleteLeagueEvent,
+  useRotateLeagueViewerAccessCode,
+} from "@api/league/mutations";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
 import {
   AuditLogPanel,
   InvitePlayersPanel,
-  LeagueNotificationComposer,
-  OnboardingChecklist,
 } from "@/components/league/AdminOpsPanels";
 import LeagueAnnouncementsPanel from "@/components/league/LeagueAnnouncementsPanel";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
-import { useToast } from "@/context/ToastContext";
-import dayjs from "dayjs";
+import { formatEventDate, getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
+import { formatTime } from "@/utils/format";
+import { useToast } from "@/context/useToast";
 import {
   Award,
   Ban,
@@ -27,6 +32,7 @@ import {
   Flag,
   MapPin,
   Plus,
+  RotateCw,
   ShieldHalf,
   Timer,
   Trash2,
@@ -36,6 +42,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
+import Tooltip from "@mui/material/Tooltip";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   upcoming: {
@@ -88,13 +95,14 @@ export default function LeagueAdmin() {
   const cancelEvent = useCancelLeagueEvent(() => {
     show("Event canceled.", "success");
   });
+  const rotateViewerCode = useRotateLeagueViewerAccessCode(Number(leagueId));
 
   const pageError = leagueError || eventsError || metricsError;
   const errorStatus = getApiErrorStatus(pageError);
 
   if (leagueLoading || eventsLoading) {
     return (
-      <div className="loading-state">Loading...</div>
+      <LoadingState>Loading...</LoadingState>
     );
   }
 
@@ -164,8 +172,6 @@ export default function LeagueAdmin() {
     <div className="space-y-7">
       <PageHeader
         title={league?.name ?? "League"}
-        icon={<ShieldHalf size={14} />}
-        iconText="ADMIN"
       />
 
       <div className="-mt-1 flex justify-end">
@@ -177,8 +183,6 @@ export default function LeagueAdmin() {
           Edit League
         </button>
       </div>
-
-      <OnboardingChecklist leagueId={Number(leagueId)} />
 
       <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3.5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -204,6 +208,25 @@ export default function LeagueAdmin() {
               <Copy size={13} />
               Copy
             </button>
+            <button
+              type="button"
+              disabled={rotateViewerCode.isPending}
+              onClick={() => {
+                const confirmed = window.confirm(
+                  "Generate a new view-only code? The current code will stop working immediately."
+                );
+                if (!confirmed) return;
+                rotateViewerCode.mutate(undefined, {
+                  onSuccess: () => show("League access code rotated.", "success"),
+                  onError: (error: any) =>
+                    show(error?.message || "Unable to rotate the access code.", "error"),
+                });
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCw size={13} className={rotateViewerCode.isPending ? "animate-spin" : ""} />
+              Rotate
+            </button>
           </div>
         </div>
       </div>
@@ -219,8 +242,8 @@ export default function LeagueAdmin() {
               label: "Events",
               value: `${completed.length} / ${totalEvents}`,
               sub: "completed",
-              icon: <CalendarDays size={14} className="text-primary" />,
-              bg: "bg-primary/5 border-primary/10",
+              icon: <CalendarDays size={14} className="text-slate-900" />,
+              bg: "bg-slate-900/5 border-slate-900/10",
             },
             {
               label: "Players",
@@ -265,12 +288,11 @@ export default function LeagueAdmin() {
           <div>
             <p className="text-sm font-bold tracking-tight text-gray-900">Communication tools</p>
             <p className="mt-0.5 text-xs font-medium text-gray-500">
-              Manage profile claims, notifications, and league announcements.
+              Manage profile claims and league announcements.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <InvitePlayersPanel leagueId={Number(leagueId)} players={league?.players ?? []} />
-            <LeagueNotificationComposer leagueId={Number(leagueId)} />
             <LeagueAnnouncementsPanel leagueId={Number(leagueId)} canManage />
           </div>
         </div>
@@ -285,7 +307,7 @@ export default function LeagueAdmin() {
               description="Active rounds that need scores entered or reviewed."
             />
             <div className="bg-white border border-blue-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="panel-row.5 bg-blue-50/70">
+              <PanelBar className="bg-blue-50/70">
                 <Zap size={14} className="text-blue-600" strokeWidth={2.5} />
                 <div>
                   <h3 className="text-sm font-black tracking-tight text-gray-900">
@@ -298,7 +320,7 @@ export default function LeagueAdmin() {
                 <span className="ml-auto rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
                   {needsScores.length} active
                 </span>
-              </div>
+              </PanelBar>
               <div className="divide-y divide-gray-50">
                 {needsScores.map((event: any) => (
                   <ScoreEntryRow
@@ -324,7 +346,7 @@ export default function LeagueAdmin() {
             </div>
             <button
               onClick={() => navigate(`/league/${leagueId}/events/create`)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-900/90 transition-colors"
             >
               <Plus size={12} strokeWidth={2.5} />
               New Event
@@ -332,23 +354,23 @@ export default function LeagueAdmin() {
           </div>
 
           {nextEvent && (
-            <div className="surface-card">
-              <div className="panel-row.5">
+            <SurfaceCard>
+              <PanelBar>
                 <CalendarDays size={14} className="text-blue-400" strokeWidth={2.5} />
                 <h3 className="text-sm font-black tracking-tight text-gray-900">Next Event</h3>
-              </div>
+              </PanelBar>
               <div className="px-4 py-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   {/* Date badge */}
-                  <div className="flex flex-col items-center justify-center bg-primary/5 border border-primary/10 rounded-lg px-3 py-2 min-w-14 text-center">
+                  <div className="flex flex-col items-center justify-center bg-slate-900/5 border border-slate-900/10 rounded-lg px-3 py-2 min-w-14 text-center">
                     <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
-                      {dayjs(nextEvent.date).format("MMM")}
+                      {formatEventDate(nextEvent.startsAt, { month: "short" }, "en-US", nextEvent.timeZone)}
                     </span>
-                    <span className="text-2xl font-black text-primary leading-none">
-                      {dayjs(nextEvent.date).format("D")}
+                    <span className="text-2xl font-black text-slate-900 leading-none">
+                      {formatEventDate(nextEvent.startsAt, { day: "numeric" }, "en-US", nextEvent.timeZone)}
                     </span>
                     <span className="text-[9px] text-gray-400 font-medium">
-                      {dayjs(nextEvent.date).format("ddd")}
+                      {formatEventDate(nextEvent.startsAt, { weekday: "short" }, "en-US", nextEvent.timeZone)}
                     </span>
                   </div>
                   <div>
@@ -364,10 +386,10 @@ export default function LeagueAdmin() {
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-1.5">
-                      {nextEvent.startTime && (
+                      {nextEvent.startsAt && (
                         <span className="flex items-center gap-1 text-[10px] text-gray-400">
                           <Clock size={10} className="text-gray-300" />
-                          {nextEvent.startTime}
+                          {formatTime(nextEvent.startsAt, nextEvent.timeZone)}
                         </span>
                       )}
                       <span className="flex items-center gap-1 text-[10px] text-gray-400">
@@ -387,14 +409,14 @@ export default function LeagueAdmin() {
                   </button>
                   <button
                     onClick={() => navigate(`/league/${leagueId}/events/${nextEvent.id}/scores`)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-900/90 transition-colors"
                   >
                     <ClipboardList size={12} strokeWidth={2.5} />
                     Enter Scores
                   </button>
                 </div>
               </div>
-            </div>
+            </SurfaceCard>
           )}
 
           {totalEvents === 0 ? (
@@ -464,7 +486,7 @@ function ScoreEntryRow({
   onScores: () => void;
   onView: () => void;
 }) {
-  const date = getEventLocalDate(event.date);
+  const date = getEventLocalDate(event.startsAt, event.timeZone);
   const canEnterScores = Boolean(event.canEnterScores);
   const canOpenScores = canEnterScores || Boolean(event.canEditScores);
   return (
@@ -528,7 +550,7 @@ function AdminEventRow({
   isDeleting?: boolean;
 }) {
   const status = STATUS_CONFIG[event.status] ?? STATUS_CONFIG["upcoming"];
-  const date = getEventLocalDate(event.date);
+  const date = getEventLocalDate(event.startsAt, event.timeZone);
   const isCanceledEvent = String(event?.status || "").toLowerCase() === "canceled";
   const canEditEvent =
     !event?.isComplete &&
@@ -536,17 +558,17 @@ function AdminEventRow({
     !isCanceledEvent;
 
   return (
-    <div
+    <SurfaceCard
       onClick={onView}
-      className="group surface-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30 hover:bg-primary/2 cursor-pointer"
+      className="group cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-slate-900/30 hover:bg-slate-900/2"
     >
       <div className="flex items-stretch">
         {/* Date block */}
-        <div className="flex flex-col items-center justify-center px-3 py-3 min-w-14 border-r bg-primary/5 border-primary/10">
+        <div className="flex flex-col items-center justify-center px-3 py-3 min-w-14 border-r bg-slate-900/5 border-slate-900/10">
           <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
             {date.toLocaleDateString("en-US", { month: "short" })}
           </span>
-          <span className="text-xl font-black leading-none text-primary">{date.getDate()}</span>
+          <span className="text-xl font-black leading-none text-slate-900">{date.getDate()}</span>
           <span className="text-[9px] text-gray-400 font-medium">
             {date.toLocaleDateString("en-US", { weekday: "short" })}
           </span>
@@ -578,7 +600,9 @@ function AdminEventRow({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {event.startTime && <MetaChip icon={<Clock size={10} />} label={event.startTime} />}
+            {event.startsAt && (
+              <MetaChip icon={<Clock size={10} />} label={formatTime(event.startsAt, event.timeZone)} />
+            )}
             <MetaChip icon={<Flag size={10} />} label={`${event.holes}h`} />
             {event.scoringFormat && (
               <MetaChip
@@ -595,51 +619,61 @@ function AdminEventRow({
         {/* Actions */}
         <div className="flex items-center pr-3 pl-1 gap-1.5">
           {canEditEvent && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
-              className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors shadow-xs"
-              title="Edit"
-            >
-              <Edit size={13} strokeWidth={2} />
-            </button>
+            <Tooltip title="Edit event" placement="top" arrow>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                className="cursor-pointer p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-slate-900/30 hover:bg-slate-900/10 hover:text-slate-900 transition-colors shadow-xs"
+                aria-label="Edit event"
+              >
+                <Edit size={13} strokeWidth={2} />
+              </button>
+            </Tooltip>
           )}
           {!isCanceledEvent && canEditEvent && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onCancel();
-              }}
-              disabled={isCanceling}
-              className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50 shadow-xs"
-              title="Cancel"
-            >
-              <Ban size={13} strokeWidth={2} />
-            </button>
+            <Tooltip title="Cancel event" placement="top" arrow>
+              <span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancel();
+                  }}
+                  disabled={isCanceling}
+                  className="cursor-pointer p-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-700 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 shadow-xs"
+                  aria-label="Cancel event"
+                >
+                  <Ban size={13} strokeWidth={2} />
+                </button>
+              </span>
+            </Tooltip>
           )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            disabled={isDeleting}
-            className="p-1.5 rounded-lg border border-red-100 bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50 shadow-xs"
-            title="Delete"
-          >
-            <Trash2 size={13} strokeWidth={2} />
-          </button>
+          <Tooltip title="Delete event" placement="top" arrow>
+            <span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                disabled={isDeleting}
+                className="cursor-pointer p-1.5 rounded-lg border border-red-100 bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 shadow-xs"
+                aria-label="Delete event"
+              >
+                <Trash2 size={13} strokeWidth={2} />
+              </button>
+            </span>
+          </Tooltip>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onScores();
             }}
             disabled={isCanceledEvent}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`flex cursor-pointer items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
               !isCanceledEvent && (event.canEnterScores || event.canEditScores)
-                ? "bg-primary text-primary-content hover:bg-primary/90 shadow-xs"
-                : "border border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-primary/10 hover:text-primary shadow-xs"
+                ? "bg-slate-900 text-white hover:bg-slate-900/90 shadow-xs"
+                : "border border-gray-200 bg-white text-gray-700 hover:border-slate-900/30 hover:bg-slate-900/10 hover:text-slate-900 shadow-xs"
             }`}
             title="Scores"
           >
@@ -654,7 +688,7 @@ function AdminEventRow({
           </button>
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 }
 

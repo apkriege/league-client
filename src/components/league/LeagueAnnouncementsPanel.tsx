@@ -80,7 +80,7 @@ export default function LeagueAnnouncementsPanel({
     );
   };
 
-  const removeFromView = (announcementId: number) => {
+  const removeAnnouncement = (announcementId: number) => {
     deleteAnnouncement.mutate(announcementId);
   };
 
@@ -223,8 +223,8 @@ export default function LeagueAnnouncementsPanel({
                                 · {dayjs(announcement.createdAt).format("MMM D, YYYY h:mm A")}
                               </p>
                             </div>
-                            <div className="flex shrink-0 items-center gap-1">
-                              {canManage && (
+                            {canManage && (
+                              <div className="flex shrink-0 items-center gap-1">
                                 <button
                                   type="button"
                                   onClick={() => startEdit(announcement)}
@@ -233,17 +233,17 @@ export default function LeagueAnnouncementsPanel({
                                 >
                                   <Edit size={13} />
                                 </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => removeFromView(id)}
-                                disabled={deleteAnnouncement.isPending}
-                                className="rounded-md p-1 text-blue-700/60 transition hover:bg-blue-100 hover:text-red-600 disabled:opacity-50"
-                                aria-label="Remove announcement"
-                              >
-                                <X size={13} />
-                              </button>
-                            </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeAnnouncement(id)}
+                                  disabled={deleteAnnouncement.isPending}
+                                  className="rounded-md p-1 text-blue-700/60 transition hover:bg-blue-100 hover:text-red-600 disabled:opacity-50"
+                                  aria-label="Remove announcement for all league members"
+                                >
+                                  <X size={13} />
+                                </button>
+                              </div>
+                            )}
                           </div>
                           <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-blue-950/80">
                             {announcement.body}

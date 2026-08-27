@@ -1,20 +1,41 @@
+import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
-import Table from "@/components/Table";
+import Table, { type Column } from "@/components/Table";
+import { useToast } from "@/context/useToast";
+import { useSyncAdminLeagueSeason } from "@api/admin/mutations";
 import { useAdminLeagues } from "@api/admin/queries";
+import type { AdminLeagueListItem } from "@api/admin/types";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { Eye, ShieldCheck, Users } from "lucide-react";
+import { Eye, RefreshCw, ShieldCheck } from "lucide-react";
 import { Link } from "react-router";
 
 export default function LeaguesAdmin() {
   const { data: leagues = [], isLoading, isError, error } = useAdminLeagues();
+  const syncSeason = useSyncAdminLeagueSeason();
+  const { show } = useToast();
+
+  const handleSeasonSync = (league: AdminLeagueListItem) => {
+    const confirmed = window.confirm(
+      `Recalculate the full season for "${league.name}"? This rewrites handicaps, net scores, points, and standings from the saved hole scores.`,
+    );
+    if (!confirmed) return;
+
+    syncSeason.mutate(league.id, {
+      onSuccess: ({ result }) => {
+        show(
+          `Season sync completed for ${league.name}: ${result.roundsUpdated} rounds and ${result.playersUpdated} players updated.`,
+          "success",
+        );
+      },
+      onError: (error) => {
+        show(getApiErrorMessage(error, `Season sync failed for ${league.name}.`), "error");
+      },
+    });
+  };
 
   if (isLoading) {
-    return (
-      <div className="loading-state">
-        Loading leagues...
-      </div>
-    );
+    return <LoadingState>Loading leagues...</LoadingState>;
   }
 
   if (isError) {
@@ -28,30 +49,33 @@ export default function LeaguesAdmin() {
               ? "Access Denied"
               : "Unable to Load Leagues"
         }
-        message={getApiErrorMessage(error, "The superadmin leagues page could not be loaded right now.")}
+        message={getApiErrorMessage(
+          error,
+          "The superadmin leagues page could not be loaded right now."
+        )}
         variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
       />
     );
   }
 
-  const columns = [
+  const columns: Column<AdminLeagueListItem>[] = [
     {
       key: "name",
       label: "League",
-      render: (_value: any, row: any) => (
+      render: (_value, row) => (
         <div className="flex flex-col">
-          <p className="text-sm font-semibold text-base-content">{row.name}</p>
-          <p className="text-[11px] text-base-content/60 capitalize">
+          <p className="text-sm font-semibold text-slate-900">{row.name}</p>
+          <p className="text-[11px] text-slate-900/60 capitalize">
             {row.type} {row.format ? `• ${row.format}` : ""}
           </p>
         </div>
       ),
     },
     {
-      key: "admin",
+      key: "contactEmail",
       label: "Admin",
-      render: (_value: any, row: any) => (
-        <div className="text-xs text-base-content/70">
+      render: (_value, row) => (
+        <div className="text-xs text-slate-900/70">
           {row.contactFirstName || row.contactLastName
             ? `${row.contactFirstName || ""} ${row.contactLastName || ""}`.trim()
             : row.contactEmail || "Unknown"}
@@ -59,37 +83,53 @@ export default function LeaguesAdmin() {
       ),
     },
     {
-      key: "players",
+      key: "_count",
       label: "Players",
       width: "100px",
-      render: (_value: any, row: any) => (
-        <span className="text-xs font-semibold text-base-content">{row._count?.players ?? 0}</span>
+      render: (_value, row) => (
+        <span className="text-xs font-semibold text-slate-900">{row._count?.players ?? 0}</span>
       ),
     },
     {
-      key: "events",
+      key: "_count",
       label: "Events",
       width: "100px",
-      render: (_value: any, row: any) => (
-        <span className="text-xs font-semibold text-base-content">{row._count?.events ?? 0}</span>
+      render: (_value, row) => (
+        <span className="text-xs font-semibold text-slate-900">{row._count?.events ?? 0}</span>
       ),
     },
     {
-      key: "actions",
+      key: "id",
       label: "",
-      width: "240px",
-      render: (_value: any, row: any) => (
+      width: "350px",
+      sortable: false,
+      render: (_value, row) => (
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleSeasonSync(row)}
+            disabled={syncSeason.isPending}
+            title="Recalculate season"
+            className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw
+              size={12}
+              className={
+                syncSeason.isPending && syncSeason.variables === row.id ? "animate-spin" : ""
+              }
+            />
+            {syncSeason.isPending && syncSeason.variables === row.id ? "Syncing..." : "Season Sync"}
+          </button>
           <Link
             to={`/league/${row.id}`}
-            className="inline-flex items-center gap-1 rounded-md border border-base-300 px-2.5 py-1.5 text-[11px] font-semibold text-base-content/70 hover:bg-base-200"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-900/70 hover:bg-slate-100"
           >
             <Eye size={12} />
             View User
           </Link>
           <Link
             to={`/league/${row.id}/admin`}
-            className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/15"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-900/20 bg-slate-900/10 px-2.5 py-1.5 text-[11px] font-semibold text-slate-900 hover:bg-slate-900/15"
           >
             <ShieldCheck size={12} />
             View Admin
@@ -100,19 +140,17 @@ export default function LeaguesAdmin() {
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       <PageHeader
         title="All Leagues"
         subTitle="Browse every league and open the member or admin view."
-        icon={<Users size={14} />}
-        iconText="SUPER ADMIN"
       />
 
-      <div className="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm mt-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-base-content">League Directory</p>
-            <p className="text-xs text-base-content/60">{leagues.length} total leagues</p>
+            <p className="text-sm font-semibold text-slate-900">League Directory</p>
+            <p className="text-xs text-slate-900/60">{leagues.length} total leagues</p>
           </div>
         </div>
 

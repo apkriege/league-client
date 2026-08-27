@@ -1,5 +1,6 @@
 // api calls
 import apiClient from "../client";
+import type { TeamProfile } from "./types";
 
 // calls
 export async function createTeam(leagueId: number, teamData: any) {
@@ -17,8 +18,8 @@ export async function deleteTeam(id: number) {
   return response.data;
 }
 
-export async function getTeam(id: number) {
-  const response = await apiClient.get(`/teams/${id}`);
+export async function getTeam(id: number): Promise<TeamProfile> {
+  const response = await apiClient.get<TeamProfile>(`/teams/${id}`);
   return response.data;
 }
 

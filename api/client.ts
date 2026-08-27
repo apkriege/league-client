@@ -86,6 +86,14 @@ class ApiClient {
       switch (error.response.status) {
         case 401:
           errorResponse.message = serverMessage || "Unauthorized - Please login again";
+          if (
+            typeof window !== "undefined" &&
+            window.location.pathname !== "/login"
+          ) {
+            localStorage.removeItem("app-store");
+            const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+            window.location.replace(`/login?redirect=${encodeURIComponent(returnTo)}`);
+          }
           break;
         case 403:
           errorResponse.message = serverMessage || "Forbidden - You do not have permission";

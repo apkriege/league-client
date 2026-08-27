@@ -3,5 +3,5 @@ interface DividerProps {
 }
 
 export default function Divider({ className }: DividerProps) {
-  return <div className={`border-t border-base-300 my-6 ${className || ""}`} />;
+  return <div className={`border-t border-slate-200 my-6 ${className || ""}`} />;
 }

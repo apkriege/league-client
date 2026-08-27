@@ -1,29 +1,30 @@
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { useLeagueEvent, useLeaguePlayers } from "@api/league/queries";
-import { useQueryClient } from "@tanstack/react-query";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { formatEventDate } from "@/utils/eventDate";
+import { compareTimes, formatTime } from "@/utils/format";
+import { formatHandicap } from "@/utils/handicap";
 import { Printer } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import Table from "@/components/Table";
 import { Link, useParams } from "react-router";
 import {
-  buildSwappedPlayerEntry,
-  getSwapCandidates,
   PlayerSwapControl,
 } from "./PlayerSwapControl";
+import { buildSwappedPlayerEntry, getSwapCandidates } from "./playerSwapUtils";
 
 export default function PrintFlightScorecards() {
   const { leagueId, eventId } = useParams();
   const numericLeagueId = Number(leagueId);
   const numericEventId = Number(eventId);
-  const queryClient = useQueryClient();
   const {
     data: event,
     isLoading: eventLoading,
     isError: eventIsError,
     error: eventError,
+    refetch: refetchEvent,
   } = useLeagueEvent(numericLeagueId, numericEventId);
   const {
     data: leaguePlayers = [],
@@ -31,31 +32,23 @@ export default function PrintFlightScorecards() {
     error: playersError,
   } = useLeaguePlayers(numericLeagueId);
   const updateFlightPlayersMutation = useUpdateFlightPlayers();
-  const [flightPlayersById, setFlightPlayersById] = useState<Record<number, any[]>>({});
-
-  useEffect(() => {
-    if (!event?.flights) return;
-
-    const nextById: Record<number, any[]> = {};
-    event.flights.forEach((flight: any) => {
-      nextById[Number(flight.id)] = [...(flight.players || [])];
-    });
-    setFlightPlayersById(nextById);
-  }, [event]);
-
+  const [flightPlayerOverrides, setFlightPlayerOverrides] = useState<{
+    eventId: number;
+    playersById: Record<number, any[]>;
+  }>({ eventId: numericEventId, playersById: {} });
   const flights = useMemo(() => {
     if (!event?.flights) return [];
+    const flightPlayersById =
+      flightPlayerOverrides.eventId === numericEventId
+        ? flightPlayerOverrides.playersById
+        : {};
     return [...event.flights]
-      .sort((a: any, b: any) => {
-        const aTime = String(a?.startTime || "");
-        const bTime = String(b?.startTime || "");
-        return aTime.localeCompare(bTime);
-      })
+      .sort((a: any, b: any) => compareTimes(a?.startsAt, b?.startsAt))
       .map((flight: any) => ({
         ...flight,
         players: flightPlayersById[Number(flight.id)] || [...(flight.players || [])],
       }));
-  }, [event, flightPlayersById]);
+  }, [event, flightPlayerOverrides, numericEventId]);
 
   const saveFlightPlayers = async (flightId: number, players: any[]) => {
     const payload = players.map((player: any) => ({
@@ -69,14 +62,18 @@ export default function PrintFlightScorecards() {
       players: payload,
     });
 
-    setFlightPlayersById((prev) => ({
-      ...prev,
-      [Number(flightId)]: players,
-    }));
+    const refreshed = await refetchEvent();
+    const refreshedPlayers = refreshed.data?.flights?.find(
+      (flight: any) => Number(flight.id) === Number(flightId)
+    )?.players;
 
-    queryClient.invalidateQueries({
-      queryKey: ["league", numericLeagueId, "event", numericEventId],
-    });
+    setFlightPlayerOverrides((current) => ({
+      eventId: numericEventId,
+      playersById: {
+        ...(current.eventId === numericEventId ? current.playersById : {}),
+        [Number(flightId)]: Array.isArray(refreshedPlayers) ? refreshedPlayers : players,
+      },
+    }));
   };
 
   const pageError = eventError || playersError;
@@ -191,7 +188,7 @@ export default function PrintFlightScorecards() {
         <div>
           <h1 className="text-lg font-bold text-slate-900">Flight Scorecards</h1>
           <p className="text-xs text-slate-500">
-            {event.name} · {formatEventDate(event.date)} · {event.course?.name}
+            {event.name} · {formatEventDate(event.startsAt, undefined, "en-US", event.timeZone)} · {event.course?.name}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -308,13 +305,13 @@ function FlightCard({
             <h2 className="text-sm font-bold text-slate-900">{event.name}</h2>
             <p className="text-[11px] text-slate-600">
               Flight {flightNumber}
-              {flight?.startTime ? ` · ${flight.startTime}` : ""}
+              {flight?.startsAt ? ` · ${formatTime(flight.startsAt, event.timeZone)}` : ""}
               {event?.tee?.name ? ` · ${event.tee.name}` : ""}
             </p>
             <p className="text-[11px] text-slate-500">{event?.course?.name || ""}</p>
           </div>
           <div className="text-right text-[10px] text-slate-500">
-            <p>Date: {formatEventDate(event.date)}</p>
+            <p>Date: {formatEventDate(event.startsAt, undefined, "en-US", event.timeZone)}</p>
             <p>Format: {String(event.format || "").toUpperCase()}</p>
             <p>Scoring: {String(event.scoringFormat || "").toUpperCase()}</p>
           </div>
@@ -362,7 +359,7 @@ function ScorecardGrid({
   players: Array<{
     id: string;
     name: string;
-    detail?: string;
+    teamName?: string;
     handicap?: number | null;
     slotIndex: number;
     entry: any;
@@ -374,45 +371,56 @@ function ScorecardGrid({
   const holes = Array.from({ length: holeCount }, (_, idx) => startHole + idx);
 
   return (
-    <table className="scorecard-table w-full border-collapse table-fixed text-[9px]">
-      <thead>
-        <tr className="bg-slate-100 text-slate-700">
-          <th className="scorecard-player-cell w-32 border border-slate-300 px-1.5 py-1 text-left">
-            Player
-          </th>
-          {holes.map((hole) => (
-            <th key={hole} className="border border-slate-300 py-1 text-center">
-              {hole}
-            </th>
-          ))}
-          <th className="scorecard-total-cell w-8 border border-slate-300 py-1 text-center">
-            TOT
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {players.map((player) => (
-          <tr key={player.id}>
-            <td className="scorecard-player-cell border border-slate-300 px-1.5 py-1 align-top">
-              <p className="font-semibold text-slate-800 leading-tight">
-                {player.name}
-                <span className="ml-1 font-normal text-[9px] text-slate-500">
-                  HCP {player.handicap != null ? player.handicap.toFixed(1) : "-"}
-                </span>
-              </p>
-              {player.detail ? <p className="text-[9px] text-slate-500">{player.detail}</p> : null}
-              {renderPlayerActions ? (
-                <div className="no-print mt-1">{renderPlayerActions(player)}</div>
-              ) : null}
-            </td>
-            {holes.map((hole) => (
-              <td key={`${player.id}-${hole}`} className="border border-slate-300 h-7" />
+    <Table
+      data={players}
+      search={false}
+      pagination={false}
+      variant="clean"
+      noBorder
+      className="rounded-none! shadow-none!"
+      tableClassName="scorecard-table w-full border-collapse table-fixed text-[9px]"
+      renderTable={(visiblePlayers) => (
+        <>
+          <thead>
+            <tr className="bg-slate-100 text-slate-700">
+              <th className="scorecard-player-cell w-32 border border-slate-300 px-1.5 py-1 text-left">
+                Player
+              </th>
+              {holes.map((hole) => (
+                <th key={hole} className="border border-slate-300 py-1 text-center">
+                  {hole}
+                </th>
+              ))}
+              <th className="scorecard-total-cell w-8 border border-slate-300 py-1 text-center">
+                TOT
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {visiblePlayers.map((player) => (
+              <tr key={player.id}>
+                <td className="scorecard-player-cell border border-slate-300 px-1.5 py-1 align-top">
+                  <p className="font-semibold leading-tight text-slate-800">{player.name}</p>
+                  <p className="text-[9px] leading-tight text-slate-500">
+                    HCP {formatHandicap(player.handicap)}
+                  </p>
+                  {player.teamName ? (
+                    <p className="text-[9px] leading-tight text-slate-500">{player.teamName}</p>
+                  ) : null}
+                  {renderPlayerActions ? (
+                    <div className="no-print mt-1">{renderPlayerActions(player)}</div>
+                  ) : null}
+                </td>
+                {holes.map((hole) => (
+                  <td key={`${player.id}-${hole}`} className="border border-slate-300 h-7" />
+                ))}
+                <td className="scorecard-total-cell border border-slate-300" />
+              </tr>
             ))}
-            <td className="scorecard-total-cell border border-slate-300" />
-          </tr>
-        ))}
-      </tbody>
-    </table>
+          </tbody>
+        </>
+      )}
+    />
   );
 }
 
@@ -422,18 +430,15 @@ function getFlightRows(
 ): Array<{
   id: string;
   name: string;
-  detail?: string;
+  teamName?: string;
   handicap?: number | null;
   slotIndex: number;
   entry: any;
 }> {
   const flightPlayers = flight?.players || [];
   const getDisplayHandicap = (entry: any): number | null => {
-    const preHandicap = Number(entry?.player?.rounds?.[0]?.preHandicap);
-    if (Number.isFinite(preHandicap)) return preHandicap;
-
-    const handicap = Number(entry?.player?.handicap);
-    return Number.isFinite(handicap) ? handicap : null;
+    const courseHandicap = Number(entry?.courseHandicap);
+    return Number.isFinite(courseHandicap) ? courseHandicap : null;
   };
 
   const getSortHandicap = (entry: any) => getDisplayHandicap(entry) ?? 999;
@@ -481,7 +486,7 @@ function getFlightRows(
       return {
         id: `p-${playerId}`,
         name,
-        detail: teamName,
+        teamName,
         handicap: getDisplayHandicap(entry),
         slotIndex,
         entry,
@@ -498,7 +503,7 @@ function getFlightRows(
     const rows: Array<{
       id: string;
       name: string;
-      detail?: string;
+      teamName?: string;
       handicap?: number | null;
       slotIndex: number;
       entry: any;
@@ -515,9 +520,6 @@ function getFlightRows(
       rows.push({
         id: `p-${id}`,
         name,
-        detail: opponent
-          ? `vs ${opponent.player.firstName} ${opponent.player.lastName}`
-          : "Match: TBD",
         handicap: getDisplayHandicap(entry),
         slotIndex: Number(slotByPlayerId.get(id) ?? 0),
         entry,
@@ -529,7 +531,6 @@ function getFlightRows(
         rows.push({
           id: `p-${opponentId}`,
           name: `${opponent.player.firstName} ${opponent.player.lastName}`,
-          detail: `vs ${name}`,
           handicap: getDisplayHandicap(opponent),
           slotIndex: Number(slotByPlayerId.get(opponentId) ?? 0),
           entry: opponent,

@@ -1,29 +1,35 @@
+import Button from "@/components/layout/Button";
+import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { useEffect, useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import InfoForm from "./components/InfoForm";
 import TeamsForm from "./components/TeamsForm";
 import Flights from "./components/Flights";
 import { useCreateLeagueEvent } from "@api/league/mutations";
 import { useLeague } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { useNavigate, useParams } from "react-router";
-import { Flag, ShieldHalf, Trophy } from "lucide-react";
+import { Flag, ShieldHalf } from "lucide-react";
 import WizardType, { type EventWizardType } from "./components/WizardType";
 import MultiSeriesBuilder from "./components/MultiSeriesBuilder";
 import { DEFAULT_STROKE_POINTS } from "./constants";
 import { validateEventForm } from "./validation";
+import {
+  getFixedEventHoleCount,
+  normalizeLeagueHoleFormat,
+} from "@/features/leagues/leagueHoleFormat";
 
 const defaultValues = {
-  name: "Test Event",
+  name: "",
   type: "regular",
   date: new Date().toISOString().split("T")[0],
   startTime: "08:30",
   interval: 10,
-  courseId: 1,
-  teeId: 2,
+  courseId: "",
+  teeId: "",
   startSide: "front",
   holes: 9,
   format: "team",
@@ -50,12 +56,21 @@ export default function CreateEvent() {
     defaultValues: defaultValues,
   });
 
-  const format = eventForm.watch("format");
-  const scoringFormat = eventForm.watch("scoringFormat");
+  const format = useWatch({ control: eventForm.control, name: "format" });
+  const scoringFormat = useWatch({ control: eventForm.control, name: "scoringFormat" });
+  const leagueHoleFormat = normalizeLeagueHoleFormat(league?.holeFormat);
+  const fixedEventHoleCount = getFixedEventHoleCount(leagueHoleFormat);
+  const isMixedHoleLeague = leagueHoleFormat === "mixed";
+  const activeWizardType = isMixedHoleLeague ? "single" : wizardType;
 
   useEffect(() => {
     eventForm.setValue("flights", [], { shouldDirty: true });
-  }, [format, scoringFormat]);
+  }, [eventForm, format, scoringFormat]);
+
+  useEffect(() => {
+    if (!fixedEventHoleCount) return;
+    eventForm.setValue("holes", fixedEventHoleCount, { shouldDirty: true });
+  }, [eventForm, fixedEventHoleCount]);
 
   const isSeasonLeague = String(league?.type || "").toLowerCase() === "season";
   const leagueFormat = String(league?.format || "").toLowerCase();
@@ -106,8 +121,8 @@ export default function CreateEvent() {
         onSuccess: () => {
           navigate(`/league/${leagueId}/admin`);
         },
-        onError: (error) => {
-          console.error("Failed to create event:", error);
+        onError: (error: unknown) => {
+          show(getApiErrorMessage(error, "Unable to create the event. Please try again."), "error");
         },
       }
     );
@@ -118,9 +133,9 @@ export default function CreateEvent() {
 
   if (isLoading) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Loading league...
-      </div>
+      </LoadingState>
     );
   }
 
@@ -156,16 +171,18 @@ export default function CreateEvent() {
       <PageHeader
         title="Create Event"
         subTitle="Fill in the event details, configure teams if needed, and set up flights before submitting."
-        icon={<Trophy size={14} />}
-        iconText="CREATE EVENT"
       />
 
       <div className="flex flex-col gap-6 pb-6 mt-6">
         <div>
-          <WizardType wizardType={wizardType} setWizardType={setWizardType} />
+          <WizardType
+            wizardType={activeWizardType}
+            setWizardType={setWizardType}
+            allowMulti={!isMixedHoleLeague}
+          />
         </div>
 
-        {wizardType === "single" && (
+        {activeWizardType === "single" && (
           <>
             <div>
               <InfoForm />
@@ -175,10 +192,10 @@ export default function CreateEvent() {
             {showTeamsSection && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="bg-primary rounded-md p-1.5">
+                  <div className="bg-slate-900 rounded-md p-1.5">
                     <ShieldHalf size={12} className="text-white" />
                   </div>
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-base-content/60">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900/60">
                     Teams
                   </h2>
                 </div>
@@ -189,10 +206,10 @@ export default function CreateEvent() {
             {/* Flights */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="bg-primary rounded-md p-1.5">
+                <div className="bg-slate-900 rounded-md p-1.5">
                   <Flag size={12} className="text-white" />
                 </div>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-base-content/60">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900/60">
                   Flights
                 </h2>
               </div>
@@ -201,26 +218,26 @@ export default function CreateEvent() {
 
             {/* Submit */}
             <div className="flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
-                className="btn btn-sm"
+                variant="default"
                 onClick={() => navigate(`/league/${leagueId}/admin`)}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="btn btn-primary btn-sm"
+                variant="primary"
                 onClick={handleSubmit}
                 disabled={mutation.isPending}
               >
                 {mutation.isPending ? "Creating..." : "Create Event"}
-              </button>
+              </Button>
             </div>
           </>
         )}
 
-        {wizardType === "multi" && <MultiSeriesBuilder />}
+        {activeWizardType === "multi" && <MultiSeriesBuilder />}
       </div>
     </FormProvider>
   );

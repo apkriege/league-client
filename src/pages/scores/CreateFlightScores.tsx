@@ -1,19 +1,30 @@
-import { useState } from "react";
+import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import PanelBar from "@/components/layout/PanelBar";
+import SurfaceCard from "@/components/layout/SurfaceCard";
+import Table from "@/components/Table";
+import { Fragment, useState } from "react";
 import Button from "@/components/layout/Button";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { ArrowLeftRight, Flag } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router";
-import { isSubPlayer } from "./PlayerSwapControl";
+import { buildSwappedPlayerEntry, isSubPlayer } from "./playerSwapUtils";
 import {
   calculateMatchplayPops,
   createTeamScoringHelpers,
   sortFlightTeamsByHandicap,
 } from "./util";
-import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
-import { useToast } from "@/context/ToastContext";
+import { ScoreDraftStatus } from "./ScoreDraftStatus";
+import { useScoreDraft } from "./useScoreDraft";
+import { useToast } from "@/context/useToast";
 import { validateHoleScores } from "./scoreValidation";
+import { formatTime } from "@/utils/format";
+import {
+  getEventScoringHoles,
+  getPlayerCourseHandicap,
+} from "./scoringSetup";
+import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
 
 export const CreateFlightScores = ({
   flight,
@@ -30,20 +41,12 @@ export const CreateFlightScores = ({
   const numericLeagueId = Number(leagueId);
   const numericEventId = Number(eventId);
 
-  const startingHole = event.startSide === "front" ? 1 : 10;
-  const holes = event.tee.holes
-    .slice(startingHole - 1, startingHole + event.holes - 1)
-    .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
+  const holes = getEventScoringHoles(event);
 
   const { t1Id, t2Id, team1: sortedTeam1, team2: sortedTeam2 } = sortFlightTeamsByHandicap(flight);
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    const preHandicap = Number(playerEntry?.player?.rounds?.[0]?.preHandicap);
-    if (isEditMode && Number.isFinite(preHandicap)) {
-      return preHandicap;
-    }
-
-    return Number(playerEntry?.player?.handicap ?? 0);
+    return getPlayerCourseHandicap(playerEntry);
   };
 
   const getSavedOpponentId = (playerEntry: any) => {
@@ -130,18 +133,6 @@ export const CreateFlightScores = ({
     return playerPayload;
   };
 
-  const buildSwappedEntry = (baseEntry: any, replacement: any) => ({
-    ...baseEntry,
-    playerId: Number(replacement.id),
-    teamId: baseEntry?.teamId ?? replacement?.teamId ?? null,
-    player: {
-      ...baseEntry?.player,
-      ...replacement,
-      id: Number(replacement.id),
-      rounds: [],
-    },
-  });
-
   const activeTeam1 = team1.map(
     (player: any, idx: number) => swappedPlayersBySlot[getSlotKey(1, idx)] ?? player
   );
@@ -218,7 +209,7 @@ export const CreateFlightScores = ({
 
       nextSwaps = {
         ...nextSwaps,
-        [slotKey]: buildSwappedEntry(baseEntry, replacement),
+        [slotKey]: buildSwappedPlayerEntry(baseEntry, replacement),
       };
     }
 
@@ -241,9 +232,9 @@ export const CreateFlightScores = ({
         methods.unregister(`players.${currentId}`);
       }
 
-      setSwappedPlayersBySlot(nextSwaps);
-      cancelSwap();
       await onFlightPlayersUpdated?.();
+      setSwappedPlayersBySlot({});
+      cancelSwap();
     } catch (error) {
       console.error("Failed to persist swapped flight players:", error);
     }
@@ -378,7 +369,6 @@ export const CreateFlightScores = ({
 
     try {
       if (isEditMode) {
-        console.log("Updating scores with data:", scoresData); // --- IGNORE ---
         updateMutation.mutate(
           {
             leagueId: numericLeagueId,
@@ -571,7 +561,6 @@ export const CreateFlightScores = ({
 
   const renderPlayerRow = (player: any, team: 1 | 2, idx: number) => {
     const p = player.player;
-    const displayHandicap = Math.round(getEffectiveHandicap(player));
     const slotKey = getSlotKey(team, idx);
     const swapCandidates = getSwapCandidates(team, idx, Number(player.playerId));
     const isEditingSwap = editingSwapSlot === slotKey;
@@ -586,7 +575,7 @@ export const CreateFlightScores = ({
             {!isEditingSwap ? (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-900 hover:underline"
                 onClick={() => startSwap(team, idx, Number(player.playerId))}
               >
                 <ArrowLeftRight size={10} />
@@ -609,7 +598,7 @@ export const CreateFlightScores = ({
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    className="h-6 rounded bg-primary px-2 text-[10px] font-semibold text-white"
+                    className="h-6 rounded bg-slate-900 px-2 text-[10px] font-semibold text-white"
                     onClick={() => saveSwap(team, idx, player)}
                   >
                     Save
@@ -625,7 +614,7 @@ export const CreateFlightScores = ({
               </div>
             )}
           </div>
-          <span className="text-[10px]">Handicap: {displayHandicap}</span>
+          <PlayerHandicapSummary entry={player} />
         </td>
         {holes.map((hole: any, holeIdx: number) => (
           <td key={hole.num} className="p-2">
@@ -648,11 +637,11 @@ export const CreateFlightScores = ({
             </div>
           </td>
         ))}
-        <td className="font-bold text-center text-xs">{getPlayerTotalScore(player.playerId)}</td>
-        <td className="font-bold text-center text-xs">{getPlayerNetScore(player.playerId)}</td>
-        <td className="font-bold text-center text-xs">
+        <ScoreValueCell>{getPlayerTotalScore(player.playerId)}</ScoreValueCell>
+        <ScoreValueCell>{getPlayerNetScore(player.playerId)}</ScoreValueCell>
+        <ScoreValueCell>
           {getPlayerPoints(player) + getPlayerMatchPoints(player)}
-        </td>
+        </ScoreValueCell>
       </tr>
     );
   };
@@ -682,11 +671,13 @@ export const CreateFlightScores = ({
   );
 
   return (
-    <div className="surface-card">
-      <div className="panel-header">
+    <SurfaceCard>
+      <PanelBar variant="header">
         <div className="flex items-center gap-2">
           <Flag size={14} className="text-gray-400" strokeWidth={2} />
-          <h3 className="text-sm font-semibold text-gray-800">Flight {flight.startTime}</h3>
+          <h3 className="text-sm font-semibold text-gray-800">
+            Flight {formatTime(flight.startsAt, event.timeZone)}
+          </h3>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -702,7 +693,7 @@ export const CreateFlightScores = ({
             {isEditMode ? "Save Changes" : "Submit Scores"}
           </Button>
         </div>
-      </div>
+      </PanelBar>
 
       <div className="p-4">
         <div className="mb-3">
@@ -713,35 +704,48 @@ export const CreateFlightScores = ({
           />
         </div>
         <div className="border rounded-lg">
-          <div className="w-full overflow-x-auto">
-            <table className="score-table">
-              <thead>
-                <tr className="text-xs text-gray-700">
-                  <th>Player</th>
-                  {holes.map((hole: any) => (
-                    <th key={hole.num} className="p-2 text-center">
-                      {hole.num}
-                    </th>
-                  ))}
-                  <th>Total</th>
-                  <th>Net</th>
-                  <th>Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeTeam1.map((player: any, idx: number) => renderPlayerRow(player, 1, idx))}
-                {activeTeam1.length > 0 &&
-                  activeTeam2.length > 0 &&
-                  renderTeamPointsRow("Team 1 Points", 1)}
-                {activeTeam2.map((player: any, idx: number) => renderPlayerRow(player, 2, idx))}
-                {activeTeam1.length > 0 &&
-                  activeTeam2.length > 0 &&
-                  renderTeamPointsRow("Team 2 Points", 2)}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            data={[1 as const, 2 as const]}
+            search={false}
+            pagination={false}
+            variant="clean"
+            noBorder
+            tableClassName="score-table"
+            renderTable={(visibleTeams) => (
+              <>
+                <thead>
+                  <tr className="text-xs text-gray-700">
+                    <th className="pl-4">Player</th>
+                    {holes.map((hole: any) => (
+                      <ScoreHeaderCell key={hole.num}>
+                        {hole.num}
+                      </ScoreHeaderCell>
+                    ))}
+                    <th>Total</th>
+                    <th>Net</th>
+                    <th>Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleTeams.map((team) => {
+                    const teamPlayers = team === 1 ? activeTeam1 : activeTeam2;
+                    return (
+                      <Fragment key={team}>
+                        {teamPlayers.map((player: any, idx: number) =>
+                          renderPlayerRow(player, team, idx),
+                        )}
+                        {activeTeam1.length > 0 &&
+                          activeTeam2.length > 0 &&
+                          renderTeamPointsRow(`Team ${team} Points`, team)}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </>
+            )}
+          />
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 };

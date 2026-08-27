@@ -1,12 +1,17 @@
 import { useMemo, useState } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
-import { SquarePen, Trash2, Users, X } from "lucide-react";
+import { Users } from "lucide-react";
 
 import { Input, MultiSelect } from "@/components/form";
 import Card from "@/components/layout/Card";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { useLeaguePlayers } from "@api/league/queries";
+import Button from "@/components/layout/Button";
+import TeamBuilderCard, {
+  type TeamBuilderPlayer,
+} from "@/components/league/TeamBuilderCard";
+import { formatHandicap } from "@/utils/handicap";
 
 type Team = {
   id: number;
@@ -35,11 +40,11 @@ const normalizeTeam = (team: any): Team => ({
 export default function TeamsForm() {
   const { leagueId } = useParams();
   const { show } = useToast();
-  const { watch, setValue } = useFormContext();
+  const { control, setValue } = useFormContext();
   const { data: players = [] } = useLeaguePlayers(Number(leagueId));
 
-  const rawTeams = watch("teams") || [];
-  const rawFlights = watch("flights") || [];
+  const rawTeams = useWatch({ control, name: "teams", defaultValue: [] });
+  const rawFlights = useWatch({ control, name: "flights", defaultValue: [] });
   const teams: Team[] = useMemo(() => rawTeams.map(normalizeTeam), [rawTeams]);
 
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -74,7 +79,7 @@ export default function TeamsForm() {
       availablePlayers
         .map((p: any) => ({
           value: Number(p.id),
-          label: `${p.firstName} ${p.lastName} (HCP ${p.handicap ?? "-"})`,
+          label: `${p.firstName} ${p.lastName} (HCP ${formatHandicap(p.handicap)})`,
         }))
         .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label)),
     [availablePlayers]
@@ -187,111 +192,79 @@ export default function TeamsForm() {
   return (
     <div>
       <Card className="mb-4 p-2! !bg-white">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,220px)] lg:items-end">
-          <Input
-            label="Team Name"
-            placeholder="Enter team name"
-            value={draft.name}
-            onChange={(e) => {
-              setDraft((prev) => ({ ...prev, name: e.target.value }));
-              if (teamNameError) setTeamNameError("");
-            }}
-            error={teamNameError}
-            className="w-full min-w-0"
-          />
-
-          <div className="w-full min-w-0">
-            <MultiSelect
-              label={`Players (${remainingCount} remaining)`}
-              options={playerOptions}
-              value={draft.players}
-              placeholder={
-                playerOptions.length ? "Select available players" : "No players available"
-              }
-              onChange={(selected) => {
-                setDraft((prev) => ({
-                  ...prev,
-                  players: selected.map(Number),
-                }));
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-end">
+            <Input
+              label="Team Name"
+              placeholder="Enter team name"
+              value={draft.name}
+              onChange={(e) => {
+                setDraft((prev) => ({ ...prev, name: e.target.value }));
+                if (teamNameError) setTeamNameError("");
               }}
+              error={teamNameError}
+              className="w-full min-w-0"
             />
+
+            <div className="w-full min-w-0">
+              <MultiSelect
+                label={`Players (${remainingCount} remaining)`}
+                options={playerOptions}
+                value={draft.players}
+                placeholder={
+                  playerOptions.length ? "Select available players" : "No players available"
+                }
+                onChange={(selected) => {
+                  setDraft((prev) => ({
+                    ...prev,
+                    players: selected.map(Number),
+                  }));
+                }}
+              />
+            </div>
           </div>
 
-          <div className="grid w-full min-w-0 grid-cols-2 gap-2 lg:grid-cols-1 xl:grid-cols-2">
-            <button
+          <div className="grid w-full grid-cols-2 gap-2 sm:ml-auto sm:w-auto sm:min-w-[240px]">
+            <Button
               type="button"
               onClick={handleSaveTeam}
-              className="btn btn-md w-full min-w-0 px-3 text-center leading-tight"
+              variant="primary"
+              size="md"
+              className="w-full min-w-0 px-3 text-center leading-tight"
             >
               {isEditing ? "Update Team" : "Add Team"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={resetDraft}
-              className="btn btn-md btn-secondary w-full min-w-0 px-3 text-center leading-tight"
+              variant="secondary"
+              size="md"
+              className="w-full min-w-0 px-3 text-center leading-tight"
             >
               Reset
-            </button>
+            </Button>
           </div>
         </div>
       </Card>
 
       {teams.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 mt-10 justify-center text-base-content/60">
+        <div className="flex flex-col items-center gap-3 mt-10 justify-center text-slate-900/60">
           <Users size={18} />
           <p className="text-sm">No teams created yet. Please create a team.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-auto">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {teams.map((team) => (
-            <div
+            <TeamBuilderCard
               key={team.id}
-              className="border border-base-300/80 rounded-lg w-full bg-base-100 shadow-xs"
-            >
-              <div className="flex justify-between items-center bg-primary p-2 rounded-t-lg text-white">
-                <span className="font-semibold text-sm">{team.name}</span>
-                <div className="flex items-center gap-2">
-                  <SquarePen
-                    size={14}
-                    onClick={() => handleEditTeam(team)}
-                    className="cursor-pointer text-blue-400"
-                  />
-                  <Trash2
-                    size={14}
-                    onClick={() => handleDeleteTeam(team.id)}
-                    className="cursor-pointer text-red-400"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-1.5 p-2">
-                {team.players.map((playerId) => {
-                  const player = getPlayerById(Number(playerId));
-                  if (!player) return null;
-
-                  return (
-                    <div
-                      key={`${team.id}-${player.id}`}
-                      className="border  rounded-lg px-2 py-1 w-full text-sm flex items-center justify-between gap-2"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium text-primary text-xs">
-                          {player.firstName} {player.lastName}
-                        </span>
-                        <span className="text-[10px] text-primary/80">
-                          HCP: {player.handicap ?? "-"}
-                        </span>
-                      </div>
-                      <X
-                        size={14}
-                        onClick={() => removePlayerFromTeam(team.id, Number(player.id))}
-                        className="cursor-pointer text-red-400"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+              name={team.name}
+              players={team.players
+                .map((playerId) => getPlayerById(Number(playerId)))
+                .filter((player): player is TeamBuilderPlayer => Boolean(player))}
+              onEdit={() => handleEditTeam(team)}
+              onDelete={() => handleDeleteTeam(team.id)}
+              onRemovePlayer={(playerId) => removePlayerFromTeam(team.id, playerId)}
+            />
           ))}
         </div>
       )}

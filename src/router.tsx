@@ -3,10 +3,10 @@ import { lazy, Suspense, type ReactNode } from "react";
 import Landing from "./pages/landing/Landing.tsx";
 
 // auth pages
-import Login from "./pages/auth/Login.tsx";
 import AppErrorBoundary from "@/components/route/AppErrorBoundary";
 import LeagueRouteGuard from "@/components/route/LeagueRouteGuard";
 
+const Login = lazy(() => import("./pages/auth/Login.tsx"));
 const BaseLayout = lazy(() => import("./layouts/BaseLayout.tsx"));
 const League = lazy(() => import("./pages/league/League.tsx"));
 const Leagues = lazy(() => import("./pages/league/Leagues.tsx"));
@@ -27,13 +27,24 @@ const Course = lazy(() => import("./pages/course/Course.tsx"));
 const Courses = lazy(() => import("./pages/course/Courses.tsx"));
 const CoursesAdmin = lazy(() => import("@/pages/superadmin/CoursesAdmin"));
 const LeaguesAdmin = lazy(() => import("@/pages/superadmin/LeaguesAdmin"));
+const BillingAdmin = lazy(() => import("@/pages/superadmin/BillingAdmin"));
+const ContactSupport = lazy(() => import("./pages/support/ContactSupport.tsx"));
 const InviteClaim = lazy(() => import("./pages/invite/InviteClaim.tsx"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword.tsx"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword.tsx"));
+const AppThemeProvider = lazy(() => import("./components/route/AppThemeProvider.tsx"));
+const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy.tsx"));
+const TermsOfService = lazy(() => import("./pages/legal/TermsOfService.tsx"));
+const RefundPolicy = lazy(() => import("./pages/legal/RefundPolicy.tsx"));
 
 const withSuspense = (element: ReactNode) => (
   <Suspense fallback={<div className="p-6 text-sm text-slate-400">Loading...</div>}>
     {element}
   </Suspense>
 );
+
+const withAppTheme = (element: ReactNode) =>
+  withSuspense(<AppThemeProvider>{element}</AppThemeProvider>);
 
 export const router = createBrowserRouter([
   {
@@ -43,22 +54,48 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <Login />,
+    element: withAppTheme(<Login />),
     errorElement: <AppErrorBoundary />,
   },
   {
     path: "/invite/:token",
-    element: withSuspense(<InviteClaim />),
+    element: withAppTheme(<InviteClaim />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
+    path: "/forgot-password",
+    element: withAppTheme(<ForgotPassword />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
+    path: "/reset-password",
+    element: withAppTheme(<ResetPassword />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
+    path: "/privacy",
+    element: withAppTheme(<PrivacyPolicy />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
+    path: "/terms",
+    element: withAppTheme(<TermsOfService />),
+    errorElement: <AppErrorBoundary />,
+  },
+  {
+    path: "/refunds",
+    element: withAppTheme(<RefundPolicy />),
     errorElement: <AppErrorBoundary />,
   },
   {
     path: "",
-    element: withSuspense(<BaseLayout />),
+    element: withAppTheme(<BaseLayout />),
     errorElement: <AppErrorBoundary />,
     children: [
       { path: "leagues", element: withSuspense(<Leagues />), errorElement: <AppErrorBoundary /> },
       { path: "courses", element: withSuspense(<Courses />), errorElement: <AppErrorBoundary /> },
       { path: "courses/:courseId", element: withSuspense(<Course />), errorElement: <AppErrorBoundary /> },
+      { path: "support", element: withSuspense(<ContactSupport />), errorElement: <AppErrorBoundary /> },
       {
         element: <LeagueRouteGuard />,
         errorElement: <AppErrorBoundary />,
@@ -93,6 +130,7 @@ export const router = createBrowserRouter([
         children: [
           { path: "superadmin/courses", element: withSuspense(<CoursesAdmin />) },
           { path: "superadmin/leagues", element: withSuspense(<LeaguesAdmin />) },
+          { path: "superadmin/billing", element: withSuspense(<BillingAdmin />) },
         ],
       },
     ],
@@ -103,7 +141,7 @@ export const router = createBrowserRouter([
     children: [
       {
         path: "league/:leagueId/events/:eventId/print-scorecards",
-        element: withSuspense(<PrintFlightScorecards />),
+        element: withAppTheme(<PrintFlightScorecards />),
       },
     ],
   },

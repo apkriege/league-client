@@ -1,11 +1,17 @@
 import { useMemo, useState } from "react";
-import { useFormContext } from "react-hook-form";
-import { ShieldHalf, SquarePen, Trash2, Users, X } from "lucide-react";
+import { useFormContext, useWatch } from "react-hook-form";
+import { Users } from "lucide-react";
 
 import { Input, MultiSelect } from "@/components/form";
 import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
-import { useToast } from "@/context/ToastContext";
+import SectionKicker from "@/components/layout/SectionKicker";
+import { useToast } from "@/context/useToast";
+import Button from "@/components/layout/Button";
+import TeamBuilderCard, {
+  type TeamBuilderPlayer,
+} from "@/components/league/TeamBuilderCard";
+import { formatHandicap } from "@/utils/handicap";
 
 type Team = {
   id: number;
@@ -33,10 +39,10 @@ const normalizeTeam = (team: any): Team => ({
 
 export default function TeamsForm() {
   const { show } = useToast();
-  const { watch, setValue } = useFormContext();
-  const players = watch("players") || [];
+  const { control, setValue } = useFormContext();
+  const players = useWatch({ control, name: "players", defaultValue: [] });
 
-  const rawTeams = watch("teams") || [];
+  const rawTeams = useWatch({ control, name: "teams", defaultValue: [] });
   const teams: Team[] = useMemo(() => rawTeams.map(normalizeTeam), [rawTeams]);
 
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -71,7 +77,7 @@ export default function TeamsForm() {
       availablePlayers
         .map((p: any) => ({
           value: Number(p.id),
-          label: `${p.firstName} ${p.lastName} (HCP ${p.handicap ?? "-"})`,
+          label: `${p.firstName} ${p.lastName} (HCP ${formatHandicap(p.handicap)})`,
         }))
         .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label)),
     [availablePlayers]
@@ -172,15 +178,13 @@ export default function TeamsForm() {
       <PageHeader
         title="Build Teams"
         subTitle="Create teams, assign available players, and edit or remove teams before proceeding."
-        icon={<ShieldHalf size={14} />}
-        iconText="TEAMS"
       />
 
       <Card className="mt-6 mb-4">
-        <p className="section-kicker mb-3">
+        <SectionKicker className="mb-3">
           {isEditing ? "Edit Team" : "Add Team"}
-        </p>
-        <div className="flex flex-col lg:flex-row lg:items-end gap-2">
+        </SectionKicker>
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(140px,1fr)_minmax(320px,3fr)_auto] lg:items-end">
           <Input
             label="Team Name"
             placeholder="Enter team name"
@@ -190,14 +194,15 @@ export default function TeamsForm() {
               if (teamNameError) setTeamNameError("");
             }}
             error={teamNameError}
-            className="w-full xl:w-1/4"
+            className="w-full min-w-0"
           />
 
-          <div className="w-full lg:w-1/2">
+          <div className="w-full min-w-0">
             <MultiSelect
               label={`Players (${remainingCount} remaining)`}
               options={playerOptions}
               value={draft.players}
+              variant="dropdown"
               placeholder={
                 playerOptions.length ? "Select available players" : "No players available"
               }
@@ -210,19 +215,21 @@ export default function TeamsForm() {
             />
           </div>
 
-          <div className="flex gap-2 shrink-0">
+          <div className="flex shrink-0 gap-2">
             <div className="flex gap-2">
-              <button type="button" onClick={handleSaveTeam} className="btn btn-md btn-primary">
+              <Button type="button" onClick={handleSaveTeam} variant="primary" size="md">
                 {isEditing ? "Update Team" : "Add Team"}
-              </button>
+              </Button>
               {isEditing && (
-                <button
+                <Button
                   type="button"
                   onClick={resetDraft}
-                  className="btn btn-md btn-ghost border border-base-300"
+                  variant="ghost"
+                  outline
+                  size="md"
                 >
                   Cancel
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -230,8 +237,8 @@ export default function TeamsForm() {
       </Card>
 
       {teams.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 mt-12 justify-center text-base-content/40">
-          <div className="bg-base-200 p-4 rounded-full">
+        <div className="flex flex-col items-center gap-3 mt-12 justify-center text-slate-900/40">
+          <div className="bg-slate-100 p-4 rounded-full">
             <Users size={22} />
           </div>
           <p className="text-sm font-medium">No teams yet</p>
@@ -239,73 +246,21 @@ export default function TeamsForm() {
         </div>
       ) : (
         <>
-          <p className="section-kicker mb-3">
+          <SectionKicker className="mb-3">
             Teams · {teams.length}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-auto pb-1">
+          </SectionKicker>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             {teams.map((team) => (
-              <div
+              <TeamBuilderCard
                 key={team.id}
-                className="border border-base-300 rounded-xl w-full bg-base-100 shadow-xs overflow-hidden"
-              >
-                <div className="flex justify-between items-center px-3 py-2 border-b border-base-300 bg-base-200/60">
-                  <div className="flex items-center gap-2">
-                    <ShieldHalf size={13} className="text-primary/60" />
-                    <span className="font-semibold text-sm text-primary">{team.name}</span>
-                    <span className="text-[10px] text-gray-400">· {team.players.length}p</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleEditTeam(team)}
-                      className="text-gray-400 hover:text-primary transition-colors"
-                    >
-                      <SquarePen size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteTeam(team.id)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-1 p-2">
-                  {team.players.map((playerId) => {
-                    const player = getPlayerById(Number(playerId));
-                    if (!player) return null;
-
-                    return (
-                      <div
-                        key={`${team.id}-${player.id}`}
-                        className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 bg-base-200/60 hover:bg-base-200 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="bg-primary text-primary-content rounded-md w-6 h-6 flex items-center justify-center text-[9px] uppercase shrink-0">
-                            {player.firstName[0]}
-                            {player.lastName[0]}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-primary truncate">
-                              {player.firstName} {player.lastName}
-                            </p>
-                            <p className="text-[9px] text-gray-400">HCP {player.handicap ?? "-"}</p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removePlayerFromTeam(team.id, Number(player.id))}
-                          className="text-gray-300 hover:text-red-400 transition-colors shrink-0"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                name={team.name}
+                players={team.players
+                  .map((playerId) => getPlayerById(Number(playerId)))
+                  .filter((player): player is TeamBuilderPlayer => Boolean(player))}
+                onEdit={() => handleEditTeam(team)}
+                onDelete={() => handleDeleteTeam(team.id)}
+                onRemovePlayer={(playerId) => removePlayerFromTeam(team.id, playerId)}
+              />
             ))}
           </div>
         </>

@@ -1,3 +1,5 @@
+import LoadingState from "@/components/layout/LoadingState";
+import Button from "@/components/layout/Button";
 import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router";
@@ -8,8 +10,12 @@ import InfoForm from "./forms/InfoForm";
 import { useLeague } from "@api/league/queries";
 import { useUpdateLeague } from "@api/league/mutations";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/context/useToast";
 import { validateLeagueForm } from "./validation";
+import {
+  normalizeLeagueHoleFormat,
+  type LeagueHoleFormat,
+} from "@/features/leagues/leagueHoleFormat";
 
 type LeagueFormData = {
   id?: number;
@@ -18,8 +24,8 @@ type LeagueFormData = {
   description: string;
   numPlayers: number;
   type: string;
+  holeFormat: LeagueHoleFormat;
   format: string | null;
-  access: string;
   contactFirstName: string;
   contactLastName: string;
   contactEmail: string;
@@ -34,8 +40,8 @@ const defaultLeagueData: LeagueFormData = {
   description: "",
   numPlayers: 0,
   type: "season",
+  holeFormat: "18",
   format: "team",
-  access: "public",
   contactFirstName: "",
   contactLastName: "",
   contactEmail: "",
@@ -52,8 +58,8 @@ const mapLeagueToForm = (league: any): LeagueFormData => {
     description: league.description || "",
     numPlayers: Number(league.numPlayers ?? 0),
     type: String(league.type || "season").toLowerCase(),
+    holeFormat: normalizeLeagueHoleFormat(league.holeFormat),
     format: league.format ? String(league.format).toLowerCase() : null,
-    access: String(league.access || "public").toLowerCase(),
     contactFirstName: league.contactFirstName || "",
     contactLastName: league.contactLastName || "",
     contactEmail: league.contactEmail || "",
@@ -113,7 +119,7 @@ export default function EditLeague() {
           navigate(`/league/${numericLeagueId}/admin`);
         },
         onError: (error) => {
-          console.error("Failed to update league:", error);
+          show(getApiErrorMessage(error, "Unable to update the league."), "error");
         },
       }
     );
@@ -121,17 +127,17 @@ export default function EditLeague() {
 
   if (!numericLeagueId) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Invalid league id.
-      </div>
+      </LoadingState>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Loading league...
-      </div>
+      </LoadingState>
     );
   }
 
@@ -166,26 +172,29 @@ export default function EditLeague() {
     <div className="pb-4">
       <FormProvider {...leagueForm}>
         <div className="step-body">
-          <InfoForm />
+          <InfoForm
+            competitiveSettingsLocked={Boolean(league.hasRecordedScores)}
+            isEditing
+          />
         </div>
 
-        <div className="step-footer mt-4 w-full bg-base-100 px-4 py-3 flex items-center justify-end border border-base-300 rounded-xl shadow-xs gap-2">
-          <button
-            type="button"
-            className="btn btn-secondary btn-md"
+        <div className="step-footer mt-4 w-full bg-white px-4 py-3 flex items-center justify-end border border-slate-200 rounded-xl shadow-xs gap-2">
+          <Button
+            variant="secondary"
+            size="md"
             onClick={() => navigate(`/league/${numericLeagueId}/admin`)}
             disabled={updateLeague.isPending}
           >
             Cancel
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary btn-md"
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
             onClick={handleSubmit}
             disabled={updateLeague.isPending}
           >
             {updateLeague.isPending ? "Saving..." : "Save League"}
-          </button>
+          </Button>
         </div>
       </FormProvider>
     </div>

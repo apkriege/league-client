@@ -1,3 +1,5 @@
+import Button from "./Button";
+
 type StepperProps = {
   step: number;
   totalSteps: number;
@@ -48,7 +50,7 @@ export default function Stepper({
 
   return (
     <div
-      className={`step-footer mt-4 w-full bg-white/80 px-4 py-3 flex items-center justify-between border border-base-300 rounded-3xl shadow-xs backdrop-blur-md ${className}`}
+      className={`step-footer mt-4 w-full bg-white/80 px-4 py-3 flex items-center justify-between border border-slate-200 rounded-3xl shadow-xs backdrop-blur-md ${className}`}
     >
       <div className="flex items-center gap-2">
         {Array.from({ length: totalSteps }).map((_, i) => (
@@ -56,10 +58,10 @@ export default function Stepper({
             key={i}
             className={`h-1.5 rounded-full transition-all duration-300 ${
               i + 1 === step
-                ? "w-6 bg-primary"
+                ? "w-6 bg-slate-900"
                 : i + 1 < step
-                  ? "w-3 bg-primary/40"
-                  : "w-3 bg-base-300"
+                  ? "w-3 bg-slate-900/40"
+                  : "w-3 bg-slate-200"
             }`}
           />
         ))}
@@ -69,8 +71,9 @@ export default function Stepper({
       </div>
 
       <div className="flex items-center gap-2">
-        <button
-          className="btn btn-secondary btn-md"
+        <Button
+          variant="secondary"
+          size="md"
           disabled={isFirstStep || isSubmitting}
           onClick={() => {
             onBack?.();
@@ -78,9 +81,10 @@ export default function Stepper({
           }}
         >
           {backLabel}
-        </button>
-        <button
-          className="btn btn-primary btn-md"
+        </Button>
+        <Button
+          variant="primary"
+          size="md"
           disabled={isSubmitting}
           onClick={() => {
             onNext();
@@ -88,7 +92,7 @@ export default function Stepper({
           }}
         >
           {isSubmitting ? "Submitting…" : resolvedNextLabel}
-        </button>
+        </Button>
       </div>
     </div>
   );

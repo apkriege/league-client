@@ -24,7 +24,7 @@ export const FlightMatchOutput = ({ players, matchups }: any) => {
         <div className="font-medium text-[11px]">
           {player1 ? `${player1.firstName[0]} ${player1.lastName}` : "Unknown Player"}
         </div>
-        <span className="text-[10px] text-base-content/50">vs</span>
+        <span className="text-[10px] text-current opacity-50">vs</span>
         <div className="font-medium text-[11px]">
           {player2 ? `${player2.firstName[0]} ${player2.lastName}` : "Unknown Player"}
         </div>

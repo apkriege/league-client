@@ -1,26 +1,66 @@
-interface ButtonProps {
-  children: React.ReactNode;
-  className?: string;
-  onClick?: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
-  variant?: "primary" | "secondary" | "accent" | "info" | "success" | "warning" | "error";
+import MuiButton, { type ButtonProps as MuiButtonProps } from "@mui/material/Button";
+
+type AppButtonVariant =
+  | "accent"
+  | "default"
+  | "error"
+  | "ghost"
+  | "info"
+  | "neutral"
+  | "primary"
+  | "secondary"
+  | "success"
+  | "warning";
+
+interface ButtonProps extends Omit<MuiButtonProps, "color" | "size" | "variant"> {
+  variant?: AppButtonVariant;
   size?: "xs" | "sm" | "md" | "lg";
   outline?: boolean;
 }
 
+const colorByVariant: Record<
+  AppButtonVariant,
+  "error" | "info" | "inherit" | "primary" | "secondary" | "success" | "warning"
+> = {
+  accent: "secondary",
+  default: "inherit",
+  error: "error",
+  ghost: "inherit",
+  info: "info",
+  neutral: "inherit",
+  primary: "primary",
+  secondary: "secondary",
+  success: "success",
+  warning: "warning",
+};
+
 export default function Button({
   children,
   className,
-  onClick,
   variant = "warning",
   size = "sm",
   outline = false,
+  type = "button",
+  sx,
+  ...props
 }: ButtonProps) {
+  const muiSize = size === "lg" ? "large" : size === "md" ? "medium" : "small";
+  const muiVariant = outline ? "outlined" : variant === "ghost" || variant === "default" ? "text" : "contained";
+
   return (
-    <button
-      className={`btn btn-${variant} btn-${size}${outline ? " btn-outline" : ""}${className ? ` ${className}` : ""}`}
-      onClick={onClick}
+    <MuiButton
+      type={type}
+      color={colorByVariant[variant]}
+      variant={muiVariant}
+      size={muiSize}
+      className={className}
+      sx={[
+        size === "xs" ? { minHeight: 26, px: 1.25, py: 0.25, fontSize: "0.6875rem" } : {},
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+      {...props}
     >
       {children}
-    </button>
+    </MuiButton>
   );
 }

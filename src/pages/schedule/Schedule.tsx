@@ -1,11 +1,14 @@
+import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
-import { useLeagueEvents } from "@api/league/queries";
+import ScoringPeriodDivider from "@/components/league/ScoringPeriodDivider";
+import { getScoringPeriodBoundariesBeforeEvent } from "@/features/leagues/scoringPeriodBoundaries";
+import { useLeague, useLeagueEvents } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { getEventLocalDate } from "@/utils/eventDate";
+import { getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
+import { formatTime } from "@/utils/format";
 import {
   Calendar,
-  CalendarDays,
   Ban,
   CheckCircle2,
   ChevronRight,
@@ -18,7 +21,7 @@ import {
   ShieldHalf,
   Timer,
 } from "lucide-react";
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
@@ -55,29 +58,32 @@ function normalizeEventStatus(status?: string) {
 export default function Schedule() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
+  const {
+    data: league,
+    isLoading: leagueLoading,
+    isError: leagueIsError,
+    error: leagueError,
+  } = useLeague(Number(leagueId));
   const { data: events, isLoading, isError, error } = useLeagueEvents(Number(leagueId));
+  const scoringPeriods = Array.isArray(league?.scoringPeriods) ? league.scoringPeriods : [];
 
   // Always define arrays to avoid undefined
   const sortedEvents = useMemo(
-    () =>
-      Array.isArray(events)
-        ? [...events].sort(
-            (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
-          )
-        : [],
+    () => (Array.isArray(events) ? sortEventsByDate(events) : []),
     [events]
   );
 
-  if (isLoading) {
+  if (isLoading || leagueLoading) {
     return (
-      <div className="loading-state">
+      <LoadingState>
         Loading schedule...
-      </div>
+      </LoadingState>
     );
   }
 
-  if (isError) {
-    const status = getApiErrorStatus(error);
+  if (isError || leagueIsError) {
+    const pageError = error || leagueError;
+    const status = getApiErrorStatus(pageError);
     return (
       <PageState
         title={
@@ -87,7 +93,7 @@ export default function Schedule() {
               ? "Access Denied"
               : "Unable to Load Schedule"
         }
-        message={getApiErrorMessage(error, "The schedule page could not be loaded right now.")}
+        message={getApiErrorMessage(pageError, "The schedule page could not be loaded right now.")}
         variant={status === 404 ? "notFound" : status === 403 ? "forbidden" : "error"}
       />
     );
@@ -95,7 +101,7 @@ export default function Schedule() {
 
   return (
     <div>
-      <PageHeader title="Schedule" icon={<CalendarDays size={14} />} iconText="LEAGUE" />
+      <PageHeader title="Schedule" />
 
       <div className="mt-5 space-y-6">
         <section>
@@ -104,14 +110,25 @@ export default function Schedule() {
           </h2>
           <div className="flex flex-col gap-2.5">
             {sortedEvents.length > 0 ? (
-              sortedEvents.map((event: any) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  leagueId={leagueId!}
-                  onClick={() => navigate(`/league/${leagueId}/events/${event.id}`)}
-                />
-              ))
+              sortedEvents.map((event: any, eventIndex: number) => {
+                const boundaries = getScoringPeriodBoundariesBeforeEvent(
+                  sortedEvents,
+                  eventIndex,
+                  scoringPeriods
+                );
+
+                return (
+                  <Fragment key={event.id}>
+                    {boundaries.map((period) => (
+                      <ScoringPeriodDivider key={period.id} period={period} />
+                    ))}
+                    <EventCard
+                      event={event}
+                      onClick={() => navigate(`/league/${leagueId}/events/${event.id}`)}
+                    />
+                  </Fragment>
+                );
+              })
             ) : (
               <div className="text-gray-400 text-sm py-8 text-center">No rounds scheduled yet</div>
             )}
@@ -122,10 +139,10 @@ export default function Schedule() {
   );
 }
 
-function EventCard({ event, onClick }: { event: any; leagueId: string; onClick: () => void }) {
+function EventCard({ event, onClick }: { event: any; onClick: () => void }) {
   const normalizedStatus = normalizeEventStatus(event.status);
   const status = STATUS_CONFIG[normalizedStatus] ?? STATUS_CONFIG["scheduled"];
-  const date = getEventLocalDate(event.date);
+  const date = getEventLocalDate(event.startsAt, event.timeZone);
 
   return (
     <div
@@ -134,11 +151,11 @@ function EventCard({ event, onClick }: { event: any; leagueId: string; onClick: 
     >
       <div className="flex items-stretch">
         {/* Date block */}
-        <div className="flex flex-col items-center justify-center px-3 py-2.5 rounded-l-lg min-w-[58px] border-r bg-primary/5 border-primary/10">
+        <div className="flex flex-col items-center justify-center px-3 py-2.5 rounded-l-lg min-w-[58px] border-r bg-slate-900/5 border-slate-900/10">
           <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
             {date.toLocaleDateString("en-US", { month: "short" })}
           </span>
-          <span className="text-xl font-black leading-none text-primary">{date.getDate()}</span>
+          <span className="text-xl font-black leading-none text-slate-900">{date.getDate()}</span>
           <span className="text-[9px] text-gray-400 font-medium">
             {date.toLocaleDateString("en-US", { weekday: "short" })}
           </span>
@@ -171,7 +188,7 @@ function EventCard({ event, onClick }: { event: any; leagueId: string; onClick: 
           </div>
 
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <MetaChip icon={<Clock size={10} />} label={event.startTime} />
+            <MetaChip icon={<Clock size={10} />} label={formatTime(event.startsAt, event.timeZone)} />
             <MetaChip icon={<Flag size={10} />} label={`${event.holes} holes`} />
             <MetaChip
               icon={<ShieldHalf size={10} />}

@@ -4,6 +4,7 @@ export type League = {
   description: string;
   numPlayers: number;
   type: "season" | "tournament" | string;
+  holeFormat: "9" | "18" | "mixed";
   format?: "individual" | "team" | null | string;
   contactFirstName: string;
   contactLastName: string;
@@ -14,6 +15,16 @@ export type League = {
   players: Player[];
   teams: Teams[];
   events?: Event[];
+  scoringPeriods?: LeagueScoringPeriod[];
+  hasRecordedScores?: boolean;
+};
+
+export type LeagueScoringPeriod = {
+  id: number;
+  name: string;
+  position: number;
+  startDate: string | Date;
+  endDate: string | Date;
 };
 
 export type Player = {
@@ -24,6 +35,7 @@ export type Player = {
   lastName: string;
   email: string;
   type: "player" | "sub" | string;
+  gender: "male" | "female";
   handicap: number;
 };
 

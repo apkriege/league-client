@@ -4,16 +4,7 @@ import {
   getLeagueAnnouncements,
   getLeagueAuditLogs,
   getLeagueInvitations,
-  getLeagueOnboarding,
-  getNotifications,
 } from ".";
-
-export const useNotifications = () => {
-  return useQuery({
-    queryKey: ["notifications"],
-    queryFn: getNotifications,
-  });
-};
 
 export const useInvitation = (token: string | undefined) => {
   return useQuery({
@@ -35,14 +26,6 @@ export const useLeagueAnnouncements = (leagueId: number, enabled = true) => {
   return useQuery({
     queryKey: ["league", leagueId, "announcements"],
     queryFn: () => getLeagueAnnouncements(leagueId),
-    enabled: enabled && Boolean(leagueId),
-  });
-};
-
-export const useLeagueOnboarding = (leagueId: number, enabled = true) => {
-  return useQuery({
-    queryKey: ["league", leagueId, "onboarding"],
-    queryFn: () => getLeagueOnboarding(leagueId),
     enabled: enabled && Boolean(leagueId),
   });
 };

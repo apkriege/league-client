@@ -17,6 +17,11 @@ export async function createPlayer(leagueId: number, playerData: any) {
   return response.data;
 }
 
+export async function createPlayers(leagueId: number, players: any[]) {
+  const response = await apiClient.post(`/leagues/${leagueId}/players/batch`, { players });
+  return response.data;
+}
+
 export async function updatePlayer(id: number, playerData: any) {
   const response = await apiClient.put(`/players/${id}`, playerData);
   return response.data;

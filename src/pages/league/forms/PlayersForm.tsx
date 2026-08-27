@@ -3,11 +3,17 @@ import { Controller, useForm, useFormContext } from "react-hook-form";
 
 import Input from "@/components/form/Input";
 import Select from "@/components/form/Select";
-import { SquarePen, Trash2, UserPlus } from "lucide-react";
-import { useToast } from "@/context/ToastContext";
+import { SquarePen, Trash2 } from "lucide-react";
+import { useToast } from "@/context/useToast";
 import Table from "@/components/Table";
 import Card from "@/components/layout/Card";
+import SectionKicker from "@/components/layout/SectionKicker";
 import { formatPhone } from "@/utils/format";
+import Button from "@/components/layout/Button";
+import Chip from "@mui/material/Chip";
+import PageHeader from "@/components/layout/PageHeader";
+import { getHandicapHoleCount } from "@/features/leagues/leagueHoleFormat";
+import { formatHandicap } from "@/utils/handicap";
 
 const defaultPlayer = {
   firstName: "",
@@ -15,6 +21,7 @@ const defaultPlayer = {
   email: "",
   phone: "",
   type: "player", // "player" or "sub"
+  gender: "",
   handicap: "",
 };
 
@@ -27,7 +34,9 @@ const getMissingRequiredFields = (player: any) => {
 
   if (!String(player?.firstName || "").trim()) missing.push("first name");
   if (!String(player?.lastName || "").trim()) missing.push("last name");
-  if (!String(player?.type || "").trim()) missing.push("type");
+  if (!["male", "female"].includes(String(player?.gender || ""))) {
+    missing.push("gender");
+  }
   if (!Number.isFinite(handicap)) missing.push("handicap");
 
   return missing;
@@ -42,6 +51,7 @@ export default function PlayersForm() {
   const teams = watch("teams") || [];
   const leagueType = String(watch("type") || "").toLowerCase();
   const leagueFormat = String(watch("format") || "").toLowerCase();
+  const handicapHoleCount = getHandicapHoleCount(watch("holeFormat"));
   const hasTeamsStep = leagueType === "season" && leagueFormat === "team";
 
   const playerForm = useForm({
@@ -61,7 +71,8 @@ export default function PlayersForm() {
       lastName: String(data.lastName).trim(),
       email: String(data.email || "").trim(),
       phone: String(data.phone || "").trim(),
-      type: String(data.type).trim().toLowerCase(),
+      type: String(data.type || "player").trim().toLowerCase(),
+      gender: String(data.gender).trim().toLowerCase(),
       handicap: Number(data.handicap),
     };
 
@@ -105,7 +116,7 @@ export default function PlayersForm() {
       key: "id",
       label: "ID",
       width: "6%",
-      render: (value: any) => <p className="text-sm text-gray-500">{value}</p>,
+      render: (value: any) => <p className="text-xs text-gray-500">{value}</p>,
     },
     {
       key: "firstName",
@@ -113,19 +124,21 @@ export default function PlayersForm() {
       width: "65%",
       render: (_value: any, row: any) => (
         <div className="flex items-center gap-2">
-          <div className="bg-primary text-primary-content rounded-lg w-8 h-8 flex items-center justify-center text-xs uppercase">
+          <div className="bg-slate-900 text-white rounded-lg w-8 h-8 flex items-center justify-center text-xs uppercase">
             {row.firstName[0]}
             {row.lastName[0]}
           </div>
           <div>
-            <p className="mb-0.5 text-base font-semibold text-primary">
+            <p className="mb-0.5 text-sm font-semibold text-slate-900">
               {row.firstName} {row.lastName}
             </p>
-            <p className="font-light text-[10px] text-gray-500 flex items-center gap-1.5">
-              <span>{row.email}</span>
-              <span>/</span>
-              <span>{formatPhone(row.phone)}</span>
-            </p>
+            {(row.email || row.phone) && (
+              <p className="font-light text-[10px] text-gray-500 flex items-center gap-1.5">
+                {row.email && <span>{row.email}</span>}
+                {row.email && row.phone && <span>/</span>}
+                {row.phone && <span>{formatPhone(row.phone)}</span>}
+              </p>
+            )}
           </div>
         </div>
       ),
@@ -134,19 +147,26 @@ export default function PlayersForm() {
       key: "type",
       label: "Type",
       render: (value: any) => (
-        <div
-          className={`badge rounded-xl text-[9px] font-semibold ${
-            value === "player" ? "badge-secondary" : "badge-accent"
-          }`}
-        >
-          {value.toUpperCase()}
-        </div>
+        <Chip
+          label={value.toUpperCase()}
+          color={value === "player" ? "secondary" : "primary"}
+          size="small"
+          sx={{ height: 24, fontSize: "0.5625rem" }}
+        />
       ),
     },
     {
       key: "handicap",
-      label: "HCP",
-      render: (value: any) => <p className="text-base font-bold">{value}</p>,
+      label: `${handicapHoleCount}H HCP`,
+      headerClassName: "whitespace-nowrap",
+      render: (value: any) => <p className="text-sm font-bold">{formatHandicap(value)}</p>,
+    },
+    {
+      key: "gender",
+      label: "Gender",
+      render: (value: any) => (
+        <p className="text-xs font-semibold capitalize">{value}</p>
+      ),
     },
     {
       key: "actions",
@@ -170,22 +190,19 @@ export default function PlayersForm() {
 
   return (
     <div>
-      <div className="badge badge-secondary mb-1.5 font-semibold rounded-full text-[10px]">
-        <UserPlus size={14} />
-        <span>PLAYERS</span>
-      </div>
-      <h1 className="text-4xl font-bold mb-1">Add Players</h1>
-      <p className="text-sm text-gray-500 mb-6 w-3/5">
-        Build your roster of competitors and substitutes.
-        {hasTeamsStep
-          ? " Add players to your league and assign them to teams in the next step."
-          : " Add players to your league and continue to review."}
-      </p>
+      <PageHeader
+        title="Add Players"
+        subTitle={`Build your roster of competitors and substitutes.${
+          hasTeamsStep
+            ? " Add players to your league and assign them to teams in the next step."
+            : " Add players to your league and continue to review."
+        } Enter each player's ${handicapHoleCount}-hole handicap.`}
+      />
 
-      <Card>
-        <p className="section-kicker mb-3">
+      <Card className="mt-6">
+        <SectionKicker className="mb-3">
           {isEdit ? "Edit Player" : "Add Player"}
-        </p>
+        </SectionKicker>
         <div className="grid grid-cols-3 items-end gap-2">
           <Controller
             name="firstName"
@@ -204,10 +221,12 @@ export default function PlayersForm() {
           <Controller
             name="email"
             control={playerForm.control}
-            render={({ field }) => <Input label="Email" placeholder="Enter email" {...field} />}
+            render={({ field }) => (
+              <Input label="Email (optional)" placeholder="Enter email" {...field} />
+            )}
           />
         </div>
-        <div className="grid grid-cols-4 items-end gap-2">
+        <div className="grid grid-cols-5 items-end gap-2">
           <Controller
             name="phone"
             control={playerForm.control}
@@ -232,16 +251,39 @@ export default function PlayersForm() {
             name="handicap"
             control={playerForm.control}
             render={({ field }) => (
-              <Input label="Handicap" placeholder="Enter handicap" {...field} />
+              <Input
+                label={`${handicapHoleCount}-Hole Handicap`}
+                placeholder={`Enter ${handicapHoleCount}-hole handicap`}
+                type="number"
+                step="0.1"
+                {...field}
+              />
             )}
           />
-          <button
+          <Controller
+            name="gender"
+            control={playerForm.control}
+            render={({ field }) => (
+              <Select
+                label="Gender"
+                options={[
+                  { label: "Male", value: "male" },
+                  { label: "Female", value: "female" },
+                ]}
+                placeholder="Select gender"
+                {...field}
+              />
+            )}
+          />
+          <Button
             type="button"
-            className="btn btn-primary btn-md mb-1"
+            variant="primary"
+            size="md"
+            className="mb-1"
             onClick={playerForm.handleSubmit(onSubmit)}
           >
             {isEdit ? "Update Player" : "Save Player"}
-          </button>
+          </Button>
         </div>
       </Card>
 

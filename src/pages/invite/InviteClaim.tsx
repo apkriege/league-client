@@ -8,7 +8,7 @@ import { Link, useNavigate, useParams } from "react-router";
 export default function InviteClaim() {
   const { token } = useParams();
   const navigate = useNavigate();
-  const { user } = useAppStore();
+  const { user, setUser } = useAppStore();
   const { data: invitation, isLoading, isError, error } = useInvitation(token);
   const claim = useClaimInvitation();
 
@@ -35,7 +35,19 @@ export default function InviteClaim() {
   const handleClaim = () => {
     if (!token) return;
     claim.mutate(token, {
-      onSuccess: (result: any) => navigate(`/league/${result.leagueId}`),
+      onSuccess: (result: any) => {
+        const existingMemberships = Array.isArray(user?.leagues) ? user.leagues : [];
+        setUser({
+          ...user,
+          leagues: [
+            ...existingMemberships.filter(
+              (membership: any) => Number(membership?.id) !== Number(result.leagueId)
+            ),
+            { id: Number(result.leagueId), playerId: Number(result.playerId) },
+          ],
+        });
+        navigate(`/league/${result.leagueId}`);
+      },
     });
   };
 
@@ -77,13 +89,21 @@ export default function InviteClaim() {
                 <ArrowRight size={16} />
               </button>
             ) : (
-              <Link
-                to="/login"
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-blue-700 px-5 py-3 text-sm font-black text-white hover:bg-blue-800"
-              >
-                Sign in to claim
-                <ArrowRight size={16} />
-              </Link>
+              <>
+                <Link
+                  to={`/login?redirect=${encodeURIComponent(`/invite/${token}`)}`}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-blue-700 px-5 py-3 text-sm font-black text-white hover:bg-blue-800"
+                >
+                  Sign in to claim
+                  <ArrowRight size={16} />
+                </Link>
+                <Link
+                  to={`/?redirect=${encodeURIComponent(`/invite/${token}`)}#register`}
+                  className="inline-flex flex-1 items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 hover:bg-slate-50"
+                >
+                  Create account
+                </Link>
+              </>
             )}
             <Link
               to="/"

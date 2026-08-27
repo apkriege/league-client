@@ -1,29 +1,6 @@
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
-import { isRouteErrorResponse, Link, useRouteError } from "react-router";
-
-function getErrorDetails(error: unknown) {
-  if (isRouteErrorResponse(error)) {
-    return {
-      title: `${error.status} ${error.statusText || "Application Error"}`,
-      message:
-        typeof error.data === "string"
-          ? error.data
-          : error.data?.message || "The requested page could not be loaded.",
-    };
-  }
-
-  if (error instanceof Error) {
-    return {
-      title: "Something went wrong",
-      message: error.message || "The app hit an unexpected error.",
-    };
-  }
-
-  return {
-    title: "Something went wrong",
-    message: "The app hit an unexpected error.",
-  };
-}
+import { Link, useRouteError } from "react-router";
+import { getErrorDetails } from "./errorDetails";
 
 export default function AppErrorBoundary() {
   const error = useRouteError();

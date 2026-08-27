@@ -1,19 +1,29 @@
+import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import PanelBar from "@/components/layout/PanelBar";
+import SurfaceCard from "@/components/layout/SurfaceCard";
+import Table from "@/components/Table";
 import Button from "@/components/layout/Button";
 import { useUpdateFlightPlayers } from "@api/flight/mutations";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
 import { Flag } from "lucide-react";
 import { Fragment, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
 import {
-  buildSwappedPlayerEntry,
-  getSwapCandidates,
   PlayerSwapControl,
 } from "./PlayerSwapControl";
+import { buildSwappedPlayerEntry, getSwapCandidates } from "./playerSwapUtils";
 import { calculateMatchplayPops } from "./util";
-import { ScoreDraftStatus, useScoreDraft } from "./useScoreDraft";
-import { useToast } from "@/context/ToastContext";
+import { ScoreDraftStatus } from "./ScoreDraftStatus";
+import { useScoreDraft } from "./useScoreDraft";
+import { useToast } from "@/context/useToast";
 import { validateHoleScores } from "./scoreValidation";
+import { formatTime } from "@/utils/format";
+import {
+  getEventScoringHoles,
+  getPlayerCourseHandicap,
+} from "./scoringSetup";
+import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
 
 export const CreateFlightScoresIndividualMatch = ({
   flight,
@@ -28,47 +38,36 @@ export const CreateFlightScoresIndividualMatch = ({
   const { leagueId, eventId } = useParams();
   const { show } = useToast();
 
-  const startingHole = event.startSide === "front" ? 1 : 10;
-  const holes = event.tee.holes
-    .slice(startingHole - 1, startingHole + event.holes - 1)
-    .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
+  const holes = getEventScoringHoles(event);
 
   const [allPlayers, setAllPlayers] = useState<any[]>(flight.players ?? []);
   const allPlayersById = new Map(allPlayers.map((p: any) => [Number(p.playerId), p]));
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    const preHandicap = Number(playerEntry?.player?.rounds?.[0]?.preHandicap);
-    if (isEditMode && Number.isFinite(preHandicap)) return preHandicap;
-    return Number(playerEntry?.player?.handicap ?? 0);
+    return getPlayerCourseHandicap(playerEntry);
   };
 
-  // Build pairs: in edit mode use saved opponentId; otherwise pair by position
+  // Prefer the persisted flight pairing, then pair any unassigned players by position.
   const buildPairs = (playersToPair: any[] = allPlayers): [any, any][] => {
     const playersById = new Map(playersToPair.map((p: any) => [Number(p.playerId), p]));
-    if (isEditMode) {
-      const usedIds = new Set<number>();
-      const pairs: [any, any][] = [];
-      for (const player of playersToPair) {
-        if (usedIds.has(Number(player.playerId))) continue;
-        const opponentId = Number(player?.player?.rounds?.[0]?.opponentId ?? 0);
-        const opponent = playersById.get(opponentId);
-        if (opponent && !usedIds.has(Number(opponent.playerId))) {
-          pairs.push([player, opponent]);
-          usedIds.add(Number(player.playerId));
-          usedIds.add(Number(opponent.playerId));
-        }
+    const usedIds = new Set<number>();
+    const pairs: [any, any][] = [];
+    for (const player of playersToPair) {
+      if (usedIds.has(Number(player.playerId))) continue;
+      const opponentId = Number(
+        player?.opponentId ?? player?.player?.rounds?.[0]?.opponentId ?? 0
+      );
+      const opponent = playersById.get(opponentId);
+      if (opponent && !usedIds.has(Number(opponent.playerId))) {
+        pairs.push([player, opponent]);
+        usedIds.add(Number(player.playerId));
+        usedIds.add(Number(opponent.playerId));
       }
-      // Pair any remaining players by position
-      const remaining = playersToPair.filter((p: any) => !usedIds.has(Number(p.playerId)));
-      for (let i = 0; i + 1 < remaining.length; i += 2) {
-        pairs.push([remaining[i], remaining[i + 1]]);
-      }
-      return pairs;
     }
 
-    const pairs: [any, any][] = [];
-    for (let i = 0; i + 1 < playersToPair.length; i += 2) {
-      pairs.push([playersToPair[i], playersToPair[i + 1]]);
+    const remaining = playersToPair.filter((player: any) => !usedIds.has(Number(player.playerId)));
+    for (let i = 0; i + 1 < remaining.length; i += 2) {
+      pairs.push([remaining[i], remaining[i + 1]]);
     }
     return pairs;
   };
@@ -116,7 +115,7 @@ export const CreateFlightScoresIndividualMatch = ({
   const createMutation = useCreateEventScores();
   const updateMutation = useUpdateEventScores();
   const updateFlightPlayersMutation = useUpdateFlightPlayers();
-  const watchedPlayers = methods.watch("players");
+  const watchedPlayers = useWatch({ control: methods.control, name: "players" });
   const scoreDraft = useScoreDraft({
     methods,
     leagueId,
@@ -261,8 +260,11 @@ export const CreateFlightScoresIndividualMatch = ({
       shouldTouch: true,
     });
     methods.unregister(`players.${currentId}`);
-    setAllPlayers(nextPlayers);
-    await onFlightPlayersUpdated?.();
+    const refreshed = await onFlightPlayersUpdated?.();
+    const refreshedPlayers = refreshed?.data?.flights?.find(
+      (candidate: any) => Number(candidate.id) === Number(flight.id)
+    )?.players;
+    setAllPlayers(Array.isArray(refreshedPlayers) ? refreshedPlayers : nextPlayers);
   };
 
   const saveScores = () => {
@@ -325,7 +327,6 @@ export const CreateFlightScoresIndividualMatch = ({
 
   const renderPlayerRow = (player: any, playerIndex: number) => {
     const p = player.player;
-    const displayHandicap = Math.round(getEffectiveHandicap(player));
     const { holePoints, matchPoints } = getMatchupPoints(Number(player.playerId));
     const holePointValues = getHolePointValues(Number(player.playerId));
     const swapCandidates = getSwapCandidates({
@@ -351,7 +352,10 @@ export const CreateFlightScoresIndividualMatch = ({
                 onSwap={(replacementId) => savePlayerSwap(playerIndex, replacementId)}
               />
             </div>
-            <span className="block text-[10px]">Handicap: {displayHandicap}</span>
+            <PlayerHandicapSummary
+              entry={player}
+              className="block text-[10px] text-gray-500"
+            />
           </td>
           {holes.map((hole: any, holeIdx: number) => (
             <td key={hole.num} className="p-2">
@@ -374,15 +378,15 @@ export const CreateFlightScoresIndividualMatch = ({
               </div>
             </td>
           ))}
-          <td className="font-bold text-center text-xs">
+          <ScoreValueCell>
             {getPlayerTotalScore(Number(player.playerId))}
-          </td>
-          <td className="font-bold text-center text-xs">
+          </ScoreValueCell>
+          <ScoreValueCell>
             {getPlayerNetScore(Number(player.playerId))}
-          </td>
-          <td className="font-bold text-center text-xs">{holePoints}</td>
-          <td className="font-bold text-center text-xs">{matchPoints}</td>
-          <td className="font-bold text-center text-xs">{holePoints + matchPoints}</td>
+          </ScoreValueCell>
+          <ScoreValueCell>{holePoints}</ScoreValueCell>
+          <ScoreValueCell>{matchPoints}</ScoreValueCell>
+          <ScoreValueCell>{holePoints + matchPoints}</ScoreValueCell>
         </tr>
         <tr className="bg-slate-50 text-[11px] text-gray-600">
           <td className="p-2 font-semibold">Hole Pts</td>
@@ -402,11 +406,13 @@ export const CreateFlightScoresIndividualMatch = ({
   };
 
   return (
-    <div className="surface-card">
-      <div className="panel-header">
+    <SurfaceCard>
+      <PanelBar variant="header">
         <div className="flex items-center gap-2">
           <Flag size={14} className="text-gray-400" strokeWidth={2} />
-          <h3 className="text-sm font-semibold text-gray-800">Flight {flight.startTime}</h3>
+          <h3 className="text-sm font-semibold text-gray-800">
+            Flight {formatTime(flight.startsAt, event.timeZone)}
+          </h3>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -422,7 +428,7 @@ export const CreateFlightScoresIndividualMatch = ({
             {isEditMode ? "Save Changes" : "Submit Scores"}
           </Button>
         </div>
-      </div>
+      </PanelBar>
 
       <div className="p-4">
         <div className="mb-3">
@@ -433,46 +439,58 @@ export const CreateFlightScoresIndividualMatch = ({
           />
         </div>
         <div className="border rounded-lg">
-          <div className="w-full overflow-x-auto">
-            <table className="score-table">
-              <thead>
-                <tr className="text-xs text-gray-700">
-                  <th className="p-2">Player</th>
-                  {holes.map((hole: any) => (
-                    <th key={hole.num} className="p-2 text-center">
-                      {hole.num}
-                    </th>
-                  ))}
-                  <th className="w-px whitespace-nowrap p-2 text-center">Total</th>
-                  <th className="w-px whitespace-nowrap p-2 text-center">Net</th>
-                  <th className="w-px whitespace-nowrap p-2 text-center">Hole Pts</th>
-                  <th className="w-px whitespace-nowrap p-2 text-center">Match Pts</th>
-                  <th className="w-px whitespace-nowrap p-2 text-center">Pts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pairs.map(([p1, p2], pairIdx) => (
-                  <Fragment key={pairIdx}>
-                    {pairIdx > 0 && (
-                      <tr aria-hidden="true">
-                        <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
-                      </tr>
-                    )}
-                    <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
-                      <td className="p-2" colSpan={holes.length + 6}>
-                        Matchup {pairIdx + 1}: {p1.player.firstName} {p1.player.lastName} vs{" "}
-                        {p2.player.firstName} {p2.player.lastName}
-                      </td>
-                    </tr>
-                    {renderPlayerRow(p1, allPlayers.findIndex((p: any) => Number(p.playerId) === Number(p1.playerId)))}
-                    {renderPlayerRow(p2, allPlayers.findIndex((p: any) => Number(p.playerId) === Number(p2.playerId)))}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            data={pairs}
+            search={false}
+            pagination={false}
+            variant="clean"
+            noBorder
+            tableClassName="score-table"
+            renderTable={(visiblePairs) => (
+              <>
+                <thead>
+                  <tr className="text-xs text-gray-700">
+                    <th className="py-2 pr-2 pl-4">Player</th>
+                    {holes.map((hole: any) => (
+                      <ScoreHeaderCell key={hole.num}>
+                        {hole.num}
+                      </ScoreHeaderCell>
+                    ))}
+                    <th className="w-px whitespace-nowrap p-2 text-center">Total</th>
+                    <th className="w-px whitespace-nowrap p-2 text-center">Net</th>
+                    <th className="w-px whitespace-nowrap p-2 text-center">Hole Pts</th>
+                    <th className="w-px whitespace-nowrap p-2 text-center">Match Pts</th>
+                    <th className="w-px whitespace-nowrap p-2 text-center">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visiblePairs.map((pair) => {
+                    const [p1, p2] = pair;
+                    const pairIdx = pairs.indexOf(pair);
+                    return (
+                      <Fragment key={pairIdx}>
+                        {pairIdx > 0 && (
+                          <tr aria-hidden="true">
+                            <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
+                          </tr>
+                        )}
+                        <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
+                          <td className="p-2" colSpan={holes.length + 6}>
+                            Matchup {pairIdx + 1}: {p1.player.firstName} {p1.player.lastName} vs{" "}
+                            {p2.player.firstName} {p2.player.lastName}
+                          </td>
+                        </tr>
+                        {renderPlayerRow(p1, allPlayers.findIndex((p: any) => Number(p.playerId) === Number(p1.playerId)))}
+                        {renderPlayerRow(p2, allPlayers.findIndex((p: any) => Number(p.playerId) === Number(p2.playerId)))}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </>
+            )}
+          />
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 };

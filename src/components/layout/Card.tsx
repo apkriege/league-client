@@ -1,3 +1,5 @@
+import Paper from "@mui/material/Paper";
+
 interface CardProps {
   title?: string;
   subtitle?: string;
@@ -8,8 +10,10 @@ interface CardProps {
 
 export default function Card({ title, subtitle, className = "", children, onClick }: CardProps) {
   return (
-    <div
-      className={`app-page-card card w-full p-5 ${className}`}
+    <Paper
+      component="section"
+      variant="outlined"
+      className={`app-page-card w-full p-5 ${className}`}
       onClick={onClick}
     >
       {(title || subtitle) && (
@@ -19,6 +23,6 @@ export default function Card({ title, subtitle, className = "", children, onClic
         </div>
       )}
       {children}
-    </div>
+    </Paper>
   );
 }

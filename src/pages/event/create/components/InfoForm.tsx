@@ -2,6 +2,7 @@ import {
   AutocompleteSelect,
   DateInput,
   Input,
+  Select,
   SelectableInfoCard,
   ToggleCards,
 } from "@/components/form";
@@ -13,16 +14,33 @@ import { getEventDateInputValue } from "@/utils/eventDate";
 import { CircleCheck, Tally5, User, Users, Zap } from "lucide-react";
 import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { DEFAULT_STROKE_POINTS } from "../constants";
+import MuiCheckbox from "@mui/material/Checkbox";
+import { useToast } from "@/context/useToast";
+import {
+  getFixedEventHoleCount,
+  normalizeLeagueHoleFormat,
+} from "@/features/leagues/leagueHoleFormat";
+import { createCourseAutocompleteOptions } from "../courseAutocompleteOptions";
 
 export default function InfoForm() {
   const { leagueId } = useParams();
   const { data: courses } = useCoursesWithTees();
   const { data: league } = useLeague(Number(leagueId));
   const methods = useFormContext();
+  const { show } = useToast();
   const leagueStartDate = getEventDateInputValue(league?.startDate);
   const leagueEndDate = getEventDateInputValue(league?.endDate);
+  const leagueHoleFormat = normalizeLeagueHoleFormat(league?.holeFormat);
+  const fixedEventHoleCount = getFixedEventHoleCount(leagueHoleFormat);
+  const availableCourses = (courses || []).filter(
+    (course: any) => fixedEventHoleCount !== 18 || Number(course.numHoles) >= 18
+  );
+  const selectedCourse = availableCourses.find(
+    (course: any) => Number(course.id) === Number(methods.watch("courseId"))
+  );
+  const isNineHoleCourse = Number(selectedCourse?.numHoles) <= 9;
 
   useEffect(() => {
     if (!leagueStartDate || !leagueEndDate) return;
@@ -38,25 +56,22 @@ export default function InfoForm() {
     }
   }, [leagueStartDate, leagueEndDate, methods]);
 
+  useEffect(() => {
+    if (fixedEventHoleCount) {
+      methods.setValue("holes", fixedEventHoleCount, { shouldDirty: true });
+    } else if (isNineHoleCourse) {
+      methods.setValue("holes", 9, { shouldDirty: true });
+    }
+    if (isNineHoleCourse) {
+      methods.setValue("startSide", "front", { shouldDirty: true });
+    }
+  }, [fixedEventHoleCount, isNineHoleCourse, methods]);
+
   if (!courses) return null;
 
-  const courseOptions = courses.map((course: any) => ({
-    value: course.id,
-    label: course.name,
-    content: (
-      <div className="flex flex-col">
-        <span>
-          {course.name}, {course.location}
-        </span>
-        <span className="text-[10px] text-gray-500">
-          {course.par} &bull; {course.numHoles} HOLES
-        </span>
-      </div>
-    ),
-  }));
+  const courseOptions = createCourseAutocompleteOptions(availableCourses);
 
   const getTeeOptions = () => {
-    const selectedCourse = courses.find((course: any) => course.id === methods.watch("courseId"));
     if (!selectedCourse) return [];
 
     return selectedCourse.tees
@@ -81,8 +96,21 @@ export default function InfoForm() {
   const isTeamFormat = methods.watch("format") === "team";
   const scoringFormat = methods.watch("scoringFormat");
   const pointsEnabled = methods.watch("pointsEnabled") !== false;
+  const clearFlightsForModeChange = () => {
+    const flights = methods.getValues("flights");
+    if (!Array.isArray(flights) || flights.length === 0) return;
+    methods.setValue("flights", [], { shouldDirty: true });
+    show("Flights were cleared because the event format changed.", "info");
+  };
+  const selectFormat = (nextFormat: string) => {
+    if (nextFormat === methods.getValues("format")) return;
+    clearFlightsForModeChange();
+    methods.setValue("format", nextFormat, { shouldDirty: true });
+  };
   const selectScoringFormat = (nextScoringFormat: "stroke" | "match") => {
-    methods.setValue("scoringFormat", nextScoringFormat);
+    if (nextScoringFormat === methods.getValues("scoringFormat")) return;
+    clearFlightsForModeChange();
+    methods.setValue("scoringFormat", nextScoringFormat, { shouldDirty: true });
 
     if (nextScoringFormat === "stroke" && !String(methods.getValues("strokePoints") || "").trim()) {
       methods.setValue("strokePoints", DEFAULT_STROKE_POINTS, { shouldDirty: true });
@@ -98,7 +126,7 @@ export default function InfoForm() {
             Set up the details for your event, including date, time, and format.
           </p>
           <div className="mt-4 flex flex-col gap-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
                 label="Event Name"
                 placeholder="e.g. January Open"
@@ -110,17 +138,31 @@ export default function InfoForm() {
                 max={leagueEndDate || undefined}
                 {...methods.register("date", { required: "Event date is required" })}
               />
+              <Select
+                label="Event Type"
+                value={methods.watch("type")}
+                onChange={(event) =>
+                  methods.setValue("type", event.target.value, { shouldDirty: true })
+                }
+                options={[
+                  { value: "regular", label: "Regular" },
+                  { value: "playoff", label: "Playoff" },
+                  { value: "championship", label: "Championship" },
+                  { value: "tournament", label: "Tournament" },
+                  { value: "makeup", label: "Makeup" },
+                ]}
+              />
             </div>
             {isFormatLocked ? (
-              <div className="rounded-lg border border-base-300 px-3 py-2 text-xs">
+              <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
                 Event format is locked to
                 <span className="font-semibold ml-1 uppercase">{lockedSeasonFormat}</span>
-                <span className="text-base-content/60 ml-1">by league season settings.</span>
+                <span className="text-slate-900/60 ml-1">by league season settings.</span>
               </div>
             ) : (
               <ToggleCards
                 value={methods.watch("format")}
-                onChange={(value) => methods.setValue("format", value)}
+                onChange={selectFormat}
                 options={[
                   { value: "individual", label: "INDIVIDUAL", icon: <User /> },
                   { value: "team", label: "TEAM PLAY", icon: <Users /> },
@@ -137,11 +179,24 @@ export default function InfoForm() {
             </p>
             <AutocompleteSelect
               label="Course"
-              placeholder="Select a course"
+              placeholder="Search by course, club, or location"
               options={courseOptions}
-              onChange={(value) => methods.setValue("courseId", value)}
+              noResultsText="No matching courses"
+              denseOptions
+              onChange={(value) => {
+                if (Number(value) !== Number(methods.getValues("courseId"))) {
+                  methods.setValue("teeId", undefined, { shouldDirty: true });
+                }
+                methods.setValue("courseId", value, { shouldDirty: true });
+              }}
               value={methods.watch("courseId")}
             />
+            <Link
+              to="/courses"
+              className="mt-1 block text-right text-[10px] font-medium text-sky-700 hover:text-sky-900 hover:underline"
+            >
+              Can&apos;t find your course?
+            </Link>
           </div>
           {methods.watch("courseId") && (
             <div className="w-full">
@@ -163,7 +218,7 @@ export default function InfoForm() {
               onChange={(value) => methods.setValue("startSide", value)}
               options={[
                 { value: "front", label: "FRONT" },
-                { value: "back", label: "BACK" },
+                ...(!isNineHoleCourse ? [{ value: "back", label: "BACK" }] : []),
               ]}
             />
           </div>
@@ -185,14 +240,21 @@ export default function InfoForm() {
             />
             <div>
               <Label text="Holes" />
-              <ToggleCards
-                value={String(methods.watch("holes"))}
-                onChange={(value) => methods.setValue("holes", Number(value))}
-                options={[
-                  { value: "9", label: "9" },
-                  { value: "18", label: "18" },
-                ]}
-              />
+              {fixedEventHoleCount ? (
+                <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
+                  <span className="font-semibold">{fixedEventHoleCount} holes</span>
+                  <span className="ml-1 text-slate-900/60">locked by league settings.</span>
+                </div>
+              ) : (
+                <ToggleCards
+                  value={String(methods.watch("holes"))}
+                  onChange={(value) => methods.setValue("holes", Number(value))}
+                  options={[
+                    { value: "9", label: "9" },
+                    ...(!isNineHoleCourse ? [{ value: "18", label: "18" }] : []),
+                  ]}
+                />
+              )}
             </div>
           </div>
         </Card>
@@ -237,18 +299,18 @@ export default function InfoForm() {
           <div className="mt-4">
             {scoringFormat === "stroke" && (
               <>
-                <label className="mb-3 flex items-start gap-2 rounded-lg border border-base-300 bg-white px-3 py-2 text-xs">
-                  <input
-                    type="checkbox"
+                <label className="mb-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
+                  <MuiCheckbox
                     checked={pointsEnabled}
                     onChange={(event) =>
                       methods.setValue("pointsEnabled", event.target.checked, { shouldDirty: true })
                     }
-                    className="checkbox checkbox-primary checkbox-sm mt-0.5"
+                    size="small"
+                    sx={{ mt: -0.5, p: 0.5 }}
                   />
                   <span>
-                    <span className="block font-semibold text-base-content">Award points</span>
-                    <span className="block text-base-content/60">
+                    <span className="block font-semibold text-slate-900">Award points</span>
+                    <span className="block text-slate-900/60">
                       Turn this off for tournament events where the leaderboard should rank by net score only.
                     </span>
                   </span>
@@ -259,7 +321,7 @@ export default function InfoForm() {
                   disabled={!pointsEnabled}
                   {...methods.register("strokePoints")}
                 />
-                <p className="text-[11px] text-base-content/60 mt-1">
+                <p className="text-[11px] text-slate-900/60 mt-1">
                   {pointsEnabled
                     ? "Optional. Leave blank to use Stableford scoring."
                     : "Points are disabled; this event leaderboard will use low net."}

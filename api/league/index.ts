@@ -2,8 +2,10 @@
 import apiClient from "../client";
 
 // calls
-export async function getLeagueMetrics(leagueId: number) {
-  const response = await apiClient.get(`/leagues/${leagueId}/metrics`);
+export async function getLeagueMetrics(leagueId: number, periodId?: number | null) {
+  const response = await apiClient.get(`/leagues/${leagueId}/metrics`, {
+    params: periodId ? { periodId } : undefined,
+  });
   return response.data;
 }
 
@@ -29,6 +31,11 @@ export async function updateLeague(id: number, leagueData: any) {
 
 export async function deleteLeague(id: number) {
   const response = await apiClient.delete(`/leagues/${id}`);
+  return response.data;
+}
+
+export async function rotateLeagueViewerAccessCode(leagueId: number) {
+  const response = await apiClient.post(`/leagues/${leagueId}/viewer-access-code/rotate`);
   return response.data;
 }
 
@@ -67,10 +74,11 @@ export async function getLeagueEventScores(leagueId: number, eventId: number) {
   return response.data;
 }
 
-export async function createLeagueEvents(leagueId: number, eventsData: any[]) {
-  const response = await apiClient.post(`/leagues/${leagueId}/events`, {
-    events: eventsData,
-  });
+export async function createLeagueEvents(
+  leagueId: number,
+  payload: { events: any[]; scoringPeriods?: any[] }
+) {
+  const response = await apiClient.post(`/leagues/${leagueId}/events`, payload);
   return response.data;
 }
 

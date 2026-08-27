@@ -13,10 +13,19 @@ export function register(data: {
   lastName: string;
   email: string;
   password: string;
+  invitationToken?: string;
 }) {
   return apiClient.post("/auth/register", data);
 }
 
 export function logout() {
   return apiClient.post("/auth/logout");
+}
+
+export function requestPasswordReset(email: string) {
+  return apiClient.post("/auth/password-reset/request", { email });
+}
+
+export function completePasswordReset(token: string, password: string) {
+  return apiClient.post("/auth/password-reset/complete", { token, password });
 }

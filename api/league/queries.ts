@@ -26,10 +26,14 @@ export const useLeague = (id: number, enabled = true) => {
   });
 };
 
-export const useLeagueMetrics = (leagueId: number, enabled = true) => {
+export const useLeagueMetrics = (
+  leagueId: number,
+  options: { enabled?: boolean; periodId?: number | null } = {}
+) => {
+  const { enabled = true, periodId = null } = options;
   return useQuery({
-    queryKey: ["league", leagueId, "metrics"],
-    queryFn: () => getLeagueMetrics(leagueId),
+    queryKey: ["league", leagueId, "metrics", periodId],
+    queryFn: () => getLeagueMetrics(leagueId, periodId),
     enabled: enabled && !!leagueId,
   });
 };

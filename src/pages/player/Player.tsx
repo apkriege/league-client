@@ -1,22 +1,20 @@
-import { Link, useParams } from "react-router";
+import LoadingState from "@/components/layout/LoadingState";
+import PanelBar from "@/components/layout/PanelBar";
+import SectionKicker from "@/components/layout/SectionKicker";
+import SurfaceCard from "@/components/layout/SurfaceCard";
+import { SummaryPillButton } from "@/components/layout/SummaryPill";
+import Table from "@/components/Table";
+import SectionIntro from "@/components/layout/SectionIntro";
+import { useParams } from "react-router";
 import { usePlayerStats } from "@api/players/queries";
 import { useLeagueMetrics } from "@api/league/queries";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  BarElement,
-  CategoryScale,
-  Chart as ChartJS,
-  Legend,
-  LinearScale,
-  Tooltip,
-} from "chart.js";
-import { Bar } from "react-chartjs-2";
+import { useMemo, useState, type ReactNode } from "react";
+import useAnimatedDrawer from "@/hooks/useAnimatedDrawer";
 import {
   BarChart2,
-  ChevronRight,
   Flag,
   Minus,
   ShieldHalf,
@@ -28,20 +26,16 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import dayjs from "dayjs";
+import PlayerScoreDistributionChart from "./components/PlayerScoreDistributionChart";
+import { InfoChip, StatMini } from "./components/PlayerSummary";
+import { PlayerRoundBreakdown, RoundHistory } from "./components/PlayerRoundTables";
+import type { ScoreDistribution } from "./playerTypes";
+import { formatHandicap } from "./playerFormatters";
+import { buildHandicapDifferentialPool, getHandicapRule } from "./playerHandicap";
+import { calculatePlayerRoundAverages } from "./playerRoundAverages";
+import { formatPlayerRoundDate, getPlayerRoundTimestamp } from "./playerRoundDate";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
-
-type ScoreDist = {
-  eagles: number;
-  birdies: number;
-  pars: number;
-  bogeys: number;
-  doubleBogeys: number;
-  tripleBogeys: number;
-};
-
-const EMPTY_DIST: ScoreDist = {
+const EMPTY_DIST: ScoreDistribution = {
   eagles: 0,
   birdies: 0,
   pars: 0,
@@ -56,61 +50,48 @@ const formatValue = (value: any, fallback: string | number = "-") => {
 };
 
 const formatDelta = (delta: number) => {
-  if (Math.abs(delta) < 0.05) return "-";
-  return delta < 0 ? delta.toFixed(1) : `+${delta.toFixed(1)}`;
+  if (Math.abs(delta) < 0.005) return "0.00";
+  return delta < 0 ? delta.toFixed(2) : `+${delta.toFixed(2)}`;
 };
 
-const round1 = (value: number) => Math.round(value * 10) / 10;
+type OverviewTile = {
+  label: string;
+  icon: ReactNode;
+  accent: string;
+  value?: string | number;
+  sub?: string;
+  split?: Array<{
+    label: "9H" | "18H";
+    value: string | number;
+    sub: string;
+  }>;
+};
 
 export default function Player() {
   const { leagueId, playerId } = useParams();
   const [roundBreakdownView, setRoundBreakdownView] = useState<"gross" | "net">("gross");
-  const [isHandicapDrawerMounted, setIsHandicapDrawerMounted] = useState(false);
-  const [isHandicapDrawerOpen, setIsHandicapDrawerOpen] = useState(false);
-  const handicapDrawerCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handicapDrawer = useAnimatedDrawer();
   const numericLeagueId = Number(leagueId);
   const { data, isLoading, isError, error } = usePlayerStats(numericLeagueId, Number(playerId));
   const { data: leagueMetrics } = useLeagueMetrics(numericLeagueId);
+  const handicapHoleCount = Number(data?.handicapHoleBasis) === 9 ? 9 : 18;
+  const roundAverages = useMemo(
+    () => calculatePlayerRoundAverages(data?.rounds ?? []),
+    [data?.rounds],
+  );
 
-  const openHandicapDrawer = () => {
-    if (handicapDrawerCloseTimerRef.current) {
-      clearTimeout(handicapDrawerCloseTimerRef.current);
-      handicapDrawerCloseTimerRef.current = null;
-    }
-    setIsHandicapDrawerMounted(true);
-    requestAnimationFrame(() => {
-      setIsHandicapDrawerOpen(true);
-    });
-  };
-
-  const closeHandicapDrawer = () => {
-    setIsHandicapDrawerOpen(false);
-    if (handicapDrawerCloseTimerRef.current) {
-      clearTimeout(handicapDrawerCloseTimerRef.current);
-    }
-    handicapDrawerCloseTimerRef.current = setTimeout(() => {
-      setIsHandicapDrawerMounted(false);
-      handicapDrawerCloseTimerRef.current = null;
-    }, 300);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (handicapDrawerCloseTimerRef.current) {
-        clearTimeout(handicapDrawerCloseTimerRef.current);
-      }
-    };
-  }, []);
 
   const handicapDetail = useMemo(() => {
     const chronologicalRows = [...(data?.rounds ?? [])]
       .filter((r: any) => r?.differential != null && Number.isFinite(Number(r.differential)))
-      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .sort((a: any, b: any) => getPlayerRoundTimestamp(a) - getPlayerRoundTimestamp(b))
       .map((r: any) => ({
         roundId: r.id,
         eventId: r.eventId,
         eventName: r.eventName,
         date: r.date,
+        startsAt: r.startsAt,
+        timeZone: r.timeZone,
         differential: Number(r.differential),
         adjustedGross: r.adjusted != null ? Number(r.adjusted) : null,
         courseRating: r.courseRating != null ? Number(r.courseRating) : null,
@@ -119,94 +100,57 @@ export default function Player() {
         scores: Array.isArray(r.scores) ? r.scores : [],
       }));
 
-    const allRows = [...chronologicalRows].sort((a, b) => a.differential - b.differential);
-    const usedRows = allRows.length < 5 ? allRows : allRows.slice(0, 5);
+    const handicapWindow = chronologicalRows.slice(-20);
+    const allRows = [...handicapWindow].sort((a, b) => a.differential - b.differential);
+    const differentialPool = buildHandicapDifferentialPool(
+      handicapWindow,
+      (row) => row.differential,
+      Number(data?.player?.startingHandicap),
+    );
+    const rule = getHandicapRule(differentialPool.length);
+    const usedEntries = rule
+      ? [...differentialPool]
+          .sort((left, right) => left.differential - right.differential)
+          .slice(0, rule.count)
+      : [];
+    const usedRows = usedEntries.flatMap((entry) => (entry.row ? [entry.row] : []));
 
     return {
-      chronologicalRows,
       allRows,
+      differentialPool,
+      usedEntries,
       usedRows,
+      rule,
     };
-  }, [data?.rounds]);
+  }, [data?.player?.startingHandicap, data?.rounds]);
 
   const handicapComputation = useMemo(() => {
     const allRows = handicapDetail.allRows;
-    const used = handicapDetail.usedRows;
-    const latestRound =
-      handicapDetail.chronologicalRows[handicapDetail.chronologicalRows.length - 1];
+    const used = handicapDetail.usedEntries;
+    const rule = handicapDetail.rule;
+    if (!rule || used.length === 0) return null;
 
-    if (!latestRound || allRows.length === 0) return null;
-
-    const preHandicap = latestRound.preHandicap ?? Number(data?.player?.startingHandicap ?? 0);
-    const usedSum = used.reduce((sum, row) => sum + row.differential, 0);
-
-    const isFirstHandicapRound = allRows.length === 1 && Math.abs(preHandicap) < 0.0001;
-
-    let averageBase: number;
-    let numerator: number;
-    let divisor: number;
-    let expression: string;
-
-    if (isFirstHandicapRound) {
-      numerator = allRows[0].differential;
-      divisor = 1;
-      averageBase = numerator;
-      expression = allRows[0].differential.toFixed(1);
-    } else if (allRows.length < 5) {
-      const allDiffSum = allRows.reduce((sum, row) => sum + row.differential, 0);
-      numerator = allDiffSum + preHandicap;
-      divisor = allRows.length + 1;
-      averageBase = numerator / divisor;
-      expression = `${allRows.map((row) => row.differential.toFixed(1)).join(" + ")} + ${preHandicap.toFixed(2)}`;
-    } else {
-      numerator = usedSum;
-      divisor = 5;
-      averageBase = numerator / divisor;
-      expression = used.map((row) => row.differential.toFixed(1)).join(" + ");
-    }
-
-    const handicapPercent = 96;
-    const multiplied = averageBase * 0.96;
-    const handicapAfterPercent = Number(multiplied.toFixed(2));
-
-    const parTotal = latestRound.scores.reduce(
-      (sum: number, score: any) => sum + Number(score.par ?? 0),
-      0
-    );
-    const scratchPar = latestRound.courseRating;
-    const teeAdjustment =
-      scratchPar != null && Number.isFinite(parTotal) ? scratchPar - parTotal : null;
-
-    const finalHandicap = Number(
-      (teeAdjustment != null ? handicapAfterPercent + teeAdjustment : handicapAfterPercent).toFixed(
-        2
-      )
-    );
-    const roundedWhole = Math.round(finalHandicap);
+    const usedSum = used.reduce((sum, entry) => sum + entry.differential, 0);
+    const averageBase = usedSum / used.length;
+    const tableIndex = Number((averageBase + rule.adjustment).toFixed(2));
     const currentStored = Number(data?.player?.handicap ?? 0);
-    const differenceFromStored = Number((currentStored - finalHandicap).toFixed(2));
 
     return {
-      allRowsCount: allRows.length,
+      recordedRowsCount: allRows.length,
+      modeledCount: handicapDetail.differentialPool.length - allRows.length,
       used,
       usedSum,
-      preHandicap,
-      numerator,
-      divisor,
       averageBase,
-      handicapPercent,
-      multiplied,
-      handicapAfterPercent,
-      scratchPar,
-      parTotal,
-      teeAdjustment,
-      finalHandicap,
-      roundedWhole,
-      expression,
+      adjustment: rule.adjustment,
+      tableIndex,
+      expression: used
+        .map((entry) =>
+          `${entry.differential.toFixed(2)}${entry.isStartingIndex ? " start" : ""}`,
+        )
+        .join(" + "),
       currentStored,
-      differenceFromStored,
     };
-  }, [data?.player?.handicap, data?.player?.startingHandicap, handicapDetail]);
+  }, [data?.player?.handicap, handicapDetail]);
 
   if (isError) {
     const status = getApiErrorStatus(error);
@@ -228,11 +172,7 @@ export default function Player() {
   }
 
   if (isLoading) {
-    return (
-      <div className="loading-state">
-        Loading player...
-      </div>
-    );
+    return <LoadingState>Loading player...</LoadingState>;
   }
 
   if (!data) return null;
@@ -244,7 +184,7 @@ export default function Player() {
   const hcpColor =
     hcpDelta < 0 ? "text-emerald-600" : hcpDelta > 0 ? "text-red-500" : "text-gray-400";
 
-  const playerDistribution: ScoreDist = stats
+  const playerDistribution: ScoreDistribution = stats
     ? {
         eagles: Number(stats.totalEagles || 0),
         birdies: Number(stats.totalBirdies || 0),
@@ -255,12 +195,62 @@ export default function Player() {
       }
     : EMPTY_DIST;
 
-  const leagueDistribution: ScoreDist = leagueMetrics?.scoreDistribution || EMPTY_DIST;
+  const leagueDistribution: ScoreDistribution =
+    leagueMetrics?.scoreDistribution || EMPTY_DIST;
   const leagueRoundCount = Number(leagueMetrics?.seasonSummary?.totalRounds || 0);
+  const averageValue = (holes: 9 | 18, key: "avgGross" | "avgNet" | "avgPutts") =>
+    roundAverages[holes]?.[key] ?? "—";
+  const overviewTiles: OverviewTile[] = [
+    {
+      label: "Season Points",
+      value: stats?.totalPoints ?? 0,
+      sub: `9H ${roundAverages[9]?.avgPoints ?? "—"} avg · 18H ${roundAverages[18]?.avgPoints ?? "—"} avg`,
+      icon: <Zap size={15} className="text-slate-900" />,
+      accent: "from-slate-50 to-white border-slate-200",
+    },
+    {
+      label: "Avg Gross",
+      split: ([9, 18] as const).map((holes) => ({
+        label: `${holes}H` as const,
+        value: averageValue(holes, "avgGross"),
+        sub: `Low ${roundAverages[holes]?.lowGross ?? "—"}`,
+      })),
+      icon: <BarChart2 size={15} className="text-blue-500" />,
+      accent: "from-blue-50 to-white border-blue-100",
+    },
+    {
+      label: "Avg Net",
+      split: ([9, 18] as const).map((holes) => ({
+        label: `${holes}H` as const,
+        value: averageValue(holes, "avgNet"),
+        sub: `Low ${roundAverages[holes]?.lowNet ?? "—"}`,
+      })),
+      icon: <Target size={15} className="text-emerald-500" />,
+      accent: "from-emerald-50 to-white border-emerald-100",
+    },
+    {
+      label: "Rounds Played",
+      value: stats?.rounds ?? 0,
+      sub: `${roundAverages[9]?.rounds ?? 0} nine-hole · ${roundAverages[18]?.rounds ?? 0} eighteen-hole`,
+      icon: <Trophy size={15} className="text-amber-500" />,
+      accent: "from-amber-50 to-white border-amber-100",
+    },
+    // TODO: Restore this card when putt tracking is added to score entry.
+    // {
+    //   label: "Avg Putts",
+    //   split: ([9, 18] as const).map((holes) => ({
+    //     label: `${holes}H` as const,
+    //     value: averageValue(holes, "avgPutts"),
+    //     sub: `${roundAverages[holes]?.rounds ?? 0} rounds`,
+    //   })),
+    //   icon: <Flag size={15} className="text-amber-500" />,
+    //   accent: "from-amber-50 to-white border-amber-100",
+    // },
+  ];
 
   return (
     <div>
-      <PageHeader title={fullName} icon={<User size={14} />} iconText="PLAYER" />
+      <PageHeader title={fullName} />
 
       <div className="mt-4 mb-4 flex flex-wrap gap-2">
         <InfoChip icon={<User size={12} />} text={player.type} capitalize />
@@ -270,21 +260,18 @@ export default function Player() {
           text={stats ? `${stats.rounds} rounds` : "No rounds"}
         />
         {player.seasonRank && <InfoChip text={`Rank #${player.seasonRank}`} strong />}
-        <button
-          type="button"
-          onClick={openHandicapDrawer}
-          className="cursor-pointer summary-pill hover:border-primary/30 hover:bg-primary/5 transition-colors"
+        <SummaryPillButton
+          onClick={() => handicapDrawer.open()}
+          className="hover:border-slate-900/30 hover:bg-slate-900/5"
           title="How handicap is calculated"
         >
           <span className="text-gray-400">
             <Target size={12} />
           </span>
-          <span className="font-semibold text-gray-800">HCP {formatValue(player.handicap)}</span>
-        </button>
-        {/* <InfoChip
-          icon={<Flag size={12} />}
-          text={`Start ${formatValue(stats?.startingHandicap ?? player.startingHandicap)}`}
-        /> */}
+          <span className="font-semibold text-gray-800">
+            {handicapHoleCount}H HCP {formatHandicap(player.handicap)}
+          </span>
+        </SummaryPillButton>
         <div
           className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm border bg-white ${hcpColor}`}
         >
@@ -300,43 +287,12 @@ export default function Player() {
       ) : (
         <div className="flex flex-col gap-4">
           <div>
-            <div className="mb-3">
-              <h3 className="text-lg font-bold text-gray-800 tracking-tight">Overview</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Season snapshot and key scoring metrics
-              </p>
-            </div>
+            <SectionIntro
+              title="Overview"
+              description="Season snapshot and key scoring metrics"
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                {
-                  label: "Season Points",
-                  value: stats.totalPoints,
-                  sub: `${stats.avgPoints} avg / round`,
-                  icon: <Zap size={15} className="text-primary" />,
-                  accent: "from-slate-50 to-white border-slate-200",
-                },
-                {
-                  label: "Avg Gross",
-                  value: stats.avgGross,
-                  sub: `Low ${stats.lowGross}`,
-                  icon: <BarChart2 size={15} className="text-blue-500" />,
-                  accent: "from-blue-50 to-white border-blue-100",
-                },
-                {
-                  label: "Avg Net",
-                  value: stats.avgNet,
-                  sub: `Low ${stats.lowNet}`,
-                  icon: <Target size={15} className="text-emerald-500" />,
-                  accent: "from-emerald-50 to-white border-emerald-100",
-                },
-                {
-                  label: "Avg Putts",
-                  value: stats.avgPutts,
-                  sub: `${stats.totalBirdies} birdies`,
-                  icon: <Flag size={15} className="text-amber-500" />,
-                  accent: "from-amber-50 to-white border-amber-100",
-                },
-              ].map((tile) => (
+              {overviewTiles.map((tile) => (
                 <div
                   key={tile.label}
                   className={`relative overflow-hidden bg-linear-to-br ${tile.accent} border rounded-xl px-4 py-3 shadow-sm flex items-start justify-between gap-3`}
@@ -345,10 +301,28 @@ export default function Player() {
                     <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
                       {tile.label}
                     </p>
-                    <p className="text-2xl font-black leading-tight text-gray-900 mt-1">
-                      {tile.value}
-                    </p>
-                    <p className="text-[10px] text-gray-500 truncate mt-0.5">{tile.sub}</p>
+                    {tile.split ? (
+                      <div className="mt-1.5 flex items-start gap-5">
+                        {tile.split.map((metric) => (
+                          <div key={metric.label}>
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                              {metric.label}
+                            </p>
+                            <p className="text-xl font-black leading-tight text-gray-900">
+                              {metric.value}
+                            </p>
+                            <p className="mt-0.5 text-[9px] text-gray-500">{metric.sub}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        <p className="mt-1 text-2xl font-black leading-tight text-gray-900">
+                          {tile.value}
+                        </p>
+                        <p className="mt-0.5 truncate text-[10px] text-gray-500">{tile.sub}</p>
+                      </>
+                    )}
                   </div>
                   <div className="shrink-0 p-2.5 bg-white/70 rounded-lg border border-white/70 shadow-[0_1px_0_rgba(255,255,255,0.8)]">
                     {tile.icon}
@@ -360,30 +334,28 @@ export default function Player() {
           </div>
 
           <div className="pt-2">
-            <div className="mb-3">
-              <h3 className="text-lg font-bold text-gray-800 tracking-tight">Performance</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Scoring distribution and detailed stat breakdown
-              </p>
-            </div>
+            <SectionIntro
+              title="Performance"
+              description="Scoring distribution and detailed stat breakdown"
+            />
             <aside className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
-              <section className="surface-card">
-                <div className="panel-row">
+              <SurfaceCard as="section">
+                <PanelBar>
                   <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
                   <h2 className="text-sm font-semibold text-gray-900">Score Distribution</h2>
                   <span className="ml-auto text-[10px] text-gray-400">Player vs league avg</span>
-                </div>
+                </PanelBar>
                 <div className="px-4 py-3">
-                  <ScoreDistributionChart
+                  <PlayerScoreDistributionChart
                     playerDistribution={playerDistribution}
                     playerRounds={Number(stats.rounds || 0)}
                     leagueDistribution={leagueDistribution}
                     leagueRounds={leagueRoundCount}
                   />
                 </div>
-              </section>
+              </SurfaceCard>
 
-              <section className="surface-card">
+              <SurfaceCard as="section">
                 <div className="px-4 py-3">
                   <h2 className="text-sm font-semibold text-gray-900">Scoring Detail</h2>
                 </div>
@@ -404,16 +376,16 @@ export default function Player() {
                     </div>
                   ))}
                 </div>
-              </section>
+              </SurfaceCard>
             </aside>
           </div>
 
           <div className="pt-2">
-            <div className="mb-3">
-              <h3 className="text-lg font-bold text-gray-800 tracking-tight">Round History</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Chronological log of completed rounds</p>
-            </div>
-            <section className="surface-card">
+            <SectionIntro
+              title="Round History"
+              description="Chronological log of completed rounds"
+            />
+            <SurfaceCard as="section">
               <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
@@ -424,17 +396,15 @@ export default function Player() {
                 </span>
               </div>
               <RoundHistory rounds={rounds} leagueId={leagueId} />
-            </section>
+            </SurfaceCard>
           </div>
 
           <div className="pt-2">
-            <div className="mb-3">
-              <h3 className="text-lg font-bold text-gray-800 tracking-tight">Round Breakdown</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Hole-by-hole gross and net scoring details
-              </p>
-            </div>
-            <section className="surface-card">
+            <SectionIntro
+              title="Round Breakdown"
+              description="Hole-by-hole gross and net scoring details"
+            />
+            <SurfaceCard as="section">
               <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Flag size={14} className="text-emerald-500" strokeWidth={2.5} />
@@ -473,42 +443,40 @@ export default function Player() {
                 leagueId={leagueId}
                 scoreView={roundBreakdownView}
               />
-            </section>
+            </SurfaceCard>
           </div>
         </div>
       )}
 
-      {isHandicapDrawerMounted && (
+      {handicapDrawer.isMounted && (
         <div className="fixed inset-0 z-50">
           <button
             type="button"
             aria-label="Close handicap drawer"
-            onClick={closeHandicapDrawer}
+            onClick={handicapDrawer.close}
             className={`absolute inset-0 bg-black/35 transition-opacity duration-300 ${
-              isHandicapDrawerOpen ? "opacity-100" : "opacity-0"
+              handicapDrawer.isOpen ? "opacity-100" : "opacity-0"
             }`}
           />
 
           <aside
             className={`app-slideout-drawer absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 overflow-y-auto transition-transform duration-300 ease-out ${
-              isHandicapDrawerOpen ? "translate-x-0" : "translate-x-full"
+              handicapDrawer.isOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >
             <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4">
               <div>
-                <p className="section-kicker">
-                  Handicap Detail
-                </p>
+                <SectionKicker>Handicap Detail</SectionKicker>
                 <h3 className="text-lg font-bold text-gray-900 tracking-tight">
                   How Handicap Is Calculated
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Based on completed rounds and scoring differential
+                  Based on completed rounds and {handicapHoleCount}-hole scoring differentials
                 </p>
               </div>
               <button
                 type="button"
-                onClick={closeHandicapDrawer}
+                onClick={handicapDrawer.close}
                 className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200"
                 aria-label="Close"
               >
@@ -517,16 +485,17 @@ export default function Player() {
             </div>
 
             <div className="p-5 space-y-5">
-              <section className="surface-card p-4">
-                <p className="section-kicker mb-2.5">
-                  1. Handicap Setup
-                </p>
+              <SurfaceCard as="section" className="p-4">
+                <SectionKicker className="mb-2.5">1. Handicap Setup</SectionKicker>
                 <div className="grid grid-cols-2 gap-3">
                   <StatMini
-                    label="Starting"
-                    value={formatValue(stats?.startingHandicap ?? player.startingHandicap)}
+                    label={`Starting ${handicapHoleCount}H`}
+                    value={formatHandicap(stats?.startingHandicap ?? player.startingHandicap)}
                   />
-                  <StatMini label="Current" value={formatValue(player.handicap)} />
+                  <StatMini
+                    label={`Current ${handicapHoleCount}H`}
+                    value={formatHandicap(player.handicap)}
+                  />
                   <StatMini
                     label="Completed Rounds"
                     value={formatValue(stats?.rounds ?? rounds.length)}
@@ -535,52 +504,54 @@ export default function Player() {
                     label="Differentials"
                     value={
                       handicapComputation
-                        ? handicapComputation.allRowsCount < 5
-                          ? `All ${handicapComputation.allRowsCount} (+ pre-HCP)`
-                          : "Lowest 5"
-                        : "Need rounds"
+                        ? `${handicapComputation.recordedRowsCount} recorded · ${handicapComputation.modeledCount} baseline`
+                        : "No eligible rounds"
                     }
                   />
                 </div>
-              </section>
+              </SurfaceCard>
 
-              <section className="surface-card p-4">
-                <p className="section-kicker mb-2.5">
+              <SurfaceCard as="section" className="p-4">
+                <SectionKicker className="mb-2.5">
                   2. Round Variations (Differentials)
-                </p>
+                </SectionKicker>
                 {handicapDetail.allRows.length === 0 ? (
                   <p className="text-xs text-gray-400">No differentials available yet.</p>
                 ) : (
-                  <div className="max-h-64 overflow-auto border border-gray-100 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-                    <table className="w-full text-left text-xs">
-                      <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
-                        <tr className="section-kicker">
-                          <th className="px-3 py-2">Round</th>
-                          <th className="px-3 py-2 text-right">Adj</th>
-                          <th className="px-3 py-2 text-right">Rating</th>
-                          <th className="px-3 py-2 text-right">Diff</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {handicapDetail.allRows.map((row) => {
+                  <div className="max-h-72 overflow-auto border border-gray-100 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                    <Table
+                      data={handicapDetail.allRows}
+                      search={false}
+                      variant="clean"
+                      noBorder
+                      tableClassName="w-full text-left text-xs"
+                      renderTable={(visibleRows) => (
+                        <>
+                          <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
+                            <tr className="section-kicker">
+                              <th className="px-3 py-2">Round</th>
+                              <th className="px-3 py-2 text-right">Adj</th>
+                              <th className="px-3 py-2 text-right">Rating</th>
+                              <th className="px-3 py-2 text-right">Diff</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {visibleRows.map((row) => {
                           const isUsed = handicapDetail.usedRows.some(
-                            (used) =>
-                              used.eventId === row.eventId &&
-                              used.differential === row.differential &&
-                              used.date === row.date
+                            (used) => used.roundId === row.roundId
                           );
 
                           return (
                             <tr
-                              key={`${row.eventId}-${row.date}-${row.differential}`}
+                              key={row.roundId ?? `${row.eventId}-${row.differential}`}
                               className={isUsed ? "bg-blue-50/50" : "bg-white hover:bg-gray-50/60"}
                             >
                               <td className="px-3 py-2 min-w-0">
-                                <p className="font-semibold text-gray-800 truncate max-w-[180px]">
+                                <p className="font-semibold text-gray-800 truncate max-w-45">
                                   {row.eventName}
                                 </p>
                                 <p className="text-[10px] text-gray-400">
-                                  {dayjs(row.date).format("MMM D, YYYY")}
+                                  {formatPlayerRoundDate(row)}
                                 </p>
                               </td>
                               <td className="px-3 py-2 text-right font-semibold text-gray-700 tabular-nums">
@@ -590,432 +561,73 @@ export default function Player() {
                                 {row.courseRating != null ? `${row.courseRating.toFixed(1)}` : "-"}
                               </td>
                               <td className="px-3 py-2 text-right font-bold text-gray-800 tabular-nums">
-                                {row.differential.toFixed(1)}
+                                {row.differential.toFixed(2)}
                               </td>
                             </tr>
                           );
-                        })}
-                      </tbody>
-                    </table>
+                            })}
+                          </tbody>
+                        </>
+                      )}
+                    />
                   </div>
                 )}
-              </section>
+              </SurfaceCard>
 
-              <section className="surface-card p-4">
-                <p className="section-kicker mb-2.5">
+              <SurfaceCard as="section" className="p-4">
+                <SectionKicker className="mb-2.5">
                   3. Use Variations To Calculate Handicap
-                </p>
+                </SectionKicker>
                 {handicapComputation ? (
                   <div className="space-y-2.5 text-xs text-gray-600">
-                    <p className="font-medium text-gray-700">Variations are added together...</p>
-                    <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                      {handicapComputation.expression} = {handicapComputation.usedSum.toFixed(3)}
-                    </p>
-
-                    <p className="font-medium text-gray-700 pt-1">
-                      Then divide by the total number included.
-                    </p>
-                    <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                      Pre-Handicap = {handicapComputation.numerator.toFixed(3)} /{" "}
-                      {handicapComputation.divisor} = {handicapComputation.averageBase.toFixed(3)}
-                    </p>
-
-                    <p className="font-medium text-gray-700 pt-1">
-                      {fullName} is a {player.type} player, so Handicap Percent is{" "}
-                      {handicapComputation.handicapPercent}%.
-                    </p>
-                    <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                      Handicap = {handicapComputation.averageBase.toFixed(3)} x{" "}
-                      {handicapComputation.handicapPercent}% ={" "}
-                      {handicapComputation.multiplied.toFixed(4)}
-                    </p>
-                    <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                      Handicap = {handicapComputation.handicapAfterPercent.toFixed(2)}
-                    </p>
-
-                    {handicapComputation.teeAdjustment != null ? (
-                      <>
-                        <p className="font-medium text-gray-700 pt-1">
-                          Adjust handicap for play on different tees.
-                        </p>
-                        <p className="font-semibold text-gray-900 tabular-nums">
-                          Tee adjustment = 'Scratch Par' - Par
-                        </p>
-                        <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                          Tee adjustment = ({handicapComputation.scratchPar?.toFixed(1)} -{" "}
-                          {handicapComputation.parTotal}) ={" "}
-                          {handicapComputation.teeAdjustment.toFixed(1)}
-                        </p>
-                        <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
-                          Handicap = {handicapComputation.handicapAfterPercent.toFixed(2)} +{" "}
-                          {handicapComputation.teeAdjustment.toFixed(1)}
-                        </p>
-                        <p className="font-semibold text-blue-900 tabular-nums bg-blue-50 border border-blue-200 rounded-md px-2.5 py-1.5">
-                          Final Handicap = {handicapComputation.finalHandicap.toFixed(2)}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-[11px] text-gray-400">
-                        Tee adjustment unavailable for this sample.
+                    {handicapComputation.modeledCount > 0 && (
+                      <p className="rounded-md border border-blue-100 bg-blue-50/60 px-2.5 py-2 text-[11px] text-blue-800">
+                        Until 20 league rounds are available, the starting handicap fills the
+                        missing history so one score cannot replace the entire index.
                       </p>
                     )}
+                    <p className="font-medium text-gray-700">
+                      The lowest qualifying differentials are added together.
+                    </p>
+                    <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
+                      {handicapComputation.expression} = {handicapComputation.usedSum.toFixed(2)}
+                    </p>
 
                     <p className="font-medium text-gray-700 pt-1">
-                      When converted to whole number, handicap is rounded to{" "}
-                      {handicapComputation.roundedWhole}.
+                      Divide by the number used, then apply the configured table adjustment.
+                    </p>
+                    <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
+                      {handicapComputation.usedSum.toFixed(2)} / {handicapComputation.used.length} ={" "}
+                      {handicapComputation.averageBase.toFixed(2)}
+                    </p>
+                    <p className="font-semibold text-gray-900 tabular-nums bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
+                      Table adjustment: {handicapComputation.adjustment > 0 ? "+" : ""}
+                      {handicapComputation.adjustment.toFixed(2)}
+                    </p>
+                    <p className="font-semibold text-blue-900 tabular-nums bg-blue-50 border border-blue-200 rounded-md px-2.5 py-1.5">
+                      Base index = {handicapComputation.tableIndex.toFixed(2)}
                     </p>
                     <p className="font-medium text-gray-700 pt-1">
-                      Current stored handicap: {handicapComputation.currentStored.toFixed(2)}
-                      {Math.abs(handicapComputation.differenceFromStored) > 0.01 && (
-                        <span className="text-amber-600">
-                          {" "}
-                          (difference {handicapComputation.differenceFromStored > 0 ? "+" : ""}
-                          {handicapComputation.differenceFromStored.toFixed(2)})
-                        </span>
-                      )}
+                      Current {handicapHoleCount}-Hole League Handicap: {handicapComputation.currentStored.toFixed(2)}
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      The saved index is authoritative and also includes any applicable
+                      exceptional-score and cap adjustments. {handicapHoleCount === 9
+                        ? "Nine-hole differentials remain on the 9-hole scale."
+                        : "Nine-hole results are normalized to the 18-hole scale before they enter this list."}
                     </p>
                   </div>
                 ) : (
                   <p className="text-xs text-gray-400">
-                    At least 3 completed rounds are needed before a handicap can be calculated.
+                    A completed round with a valid differential is needed before the handicap can
+                    be recalculated.
                   </p>
                 )}
-              </section>
+              </SurfaceCard>
             </div>
           </aside>
         </div>
       )}
     </div>
-  );
-}
-
-function StatMini({ label, value }: { label: string; value: any }) {
-  return (
-    <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="text-sm font-semibold text-gray-800 mt-0.5">{value}</p>
-    </div>
-  );
-}
-
-function InfoChip({
-  icon,
-  text,
-  strong = false,
-  capitalize = false,
-}: {
-  icon?: ReactNode;
-  text: any;
-  strong?: boolean;
-  capitalize?: boolean;
-}) {
-  return (
-    <div className="summary-pill">
-      {icon && <span className="text-gray-400">{icon}</span>}
-      <span
-        className={`${strong ? "font-semibold text-gray-800" : ""} ${capitalize ? "capitalize" : ""}`}
-      >
-        {text}
-      </span>
-    </div>
-  );
-}
-
-function ScoreDistributionChart({
-  playerDistribution,
-  playerRounds,
-  leagueDistribution,
-  leagueRounds,
-}: {
-  playerDistribution: ScoreDist;
-  playerRounds: number;
-  leagueDistribution: ScoreDist;
-  leagueRounds: number;
-}) {
-  const toPerRound = (dist: ScoreDist, rounds: number) => {
-    const divisor = Math.max(rounds, 1);
-    return [
-      dist.eagles,
-      dist.birdies,
-      dist.pars,
-      dist.bogeys,
-      dist.doubleBogeys,
-      dist.tripleBogeys,
-    ].map((value) => round1(Number(value || 0) / divisor));
-  };
-
-  const chartData = {
-    labels: ["Eagle", "Birdie", "Par", "Bogey", "Double", "Triple+"],
-    datasets: [
-      {
-        label: "Player Avg",
-        data: toPerRound(playerDistribution, playerRounds),
-        backgroundColor: "rgba(15, 23, 42, 0.88)",
-        borderRadius: 4,
-        borderSkipped: false,
-        categoryPercentage: 0.78,
-        barPercentage: 0.74,
-      },
-      {
-        label: "League Avg",
-        data: toPerRound(leagueDistribution, leagueRounds),
-        backgroundColor: "rgba(156, 163, 175, 0.5)",
-        borderRadius: 4,
-        borderSkipped: false,
-        categoryPercentage: 0.78,
-        barPercentage: 0.74,
-      },
-    ],
-  };
-
-  const options: any = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "top" as const,
-        labels: {
-          boxWidth: 10,
-          boxHeight: 10,
-          borderRadius: 3,
-          useBorderRadius: true,
-          font: { size: 11 },
-          color: "#6b7280",
-          padding: 10,
-        },
-      },
-      tooltip: {
-        callbacks: {
-          label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.y} / round`,
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 10 }, color: "#9ca3af" },
-        border: { display: false },
-      },
-      y: {
-        grid: { color: "#f3f4f6" },
-        ticks: { font: { size: 10 }, color: "#9ca3af", precision: 0 },
-        border: { display: false },
-      },
-    },
-  };
-
-  return (
-    <div className="h-[180px]">
-      <Bar data={chartData} options={options} />
-    </div>
-  );
-}
-
-function RoundHistory({ rounds, leagueId }: { rounds: any[]; leagueId?: string }) {
-  const sorted = [...rounds].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="bg-gray-50 section-kicker">
-            <th className="pl-4 pr-3 py-2.5 text-left min-w-56">Event</th>
-            <th className="px-3 py-2.5 text-right">Gross</th>
-            <th className="px-3 py-2.5 text-right">Net</th>
-            <th className="px-3 py-2.5 text-right">Pts</th>
-            <th className="px-3 py-2.5 text-right">Putts</th>
-            <th className="px-3 py-2.5 text-right">E</th>
-            <th className="px-3 py-2.5 text-right">B</th>
-            <th className="px-3 py-2.5 text-right">Par</th>
-            <th className="px-3 py-2.5 text-right">Bogey</th>
-            <th className="px-3 py-2.5 text-right">Diff</th>
-            <th className="pl-3 pr-4 py-2.5 text-right">HCP</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {sorted.map((round: any) => {
-            const delta =
-              round.preHandicap != null && round.postHandicap != null
-                ? Number(round.postHandicap) - Number(round.preHandicap)
-                : null;
-            const DeltaIcon =
-              delta == null || Math.abs(delta) < 0.05
-                ? Minus
-                : delta < 0
-                  ? TrendingDown
-                  : TrendingUp;
-            const deltaClass =
-              delta == null || Math.abs(delta) < 0.05
-                ? "text-gray-300"
-                : delta < 0
-                  ? "text-emerald-600"
-                  : "text-red-500";
-
-            return (
-              <tr key={round.eventId} className="hover:bg-gray-50/70">
-                <td className="pl-4 pr-3 py-2.5">
-                  <Link
-                    to={`/league/${leagueId}/events/${round.eventId}`}
-                    className="group flex items-center justify-between gap-3"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate font-semibold text-gray-900">
-                        {round.eventName}
-                      </span>
-                      <span className="block text-[10px] text-gray-400">
-                        {dayjs(round.date).format("MMM D, YYYY")}
-                      </span>
-                    </span>
-                    <ChevronRight
-                      size={13}
-                      className="text-gray-300 group-hover:text-gray-500 shrink-0"
-                    />
-                  </Link>
-                </td>
-                <NumericCell value={round.gross} strong />
-                <NumericCell value={round.net} />
-                <NumericCell value={round.points} strong className="text-primary" />
-                <NumericCell value={round.putts} />
-                <NumericCell value={round.eagles} />
-                <NumericCell value={round.birdies} />
-                <NumericCell value={round.pars} />
-                <NumericCell value={round.bogeys} />
-                <NumericCell value={round.differential} />
-                <td className="pl-3 pr-4 py-2.5 text-right">
-                  <span
-                    className={`inline-flex items-center justify-end gap-1 font-semibold ${deltaClass}`}
-                  >
-                    <DeltaIcon size={11} strokeWidth={2.5} />
-                    {delta == null ? "-" : formatDelta(delta)}
-                  </span>
-                  <span className="block text-[10px] text-gray-400">
-                    {formatValue(round.postHandicap)}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function PlayerRoundBreakdown({
-  rounds,
-  leagueId,
-  scoreView,
-}: {
-  rounds: any[];
-  leagueId?: string;
-  scoreView: "gross" | "net";
-}) {
-  const sorted = [...rounds].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  const holes = Array.from(
-    new Set(sorted.flatMap((round) => (round.scores ?? []).map((score: any) => Number(score.hole))))
-  ).sort((a, b) => a - b);
-
-  return (
-    <div className="w-full">
-      <div className="w-full overflow-x-auto">
-        <table className="w-full table-fixed">
-          <colgroup>
-            <col className="w-56" />
-            {holes.map((hole) => (
-              <col key={hole} />
-            ))}
-            <col className="w-14" />
-            <col className="w-14" />
-          </colgroup>
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50 section-kicker">
-              <th className="pl-4 py-2.5 text-left">Round</th>
-              {holes.map((hole) => (
-                <th key={hole} className="py-2.5 text-center">
-                  {hole}
-                </th>
-              ))}
-              <th className="py-2.5 text-right">Gross</th>
-              <th className="pr-4 py-2.5 text-right">Net</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {sorted.map((round: any) => (
-              <tr key={round.id ?? round.eventId} className="transition-colors hover:bg-gray-50/60">
-                <td className="pl-4 py-2">
-                  <Link
-                    to={`/league/${leagueId}/events/${round.eventId}`}
-                    className="group flex flex-col gap-0.5"
-                  >
-                    <span className="truncate text-xs font-semibold text-gray-800 group-hover:text-gray-950">
-                      {round.eventName || "Round"}
-                    </span>
-                    <span className="text-[10px] font-medium text-gray-400">
-                      {dayjs(round.date).format("MMM D, YYYY")}
-                      {round.course?.name ? ` · ${round.course.name}` : ""}
-                      {round.tee?.name ? ` · ${round.tee.name}` : ""}
-                      {round.event?.startSide ? ` · ${round.event.startSide}` : ""}
-                    </span>
-                  </Link>
-                </td>
-                {holes.map((hole) => {
-                  const score = round.scores?.find((s: any) => Number(s.hole) === hole);
-                  const value = score?.[scoreView];
-                  const par = Number(score?.par ?? 0);
-                  const numericValue = Number(value ?? 0);
-                  const isHighlight = score && par > 0 && numericValue < par;
-
-                  return (
-                    <td key={hole} className="py-2.5 text-center text-xs text-gray-700">
-                      {score ? (
-                        <span
-                          className={
-                            isHighlight
-                              ? "inline-flex h-5 w-5 items-center justify-center rounded bg-green-100 font-semibold text-green-700 ring-1 ring-green-200"
-                              : ""
-                          }
-                        >
-                          {formatValue(value)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-                  );
-                })}
-                <td className="py-2.5 text-right">
-                  <span className="text-sm font-bold text-gray-700">{round.gross}</span>
-                </td>
-                <td className="pr-4 py-2.5 text-right">
-                  <span className="text-sm font-semibold text-gray-500">{round.net}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function NumericCell({
-  value,
-  strong = false,
-  className = "",
-}: {
-  value: any;
-  strong?: boolean;
-  className?: string;
-}) {
-  return (
-    <td
-      className={`px-3 py-2.5 text-right text-gray-600 ${strong ? "font-black text-gray-900" : ""} ${className}`}
-    >
-      {formatValue(value)}
-    </td>
   );
 }

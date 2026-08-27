@@ -1,31 +1,38 @@
-import { forwardRef } from "react";
+import TextField from "@mui/material/TextField";
+import { forwardRef, useId } from "react";
+import { Label } from "./Label";
 
-interface DateProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface DateProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
   label?: string;
   error?: string;
 }
 
-const DateInput = forwardRef<HTMLInputElement, DateProps>(function Date(
+const DateInput = forwardRef<HTMLInputElement, DateProps>(function DateInput(
   { label, className, error, ...inputProps },
   ref
 ) {
+  const generatedId = useId();
+  const controlId = inputProps.id ?? generatedId;
+
   return (
-    <fieldset className={`fieldset ${className || ""}`}>
-      {label ? (
-        <legend className="fieldset-legend field-label p-1 text-[10px]">
-          {label}
-        </legend>
-      ) : null}
-      <input
-        ref={ref}
+    <div className={className}>
+      {label ? <Label htmlFor={controlId} text={label} /> : null}
+      <TextField
+        id={controlId}
+        fullWidth
         type="date"
-        className={`input form-input h-[35px] text-xs ${
-          error ? "input-error" : ""
-        }`}
-        {...inputProps}
+        error={Boolean(error)}
+        helperText={error}
+        inputRef={ref}
+        size="small"
+        slotProps={{ htmlInput: inputProps }}
+        sx={{
+          "& .MuiInputBase-root": { minHeight: 35, fontSize: "0.75rem" },
+          "& .MuiInputBase-input": { py: 0.85 },
+          "& .MuiFormHelperText-root": { mx: 0.5, mt: 0.5, fontSize: "0.625rem" },
+        }}
       />
-      {error ? <p className="text-error text-[10px] mt-1">{error}</p> : null}
-    </fieldset>
+    </div>
   );
 });
 

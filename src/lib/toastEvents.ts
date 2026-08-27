@@ -1,4 +1,4 @@
-import type { ToastType } from "@/context/ToastContext";
+import type { ToastType } from "@/context/toastContextValue";
 
 type ToastListener = (message: string, type?: ToastType, duration?: number) => void;
 

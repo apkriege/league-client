@@ -10,6 +10,7 @@ import {
   deleteLeagueEvent,
   cancelLeagueEvent,
   updateEventScores,
+  rotateLeagueViewerAccessCode,
 } from ".";
 import type { League } from "@/types/league";
 
@@ -77,6 +78,17 @@ export const useDeleteLeague = () => {
   });
 };
 
+export const useRotateLeagueViewerAccessCode = (leagueId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => rotateLeagueViewerAccessCode(leagueId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["league", leagueId] });
+      queryClient.invalidateQueries({ queryKey: ["league", leagueId, "audit-logs"] });
+    },
+  });
+};
+
 // ============================================
 // Events
 export const useCreateLeagueEvent = (onSuccess?: any) => {
@@ -101,8 +113,16 @@ export const useCreateLeagueEvents = (onSuccess: any) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ leagueId, events }: { leagueId: number; events: any[] }) => {
-      return await createLeagueEvents(leagueId, events);
+    mutationFn: async ({
+      leagueId,
+      events,
+      scoringPeriods,
+    }: {
+      leagueId: number;
+      events: any[];
+      scoringPeriods?: any[];
+    }) => {
+      return await createLeagueEvents(leagueId, { events, scoringPeriods });
     },
     onSuccess: (_, variables) => {
       // Invalidate the events list for the league

@@ -6,37 +6,64 @@ import { useCoursesWithTees } from "@api/courses/queries";
 import { BookOpen, Flag, MapPin, Trees, Trophy } from "lucide-react";
 import { useMemo } from "react";
 import { useNavigate } from "react-router";
+import CourseRequestPanel from "./components/CourseRequestPanel";
+import Button from "@/components/layout/Button";
+import Chip from "@mui/material/Chip";
 
 type CourseRow = {
   id: number;
   name: string;
   club: string;
-  location: string;
+  city: string;
+  state: string;
   access: string;
   holes: number;
   par: number;
   tees: number;
 };
 
+const getCityAndState = (location: string | null | undefined) => {
+  const parts = String(location || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length < 2) {
+    return { city: parts[0] || "—", state: "—" };
+  }
+
+  return {
+    city: parts.at(-2) || "—",
+    state: parts.at(-1)?.replace(/\s+\d{5}(?:-\d{4})?$/, "") || "—",
+  };
+};
+
 export default function Courses() {
   const navigate = useNavigate();
   const { user } = useAppStore();
   const { data: courses = [], isLoading } = useCoursesWithTees();
-  const isSuperAdmin = String(user?.role || "").toUpperCase() === "SUPER";
+  const role = String(user?.role || "").toUpperCase();
+  const isSuperAdmin = role === "SUPER";
+  const canRequestCourse = role === "ADMIN" || isSuperAdmin;
 
   const rows = useMemo<CourseRow[]>(
     () =>
       courses
-        .map((course: any) => ({
-          id: Number(course.id),
-          name: course.name,
-          club: course.club?.name || "—",
-          location: course.location || course.club?.location || "—",
-          access: course.accessType || "public",
-          holes: Number(course.numHoles || 0),
-          par: Number(course.par || 0),
-          tees: Array.isArray(course.tees) ? course.tees.length : 0,
-        }))
+        .map((course: any) => {
+          const location = getCityAndState(course.location || course.club?.location);
+
+          return {
+            id: Number(course.id),
+            name: course.name,
+            club: course.club?.name || "—",
+            city: location.city,
+            state: location.state,
+            access: course.accessType || "public",
+            holes: Number(course.numHoles || 0),
+            par: Number(course.par || 0),
+            tees: Array.isArray(course.tees) ? course.tees.length : 0,
+          };
+        })
         .sort((a: any, b: any) => {
           const clubCmp = a.club.localeCompare(b.club);
           return clubCmp !== 0 ? clubCmp : a.name.localeCompare(b.name);
@@ -58,10 +85,14 @@ export default function Courses() {
       // cellWidth: "25%",
     },
     {
-      key: "location",
-      label: "Location",
+      key: "city",
+      label: "City",
       render: (value) => <p className="text-xs text-gray-700">{value}</p>,
-      // cellWidth: "22%",
+    },
+    {
+      key: "state",
+      label: "State",
+      render: (value) => <p className="text-xs text-gray-700">{value}</p>,
     },
     {
       key: "holes",
@@ -76,7 +107,7 @@ export default function Courses() {
     {
       key: "tees",
       label: "Tees",
-      render: (value) => <span className="badge badge-primary badge-sm">{value}</span>,
+      render: (value) => <Chip label={value} color="primary" size="small" />,
       cellWidth: "7%",
     },
     {
@@ -95,16 +126,17 @@ export default function Courses() {
             key: "id" as keyof CourseRow,
             label: "Edit",
             render: (_value: unknown, row: CourseRow) => (
-              <button
+              <Button
                 type="button"
-                className="btn btn-primary btn-xs"
+                variant="primary"
+                size="xs"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/superadmin/courses?edit=${row.id}`);
                 }}
               >
                 Edit
-              </button>
+              </Button>
             ),
             cellWidth: "10%",
           } satisfies Column<CourseRow>,
@@ -117,8 +149,6 @@ export default function Courses() {
       <PageHeader
         title="Courses"
         subTitle="Browse every course in the system, search by club or location, and open full course details."
-        icon={<BookOpen size={14} />}
-        iconText="COURSES"
       />
 
       <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -127,8 +157,8 @@ export default function Courses() {
             label: "Courses",
             value: rows.length,
             sub: "available to browse",
-            icon: <BookOpen size={14} className="text-primary" />,
-            bg: "bg-primary/5 border-primary/10",
+            icon: <BookOpen size={14} className="text-slate-900" />,
+            bg: "bg-slate-900/5 border-slate-900/10",
           },
           {
             label: "Clubs",
@@ -170,6 +200,8 @@ export default function Courses() {
         ))}
       </div>
 
+      {canRequestCourse && <CourseRequestPanel />}
+
       {isLoading ? (
         <Card>
           <p className="text-sm text-gray-500">Loading courses...</p>
@@ -179,6 +211,8 @@ export default function Courses() {
           data={rows}
           columns={columns}
           heading="Course Directory"
+          pagination
+          pageSize={10}
           onRowClick={(row) => navigate(`/courses/${row.id}`)}
           headerActions={
             <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-400 pr-2">

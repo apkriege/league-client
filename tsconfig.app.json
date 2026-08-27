@@ -37,7 +37,6 @@
     "./src/**/*.ts",
     "./src/**/*.tsx",
     "./api/**/*.ts",
-    "./api/**/*.tsx",
-    "_del/CreateLeagueOld.tsx"
+    "./api/**/*.tsx"
   ]
 }

@@ -1,4 +1,6 @@
-import { Fragment } from "react";
+import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import Table from "@/components/Table";
+import { Fragment, memo } from "react";
 import { Link, useParams } from "react-router";
 import {
   createTeamBestBallScoringHelpers,
@@ -6,11 +8,13 @@ import {
   createTeamScoringHelpers,
   sortFlightTeamsByHandicap,
 } from "./util";
+import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
+import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
 
 function PlayerNameLink({
   playerId,
   children,
-  className = "font-semibold text-gray-800 hover:text-primary hover:underline",
+  className = "font-semibold text-gray-800 hover:text-slate-900 hover:underline",
 }: {
   playerId?: number | string | null;
   children: React.ReactNode;
@@ -34,11 +38,8 @@ function PlayerNameLink({
   );
 }
 
-export default function ViewFlightScores({ event, flight }: any) {
-  const startingHole = event.startSide === "front" ? 1 : 10;
-  const holes = event.tee.holes
-    .slice(startingHole - 1, startingHole + event.holes - 1)
-    .map((hole: any, idx: number) => ({ ...hole, num: idx + startingHole }));
+function ViewFlightScores({ event, flight }: any) {
+  const holes = getEventScoringHoles(event);
 
   if (event?.format === "individual" && event?.scoringFormat === "match") {
     return <IndividualMatchView flight={flight} event={event} holes={holes} />;
@@ -151,62 +152,61 @@ export default function ViewFlightScores({ event, flight }: any) {
 
   return (
     <div className="border rounded-lg">
-      <div className="w-full overflow-x-auto">
-        <table className="score-table">
-          <thead>
-            <tr className="text-xs text-gray-700">
-              <th>Player</th>
-              {holes.map((hole: any) => (
-                <th key={hole.num} className="p-2 text-center">
-                  {hole.num}
-                </th>
+      <Table
+        data={[1 as const, 2 as const]}
+        search={false}
+        pagination={false}
+        variant="clean"
+        noBorder
+        tableClassName="score-table"
+        renderTable={(visibleTeams) => (
+          <>
+            <thead>
+              <tr className="text-xs text-gray-700">
+                <th>Player</th>
+                {holes.map((hole: any) => (
+                  <ScoreHeaderCell key={hole.num}>
+                    {hole.num}
+                  </ScoreHeaderCell>
+                ))}
+                <th className="text-center">Total</th>
+                <th className="text-center">Net</th>
+                <th className="text-center">Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleTeams.map((team) => (
+                <Fragment key={team}>
+                  {(team === 1 ? team1 : team2).map((player: any) => (
+                    <PlayerRow key={player.id} player={player} holes={holes} />
+                  ))}
+                  {team1.length > 0 && team2.length > 0 && (
+                    <TeamPointsRow
+                      label={`Team ${team} Points`}
+                      team={team}
+                      holes={holes}
+                      getTeamPointsForHole={getTeamPointsForHole}
+                      getTeamMedalPoints={getTeamMedalPoints}
+                      getTeamTotalPoints={getTeamTotalPoints}
+                      isTeamStroke={isTeamStroke}
+                    />
+                  )}
+                </Fragment>
               ))}
-              <th className="text-center">Total</th>
-              <th className="text-center">Net</th>
-              <th className="text-center">Points</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...team1].map((player: any) => (
-              <PlayerRow key={player.id} player={player} holes={holes} />
-            ))}
-            {team1.length > 0 && team2.length > 0 && (
-              <TeamPointsRow
-                label="Team 1 Points"
-                team={1}
-                holes={holes}
-                getTeamPointsForHole={getTeamPointsForHole}
-                getTeamMedalPoints={getTeamMedalPoints}
-                getTeamTotalPoints={getTeamTotalPoints}
-                isTeamStroke={isTeamStroke}
-              />
-            )}
-            {[...team2].map((player: any) => (
-              <PlayerRow key={player.id} player={player} holes={holes} />
-            ))}
-            {team1.length > 0 && team2.length > 0 && (
-              <TeamPointsRow
-                label="Team 2 Points"
-                team={2}
-                holes={holes}
-                getTeamPointsForHole={getTeamPointsForHole}
-                getTeamMedalPoints={getTeamMedalPoints}
-                getTeamTotalPoints={getTeamTotalPoints}
-                isTeamStroke={isTeamStroke}
-              />
-            )}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </>
+        )}
+      />
     </div>
   );
 }
+
+export default memo(ViewFlightScores);
 
 const PlayerRow = ({ player, holes }: any) => {
   const p = player.player;
   const round = p.rounds[0];
   const scores = round?.scores || [];
-  const hcp = Number(round?.preHandicap ?? p?.handicap ?? 0);
 
   return (
     <tr key={player.id} className="text-sm bg-slate-50/50">
@@ -214,9 +214,7 @@ const PlayerRow = ({ player, holes }: any) => {
         <PlayerNameLink playerId={player.playerId}>
           {p.firstName} {p.lastName}
         </PlayerNameLink>
-        <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
-          Handicap: {Math.round(hcp)}
-        </div>
+        <PlayerHandicapSummary entry={player} className="mt-0.5 block text-[10px] leading-tight text-gray-500" />
       </td>
       {holes.map((hole: any, holeIdx: number) => {
         const score = scores[holeIdx]?.gross;
@@ -228,11 +226,11 @@ const PlayerRow = ({ player, holes }: any) => {
           </td>
         );
       })}
-      <td className="font-bold text-center text-xs">{round?.gross ?? 0}</td>
-      <td className="font-bold text-center text-xs">{round?.net ?? 0}</td>
-      <td className="font-bold text-center text-xs">
+      <ScoreValueCell>{round?.gross ?? 0}</ScoreValueCell>
+      <ScoreValueCell>{round?.net ?? 0}</ScoreValueCell>
+      <ScoreValueCell>
         {Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0)}
-      </td>
+      </ScoreValueCell>
     </tr>
   );
 };
@@ -252,9 +250,7 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
   };
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    const preHandicap = Number(playerEntry?.player?.rounds?.[0]?.preHandicap);
-    if (Number.isFinite(preHandicap)) return preHandicap;
-    return Number(playerEntry?.player?.handicap ?? 0);
+    return getPlayerCourseHandicap(playerEntry);
   };
 
   const buildPairs = () => {
@@ -346,12 +342,13 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
       <Fragment key={playerEntry.playerId}>
         <tr className="text-sm bg-slate-50/50">
           <td className="p-2 text-xs">
-            <PlayerNameLink playerId={playerEntry.playerId} className="block font-semibold text-gray-800 hover:text-primary hover:underline">
+            <PlayerNameLink playerId={playerEntry.playerId} className="block font-semibold text-gray-800 hover:text-slate-900 hover:underline">
               {player.firstName} {player.lastName}
             </PlayerNameLink>
-            <span className="block text-[10px]">
-              Handicap: {Math.round(getEffectiveHandicap(playerEntry))}
-            </span>
+            <PlayerHandicapSummary
+              entry={playerEntry}
+              className="block text-[10px] text-gray-500"
+            />
           </td>
           {holes.map((hole: any) => {
             const score = getScoreByHole(playerEntry, hole.num);
@@ -372,11 +369,11 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
               </td>
             );
           })}
-          <td className="font-bold text-center text-xs">{matchup.gross}</td>
-          <td className="font-bold text-center text-xs">{matchup.net}</td>
-          <td className="font-bold text-center text-xs">{matchup.holePoints}</td>
-          <td className="font-bold text-center text-xs">{matchup.matchPoints}</td>
-          <td className="font-bold text-center text-xs">{matchup.totalPoints}</td>
+          <ScoreValueCell>{matchup.gross}</ScoreValueCell>
+          <ScoreValueCell>{matchup.net}</ScoreValueCell>
+          <ScoreValueCell>{matchup.holePoints}</ScoreValueCell>
+          <ScoreValueCell>{matchup.matchPoints}</ScoreValueCell>
+          <ScoreValueCell>{matchup.totalPoints}</ScoreValueCell>
         </tr>
         <tr className="bg-slate-50 text-[11px] text-gray-600">
           <td className="p-2 font-semibold">Hole Pts</td>
@@ -397,50 +394,62 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
 
   return (
     <div className="border rounded-lg">
-      <div className="w-full overflow-x-auto">
-        <table className="score-table">
-          <thead>
-            <tr className="text-xs text-gray-700">
-              <th className="p-2">Player</th>
-              {holes.map((hole: any) => (
-                <th key={hole.num} className="p-2 text-center">
-                  {hole.num}
-                </th>
-              ))}
-              <th className="w-px whitespace-nowrap text-center">Total</th>
-              <th className="w-px whitespace-nowrap text-center">Net</th>
-              <th className="w-px whitespace-nowrap text-center">Hole Pts</th>
-              <th className="w-px whitespace-nowrap text-center">Match Pts</th>
-              <th className="w-px whitespace-nowrap text-center">Pts</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pairs.map(([p1, p2], pairIdx) => (
-              <Fragment key={pairIdx}>
-                {pairIdx > 0 && (
-                  <tr aria-hidden="true">
-                    <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
-                  </tr>
-                )}
-                <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
-                  <td className="p-2" colSpan={holes.length + 6}>
-                    Matchup {pairIdx + 1}:{" "}
-                    <PlayerNameLink playerId={p1.playerId} className="font-semibold text-gray-600 hover:text-primary hover:underline">
-                      {p1.player.firstName} {p1.player.lastName}
-                    </PlayerNameLink>{" "}
-                    vs{" "}
-                    <PlayerNameLink playerId={p2.playerId} className="font-semibold text-gray-600 hover:text-primary hover:underline">
-                      {p2.player.firstName} {p2.player.lastName}
-                    </PlayerNameLink>
-                  </td>
-                </tr>
-                {renderPlayerRow(p1)}
-                {renderPlayerRow(p2)}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        data={pairs}
+        search={false}
+        pagination={false}
+        variant="clean"
+        noBorder
+        tableClassName="score-table"
+        renderTable={(visiblePairs) => (
+          <>
+            <thead>
+              <tr className="text-xs text-gray-700">
+                <th className="p-2">Player</th>
+                {holes.map((hole: any) => (
+                  <ScoreHeaderCell key={hole.num}>
+                    {hole.num}
+                  </ScoreHeaderCell>
+                ))}
+                <th className="w-px whitespace-nowrap text-center">Total</th>
+                <th className="w-px whitespace-nowrap text-center">Net</th>
+                <th className="w-px whitespace-nowrap text-center">Hole Pts</th>
+                <th className="w-px whitespace-nowrap text-center">Match Pts</th>
+                <th className="w-px whitespace-nowrap text-center">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visiblePairs.map((pair) => {
+                const [p1, p2] = pair;
+                const pairIdx = pairs.indexOf(pair);
+                return (
+                  <Fragment key={pairIdx}>
+                    {pairIdx > 0 && (
+                      <tr aria-hidden="true">
+                        <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
+                      </tr>
+                    )}
+                    <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
+                      <td className="p-2" colSpan={holes.length + 6}>
+                        Matchup {pairIdx + 1}:{" "}
+                        <PlayerNameLink playerId={p1.playerId} className="font-semibold text-gray-600 hover:text-slate-900 hover:underline">
+                          {p1.player.firstName} {p1.player.lastName}
+                        </PlayerNameLink>{" "}
+                        vs{" "}
+                        <PlayerNameLink playerId={p2.playerId} className="font-semibold text-gray-600 hover:text-slate-900 hover:underline">
+                          {p2.player.firstName} {p2.player.lastName}
+                        </PlayerNameLink>
+                      </td>
+                    </tr>
+                    {renderPlayerRow(p1)}
+                    {renderPlayerRow(p2)}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </>
+        )}
+      />
     </div>
   );
 }
@@ -458,9 +467,9 @@ const TeamPointsRow = ({
     <tr aria-hidden="true" className="bg-gray-200">
       <td>{label}</td>
       {holes.map((hole: any, holeIdx: number) => (
-        <td key={hole.num} className="p-2 font-bold text-center text-xs">
+        <ScoreValueCell key={hole.num} className="p-2">
           {getTeamPointsForHole(team, hole, holeIdx)}
-        </td>
+        </ScoreValueCell>
       ))}
       <td />
       <td className="p-2 font-bold text-center">

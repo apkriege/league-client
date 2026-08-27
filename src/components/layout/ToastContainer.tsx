@@ -1,35 +1,51 @@
-import { useToast } from "@/context/ToastContext";
-import { X } from "lucide-react";
+import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from "lucide-react";
+import { useToast } from "@/context/useToast";
+import type { ToastType } from "@/context/toastContextValue";
+
+const toastStyles: Record<ToastType, string> = {
+  success: "border-emerald-200 bg-emerald-700 text-white",
+  error: "border-red-200 bg-red-700 text-white",
+  info: "border-sky-200 bg-sky-700 text-white",
+  warning: "border-amber-200 bg-amber-600 text-slate-950",
+};
+
+const toastIcons: Record<ToastType, typeof Info> = {
+  success: CircleCheck,
+  error: CircleAlert,
+  info: Info,
+  warning: TriangleAlert,
+};
 
 export default function ToastContainer() {
   const { toasts, remove } = useToast();
 
   return (
-    <div className="fixed bottom-4 right-4 z-10000 space-y-2">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className={`
-            relative max-w-sm animate-fade-in
-            backdrop-blur-md bg-slate-950/90 border border-white/10
-            rounded-2xl shadow-2xl p-4
-            ${toast.type === "success" ? "border-sky-300/40" : ""}
-            ${toast.type === "error" ? "border-red-400/40" : ""}
-            ${toast.type === "warning" ? "border-yellow-400/40" : ""}
-            ${toast.type === "info" ? "border-sky-400/40" : ""}
-          `}
-        >
-          <div className="flex items-center justify-between gap-4 w-full">
-            <span className="text-sm font-medium text-white/90">{toast.message}</span>
+    <div
+      className="pointer-events-none fixed inset-x-4 bottom-4 z-[1400] flex flex-col items-end gap-2 sm:left-auto sm:w-96"
+      aria-live="polite"
+      aria-atomic="false"
+    >
+      {toasts.map((toast) => {
+        const Icon = toastIcons[toast.type];
+        return (
+          <div
+            key={toast.id}
+            role={toast.type === "error" ? "alert" : "status"}
+            className={`pointer-events-auto flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-xl ${toastStyles[toast.type]}`}
+          >
+            <Icon size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <p className="min-w-0 flex-1 leading-5">{toast.message}</p>
             <button
+              type="button"
               onClick={() => remove(toast.id)}
-              className="shrink-0 p-1 hover:bg-white/10 rounded transition-colors"
+              className="-mr-1 rounded-full p-1 opacity-75 transition hover:bg-white/15 hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+              aria-label="Dismiss notification"
             >
-              <X className="w-4 h-4 text-white/70 hover:text-white" />
+              <X size={16} />
             </button>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

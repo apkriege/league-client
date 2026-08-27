@@ -1,10 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
-import dayjs from "dayjs";
-import customParseFormat from "dayjs/plugin/customParseFormat";
+import { useState, useCallback, type DragEvent } from "react";
 import { Check, SquarePen, Trash2, X } from "lucide-react";
 import { FlightMatchOutput, FlightStrokeOutput, FlightTeamOutput } from "./FlightOutputs";
 import { MultiSelect, Select } from "@/components/form";
-dayjs.extend(customParseFormat);
+import { formatTimeWithOffset } from "@/utils/format";
 
 // HAVE TO ADD THE LOGIC THAT IF THIS IS USING
 // THE MULTI CREATOR THEN THERE SHOULDN'T BE THE OPTION TO DELETE
@@ -18,6 +16,54 @@ interface FlightsDragRowProps {
   allowDelete?: boolean;
   highlightId?: number | null;
 }
+
+type DragLocation = {
+  columnIndex: number | null;
+  rowId: string | null;
+};
+
+type FlightDragState = {
+  dragging: DragLocation;
+  draggingOver: DragLocation;
+};
+
+const EMPTY_DRAG_STATE: FlightDragState = {
+  dragging: { columnIndex: null, rowId: null },
+  draggingOver: { columnIndex: null, rowId: null },
+};
+
+const FLIGHT_CARD_BASE_CLASSES =
+  "min-w-[175px] rounded-lg border px-2.5 py-1.5 transition-all duration-150";
+
+const getFlightCardStateClasses = ({
+  isDragging,
+  isDropTarget,
+  isEditing,
+  isHighlighted,
+}: {
+  isDragging: boolean;
+  isDropTarget: boolean;
+  isEditing: boolean;
+  isHighlighted: boolean;
+}) => {
+  if (isDragging) {
+    return "cursor-grabbing border-slate-900 bg-slate-900 text-white shadow-lg ring-2 ring-sky-300/70 scale-[1.02]";
+  }
+
+  if (isDropTarget) {
+    return "cursor-grab border-dashed border-sky-500 bg-sky-100 text-slate-950 shadow-md ring-2 ring-sky-300";
+  }
+
+  if (isEditing) {
+    return "cursor-default border-slate-300 bg-slate-50 text-slate-900 shadow-xs ring-1 ring-slate-200";
+  }
+
+  if (isHighlighted) {
+    return "cursor-grab border-blue-400 bg-blue-50 text-slate-900 shadow-xs ring-1 ring-blue-300 hover:border-blue-500 hover:bg-blue-100 hover:shadow-sm";
+  }
+
+  return "cursor-grab border-slate-200 bg-white text-slate-900 shadow-xs hover:border-sky-300 hover:bg-sky-50 hover:shadow-sm active:cursor-grabbing";
+};
 
 const extractId = (value: any): number | null => {
   if (Number.isFinite(Number(value))) {
@@ -50,27 +96,22 @@ export const FlightsDragRow = ({
   allowDelete = true,
   highlightId = null,
 }: FlightsDragRowProps) => {
-  const [fs, setFs] = useState<any>(flights);
+  const fs = flights;
   const [editingFlightIndex, setEditingFlightIndex] = useState<number | null>(null);
   const [editStrokePlayers, setEditStrokePlayers] = useState<(string | number)[]>([]);
-  const [editPlayer1, setEditPlayer1] = useState<number | undefined>();
-  const [editPlayer2, setEditPlayer2] = useState<number | undefined>();
+  const [editMatchPlayers, setEditMatchPlayers] = useState<(number | undefined)[]>([
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+  ]);
   const [editTeam1, setEditTeam1] = useState<number | undefined>();
   const [editTeam2, setEditTeam2] = useState<number | undefined>();
 
-  useEffect(() => {
-    setFs(flights);
-  }, [flights]);
-
-  const [dragState, setDragState] = useState<any>({
-    dragging: { columnIndex: null, rowId: null },
-    activeCell: { columnIndex: null },
-    draggingOver: { columnIndex: null, isDraggingOver: false },
-  });
+  const [dragState, setDragState] = useState<FlightDragState>(EMPTY_DRAG_STATE);
 
   const removeFlight = (flightIdx: number) => {
     const newFlights = fs.filter((_: any, idx: number) => idx !== flightIdx);
-    setFs(newFlights);
     setFlights(newFlights);
     if (editingFlightIndex === flightIdx) {
       setEditingFlightIndex(null);
@@ -115,8 +156,11 @@ export const FlightsDragRow = ({
     }
 
     if (event.format === "individual" && event.scoringFormat === "match") {
-      setEditPlayer1(Number(flight?.[0]?.[0]));
-      setEditPlayer2(Number(flight?.[0]?.[1]));
+      const playerIds = (Array.isArray(flight) ? flight : [])
+        .slice(0, 2)
+        .flatMap((pair: any) => (Array.isArray(pair) ? pair.slice(0, 2) : []))
+        .map(Number);
+      setEditMatchPlayers([playerIds[0], playerIds[1], playerIds[2], playerIds[3]]);
       return;
     }
 
@@ -132,8 +176,7 @@ export const FlightsDragRow = ({
   const cancelEditFlight = () => {
     setEditingFlightIndex(null);
     setEditStrokePlayers([]);
-    setEditPlayer1(undefined);
-    setEditPlayer2(undefined);
+    setEditMatchPlayers([undefined, undefined, undefined, undefined]);
     setEditTeam1(undefined);
     setEditTeam2(undefined);
   };
@@ -147,8 +190,19 @@ export const FlightsDragRow = ({
     }
 
     if (event.format === "individual" && event.scoringFormat === "match") {
-      if (!editPlayer1 || !editPlayer2 || editPlayer1 === editPlayer2) return;
-      newFlights[flightIdx] = [[editPlayer1, editPlayer2]];
+      const selectedPlayers = editMatchPlayers.filter(
+        (playerId): playerId is number => Number.isInteger(playerId) && Number(playerId) > 0,
+      );
+      if (
+        ![2, 4].includes(selectedPlayers.length) ||
+        new Set(selectedPlayers).size !== selectedPlayers.length
+      ) {
+        return;
+      }
+      newFlights[flightIdx] = Array.from(
+        { length: selectedPlayers.length / 2 },
+        (_, matchupIndex) => selectedPlayers.slice(matchupIndex * 2, matchupIndex * 2 + 2),
+      );
     }
 
     if (
@@ -159,23 +213,35 @@ export const FlightsDragRow = ({
       newFlights[flightIdx] = [editTeam1, editTeam2];
     }
 
-    setFs(newFlights);
     setFlights(newFlights);
     cancelEditFlight();
   };
 
-  const handleDragStart = useCallback((e: any, columnIndex: number, rowId: string) => {
-    e.dataTransfer.setData("text/plain", "anything");
+  const getMatchPlayerOptions = (flightIdx: number, slotIndex: number) => {
+    const selectedInOtherSlots = new Set(
+      editMatchPlayers
+        .filter((_, index) => index !== slotIndex)
+        .filter((playerId): playerId is number => Number.isInteger(playerId)),
+    );
+    return getPlayerOptionsForFlight(flightIdx).filter(
+      (option) =>
+        !selectedInOtherSlots.has(Number(option.value)) ||
+        Number(option.value) === Number(editMatchPlayers[slotIndex]),
+    );
+  };
 
-    setDragState((prev: any) => ({
-      ...prev,
+  const handleDragStart = useCallback((e: DragEvent<HTMLDivElement>, columnIndex: number, rowId: string) => {
+    e.dataTransfer.setData("text/plain", "anything");
+    e.dataTransfer.effectAllowed = "move";
+
+    setDragState({
       dragging: { columnIndex, rowId },
-      activeCell: { columnIndex },
-    }));
+      draggingOver: { columnIndex: null, rowId: null },
+    });
   }, []);
 
   const handleDragOver = useCallback(
-    (e: any, targetColumnIndex: number, rowId: string) => {
+    (e: DragEvent<HTMLDivElement>, targetColumnIndex: number, rowId: string) => {
       e.preventDefault();
 
       // Only allow drag over if it's the same row as the dragging started
@@ -183,21 +249,25 @@ export const FlightsDragRow = ({
         return;
       }
 
-      if (dragState.draggingOver.columnIndex === targetColumnIndex) return;
+      e.dataTransfer.dropEffect = "move";
 
-      setDragState((prev: any) => ({
+      if (
+        dragState.draggingOver.columnIndex === targetColumnIndex &&
+        dragState.draggingOver.rowId === rowId
+      ) {
+        return;
+      }
+
+      setDragState((prev) => ({
         ...prev,
-        draggingOver: {
-          columnIndex: targetColumnIndex,
-          isDraggingOver: true,
-        },
+        draggingOver: { columnIndex: targetColumnIndex, rowId },
       }));
     },
-    [dragState.draggingOver.columnIndex, dragState.dragging.rowId]
+    [dragState.draggingOver, dragState.dragging.rowId]
   );
 
   const handleDrop = useCallback(
-    (e: any, targetColumnIndex: number, rowId: string) => {
+    (e: DragEvent<HTMLDivElement>, targetColumnIndex: number, rowId: string) => {
       e.preventDefault();
 
       // Only allow drop if it's the same row as the dragging started
@@ -206,28 +276,27 @@ export const FlightsDragRow = ({
       }
 
       const { columnIndex: cIdx } = dragState.dragging;
+      if (cIdx === null || cIdx === targetColumnIndex) {
+        setDragState(EMPTY_DRAG_STATE);
+        return;
+      }
+
       const moved = fs[cIdx];
       const newFlights = [...fs];
       newFlights.splice(cIdx, 1);
       newFlights.splice(targetColumnIndex, 0, moved);
       setFlights(newFlights);
+      setDragState(EMPTY_DRAG_STATE);
     },
-    [dragState.dragging.columnIndex, dragState.dragging.rowId]
+    [dragState.dragging, fs, setFlights]
   );
 
   const handleDragEnd = useCallback(() => {
-    setDragState((prev: any) => ({
-      ...prev,
-      dragging: { columnIndex: null },
-      activeCell: { columnIndex: null },
-      draggingOver: { columnIndex: null, isDraggingOver: false },
-    }));
+    setDragState(EMPTY_DRAG_STATE);
   }, []);
 
   const getStartTime = (fIdx: number) => {
-    return dayjs(event.startTime, "H:mm")
-      .add(fIdx * event.interval, "minute")
-      .format("h:mm A");
+    return formatTimeWithOffset(event.startTime, fIdx * event.interval);
   };
 
   if (flights.length === 0) {
@@ -240,33 +309,41 @@ export const FlightsDragRow = ({
 
   return (
     <div className="w-full">
-      <div className="flex gap-2">
-        {/* <p className="text-xs min-w-[100px] flex flex-col bg-base-100 rounded-lg p-2 border">
+      <div className="flex flex-row flex-wrap gap-2">
+        {/* <p className="text-xs min-w-[100px] flex flex-col bg-white rounded-lg p-2 border">
           <span className="font-bold mb-1">{event.name}</span>
           <span className="text-[11px] font-">{course?.name}</span>
           <span className="font-medium capitalize text-[11px]">
             {event.holes} Holes &bull; {event.startSide}
           </span>
-          {/* <span className="text-[11px]">{dayjs(event.date).format("MMM D, YYYY")}</span>
         </p> */}
-
         {fs.map((flight: any, fIdx: number) => {
           const isHighlighted = flightContainsId(flight, highlightId);
+          const isEditing = editingFlightIndex === fIdx;
+          const isDragging = dragState.dragging.columnIndex === fIdx;
+          const isDropTarget =
+            !isDragging &&
+            dragState.draggingOver.columnIndex === fIdx &&
+            dragState.draggingOver.rowId === "flights-row" &&
+            dragState.dragging.rowId === "flights-row";
+          let visualState = "default";
+          if (isHighlighted) visualState = "highlighted";
+          if (isEditing) visualState = "editing";
+          if (isDropTarget) visualState = "drop-target";
+          if (isDragging) visualState = "dragging";
+
           return (
             <div
               key={fIdx}
-              className={`min-w-[175px] bg-base-100 rounded-lg border px-2.5 py-1.5 duration-200 hover:cursor-grab ${
-                isHighlighted ? "border-blue-500 bg-blue-100 ring-1 ring-blue-500" : ""
-              } ${
-                dragState.draggingOver.columnIndex === fIdx &&
-                dragState.draggingOver.isDraggingOver &&
-                dragState.dragging.rowId === "flights-row" &&
-                "border-dashed border-white bg-info/50"
-              } ${
-                dragState.activeCell.columnIndex === fIdx &&
-                "translate-x-0 translate-y-0 scale-105 transform border-white transition-transform hover:bg-info text-white"
-              } `}
-              draggable
+              className={`${FLIGHT_CARD_BASE_CLASSES} ${getFlightCardStateClasses({
+                isDragging,
+                isDropTarget,
+                isEditing,
+                isHighlighted,
+              })}`}
+              data-flight-state={visualState}
+              aria-grabbed={isDragging}
+              draggable={!isEditing}
               onDragStart={(e) => handleDragStart(e, fIdx, "flights-row")}
               onDragOver={(e) => handleDragOver(e, fIdx, "flights-row")}
               onDrop={(e) => handleDrop(e, fIdx, "flights-row")}
@@ -319,18 +396,23 @@ export const FlightsDragRow = ({
                   event.format === "individual" &&
                   event.scoringFormat === "match" && (
                     <div className="grid grid-cols-1 gap-2">
-                      <Select
-                        label="Player 1"
-                        value={editPlayer1}
-                        options={getPlayerOptionsForFlight(fIdx)}
-                        onChange={(e) => setEditPlayer1(Number(e.target.value))}
-                      />
-                      <Select
-                        label="Player 2"
-                        value={editPlayer2}
-                        options={getPlayerOptionsForFlight(fIdx)}
-                        onChange={(e) => setEditPlayer2(Number(e.target.value))}
-                      />
+                      {editMatchPlayers.map((playerId, slotIndex) => (
+                        <Select
+                          key={slotIndex}
+                          label={`Match ${Math.floor(slotIndex / 2) + 1} Player ${slotIndex % 2 === 0 ? "A" : "B"}`}
+                          placeholder={slotIndex >= 2 ? "Optional second matchup" : "Select player"}
+                          value={playerId}
+                          options={getMatchPlayerOptions(fIdx, slotIndex)}
+                          onChange={(event) => {
+                            const nextPlayers = [...editMatchPlayers];
+                            nextPlayers[slotIndex] = event.target.value
+                              ? Number(event.target.value)
+                              : undefined;
+                            if (slotIndex === 2 && !event.target.value) nextPlayers[3] = undefined;
+                            setEditMatchPlayers(nextPlayers);
+                          }}
+                        />
+                      ))}
                     </div>
                   )}
                 {editingFlightIndex === fIdx &&
