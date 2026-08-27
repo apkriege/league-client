@@ -12,7 +12,6 @@ Optional:
 - Public support and policy links (`VITE_SUPPORT_EMAIL`, which defaults to
   `support@leaguenightpro.com`, plus `VITE_PRIVACY_POLICY_URL`,
   `VITE_TERMS_URL`, and `VITE_REFUND_POLICY_URL`)
-- Google Analytics 4 (`VITE_GOOGLE_ANALYTICS_ID`)
 
 ## Local development
 
