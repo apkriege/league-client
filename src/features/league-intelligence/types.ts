@@ -56,6 +56,12 @@ export type LeagueIntelligenceMetrics = {
     avgNet?: number;
     avgHandicapChange?: number;
   };
+  records?: {
+    lowGross?: { value: number; playerName: string } | null;
+    lowNet?: { value: number; playerName: string } | null;
+    mostBirdies?: { value: number; playerName: string } | null;
+    mostPoints?: { value: number; playerName: string } | null;
+  };
 };
 
 export type LeagueRosterPlayer = {
@@ -136,10 +142,42 @@ export type EventInsightRound = {
 export type EventInsightInput = {
   name: string;
   holes?: number;
+  format?: "individual" | "team";
+  scoringFormat?: "stroke" | "match";
   pointsEnabled?: boolean;
+  flights?: Array<{
+    players?: Array<{
+      playerId: number;
+      opponentId?: number | null;
+    }>;
+  }>;
   metrics?: {
     scores?: EventInsightRound[];
+    skins?: {
+      playerSkins?: Array<{ playerId: number; name?: string; hole: number | string }>;
+      playerNetSkins?: Array<{ playerId: number; name?: string; hole: number | string }>;
+    };
+    teamStandings?: Array<{
+      teamId: number;
+      name: string;
+      totalPoints: number;
+    }>;
   };
+};
+
+export type EventStoryHighlightKind = "hot" | "battle" | "momentum" | "achievement";
+
+export type EventStoryHighlight = {
+  kind: EventStoryHighlightKind;
+  label: string;
+  title: string;
+  detail: string;
+  stat: string;
+};
+
+export type EventRoundStory = {
+  headline: string;
+  highlights: EventStoryHighlight[];
 };
 
 export type LeagueAdminInput = {

@@ -95,7 +95,7 @@ function EventRoundsTable({
       renderTable={(visibleRounds) => (
         <>
           <colgroup>
-            <col className="w-36" />
+            <col className="w-48" />
             {holes.map((hole) => <col key={hole} />)}
             <col className="w-14" />
             <col className="w-14" />
@@ -110,36 +110,36 @@ function EventRoundsTable({
             )}
           </colgroup>
           <thead>
-            <tr className="section-kicker border-b border-gray-100 bg-gray-50">
-              <th className="py-2.5 pl-4 text-left">Player</th>
+            <tr className="section-kicker border-b border-slate-200 bg-slate-50/90">
+              <th className="py-3 pl-5 text-left">Player</th>
               {holes.map((hole) => (
-                <th key={hole} className="py-2.5 text-center">{hole}</th>
+                <th key={hole} className="py-3 text-center">{hole}</th>
               ))}
-              <th className="py-2.5 text-right">Gross</th>
-              <th className={`py-2.5 text-right ${showRoundStats ? "" : "pr-4"}`}>Net</th>
+              <th className="py-3 text-right">Gross</th>
+              <th className={`py-3 text-right ${showRoundStats ? "" : "pr-5"}`}>Net</th>
               {showRoundStats && (
                 <>
-                  <th className="py-2.5 text-right">PTS</th>
-                  <th className="py-2.5 text-right text-[9px] tracking-normal">Eagles</th>
-                  <th className="py-2.5 text-right text-[9px] tracking-normal">Birdies</th>
-                  <th className="py-2.5 text-right text-[9px] tracking-normal">Pars</th>
-                  <th className="py-2.5 pr-4 text-right text-[9px] tracking-normal">Bogeys</th>
+                  <th className="py-3 text-right">PTS</th>
+                  <th className="py-3 text-right text-[9px] tracking-normal">Eagles</th>
+                  <th className="py-3 text-right text-[9px] tracking-normal">Birdies</th>
+                  <th className="py-3 text-right text-[9px] tracking-normal">Pars</th>
+                  <th className="py-3 pr-5 text-right text-[9px] tracking-normal">Bogeys</th>
                 </>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {visibleRounds.map(({ round, scoresByHole }) => {
               const roundPoints = getRoundPoints(round);
               const roundStats = calculateRoundScoreStats(round.scores ?? [], holeScoreKey);
 
               return (
-                <tr key={round.id ?? round.playerId} className="transition-colors hover:bg-gray-50/60">
-                  <td className="py-2 pl-4">
+                <tr key={round.id ?? round.playerId} className="transition-colors hover:bg-emerald-50/35">
+                  <td className="py-3 pl-5">
                     <div className="flex flex-col gap-0.5">
                       <PlayerNameLink
                         playerId={round.playerId}
-                        className="truncate text-xs font-semibold text-gray-800 hover:text-slate-900 hover:underline"
+                        className="truncate text-xs font-bold text-slate-800 transition-colors hover:text-emerald-700 hover:underline"
                       >
                         {round.player.firstName} {round.player.lastName}
                       </PlayerNameLink>
@@ -153,14 +153,14 @@ function EventRoundsTable({
                       ?.has(hole);
                     const displayedScore = score?.[holeScoreKey];
                     return (
-                      <td key={hole} className="py-2.5 text-center text-xs text-gray-700">
+                      <td key={hole} className="py-3 text-center text-xs font-medium text-slate-700">
                         {score && displayedScore != null ? (
                           <span
                             className={
                               isHighlighted
-                                ? "inline-flex h-6 w-6 items-center justify-center rounded bg-amber-100 font-semibold text-amber-700 ring-2 ring-amber-300"
+                                ? "inline-flex h-6 w-6 items-center justify-center rounded-lg bg-amber-100 font-black text-amber-700 ring-2 ring-amber-300"
                                 : highlightUnderPar && displayedScore < score.par
-                                  ? "inline-flex h-5 w-5 items-center justify-center rounded bg-green-100 font-semibold text-green-700 ring-1 ring-green-200"
+                                  ? "inline-flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-50 font-black text-emerald-700 ring-1 ring-emerald-200"
                                   : ""
                             }
                           >
@@ -172,27 +172,27 @@ function EventRoundsTable({
                       </td>
                     );
                   })}
-                  <td className="py-2.5 text-right">
-                    <span className="text-sm font-bold text-gray-700">{round.gross}</span>
+                  <td className="py-3 text-right tabular-nums">
+                    <span className="text-sm font-black text-slate-900">{round.gross}</span>
                   </td>
-                  <td className={`py-2.5 text-right ${showRoundStats ? "" : "pr-4"}`}>
-                    <span className="text-sm font-semibold text-gray-500">{round.net}</span>
+                  <td className={`py-3 text-right tabular-nums ${showRoundStats ? "" : "pr-5"}`}>
+                    <span className="text-sm font-bold text-slate-500">{round.net}</span>
                   </td>
                   {showRoundStats && (
                     <>
-                      <td className="py-2.5 text-right text-xs font-semibold text-gray-700">
+                      <td className="py-3 text-right text-xs font-black tabular-nums text-slate-900">
                         {formatPoints(roundPoints)}
                       </td>
-                      <td className="py-2.5 text-right text-xs text-gray-600">
+                      <td className="py-3 text-right text-xs font-medium tabular-nums text-slate-600">
                         {roundStats.eagles}
                       </td>
-                      <td className="py-2.5 text-right text-xs text-gray-600">
+                      <td className="py-3 text-right text-xs font-medium tabular-nums text-slate-600">
                         {roundStats.birdies}
                       </td>
-                      <td className="py-2.5 text-right text-xs text-gray-600">
+                      <td className="py-3 text-right text-xs font-medium tabular-nums text-slate-600">
                         {roundStats.pars}
                       </td>
-                      <td className="py-2.5 pr-4 text-right text-xs text-gray-600">
+                      <td className="py-3 pr-5 text-right text-xs font-medium tabular-nums text-slate-600">
                         {roundStats.bogeys}
                       </td>
                     </>

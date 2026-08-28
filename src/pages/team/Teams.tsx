@@ -1,8 +1,8 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
+import LoadingState from "@/components/layout/LoadingState";
 import Button from "@/components/layout/Button";
 import { Input, MultiSelect } from "@/components/form";
-import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import Modal from "@/components/layout/Modal";
 import { useToast } from "@/context/useToast";
@@ -10,30 +10,14 @@ import { useAppStore } from "@/stores/appStore";
 import { useLeague } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { useCreateTeam, useDeleteTeam, useUpdateTeam } from "@api/teams/mutations";
-import { ShieldHalf, SquarePen, Trash2, Users } from "lucide-react";
+import { Plus, ShieldHalf, Users } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useParams } from "react-router";
 import { formatHandicap } from "@/utils/handicap";
-
-type TeamPlayer = {
-  id: number | string;
-  firstName?: string | null;
-  lastName?: string | null;
-  handicap?: number | null;
-};
-
-type TeamItem = {
-  id: number | string;
-  name?: string | null;
-  players?: TeamPlayer[];
-};
-
-const TEAM_COLOR = {
-  header: "bg-gray-50 border-gray-100",
-  icon: "text-gray-400",
-  badge: "bg-white text-gray-500 border border-gray-200",
-  avatar: "bg-slate-900/10 text-slate-900",
-};
+import TeamDirectoryCard, {
+  type TeamDirectoryItem as TeamItem,
+  type TeamDirectoryPlayer as TeamPlayer,
+} from "./components/TeamDirectoryCard";
 
 const EMPTY_FORM = {
   name: "",
@@ -42,7 +26,6 @@ const EMPTY_FORM = {
 
 export default function Teams() {
   const { leagueId } = useParams();
-  const navigate = useNavigate();
   const numericLeagueId = Number(leagueId);
   const hasValidLeagueId = Number.isFinite(numericLeagueId) && numericLeagueId > 0;
   const { user } = useAppStore();
@@ -97,7 +80,6 @@ export default function Teams() {
         label: `${player.firstName} ${player.lastName} (HCP ${formatHandicap(player.handicap)})`,
       }));
   }, [allPlayers, editingTeamId, form.players, teams]);
-
   const submitting = createTeam.isPending || updateTeam.isPending;
   const validateForm = form.name.trim().length > 0;
 
@@ -211,17 +193,11 @@ export default function Teams() {
     if (!isConfirmed) return;
 
     try {
-      await deleteTeam.mutateAsync({ id: Number(team.id), leagueId: numericLeagueId } as any);
+      await deleteTeam.mutateAsync({ id: Number(team.id), leagueId: numericLeagueId });
       show("Team removed", "success");
     } catch (error) {
       show(getApiErrorMessage(error, "Unable to remove team."), "error");
     }
-  };
-
-  const getInitials = (player: TeamPlayer) => {
-    const firstInitial = (player.firstName || "").trim().charAt(0);
-    const lastInitial = (player.lastName || "").trim().charAt(0);
-    return `${firstInitial}${lastInitial}`.toUpperCase() || "?";
   };
 
   if (!hasValidLeagueId) {
@@ -262,133 +238,60 @@ export default function Teams() {
   }
 
   return (
-    <div>
-      <PageHeader
-        title="Teams"
-        subTitle="Manage team rosters for this league"
-      />
+    <div className="pb-10">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <PageHeader title="Teams" />
+        {!isReadOnly ? (
+          <Button variant="primary" onClick={openCreate} startIcon={<Plus size={14} />}>
+            Add Team
+          </Button>
+        ) : null}
+      </div>
 
-      <div className="mt-2">
+      <div className="mt-8">
         {isLoading ? (
-          <div className="flex items-center justify-center text-gray-400 text-sm">
-            Loading teams...
-          </div>
+          <LoadingState>Loading teams...</LoadingState>
         ) : teams.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center text-gray-400">
-            <Users size={36} strokeWidth={1.5} className="mb-3 opacity-40" />
-            <p className="font-medium text-gray-500">No teams yet</p>
-            <p className="text-sm mt-1">
+          <SurfaceCard className="flex flex-col items-center justify-center border-dashed px-6 py-16 text-center">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-slate-950 text-emerald-300 shadow-sm">
+              <Users size={20} strokeWidth={2} />
+            </span>
+            <p className="mt-4 text-sm font-black text-slate-800">No teams yet</p>
+            <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
               {isReadOnly
-                ? "Teams will appear here once created."
-                : "Create a team to get started."}
+                ? "Teams will appear here once the league administrator creates them."
+                : "Create the first team, assign its roster, and it will be ready for event scheduling."}
             </p>
-            {!isReadOnly && (
-              <Button variant="primary" className="mt-4" onClick={openCreate}>
+            {!isReadOnly ? (
+              <Button
+                variant="primary"
+                className="mt-5"
+                onClick={openCreate}
+                startIcon={<Plus size={14} />}
+              >
                 Add Team
               </Button>
-            )}
-          </div>
+            ) : null}
+          </SurfaceCard>
         ) : (
           <>
-            <div className="flex items-end justify-between mb-2">
-              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                {teams.length} {teams.length === 1 ? "Team" : "Teams"}
+            <div className="mb-3 flex items-center gap-2">
+              <ShieldHalf size={14} className="text-emerald-600" strokeWidth={2.5} />
+              <h2 className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">
+                Team directory
               </h2>
-              {!isReadOnly && (
-                <div className="flex justify-end">
-                  <Button variant="primary" size="xs" onClick={openCreate}>
-                    Add Team
-                  </Button>
-                </div>
-              )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {teams.map((team) => {
-                const color = TEAM_COLOR;
-                return (
-                  <SurfaceCard
-                    key={team.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/league/${numericLeagueId}/team/${team.id}`)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        navigate(`/league/${numericLeagueId}/team/${team.id}`);
-                      }
-                    }}
-                    className="cursor-pointer transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-950/10"
-                  >
-                    <PanelBar className={`border-b ${color.header}`}>
-                      <ShieldHalf size={14} className={color.icon} strokeWidth={2} />
-                      <h3 className="text-sm font-semibold text-gray-800">{team.name}</h3>
-                      <span
-                        className={`ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full ${color.badge}`}
-                      >
-                        {team.players?.length ?? 0} players
-                      </span>
-                      {!isReadOnly ? (
-                        <div className="flex items-center gap-2 ml-2">
-                          <button
-                            type="button"
-                            className="rounded-md p-1 text-blue-400 transition hover:bg-blue-50 hover:text-blue-700"
-                            aria-label={`Edit ${team.name}`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openEdit(team);
-                            }}
-                          >
-                            <SquarePen size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-md p-1 text-red-400 transition hover:bg-red-50 hover:text-red-700"
-                            aria-label={`Remove ${team.name}`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              removeTeam(team);
-                            }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ) : null}
-                    </PanelBar>
-                    <div className="px-4 py-3 flex flex-col gap-2.5">
-                      {team.players?.length === 0 && (
-                        <p className="text-xs text-gray-400 italic">No players assigned</p>
-                      )}
-                      {[...(team.players ?? [])]
-                        .sort((left, right) => {
-                          const leftName = `${left.firstName || ""} ${left.lastName || ""}`.trim();
-                          const rightName =
-                            `${right.firstName || ""} ${right.lastName || ""}`.trim();
-                          return leftName.localeCompare(rightName);
-                        })
-                        .map((player) => (
-                          <div key={player.id} className="flex items-center gap-2.5">
-                            <div
-                              className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold uppercase shrink-0 ${color.avatar}`}
-                            >
-                              {getInitials(player)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-gray-800 truncate">
-                                {`${player.firstName || ""} ${player.lastName || ""}`.trim() ||
-                                  "Unnamed player"}
-                              </p>
-                              {player.handicap != null && (
-                                <p className="text-[10px] text-gray-400">
-                                  HCP {formatHandicap(player.handicap)}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </SurfaceCard>
-                );
-              })}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {teams.map((team) => (
+                <TeamDirectoryCard
+                  key={team.id}
+                  team={team}
+                  leagueId={numericLeagueId}
+                  canManage={!isReadOnly}
+                  onEdit={openEdit}
+                  onRemove={removeTeam}
+                />
+              ))}
             </div>
           </>
         )}
@@ -423,11 +326,7 @@ export default function Teams() {
           <Button variant="default" onClick={resetAndCloseModal}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            onClick={saveTeam}
-            disabled={!validateForm || submitting}
-          >
+          <Button variant="primary" onClick={saveTeam} disabled={!validateForm || submitting}>
             {submitting ? "Saving..." : "Save"}
           </Button>
         </div>

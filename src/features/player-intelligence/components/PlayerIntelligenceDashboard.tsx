@@ -87,7 +87,7 @@ export default function PlayerIntelligenceDashboard({
   ];
 
   return (
-    <section aria-labelledby="player-intelligence-heading" className="space-y-4">
+    <section aria-labelledby="player-intelligence-heading" className="space-y-5">
       <div className="relative overflow-hidden rounded-2xl bg-slate-950 text-white shadow-[0_18px_50px_-28px_rgba(15,23,42,0.8)]">
         <div className="pointer-events-none absolute -right-14 -top-20 h-64 w-64 rounded-full bg-emerald-400/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-blue-500/15 blur-3xl" />

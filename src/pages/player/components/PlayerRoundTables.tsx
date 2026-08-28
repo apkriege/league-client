@@ -39,21 +39,21 @@ export function RoundHistory({
       renderTable={(visibleRounds) => (
         <>
           <thead>
-            <tr className="section-kicker bg-gray-50">
-              <th className="pl-4 pr-3 py-2.5 text-left min-w-56">Event</th>
-              <th className="px-3 py-2.5 text-right">Gross</th>
-              <th className="px-3 py-2.5 text-right">Net</th>
-              <th className="px-3 py-2.5 text-right">Pts</th>
-              <th className="px-3 py-2.5 text-right">Putts</th>
-              <th className="px-3 py-2.5 text-right">E</th>
-              <th className="px-3 py-2.5 text-right">B</th>
-              <th className="px-3 py-2.5 text-right">Par</th>
-              <th className="px-3 py-2.5 text-right">Bogey</th>
-              <th className="px-3 py-2.5 text-right">Diff</th>
-              <th className="pl-3 pr-4 py-2.5 text-right">HCP</th>
+            <tr className="section-kicker border-b border-slate-200 bg-slate-50/90">
+              <th className="min-w-56 py-3 pl-5 pr-3 text-left">Event</th>
+              <th className="px-3 py-3 text-right">Gross</th>
+              <th className="px-3 py-3 text-right">Net</th>
+              <th className="px-3 py-3 text-right">Pts</th>
+              <th className="px-3 py-3 text-right">Putts</th>
+              <th className="px-3 py-3 text-right">E</th>
+              <th className="px-3 py-3 text-right">B</th>
+              <th className="px-3 py-3 text-right">Par</th>
+              <th className="px-3 py-3 text-right">Bogey</th>
+              <th className="px-3 py-3 text-right">Diff</th>
+              <th className="py-3 pl-3 pr-5 text-right">HCP</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {visibleRounds.map((round) => {
               const delta =
                 round.preHandicap != null && round.postHandicap != null
@@ -73,23 +73,23 @@ export function RoundHistory({
                     : "text-red-500";
 
               return (
-                <tr key={round.eventId} className="hover:bg-gray-50/70">
-                  <td className="pl-4 pr-3 py-2.5">
+                <tr key={round.eventId} className="transition-colors hover:bg-emerald-50/35">
+                  <td className="py-3 pl-5 pr-3">
                     <Link
                       to={`/league/${leagueId}/events/${round.eventId}`}
                       className="group flex items-center justify-between gap-3"
                     >
                       <span className="min-w-0">
-                        <span className="block truncate font-semibold text-gray-900">
+                        <span className="block truncate font-bold text-slate-900 transition-colors group-hover:text-emerald-700">
                           {round.eventName}
                         </span>
-                        <span className="block text-[10px] text-gray-400">
+                        <span className="block text-[10px] font-medium text-slate-400">
                           {formatPlayerRoundDate(round)}
                         </span>
                       </span>
                       <ChevronRight
                         size={13}
-                        className="text-gray-300 group-hover:text-gray-500 shrink-0"
+                        className="shrink-0 text-slate-300 transition-colors group-hover:text-emerald-600"
                       />
                     </Link>
                   </td>
@@ -108,14 +108,14 @@ export function RoundHistory({
                         : Number(round.differential).toFixed(2)
                     }
                   />
-                  <td className="pl-3 pr-4 py-2.5 text-right">
+                  <td className="py-3 pl-3 pr-5 text-right">
                     {round.postHandicap == null ? (
                       <span className="text-[10px] font-semibold text-gray-400">
                         Not recorded
                       </span>
                     ) : (
                       <>
-                        <span className="block text-sm font-bold text-gray-700">
+                        <span className="block text-sm font-black text-slate-800">
                           {formatHandicap(round.postHandicap)}
                         </span>
                         <span
@@ -172,29 +172,29 @@ export function PlayerRoundBreakdown({
             <col className="w-14" />
           </colgroup>
           <thead>
-            <tr className="section-kicker border-b border-gray-100 bg-gray-50">
-              <th className="pl-4 py-2.5 text-left">Round</th>
+            <tr className="section-kicker border-b border-slate-200 bg-slate-50/90">
+              <th className="py-3 pl-5 text-left">Round</th>
               {holes.map((hole) => (
-                <th key={hole} className="py-2.5 text-center">
+                <th key={hole} className="py-3 text-center">
                   {hole}
                 </th>
               ))}
-              <th className="py-2.5 text-right">Gross</th>
-              <th className="pr-4 py-2.5 text-right">Net</th>
+              <th className="py-3 text-right">Gross</th>
+              <th className="py-3 pr-5 text-right">Net</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {visibleRounds.map((round) => (
-              <tr key={round.id ?? round.eventId} className="transition-colors hover:bg-gray-50/60">
-                <td className="pl-4 py-2">
+              <tr key={round.id ?? round.eventId} className="transition-colors hover:bg-emerald-50/35">
+                <td className="py-3 pl-5">
                   <Link
                     to={`/league/${leagueId}/events/${round.eventId}`}
                     className="group flex flex-col gap-0.5"
                   >
-                    <span className="truncate text-xs font-semibold text-gray-800 group-hover:text-gray-950">
+                    <span className="truncate text-xs font-bold text-slate-800 transition-colors group-hover:text-emerald-700">
                       {round.eventName || "Round"}
                     </span>
-                    <span className="text-[10px] font-medium text-gray-400">
+                    <span className="text-[10px] font-medium text-slate-400">
                       {formatPlayerRoundDate(round)}
                       {round.course?.name ? ` · ${round.course.name}` : ""}
                       {round.tee?.name ? ` · ${round.tee.name}` : ""}
@@ -210,12 +210,12 @@ export function PlayerRoundBreakdown({
                   const isHighlight = score && par > 0 && numericValue < par;
 
                   return (
-                    <td key={hole} className="py-2.5 text-center text-xs text-gray-700">
+                    <td key={hole} className="py-3 text-center text-xs font-medium text-slate-700">
                       {score ? (
                         <span
                           className={
                             isHighlight
-                              ? "inline-flex h-5 w-5 items-center justify-center rounded bg-green-100 font-semibold text-green-700 ring-1 ring-green-200"
+                              ? "inline-flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-50 font-black text-emerald-700 ring-1 ring-emerald-200"
                               : ""
                           }
                         >
@@ -227,11 +227,11 @@ export function PlayerRoundBreakdown({
                     </td>
                   );
                 })}
-                <td className="py-2.5 text-right">
-                  <span className="text-sm font-bold text-gray-700">{round.gross}</span>
+                <td className="py-3 text-right">
+                  <span className="text-sm font-black text-slate-900">{round.gross}</span>
                 </td>
-                <td className="pr-4 py-2.5 text-right">
-                  <span className="text-sm font-semibold text-gray-500">{round.net}</span>
+                <td className="py-3 pr-5 text-right">
+                  <span className="text-sm font-bold text-slate-500">{round.net}</span>
                 </td>
               </tr>
             ))}
@@ -254,7 +254,7 @@ function NumericCell({
 }) {
   return (
     <td
-      className={`px-3 py-2.5 text-right text-gray-600 ${strong ? "font-black text-gray-900" : ""} ${className}`}
+      className={`px-3 py-3 text-right font-medium tabular-nums text-slate-600 ${strong ? "font-black text-slate-900" : ""} ${className}`}
     >
       {formatValue(value)}
     </td>

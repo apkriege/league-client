@@ -6,6 +6,9 @@ const resultFor = (left: number, right: number) => {
 };
 
 export function buildTeamIntelligence(team: TeamIntelligenceInput) {
+  const scoredEvents = team.eventResults.filter(
+    (event) => event.isAssigned && event.totalPoints != null,
+  );
   const completed = team.eventResults.filter(
     (event) => event.isAssigned && event.totalPoints != null && event.opponents.length > 0,
   );
@@ -99,9 +102,29 @@ export function buildTeamIntelligence(team: TeamIntelligenceInput) {
       ) / 10,
     }))
     .sort((left, right) => right.points - left.points || left.name.localeCompare(right.name));
+  const leaderboardIndex = team.teamLeaderboard.findIndex(
+    (leaderboardTeam) => Number(leaderboardTeam.id) === Number(team.id),
+  );
+  const seasonRank = team.seasonRank ?? (leaderboardIndex >= 0 ? leaderboardIndex + 1 : null);
 
   return {
     record: { wins, losses, ties, matches: wins + losses + ties },
+    overview: {
+      teamPoints: Number(team.seasonPoints || 0),
+      playerPoints: Math.round(
+        team.eventResults.reduce(
+          (total, event) => total + Number(event.playerPoints || 0),
+          0,
+        ) * 10,
+      ) / 10,
+      completedEvents: scoredEvents.length,
+      scheduledEvents: team.eventResults.length,
+      seasonRank,
+      rankedTeams: team.teamLeaderboard.length,
+      winRate: wins + losses + ties > 0
+        ? Math.round((wins / (wins + losses + ties)) * 100)
+        : 0,
+    },
     rivalries: [...rivalries.values()].sort(
       (left, right) => right.meetings - left.meetings || left.name.localeCompare(right.name),
     ),

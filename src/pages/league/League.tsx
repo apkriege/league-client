@@ -1,9 +1,8 @@
 import LoadingState from "@/components/layout/LoadingState";
-import SectionKicker from "@/components/layout/SectionKicker";
+import DataSection from "@/components/layout/DataSection";
 import SummaryPill from "@/components/layout/SummaryPill";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
-import SectionIntro from "@/components/layout/SectionIntro";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import Table from "@/components/Table";
@@ -38,7 +37,6 @@ import {
   MapPin,
   Medal,
   Plus,
-  Target,
   TrendingDown,
   TrendingUp,
   Trophy,
@@ -60,6 +58,7 @@ ChartJS.register(
 
 type TeamStandingsRow = {
   rank: number;
+  teamId: number;
   name: string;
   points: number;
   eventsPlayed: number;
@@ -133,6 +132,7 @@ export default function League() {
     () =>
       (metrics?.teamStandings ?? []).map((team: any, idx: number) => ({
         rank: idx + 1,
+        teamId: Number(team.teamId),
         name: team.name,
         points: Number(team.points ?? 0),
         eventsPlayed: Number(team.eventsPlayed ?? 0),
@@ -190,13 +190,21 @@ export default function League() {
       {
         key: "name",
         label: "Team",
-        render: (value: string) => (
-          <span className="text-xs font-semibold text-gray-800">{value}</span>
+        render: (value: string, row: TeamStandingsRow) => (
+          <button
+            type="button"
+            onClick={() => navigate(`/league/${leagueId}/team/${row.teamId}`)}
+            className="text-left text-xs font-bold text-slate-800 transition-colors hover:text-emerald-700 hover:underline"
+          >
+            {value}
+          </button>
         ),
       },
       {
         key: "points",
         label: "Pts",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => (
           <span className="text-xs font-black text-slate-900">{value}</span>
         ),
@@ -204,10 +212,12 @@ export default function League() {
       {
         key: "eventsPlayed",
         label: "Events",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => <span className="text-xs text-gray-500">{value}</span>,
       },
     ],
-    []
+    [leagueId, navigate]
   );
 
   const playerStandingsColumns = useMemo(
@@ -225,7 +235,7 @@ export default function League() {
           <button
             type="button"
             onClick={() => navigate(`/league/${leagueId}/player/${row.playerId}`)}
-            className="text-left text-xs font-semibold text-gray-800 hover:text-slate-900 hover:underline"
+            className="text-left text-xs font-bold text-slate-800 transition-colors hover:text-emerald-700 hover:underline"
           >
             {value}
           </button>
@@ -234,6 +244,8 @@ export default function League() {
       {
         key: "points",
         label: "Pts",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => (
           <span className="text-xs font-black text-slate-900">{value}</span>
         ),
@@ -241,6 +253,8 @@ export default function League() {
       {
         key: "avgGross",
         label: "Gross",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => (
           <span className="text-xs text-gray-500">{value.toFixed(1)}</span>
         ),
@@ -248,6 +262,8 @@ export default function League() {
       {
         key: "avgNet",
         label: "Net",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => (
           <span className="text-xs text-gray-500">{value.toFixed(1)}</span>
         ),
@@ -255,16 +271,22 @@ export default function League() {
       {
         key: "rounds",
         label: "Rnds",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => <span className="text-xs text-gray-400">{value}</span>,
       },
       {
         key: "birdies",
-        label: "🐦",
+        label: "Birdies",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => <span className="text-xs text-gray-400">{value}</span>,
       },
       {
         key: "currentHandicap",
         label: "HCP",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number | null) => (
           <span className="text-xs text-gray-500">{formatHandicap(value)}</span>
         ),
@@ -272,6 +294,8 @@ export default function League() {
       {
         key: "handicapChange",
         label: "HCP Change",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number | null) =>
           value != null ? (
             <span
@@ -306,7 +330,7 @@ export default function League() {
           <button
             type="button"
             onClick={() => navigate(`/league/${leagueId}/player/${row.playerId}`)}
-            className="whitespace-nowrap text-left text-xs font-semibold text-gray-800 hover:text-slate-900 hover:underline"
+            className="whitespace-nowrap text-left text-xs font-bold text-slate-800 transition-colors hover:text-emerald-700 hover:underline"
           >
             {value}
           </button>
@@ -315,21 +339,29 @@ export default function League() {
       {
         key: "eventsPlayed",
         label: "Events Played",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => <span className="text-xs text-gray-500">{value}</span>,
       },
       {
         key: "totalGross",
         label: "Total Gross",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => <span className="text-xs text-gray-500">{value}</span>,
       },
       {
         key: "totalNet",
         label: "Total Net",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => <span className="text-xs text-gray-500">{value}</span>,
       },
       {
         key: "totalPoints",
         label: "Total Points",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => (
           <span className="text-xs font-black text-slate-900">
             {Number.isInteger(value) ? value : value.toFixed(1)}
@@ -339,16 +371,22 @@ export default function League() {
       {
         key: "eagles",
         label: "Eagles",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => <span className="text-xs text-gray-500">{value}</span>,
       },
       {
         key: "birdies",
         label: "Birdies",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => <span className="text-xs text-gray-500">{value}</span>,
       },
       {
         key: "pars",
         label: "Pars",
+        headerClassName: "[&>div]:justify-end",
+        cellClassName: "text-right tabular-nums",
         render: (value: number) => <span className="text-xs text-gray-500">{value}</span>,
       },
     ],
@@ -481,11 +519,10 @@ export default function League() {
   }
 
   return (
-    <div className="pb-8">
+    <div className="pb-10">
       <PageHeader title={league?.name ?? "League"} />
 
-      {/* Info chips */}
-      <div className="mt-4 mb-4 flex flex-wrap gap-2">
+      <div className="mb-8 mt-5 flex flex-wrap gap-2.5">
         {league?.startDate && league?.endDate && (
           <SummaryPill icon={<CalendarDays size={12} />}>
             {formatDate(league.startDate)} → {formatDate(league.endDate)}
@@ -508,201 +545,139 @@ export default function League() {
         )}
       </div>
 
-      <div className="flex flex-col gap-4">
-        <LeaguePulse
-          metrics={metrics}
-          events={Array.isArray(events) ? events : []}
-          roster={Array.isArray(league?.players) ? league.players : []}
-        />
-        <SharedLeagueAnnouncementsPanel leagueId={Number(leagueId)} />
+      <div className="space-y-9">
+        <div className="space-y-4">
+          {scoringPeriods.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50/80 p-1.5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setSelectedScoringPeriodId(null)}
+                aria-pressed={effectiveSelectedScoringPeriodId == null}
+                className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                  effectiveSelectedScoringPeriodId == null
+                    ? "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200"
+                    : "text-slate-500 hover:bg-white/60 hover:text-slate-900"
+                }`}
+              >
+                Overall
+              </button>
+              {scoringPeriods.map((period: any) => {
+                const periodId = Number(period.id);
+                const isSelected = selectedScoringPeriodId === periodId;
+                return (
+                  <button
+                    key={periodId}
+                    type="button"
+                    onClick={() => setSelectedScoringPeriodId(periodId)}
+                    aria-pressed={isSelected}
+                    className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                      isSelected
+                        ? "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200"
+                        : "text-slate-500 hover:bg-white/60 hover:text-slate-900"
+                    }`}
+                  >
+                    {period.name}
+                  </button>
+                );
+              })}
+              <span className="ml-auto hidden px-2 text-[10px] text-slate-400 sm:inline">
+                {selectedScoringPeriod
+                  ? `${formatDate(selectedScoringPeriod.startDate)} – ${formatDate(selectedScoringPeriod.endDate)}`
+                  : "All league events"}
+              </span>
+            </div>
+          )}
 
-        {scoringPeriods.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xs">
-            <button
-              type="button"
-              onClick={() => setSelectedScoringPeriodId(null)}
-              aria-pressed={effectiveSelectedScoringPeriodId == null}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                effectiveSelectedScoringPeriodId == null
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-              }`}
-            >
-              Overall
-            </button>
-            {scoringPeriods.map((period: any) => {
-              const periodId = Number(period.id);
-              const isSelected = selectedScoringPeriodId === periodId;
-              return (
-                <button
-                  key={periodId}
-                  type="button"
-                  onClick={() => setSelectedScoringPeriodId(periodId)}
-                  aria-pressed={isSelected}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    isSelected
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-                  }`}
-                >
-                  {period.name}
-                </button>
-              );
-            })}
-            <span className="ml-auto hidden px-2 text-[10px] text-slate-400 sm:inline">
-              {selectedScoringPeriod
-                ? `${formatDate(selectedScoringPeriod.startDate)} – ${formatDate(selectedScoringPeriod.endDate)}`
-                : "All league events"}
-            </span>
-          </div>
-        )}
+          <LeaguePulse
+            metrics={metrics}
+            events={Array.isArray(events) ? events : []}
+            roster={Array.isArray(league?.players) ? league.players : []}
+            periodLabel={selectedScoringPeriod?.name ?? "Overall"}
+          />
+        </div>
+
+        <SharedLeagueAnnouncementsPanel leagueId={Number(leagueId)} />
 
         {metrics && (
           <section
-            className={`space-y-6 transition-opacity ${metricsIsFetching ? "opacity-60" : ""}`}
+            className={`space-y-9 transition-opacity ${metricsIsFetching ? "opacity-60" : ""}`}
           >
-            {metrics.records && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  {
-                    label: "Low Gross",
-                    record: metrics.records.lowGross,
-                    displayValue: (r: any) => r.value,
-                    icon: <Trophy size={14} className="text-amber-500" />,
-                    accent: "from-amber-50 to-white border-amber-100",
-                  },
-                  {
-                    label: "Low Net",
-                    record: metrics.records.lowNet,
-                    displayValue: (r: any) => r.value,
-                    icon: <Target size={14} className="text-blue-500" />,
-                    accent: "from-blue-50 to-white border-blue-100",
-                  },
-                  {
-                    label: "Most Birdies",
-                    record: metrics.records.mostBirdies,
-                    displayValue: (r: any) => r.value,
-                    icon: <span className="text-[14px] leading-none">🐦</span>,
-                    accent: "from-emerald-50 to-white border-emerald-100",
-                  },
-                  {
-                    label: "Most Points",
-                    record: metrics.records.mostPoints,
-                    displayValue: (r: any) => Number(r.value).toFixed(1),
-                    icon: <Zap size={14} className="text-slate-900" />,
-                    accent: "from-violet-50 to-white border-violet-100",
-                  },
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    className={`relative overflow-hidden bg-linear-to-br ${item.accent} border rounded-xl px-4 py-3 shadow-sm flex items-start justify-between gap-3`}
-                  >
-                    <div className="min-w-0">
-                      <SectionKicker>{item.label}</SectionKicker>
-                      <p className="text-2xl font-black text-gray-900 leading-tight mt-1">
-                        {item.record ? item.displayValue(item.record) : "—"}
-                      </p>
-                      <p className="text-[11px] font-medium text-gray-500 truncate mt-1">
-                        {item.record?.playerName || "No data yet"}
-                      </p>
-                    </div>
-                    <div className="shrink-0 p-2.5 bg-white/70 rounded-lg border border-white/70 shadow-[0_1px_0_rgba(255,255,255,0.8)]">
-                      {item.icon}
-                    </div>
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-gray-900/5" />
+            <DataSection title="Competition" icon={<Trophy size={16} strokeWidth={2.5} />}>
+              <div className="space-y-4">
+                <SurfaceCard className="min-w-0">
+                  <PanelBar>
+                    <Trophy size={13} className="text-emerald-600" strokeWidth={2.5} />
+                    <h3 className="text-xs font-bold text-slate-900">
+                      {standingsMode === "team" ? "Team Standings" : "Standings"}
+                    </h3>
+                    <span className="ml-auto text-[10px] font-medium text-slate-400">
+                      {selectedScoringPeriod?.name ?? "Overall"}
+                    </span>
+                  </PanelBar>
+                  <div className="p-0">
+                    {standingsMode === "team" ? (
+                      <Table
+                        data={teamStandingsRows}
+                        columns={teamStandingsColumns as any}
+                        size="sm"
+                        variant="clean"
+                        noBorder
+                        search={false}
+                        className="!rounded-none !shadow-none"
+                      />
+                    ) : (
+                      <Table
+                        data={playerStandingsRows}
+                        columns={playerStandingsColumns as any}
+                        size="sm"
+                        variant="clean"
+                        noBorder
+                        search={false}
+                        className="!rounded-none !shadow-none"
+                      />
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                </SurfaceCard>
 
-            <div className="pt-2">
-              <SectionIntro
-                title="Standings"
-                description={
-                  standingsMode === "team"
-                    ? `${selectedScoringPeriod?.name ?? "Overall"} team leaderboard and event participation`
-                    : `${selectedScoringPeriod?.name ?? "Overall"} leaderboard, scoring averages, and handicap movement`
-                }
-              />
-
-              <SurfaceCard className="min-w-0">
-                <PanelBar>
-                  <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
-                  <h3 className="text-sm font-semibold text-gray-800">
-                    {standingsMode === "team" ? "Team Standings" : "Standings"}
-                  </h3>
-                </PanelBar>
-                <div className="p-0">
-                  {standingsMode === "team" ? (
+                <SurfaceCard className="min-w-0">
+                  <PanelBar className="justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <BarChart2 size={13} className="text-emerald-600" strokeWidth={2.5} />
+                      <h3 className="text-xs font-bold text-slate-900">Player Results</h3>
+                    </div>
+                    <Input
+                      dense
+                      type="search"
+                      aria-label="Search player results"
+                      placeholder="Search players..."
+                      value={playerResultsSearch}
+                      onChange={(event) => setPlayerResultsSearch(event.target.value)}
+                      className="w-44 sm:w-56"
+                    />
+                  </PanelBar>
+                  <div className="p-0">
                     <Table
-                      data={teamStandingsRows}
-                      columns={teamStandingsColumns as any}
+                      data={filteredPlayerResultsRows}
+                      columns={playerResultsColumns as any}
                       size="sm"
                       variant="clean"
                       noBorder
                       search={false}
+                      pageSize={25}
+                      className="!rounded-none !shadow-none"
                     />
-                  ) : (
-                    <Table
-                      data={playerStandingsRows}
-                      columns={playerStandingsColumns as any}
-                      size="sm"
-                      variant="clean"
-                      noBorder
-                      search={false}
-                    />
-                  )}
-                </div>
-              </SurfaceCard>
-            </div>
-
-            <div className="pt-2">
-              <SectionIntro
-                title="Player Results"
-                description={`${selectedScoringPeriod?.name ?? "Overall"} player totals across completed events`}
-              />
-
-              <SurfaceCard className="min-w-0">
-                <PanelBar className="justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <BarChart2 size={14} className="text-slate-500" strokeWidth={2.5} />
-                    <h3 className="text-sm font-semibold text-gray-800">Player Results</h3>
                   </div>
-                  <Input
-                    dense
-                    type="search"
-                    aria-label="Search player results"
-                    placeholder="Search players..."
-                    value={playerResultsSearch}
-                    onChange={(event) => setPlayerResultsSearch(event.target.value)}
-                    className="w-44 sm:w-56"
-                  />
-                </PanelBar>
-                <div className="p-0">
-                  <Table
-                    data={filteredPlayerResultsRows}
-                    columns={playerResultsColumns as any}
-                    size="sm"
-                    variant="clean"
-                    noBorder
-                    search={false}
-                    pageSize={25}
-                  />
-                </div>
-              </SurfaceCard>
-            </div>
-
-            <div className="pt-2">
-              <div className="mb-3">
-                <h3 className="font-bold text-gray-800 tracking-tight text-lg">Trends and Skins</h3>
-                <p className="text-xs text-gray-500">Weekly scoring trend and skin leaders</p>
+                </SurfaceCard>
               </div>
-              <div className="flex flex-col lg:flex-row gap-4 items-start">
-                <SurfaceCard className="w-full lg:w-2/3">
+            </DataSection>
+
+            <DataSection title="Season Performance" icon={<BarChart2 size={16} strokeWidth={2.5} />}>
+              <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(16rem,0.75fr)]">
+                <SurfaceCard className="w-full">
                   <PanelBar>
                     <div className="flex items-center gap-2">
-                      <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
-                      <h3 className="text-sm font-semibold text-gray-800">
+                      <BarChart2 size={13} className="text-emerald-600" strokeWidth={2.5} />
+                      <h3 className="text-xs font-bold text-slate-900">
                         {selectedScoringPeriod?.name ?? "Season"} Trend
                       </h3>
                     </div>
@@ -729,7 +704,7 @@ export default function League() {
                 </SurfaceCard>
 
                 {metrics.skins && (
-                  <div className="w-full lg:w-1/3 grid grid-cols-1 gap-3">
+                  <div className="grid w-full grid-cols-1 gap-4">
                     {(
                       [
                         {
@@ -749,10 +724,10 @@ export default function League() {
                       const rows = (metrics.skins[type] as any[]) ?? [];
                       return (
                         <SurfaceCard key={type}>
-                          <div className="flex items-center justify-between px-3 py-2">
+                          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
                             <div className="flex items-center gap-1.5">
                               <Zap size={13} className={iconClass} strokeWidth={2.5} />
-                              <h3 className="text-xs font-semibold text-gray-800">{label} Skins</h3>
+                              <h3 className="text-xs font-bold text-slate-900">{label} Skins</h3>
                             </div>
                             <span
                               className={`text-[10px] font-bold border px-1.5 py-0.5 rounded-full ${badgeClass}`}
@@ -761,17 +736,17 @@ export default function League() {
                             </span>
                           </div>
 
-                          <div className="p-3">
+                          <div className="p-4">
                             {rows.length === 0 ? (
                               <p className="text-[11px] text-gray-300 italic">
                                 No {type} skins yet
                               </p>
                             ) : (
-                              <div className="max-h-30 overflow-y-auto pr-1 divide-y divide-gray-50 border border-gray-100 rounded-md">
+                              <div className="max-h-32 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
                                 {rows.map((p: any, i: number) => (
                                   <div
                                     key={p.playerId}
-                                    className="flex items-center gap-2 px-2.5 py-2 bg-white"
+                                    className="flex items-center gap-2 bg-white px-2.5 py-2.5"
                                   >
                                     <span
                                       className={`text-[10px] font-black w-4 shrink-0 ${
@@ -801,30 +776,28 @@ export default function League() {
                   </div>
                 )}
               </div>
-            </div>
+            </DataSection>
           </section>
         )}
 
-        {/* ── Events list ───────────────────────────── */}
-        <section className="pt-1">
-          <div className="flex items-center justify-between mb-2">
-            <div className="space-y-1">
-              <SectionLabel>Events</SectionLabel>
-              <p className="text-sm text-gray-500">Upcoming and completed rounds</p>
-            </div>
-            {isAdmin && (
+        <DataSection
+          title="Events"
+          icon={<CalendarDays size={16} strokeWidth={2.5} />}
+          action={
+            isAdmin ? (
               <button
+                type="button"
                 onClick={() => navigate(`/league/${leagueId}/events/create`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-900/90 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg bg-slate-950 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800"
               >
                 <Plus size={12} strokeWidth={2.5} />
                 New Event
               </button>
-            )}
-          </div>
-
+            ) : undefined
+          }
+        >
           {totalEvents === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center text-slate-400">
               <CalendarDays size={32} strokeWidth={1.5} className="mb-2 opacity-40" />
               <p className="font-medium text-gray-500 text-sm">No events yet</p>
               {isAdmin && <p className="text-xs mt-1">Create your first event to get started.</p>}
@@ -854,12 +827,8 @@ export default function League() {
               })}
             </div>
           )}
-        </section>
+        </DataSection>
       </div>
     </div>
   );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <SectionKicker as="h2">{children}</SectionKicker>;
 }

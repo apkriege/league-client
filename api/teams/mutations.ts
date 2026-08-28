@@ -43,10 +43,10 @@ export const useDeleteTeam = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id }: { id: number }) => {
+    mutationFn: async ({ id }: { id: number; leagueId?: number }) => {
       return await deleteTeam(id);
     },
-    onSuccess: (_data, variables: any) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["league"] });
       queryClient.invalidateQueries({ queryKey: ["team", Number(variables.id)] });
       if (variables.leagueId) {

@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 
-type SurfaceElement = "aside" | "div" | "section";
+type SurfaceElement = "article" | "aside" | "div" | "section";
 
 type SurfaceCardProps = HTMLAttributes<HTMLElement> & {
   as?: SurfaceElement;

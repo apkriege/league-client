@@ -1,4 +1,3 @@
-import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import type { TeamProfile } from "@api/teams/types";
 import { Trophy } from "lucide-react";
@@ -20,17 +19,15 @@ export default function TeamSeasonLeaderboard({
 }: TeamSeasonLeaderboardProps) {
   return (
     <SurfaceCard as="section">
-      <PanelBar>
-        <div className="rounded-lg bg-amber-50 p-2 text-amber-600">
-          <Trophy size={15} />
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-2">
+          <Trophy size={13} className="text-emerald-600" strokeWidth={2.5} />
+          <h3 className="text-xs font-bold text-slate-900">Team Standings</h3>
         </div>
-        <div>
-          <h2 className="text-sm font-semibold text-gray-800">Season Team Leaderboard</h2>
-          <p className="text-xs text-gray-400">Current team ranking</p>
-        </div>
-      </PanelBar>
+        <span className="text-[10px] font-medium text-slate-400">{teams.length} ranked</span>
+      </div>
 
-      <div className="max-h-56 overflow-auto border-t border-gray-100">
+      <div className="max-h-64 overflow-auto">
         {teams.length === 0 ? (
           <p className="p-4 text-sm text-gray-400">No team standings are available yet.</p>
         ) : (
@@ -43,10 +40,10 @@ export default function TeamSeasonLeaderboard({
                 key={team.id}
                 to={`/league/${leagueId}/team/${team.id}`}
                 aria-current={isCurrentTeam ? "page" : undefined}
-                className={`grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2 border-b border-gray-100 px-4 py-2.5 last:border-b-0 transition ${
+                className={`grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2 border-b border-slate-100 px-4 py-3 last:border-b-0 transition ${
                   isCurrentTeam
-                    ? "bg-slate-900 text-white"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "bg-slate-950 text-white"
+                    : "text-slate-700 hover:bg-emerald-50/35"
                 }`}
               >
                 <span className={`text-xs font-black ${isCurrentTeam ? "text-white/60" : "text-gray-400"}`}>

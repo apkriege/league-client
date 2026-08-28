@@ -1,9 +1,11 @@
 import Table, { type Column } from "@/components/Table";
+import SurfaceCard from "@/components/layout/SurfaceCard";
 import { formatTime } from "@/utils/format";
 import { formatEventDate } from "@/utils/eventDate";
 import type { TeamEventResult } from "@api/teams/types";
 import { useMemo } from "react";
 import { useNavigate } from "react-router";
+import { CalendarDays } from "lucide-react";
 
 type TeamEventResultsTableProps = {
   events: TeamEventResult[];
@@ -138,17 +140,33 @@ export default function TeamEventResultsTable({ events, leagueId }: TeamEventRes
     [],
   );
 
+  const completedCount = events.filter(
+    (event) => event.isComplete || event.status.toLowerCase() === "completed",
+  ).length;
+
   return (
-    <Table
-      data={events}
-      columns={columns}
-      heading="Event Results & Matchups"
-      search={false}
-      pagination={false}
-      variant="clean"
-      size="sm"
-      onRowClick={(event) => navigate(`/league/${leagueId}/events/${event.id}`)}
-      tableClassName="w-full min-w-[52rem] border-collapse"
-    />
+    <SurfaceCard>
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-2">
+          <CalendarDays size={13} className="text-emerald-600" strokeWidth={2.5} />
+          <h3 className="text-xs font-bold text-slate-900">Event Results and Matchups</h3>
+        </div>
+        <span className="text-[10px] font-medium text-slate-400">
+          {completedCount} completed
+        </span>
+      </div>
+      <Table
+        data={events}
+        columns={columns}
+        search={false}
+        pagination={false}
+        variant="clean"
+        size="sm"
+        noBorder
+        className="!rounded-none !shadow-none"
+        onRowClick={(event) => navigate(`/league/${leagueId}/events/${event.id}`)}
+        tableClassName="w-full min-w-[52rem] border-collapse"
+      />
+    </SurfaceCard>
   );
 }

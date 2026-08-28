@@ -3,7 +3,6 @@ import SectionKicker from "@/components/layout/SectionKicker";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import { SummaryPillButton } from "@/components/layout/SummaryPill";
 import Table from "@/components/Table";
-import SectionIntro from "@/components/layout/SectionIntro";
 import { useParams } from "react-router";
 import { usePlayerStats } from "@api/players/queries";
 import PageHeader from "@/components/layout/PageHeader";
@@ -13,6 +12,7 @@ import { useMemo, useState } from "react";
 import useAnimatedDrawer from "@/hooks/useAnimatedDrawer";
 import {
   Flag,
+  History,
   Minus,
   ShieldHalf,
   Target,
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { InfoChip, StatMini } from "./components/PlayerSummary";
 import { PlayerRoundBreakdown, RoundHistory } from "./components/PlayerRoundTables";
+import PlayerDataSection from "./components/PlayerDataSection";
 import { formatHandicap } from "./playerFormatters";
 import { buildHandicapDifferentialPool, getHandicapRule } from "./playerHandicap";
 import { calculatePlayerRoundAverages } from "./playerRoundAverages";
@@ -157,10 +158,10 @@ export default function Player() {
     hcpDelta < 0 ? "text-emerald-600" : hcpDelta > 0 ? "text-red-500" : "text-gray-400";
 
   return (
-    <div>
+    <div className="pb-10">
       <PageHeader title={fullName} />
 
-      <div className="mt-4 mb-4 flex flex-wrap gap-2">
+      <div className="mb-8 mt-5 flex flex-wrap gap-2.5">
         <InfoChip icon={<User size={12} />} text={player.type} capitalize />
         {player.team && <InfoChip icon={<ShieldHalf size={12} />} text={player.team.name} />}
         <InfoChip
@@ -193,8 +194,8 @@ export default function Player() {
           No rounds completed yet this season.
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          <div className="mb-2">
+        <div className="space-y-9">
+          <div>
             <PlayerIntelligenceDashboard
               intelligence={data.intelligence}
               teamName={player.team?.name}
@@ -217,70 +218,65 @@ export default function Player() {
             />
           </div>
 
-          <div className="pt-2">
-            <SectionIntro
+          <div>
+            <PlayerDataSection
               title="Round History"
-              description="Chronological log of completed rounds"
-            />
-            <SurfaceCard as="section">
-              <div className="flex items-center justify-between gap-3 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
-                  <h2 className="text-sm font-semibold text-gray-900">Full Round History</h2>
-                </div>
-                <span className="text-[10px] font-medium text-gray-400">
-                  {rounds.length} completed
-                </span>
-              </div>
-              <RoundHistory rounds={rounds} leagueId={leagueId} />
-            </SurfaceCard>
-          </div>
-
-          <div className="pt-2">
-            <SectionIntro
-              title="Round Breakdown"
-              description="Hole-by-hole gross and net scoring details"
-            />
-            <SurfaceCard as="section">
-              <div className="flex items-center justify-between gap-3 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Flag size={14} className="text-emerald-500" strokeWidth={2.5} />
-                  <h2 className="text-sm font-semibold text-gray-900">Round Score Breakdown</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-medium text-gray-400">
-                    {rounds.length} rounds
+              icon={<Trophy size={16} strokeWidth={2.5} />}
+            >
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+                  <div className="flex items-center gap-2">
+                    <History size={13} className="text-emerald-600" strokeWidth={2.5} />
+                    <h3 className="text-xs font-bold text-slate-900">Full Round History</h3>
+                  </div>
+                  <span className="text-[10px] font-medium text-slate-400">
+                    {rounds.length} completed
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setRoundBreakdownView("gross")}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                      roundBreakdownView === "gross"
-                        ? "border-gray-900 bg-gray-900 text-white"
-                        : "border-gray-200 bg-white text-gray-500"
-                    }`}
-                  >
-                    Gross
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRoundBreakdownView("net")}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                      roundBreakdownView === "net"
-                        ? "border-gray-900 bg-gray-900 text-white"
-                        : "border-gray-200 bg-white text-gray-500"
-                    }`}
-                  >
-                    Net
-                  </button>
                 </div>
+                <RoundHistory rounds={rounds} leagueId={leagueId} />
               </div>
-              <PlayerRoundBreakdown
-                rounds={rounds}
-                leagueId={leagueId}
-                scoreView={roundBreakdownView}
-              />
-            </SurfaceCard>
+
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+                  <div className="flex items-center gap-2">
+                    <Flag size={13} className="text-emerald-600" strokeWidth={2.5} />
+                    <h3 className="text-xs font-bold text-slate-900">Round Score Breakdown</h3>
+                  </div>
+                  <div className="flex rounded-lg border border-slate-200 bg-slate-100/80 p-0.5 shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => setRoundBreakdownView("gross")}
+                      aria-pressed={roundBreakdownView === "gross"}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] font-bold transition ${
+                        roundBreakdownView === "gross"
+                          ? "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200"
+                          : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      Gross
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRoundBreakdownView("net")}
+                      aria-pressed={roundBreakdownView === "net"}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] font-bold transition ${
+                        roundBreakdownView === "net"
+                          ? "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200"
+                          : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      Net
+                    </button>
+                  </div>
+                </div>
+
+                <PlayerRoundBreakdown
+                  rounds={rounds}
+                  leagueId={leagueId}
+                  scoreView={roundBreakdownView}
+                />
+              </div>
+            </PlayerDataSection>
           </div>
         </div>
       )}

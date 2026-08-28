@@ -24,11 +24,9 @@ import {
   Medal,
   ShieldHalf,
   Trophy,
-  User,
   X,
-  Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   buildEventLeaderboard,
@@ -79,12 +77,39 @@ const buildEventView = (event: any, activeTab: EventLeaderboardSort) => {
     resolvedActiveTab,
     topThree: (hasPointValues ? pointsLeaderboard : lowNetLeaderboard).slice(0, 3),
     topThreeMode: hasPointValues ? ("points" as const) : ("net" as const),
-    totalFlightPlayers: (event.flights ?? []).reduce(
-      (total: number, flight: any) => total + (flight.players?.length ?? 0),
-      0,
-    ),
   };
 };
+
+function EventSectionHeading({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-center gap-3.5 px-1">
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-950 text-emerald-300 shadow-sm">
+        {icon}
+      </span>
+      <div>
+        <h2 className="text-lg font-black tracking-tight text-slate-950">{title}</h2>
+        <p className="mt-0.5 text-[11px] leading-4 text-slate-500">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function CompactGroupHeading({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="px-1">
+      <h3 className="text-xs font-black uppercase tracking-[0.12em] text-slate-700">{title}</h3>
+      <p className="mt-1 text-[10px] leading-4 text-slate-400">{description}</p>
+    </div>
+  );
+}
 
 export default function Event() {
   const { leagueId, eventId } = useParams();
@@ -163,7 +188,6 @@ export default function Event() {
     resolvedActiveTab,
     topThree,
     topThreeMode,
-    totalFlightPlayers,
   } = eventView!;
   const role = String(user?.role || "").toUpperCase();
   const canManageEvent = role === "ADMIN" || role === "SUPER";
@@ -248,76 +272,40 @@ export default function Event() {
         )}
       </div>
 
-      <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {[
-          {
-            label: "Players",
-            value: hasRounds ? activeLeaderboard.length : totalFlightPlayers,
-            sub: hasRounds ? "scored players" : "in flights",
-            icon: <User size={14} className="text-blue-500" />,
-            accent: "from-blue-50 to-white border-blue-100",
-          },
-          {
-            label: "Gross Skins",
-            value: event.metrics.skins.playerSkins.length,
-            sub: "winning holes",
-            icon: <Zap size={14} className="text-amber-500" />,
-            accent: "from-amber-50 to-white border-amber-100",
-          },
-          {
-            label: "Net Skins",
-            value: event.metrics.skins.playerNetSkins.length,
-            sub: "winning holes",
-            icon: <Zap size={14} className="text-violet-500" />,
-            accent: "from-violet-50 to-white border-violet-100",
-          },
-          {
-            label: "Holes",
-            value: event.holes,
-            sub: `${event.startSide === "back" ? "back" : "front"} start`,
-            icon: <Flag size={14} className="text-emerald-500" />,
-            accent: "from-emerald-50 to-white border-emerald-100",
-          },
-        ].map((stat, i) => (
-          <div
-            key={i}
-            className={`relative overflow-hidden bg-linear-to-br ${stat.accent} border rounded-xl px-4 py-3 shadow-sm flex items-start justify-between gap-3`}
-          >
-            <div className="min-w-0">
-              <SectionKicker>
-                {stat.label}
-              </SectionKicker>
-              <p className="text-2xl font-black text-gray-900 leading-tight mt-1">{stat.value}</p>
-              <p className="text-[11px] font-medium text-gray-500 mt-1">{stat.sub}</p>
-            </div>
-            <div className="shrink-0 p-2.5 bg-white/70 rounded-lg border border-white/70 shadow-[0_1px_0_rgba(255,255,255,0.8)]">
-              {stat.icon}
-            </div>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-gray-900/5" />
-          </div>
-        ))}
-      </div>
-
       {hasRounds && (
-        <div className="mb-6">
-          <EventRecap event={event} />
+        <div className="mt-6 mb-6">
+          <EventRecap
+            event={event}
+            overview={{
+              players: activeLeaderboard.length,
+              grossSkins: event.metrics.skins.playerSkins.length,
+              netSkins: event.metrics.skins.playerNetSkins.length,
+              holes: event.holes,
+              startSide: event.startSide === "back" ? "back" : "front",
+            }}
+          />
         </div>
       )}
 
-      <div className="flex flex-col gap-4 mt-4">
+      <div className="mt-8 flex flex-col gap-10">
         {hasRounds ? (
           <>
-            <div className="pt-2">
-              <SectionIntro
+            <section className="space-y-5">
+              <EventSectionHeading
+                icon={<Trophy size={16} strokeWidth={2.5} />}
                 title="Performance and Skins"
-                description="Distribution, leaderboard, and skin winners"
+                description="Event leaders, complete standings, and winning holes"
               />
-              <div className="flex gap-4">
-                <div className="w-1/3 flex flex-col gap-4">
+              <div className="grid items-start gap-8 xl:grid-cols-[minmax(16rem,0.72fr)_minmax(0,1.28fr)]">
+                <div className="space-y-4">
+                  <CompactGroupHeading
+                    title="Podium and skins"
+                    description="Top finishers and every winning hole"
+                  />
                   {topThree.length > 0 && (
                     <TopThreePlayers players={topThree} mode={topThreeMode} />
                   )}
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-4">
                     <SkinsList
                       label="Gross"
                       skins={event.metrics.skins.playerSkins}
@@ -353,27 +341,31 @@ export default function Event() {
                   </div>
                 </div>
 
-                <div className="w-2/3 flex flex-col gap-3">
-                  <SurfaceCard>
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Trophy size={14} className="text-amber-500" strokeWidth={2.5} />
-                        <h3 className="text-sm font-semibold text-gray-800">Leaderboard</h3>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-1">
-                        {leaderboardTabs.map((tab) => (
-                          <button
-                            key={tab.id}
-                            type="button"
-                            onClick={() => setActiveTab(tab.id)}
-                            aria-pressed={resolvedActiveTab === tab.id}
-                            className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${resolvedActiveTab === tab.id ? "bg-gray-100 text-gray-800 border border-gray-200" : "text-gray-400 hover:text-gray-600"}`}
-                          >
-                            {tab.label}
-                          </button>
-                        ))}
-                      </div>
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <CompactGroupHeading
+                      title="Leaderboard"
+                      description="Switch between points, low gross, and low net"
+                    />
+                    <div className="flex rounded-xl border border-slate-200 bg-slate-100/80 p-1 shadow-inner">
+                      {leaderboardTabs.map((tab) => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setActiveTab(tab.id)}
+                          aria-pressed={resolvedActiveTab === tab.id}
+                          className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition ${
+                            resolvedActiveTab === tab.id
+                              ? "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200"
+                              : "text-slate-500 hover:text-slate-800"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
                     </div>
+                  </div>
+                  <SurfaceCard>
                     <ScoreLeaderboard
                       leaderboard={activeLeaderboard}
                       sortBy={leaderboardSort}
@@ -384,19 +376,23 @@ export default function Event() {
                   )}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="pt-2 [content-visibility:auto] [contain-intrinsic-size:auto_560px]">
-              <SectionIntro title="Round Scores" description="All player scores for this event" />
+            <section className="space-y-5 [content-visibility:auto] [contain-intrinsic-size:auto_560px]">
+              <EventSectionHeading
+                icon={<ListOrdered size={16} strokeWidth={2.5} />}
+                title="Round Scores"
+                description="Hole-by-hole scoring and round totals for every player"
+              />
               <SurfaceCard>
-                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
                   <div className="flex items-center gap-2">
-                    <ListOrdered size={14} className="text-gray-400" strokeWidth={2} />
-                    <h3 className="text-sm font-semibold text-gray-800">Round Scores</h3>
+                    <Flag size={13} className="text-emerald-600" strokeWidth={2.5} />
+                    <h3 className="text-xs font-bold text-slate-900">Event Score Breakdown</h3>
                   </div>
                   <div className="flex items-center gap-2">
                     <div
-                      className="flex items-center rounded-md border border-gray-200 bg-gray-50 p-0.5"
+                      className="flex items-center rounded-lg border border-slate-200 bg-slate-100/80 p-0.5 shadow-inner"
                       role="group"
                       aria-label="Hole score display"
                     >
@@ -406,10 +402,10 @@ export default function Event() {
                           type="button"
                           onClick={() => setRoundScoreMode(mode)}
                           aria-pressed={roundScoreMode === mode}
-                          className={`rounded px-2 py-1 text-[10px] font-bold capitalize transition-colors ${
+                          className={`rounded-lg px-2.5 py-1 text-[10px] font-bold capitalize transition ${
                             roundScoreMode === mode
-                              ? "bg-white text-gray-800 shadow-sm"
-                              : "text-gray-400 hover:text-gray-600"
+                              ? "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200"
+                              : "text-slate-500 hover:text-slate-800"
                           }`}
                         >
                           {mode}
@@ -419,7 +415,7 @@ export default function Event() {
                     <button
                       type="button"
                       onClick={() => scorecardDrawer.open()}
-                      className="flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
                     >
                       <Eye size={12} strokeWidth={2.5} />
                       Scorecards
@@ -432,7 +428,7 @@ export default function Event() {
                   showRoundStats
                 />
               </SurfaceCard>
-            </div>
+            </section>
           </>
         ) : (
           <div className="pt-2">

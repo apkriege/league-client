@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { TeamEventResult, TeamProfile } from "@api/teams/types";
 import { buildCommissionerInsights } from "./commissionerInsights";
 import { buildEventRecap } from "./eventRecap";
+import { buildEventStory } from "./eventStory";
 import { buildLeaguePulse } from "./leaguePulse";
 import { buildSchedulePreview } from "./schedulePreview";
 import { buildTeamIntelligence } from "./teamIntelligence";
@@ -117,6 +118,14 @@ describe("league intelligence", () => {
     expect(insight.contributions[0]).toMatchObject({ name: "Avery Green", points: 13 });
     expect(insight.pairings[0]).toMatchObject({ events: 2, winRate: 50 });
     expect(insight.totals).toEqual({ birdies: 2, pars: 18, bogeys: 16 });
+    expect(insight.overview).toMatchObject({
+      teamPoints: 19,
+      playerPoints: 19,
+      completedEvents: 2,
+      scheduledEvents: 2,
+      seasonRank: 1,
+      winRate: 50,
+    });
   });
 
   it("recaps the leader, closing stretch, and event turning point", () => {
@@ -161,6 +170,139 @@ describe("league intelligence", () => {
     expect(recap?.clutch).toMatchObject({ playerName: "Avery Green", toPar: -1 });
     expect(recap?.separationHole).toMatchObject({ hole: 2, spread: 3 });
     expect(recap?.relativeToPar).toMatchObject({ playerName: "Avery Green", netToPar: -1 });
+  });
+
+  it("turns round data into hot-hand, matchup, momentum, and achievement stories", () => {
+    const story = buildEventStory({
+      name: "Rivalry Night",
+      format: "individual",
+      scoringFormat: "match",
+      pointsEnabled: true,
+      flights: [{
+        players: [
+          { playerId: 1, opponentId: 2 },
+          { playerId: 2, opponentId: 1 },
+        ],
+      }],
+      metrics: {
+        scores: [
+          {
+            playerId: 1,
+            player: { firstName: "Avery", lastName: "Green" },
+            gross: 38,
+            net: 35,
+            pointsEarned: 8,
+            matchPoints: 2,
+            scores: [
+              { hole: 1, gross: 6, net: 5, par: 4 },
+              { hole: 2, gross: 5, net: 4, par: 4 },
+              { hole: 3, gross: 5, net: 5, par: 4 },
+              { hole: 4, gross: 4, net: 4, par: 4 },
+              { hole: 5, gross: 4, net: 3, par: 4 },
+              { hole: 6, gross: 3, net: 3, par: 4 },
+              { hole: 7, gross: 4, net: 4, par: 4 },
+              { hole: 8, gross: 3, net: 3, par: 4 },
+              { hole: 9, gross: 4, net: 4, par: 4 },
+            ],
+          },
+          {
+            playerId: 2,
+            player: { firstName: "Blake", lastName: "Fairway" },
+            gross: 41,
+            net: 36,
+            pointsEarned: 7,
+            matchPoints: 1,
+            scores: [
+              { hole: 1, gross: 4, net: 4, par: 4 },
+              { hole: 2, gross: 5, net: 5, par: 4 },
+              { hole: 3, gross: 4, net: 4, par: 4 },
+              { hole: 4, gross: 6, net: 6, par: 4 },
+              { hole: 5, gross: 5, net: 4, par: 4 },
+              { hole: 6, gross: 5, net: 4, par: 4 },
+              { hole: 7, gross: 4, net: 3, par: 4 },
+              { hole: 8, gross: 4, net: 3, par: 4 },
+              { hole: 9, gross: 4, net: 3, par: 4 },
+            ],
+          },
+        ],
+        skins: {
+          playerSkins: [
+            { playerId: 1, name: "Avery Green", hole: 6 },
+            { playerId: 1, name: "Avery Green", hole: 8 },
+          ],
+          playerNetSkins: [
+            { playerId: 1, name: "Avery Green", hole: 5 },
+            { playerId: 2, name: "Blake Fairway", hole: 7 },
+          ],
+        },
+      },
+    });
+
+    expect(story?.highlights).toHaveLength(4);
+    expect(story?.highlights.find((highlight) => highlight.kind === "hot")).toMatchObject({
+      title: "Avery Green brought the heat",
+      stat: "2 red numbers",
+    });
+    expect(story?.highlights.find((highlight) => highlight.kind === "battle")).toMatchObject({
+      label: "Featured matchup",
+      stat: "1 lead change",
+    });
+    expect(story?.highlights.find((highlight) => highlight.kind === "momentum")).toMatchObject({
+      title: "Blake Fairway flipped the script",
+      stat: "4-stroke swing",
+    });
+    expect(story?.highlights.find((highlight) => highlight.kind === "achievement")).toMatchObject({
+      title: "Avery Green owned the pin sheet",
+      stat: "3 skins",
+    });
+  });
+
+  it("uses team standings for the featured event battle", () => {
+    const story = buildEventStory({
+      name: "Team Night",
+      format: "team",
+      pointsEnabled: true,
+      metrics: {
+        scores: [
+          {
+            playerId: 1,
+            player: { firstName: "Avery", lastName: "Green" },
+            gross: 39,
+            net: 35,
+            pointsEarned: 5,
+            scores: [
+              { hole: 1, gross: 4, net: 4, par: 4 },
+              { hole: 2, gross: 3, net: 3, par: 4 },
+            ],
+          },
+          {
+            playerId: 2,
+            player: { firstName: "Blake", lastName: "Fairway" },
+            gross: 40,
+            net: 36,
+            pointsEarned: 4,
+            scores: [
+              { hole: 1, gross: 4, net: 4, par: 4 },
+              { hole: 2, gross: 4, net: 4, par: 4 },
+            ],
+          },
+        ],
+        teamStandings: [
+          { teamId: 1, name: "Pin Seekers", totalPoints: 9.5 },
+          { teamId: 2, name: "Birdie Makers", totalPoints: 9 },
+        ],
+      },
+    });
+
+    expect(story?.highlights.find((highlight) => highlight.kind === "battle")).toMatchObject({
+      label: "Team race",
+      title: "Pin Seekers vs Birdie Makers",
+      stat: "0.5-point margin",
+    });
+  });
+
+  it("does not create a round story before scores exist", () => {
+    expect(buildEventStory({ name: "Next Week", metrics: { scores: [] } })).toBeNull();
   });
 
   it("previews assigned matches with form, history, and course context", () => {
