@@ -35,8 +35,13 @@ test('public landing and login pages expose the primary entry points', async ({ 
   );
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /index, follow/);
   await expect(
-    page.getByRole('heading', { name: 'Run league night like a professional operation.' }),
+    page.getByRole('heading', { name: 'Run the league. Score the rounds. Understand the results.' }),
   ).toBeVisible();
+  await page.getByRole('link', { name: 'Intelligence', exact: true }).click();
+  await expect(page.getByRole('heading', {
+    name: 'Your scores should explain the league—not just fill a table.',
+  })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Commissioner Operations Check' })).toBeVisible();
   await expect(page.getByText('League Night', { exact: true }).first()).toBeVisible();
   await page.getByRole('link', { name: /sign in/i }).first().click();
   await expect(page).toHaveURL(/\/login$/);

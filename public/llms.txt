@@ -1,6 +1,6 @@
 # League Night Pro
 
-> League Night Pro is web-based golf league management software for organizers and golf clubs. It combines season setup, player and team management, event scheduling, flight generation, score entry, standings, handicaps, and player history in one application.
+> League Night Pro is web-based golf league management software for organizers and golf clubs. It combines season setup, player and team management, event scheduling, flight generation, score entry, standings, league intelligence, and annual season renewal in one application.
 
 Official website: https://leaguenightpro.com/
 Support: support@leaguenightpro.com
@@ -20,6 +20,7 @@ Support: support@leaguenightpro.com
 
 - Designed for recurring golf leagues, league seasons, and tournaments.
 - Supports individual and team formats, stroke play and match play, 9-hole and 18-hole scoring, flights, printable scorecards, skins, standings, and player statistics.
+- Provides league, player, team, event, matchup, and commissioner insights from recorded league results.
 - League administrators can create a new season from a previous season while preserving legacy rounds and reusing player data.
 - Pricing is $10 USD per regular golfer for each league season, with an eight-golfer minimum. Substitutes do not increase the price.
 - League-season purchases are one-time payments and do not automatically renew.

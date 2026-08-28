@@ -13,7 +13,7 @@ const publicPages: Record<string, Omit<SeoMetadata, "canonicalUrl" | "indexable"
   "/": {
     title: "Golf League Management Software | League Night Pro",
     description:
-      "Golf league management software for schedules, teams, flights, scorecards, handicaps, standings, skins, and player statistics.",
+      "Run golf leagues with scheduling, flights, scorecards, score entry, standings, player and team insights, season history, and yearly renewal.",
   },
   "/privacy": {
     title: "Privacy Policy | League Night Pro",
@@ -103,6 +103,14 @@ const setHomeStructuredData = (enabled: boolean) => {
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         description: publicPages["/"].description,
+        featureList: [
+          "Golf league and tournament setup",
+          "Player, substitute, and team management",
+          "Event scheduling, flights, and printable scorecards",
+          "Gross, net, match-play, points, and skins scoring",
+          "League, player, team, event, matchup, and commissioner intelligence",
+          "Annual season renewal with historical rounds preserved",
+        ],
         offers: {
           "@type": "Offer",
           price: "10.00",

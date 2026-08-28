@@ -1,18 +1,18 @@
 import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice } from "@/lib/billing";
 import {
   ArrowRight,
-  BarChart3,
-  CalendarDays,
+  Activity,
+  BrainCircuit,
   Check,
   ChevronRight,
-  CircleCheck,
   ClipboardList,
   Flag,
   Gauge,
   LineChart,
   ShieldCheck,
-  Sparkles,
+  Swords,
   Trophy,
+  Users,
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
@@ -25,54 +25,29 @@ const GOLF_IMAGES = {
   hero: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&q=76",
   aerial:
     "https://images.unsplash.com/photo-1592919505780-303950717480?auto=format&fit=crop&q=76",
-  detail:
-    "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&q=76",
 };
 
 const stats = [
-  { value: "9/18", label: "hole scorecards" },
-  { value: "4", label: "event format combinations" },
-  { value: "3", label: "leaderboard views" },
+  { value: "Every week", label: "Schedule, flights, cards, scoring, and results" },
+  { value: "Every golfer", label: "Performance, progress, matchups, and history" },
+  { value: "Every season", label: "Renew the league while preserving its legacy" },
 ];
 
 const workflow = [
   {
-    title: "Build the league",
-    body: "Create players, teams, flights, and events, then use verified club, course, and tee data.",
+    title: "League administration",
+    body: "Manage golfers, substitutes, teams, invitations, announcements, scoring rules, admin permissions, and view-only access.",
     icon: <Flag size={18} />,
   },
   {
-    title: "Run the night",
-    body: "Print scorecards, enter scores by flight, swap players, and lock completed events.",
+    title: "Event execution",
+    body: "Schedule rounds, select courses and tees, generate flights, assign matchups, print scorecards, and handle substitutions.",
     icon: <ClipboardList size={18} />,
   },
   {
-    title: "Publish results",
-    body: "Share points, low-gross, and low-net leaderboards, skins, player trends, scorecards, and round history.",
+    title: "Scoring and competition",
+    body: "Enter gross scores and calculate net results, points, skins, standings, handicap movement, records, and intelligence.",
     icon: <Trophy size={18} />,
-  },
-];
-
-const features = [
-  {
-    title: "League operations",
-    body: "Seasons, tournaments, recurring schedules, flights, announcements, invitations, and role-based access.",
-    icon: <CalendarDays size={18} />,
-  },
-  {
-    title: "Scoring engine",
-    body: "Gross and net scoring, match-play points, skins, printable scorecards, and handicap movement.",
-    icon: <Gauge size={18} />,
-  },
-  {
-    title: "Player intelligence",
-    body: "Round history, performance trends, handicap movement, and detailed scoring for every player.",
-    icon: <LineChart size={18} />,
-  },
-  {
-    title: "Club-ready course data",
-    body: "Verified clubs, courses, tees, ratings, slopes, hole details, and timezone-aware scheduling.",
-    icon: <Flag size={18} />,
   },
 ];
 
@@ -101,12 +76,11 @@ export default function Landing() {
 
       <Hero />
       <main>
-        <ProofStrip />
         <ProductSection />
+        <IntelligenceSection />
         <WorkflowSection />
-        <FeatureSection />
-        <ConversionSection />
         <PricingSection />
+        <RegistrationSection />
         <LandingFooter />
       </main>
     </div>
@@ -144,8 +118,11 @@ function Hero() {
           <a href="#product" className="hover:text-white">
             Product
           </a>
+          <a href="#intelligence" className="hover:text-white">
+            Intelligence
+          </a>
           <a href="#workflow" className="hover:text-white">
-            Workflow
+            Season flow
           </a>
           <a href="#pricing" className="hover:text-white">
             Pricing
@@ -171,18 +148,18 @@ function Hero() {
       <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-14 md:px-8 lg:grid-cols-[minmax(0,1fr)_520px] lg:pb-28 lg:pt-20">
         <div>
           <div className="landing-reveal inline-flex items-center gap-2 rounded-full border border-sky-200/20 bg-slate-950/40 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-sky-100">
-            <Sparkles size={13} />
-            Golf league operations for organizers and clubs
+            <Trophy size={13} />
+            One system for the entire golf league season
           </div>
 
           <h1 className="landing-reveal landing-delay-1 mt-6 max-w-5xl text-6xl font-black leading-[0.88] tracking-[-0.065em] text-white md:text-7xl">
-            Run league night like a professional operation.
+            Run the league. Score the rounds. Understand the results.
           </h1>
 
           <p className="landing-reveal landing-delay-2 mt-7 max-w-2xl text-base leading-8 text-white/72 md:text-lg">
-            League Night Pro gives organizers and clubs one focused golf league operating system:
-            scheduling, scorecards, teams, flights, leaderboards, skins, announcements, handicap
-            tracking, and player history.
+            Replace registration lists, schedule sheets, printed pairings, scoring formulas, and
+            disconnected results with one league system. Create the season, run every event,
+            publish standings, show golfers how they are playing, and bring the league back next year.
           </p>
 
           <div className="landing-reveal landing-delay-3 mt-8 flex flex-wrap gap-3">
@@ -190,14 +167,14 @@ function Hero() {
               href="#register"
               className="group inline-flex items-center gap-2 rounded-full bg-sky-300 px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-sky-950/25 transition hover:bg-sky-200"
             >
-              Launch your league
+              Start your league
               <ArrowRight size={16} className="transition group-hover:translate-x-0.5" />
             </a>
             <a
               href="#product"
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-slate-950/35 px-5 py-3 text-sm font-black text-white transition hover:bg-white/12"
             >
-              See the system
+              See what it handles
               <ChevronRight size={16} />
             </a>
           </div>
@@ -232,24 +209,25 @@ function HeroProductCard() {
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                Live event
+                League intelligence
               </p>
-              <h2 className="text-base font-black">Thursday Match Play</h2>
+              <h2 className="text-base font-black">Thursday League Pulse</h2>
             </div>
-            <span className="rounded-full bg-blue-100 px-3 py-1 text-[10px] font-black text-blue-800">
-              scoring
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-800">
+              season active
             </span>
           </div>
 
           <div className="grid gap-3 p-4">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {[
-                ["6/8", "Flights"],
-                ["42", "Players"],
-                ["12", "Skins"],
+                ["92%", "Participation"],
+                ["8 / 12", "Events"],
+                ["1.5", "Lead gap"],
+                ["-2.1", "Best HCP"],
               ].map(([value, label]) => (
                 <div key={label} className="rounded-2xl border border-slate-200 bg-white p-3">
-                  <p className="text-2xl font-black tracking-tight">{value}</p>
+                  <p className="text-lg font-black tracking-tight">{value}</p>
                   <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
                     {label}
                   </p>
@@ -258,45 +236,39 @@ function HeroProductCard() {
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-slate-950 p-4 text-white">
-              <div className="mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BarChart3 size={15} className="text-sky-300" />
-                  <p className="text-sm font-black">Event leaderboard</p>
-                </div>
-                <p className="text-[10px] font-bold text-white/42">RESULTS</p>
+              <div className="flex items-center gap-2">
+                <BrainCircuit size={15} className="text-emerald-300" />
+                <p className="text-sm font-black">What needs attention</p>
               </div>
-              <div className="flex h-32 items-end gap-3">
-                {[42, 58, 35, 74, 64, 88, 53, 78].map((height, index) => (
-                  <div key={index} className="flex flex-1 flex-col items-center gap-2">
-                    <div
-                      className={`w-full rounded-t-xl ${
-                        index === 5 ? "bg-sky-300" : "bg-white/18"
-                      }`}
-                      style={{ height: `${height}%` }}
-                    />
-                    <span className="h-1 w-3 rounded-full bg-white/18" />
+              <div className="mt-4 grid gap-2">
+                {[
+                  ["Standings race", "Only 1.5 points separate first and second."],
+                  ["Participation", "Three golfers trail the league pace by two rounds."],
+                  ["Next matchup", "Course history favors Avery by 2.3 net strokes."],
+                ].map(([title, body], index) => (
+                  <div key={title} className="flex gap-3 rounded-2xl bg-white/[0.07] px-3 py-2.5">
+                    <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${index === 1 ? "bg-amber-400" : "bg-sky-300"}`} />
+                    <div>
+                      <p className="text-xs font-black">{title}</p>
+                      <p className="mt-0.5 text-[10px] leading-4 text-white/55">{body}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {[
-                ["Scorecards ready", "9 or 18-hole event scorecards"],
-                ["Handicaps locked", "pre-round values preserved"],
-                ["Skins calculated", "ties excluded automatically"],
+                ["Player", "Development"],
+                ["Team", "Chemistry"],
+                ["Admin", "Operations"],
               ].map(([title, body]) => (
                 <div
                   key={title}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
+                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-center"
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-100 text-blue-800">
-                    <Check size={15} />
-                  </span>
-                  <div>
-                    <p className="text-xs font-black">{title}</p>
-                    <p className="text-[10px] text-slate-500">{body}</p>
-                  </div>
+                  <p className="text-xs font-black">{title}</p>
+                  <p className="text-[10px] text-slate-500">{body}</p>
                 </div>
               ))}
             </div>
@@ -307,41 +279,21 @@ function HeroProductCard() {
   );
 }
 
-function ProofStrip() {
-  return (
-    <section className="landing-deferred-section relative border-b border-black/5 bg-[#f4f7fb]">
-      <div className="mx-auto grid max-w-7xl gap-3 px-5 py-6 md:grid-cols-4 md:px-8">
-        {[
-          "Course and tee database",
-          "Team and individual seasons",
-          "Match play and stroke scoring",
-          "Role-protected admin controls",
-        ].map((item) => (
-          <div key={item} className="flex items-center gap-2 rounded-2xl bg-white/70 px-4 py-3">
-            <CircleCheck size={15} className="text-blue-700" />
-            <span className="text-xs font-black text-slate-700">{item}</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function ProductSection() {
   return (
     <section id="product" className="landing-deferred-section relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
       <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
         <div className="landing-reveal">
           <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
-            Built for real league workflows
+            Everything the commissioner runs
           </p>
           <h2 className="mt-4 max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
-            Less spreadsheet chaos. More control from first tee to final standings.
+            One source of truth from registration through the final standings.
           </h2>
           <p className="mt-5 max-w-xl text-base leading-8 text-slate-600">
-            The app is structured around the way golf leagues actually operate: weekly events,
-            flights, scorecards, player substitutions, matchups, skins, standings, and player
-            history that updates as the season progresses.
+            Every player, team, event, flight, scorecard, score, point, skin, handicap update,
+            announcement, and season record stays connected. Change a result once and the league
+            views update from the same data.
           </p>
 
           <div className="mt-8 grid gap-3">
@@ -382,18 +334,18 @@ function ProductSection() {
               />
               <div className="p-5 text-white">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-200">
-                  Event command center
+                  Weekly event workflow
                 </p>
                 <h3 className="mt-2 text-2xl font-black tracking-tight">
-                  Every flight, card, score, and matchup in one flow.
+                  Build flights, print cards, enter scores, and publish the results.
                 </h3>
               </div>
             </div>
 
             <div className="grid gap-4">
-              <MetricCard label="League access" value="Login or code" icon={<ShieldCheck size={16} />} />
-              <MetricCard label="Leaderboards" value="3 views" icon={<BarChart3 size={16} />} />
-              <MetricCard label="Scheduling" value="Timezone-safe" icon={<CalendarDays size={16} />} />
+              <MetricCard label="Scoring" value="Gross + net" icon={<Gauge size={16} />} />
+              <MetricCard label="Competition" value="Points + skins" icon={<Trophy size={16} />} />
+              <MetricCard label="Access" value="Admin + viewer" icon={<ShieldCheck size={16} />} />
             </div>
           </div>
         </div>
@@ -414,6 +366,99 @@ function MetricCard({ label, value, icon }: { label: string; value: string; icon
   );
 }
 
+function IntelligenceSection() {
+  const views = [
+    {
+      title: "League Pulse",
+      body: "See the standings gap, season progress, participation rate, most-improved golfer, and who is falling behind.",
+      result: "Know what is changing across the league.",
+      icon: <Activity size={17} />,
+    },
+    {
+      title: "Player Intelligence",
+      body: "Show each golfer scoring patterns, par splits, form, personal records, league rank, head-to-head results, and where to improve.",
+      result: "Give golfers a reason to check the app after every round.",
+      icon: <LineChart size={17} />,
+    },
+    {
+      title: "Team DNA",
+      body: "Measure player contribution, recent form, scoring identity, pairing results, team record, and season rivalries.",
+      result: "See why a team is winning—not only where it ranks.",
+      icon: <Users size={17} />,
+    },
+    {
+      title: "Event Recap",
+      body: "Identify the event leader, best net performance, strongest finish, separation hole, and result context from completed scores.",
+      result: "Turn a leaderboard into the story of the round.",
+      icon: <Trophy size={17} />,
+    },
+    {
+      title: "Matchup Preview",
+      body: "Compare handicap, recent net form, head-to-head record, and course history before assigned players meet.",
+      result: "Make the next event interesting before the first tee shot.",
+      icon: <Swords size={17} />,
+    },
+    {
+      title: "Commissioner Operations Check",
+      body: "Flag missing scores, incomplete matchups, participation gaps, paid-capacity issues, schedule breaks, and renewal deadlines.",
+      result: "Find the work that needs attention before golfers do.",
+      icon: <ShieldCheck size={17} />,
+    },
+  ];
+
+  return (
+    <section id="intelligence" className="landing-deferred-section relative overflow-hidden bg-white px-5 py-24 md:px-8">
+      <div className="absolute inset-x-0 top-0 h-px bg-slate-200" />
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-end">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-800">
+              <BrainCircuit size={13} />
+              League Night Intelligence
+            </div>
+            <h2 className="mt-5 max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
+              Your scores should explain the league—not just fill a table.
+            </h2>
+          </div>
+          <p className="max-w-2xl text-base leading-8 text-slate-600 lg:justify-self-end">
+            League Night Pro connects every completed round to the next decision: what a player
+            should improve, which team combinations work, what decided an event, which matchup to
+            watch, and what the commissioner needs to fix.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {views.map((view, index) => (
+            <article
+              key={view.title}
+              className={`group rounded-[1.75rem] border p-5 transition hover:-translate-y-1 hover:shadow-xl ${
+                index === 0
+                  ? "border-slate-950 bg-slate-950 text-white shadow-xl shadow-slate-950/15"
+                  : "border-slate-200 bg-[#f8fafc] text-slate-950"
+              }`}
+            >
+              <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
+                index === 0 ? "bg-emerald-300 text-slate-950" : "bg-slate-950 text-emerald-200"
+              }`}>
+                {view.icon}
+              </div>
+              <h3 className="mt-5 text-lg font-black">{view.title}</h3>
+              <p className={`mt-2 text-sm leading-6 ${index === 0 ? "text-white/60" : "text-slate-600"}`}>
+                {view.body}
+              </p>
+              <div className={`mt-5 border-t pt-4 text-xs font-black ${
+                index === 0 ? "border-white/10 text-emerald-200" : "border-slate-200 text-blue-800"
+              }`}>
+                {view.result}
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function WorkflowSection() {
   return (
     <section id="workflow" className="landing-deferred-section bg-[#101828] px-5 py-24 text-white md:px-8">
@@ -421,24 +466,25 @@ function WorkflowSection() {
         <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-300">
-              Modern league ops
+              One continuous season record
             </p>
             <h2 className="mt-4 max-w-3xl text-5xl font-black leading-[0.95] tracking-[-0.055em]">
-              A calm control room for a messy weekly operation.
+              Set it up once. Run each week. Carry the league into next season.
             </h2>
           </div>
           <p className="max-w-md text-sm leading-7 text-white/58">
-            Keep your workflow clear even when players swap late, formats change, and multiple
-            flights need scores entered fast.
+            The same player, team, event, and scoring data drives scorecards, results, standings,
+            intelligence, and historical records. You do not rebuild the league after every round.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4 lg:grid-cols-4">
+        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           {[
-            ["01", "Configure", "Teams, players, event rules, point tables, and verified course data."],
-            ["02", "Print", "Two-per-page scorecards with player handicaps and event details."],
-            ["03", "Score", "Enter by flight, preserve order, calculate points, net, and skins."],
-            ["04", "Review", "Publish event scorecards, standings, player pages, and trends."],
+            ["01", "Create", "Set season dates, golfers, substitutes, teams, formats, and scoring rules."],
+            ["02", "Schedule", "Create recurring events, select courses and tees, then assign flights and matchups."],
+            ["03", "Run", "Print scorecards, handle swaps, enter gross scores, and calculate net, points, and skins."],
+            ["04", "Publish", "Release event results, standings, player and team intelligence, and round history."],
+            ["05", "Renew", "Create the next season from the prior league while preserving players and legacy rounds."],
           ].map(([step, title, body]) => (
             <div
               key={step}
@@ -456,84 +502,35 @@ function WorkflowSection() {
   );
 }
 
-function FeatureSection() {
+function RegistrationSection() {
   return (
-    <section className="landing-deferred-section relative overflow-hidden bg-white px-5 py-20 md:px-8">
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-        <div className="lg:sticky lg:top-8">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
-            Product depth
-          </p>
-          <h2 className="mt-4 text-4xl font-black leading-[0.98] tracking-[-0.045em] text-slate-950 sm:text-5xl">
-            Serious functionality without a heavy admin experience.
-          </h2>
-          <p className="mt-4 text-base leading-7 text-slate-600">
-            Clear permissions, accurate scoring, revocable viewer access, and league data that
-            updates when scores are finalized.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {features.map((feature, index) => (
-            <div
-              key={feature.title}
-              className="rounded-[1.75rem] border border-slate-200 bg-[#f8fafc] p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-950/8"
-              style={{ animationDelay: `${index * 90}ms` }}
-            >
-              <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-sky-200">
-                {feature.icon}
-              </div>
-              <h3 className="text-lg font-black text-slate-950">{feature.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{feature.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ConversionSection() {
-  return (
-    <section className="landing-deferred-section relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
+    <section id="register" className="landing-deferred-section relative scroll-mt-6 overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
       <div className="absolute inset-x-0 top-0 h-px bg-black/5" />
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
-        <div className="overflow-hidden rounded-[2.25rem] bg-slate-950 p-3 shadow-2xl shadow-blue-950/15">
-          <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="relative min-h-80 overflow-hidden rounded-[1.65rem]">
-              <img
-                src={`${GOLF_IMAGES.detail}&w=900`}
-                srcSet={`${GOLF_IMAGES.detail}&w=480 480w, ${GOLF_IMAGES.detail}&w=720 720w, ${GOLF_IMAGES.detail}&w=900 900w`}
-                sizes="(min-width: 1024px) 36vw, 100vw"
-                alt="Putting green and golf score detail"
-                width={900}
-                height={600}
-                loading="lazy"
-                decoding="async"
-                className="h-full min-h-80 w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(7,20,38,.72),rgba(29,78,216,.42)),radial-gradient(circle_at_70%_30%,rgba(125,211,252,.2),transparent_32%)]" />
-            </div>
-            <div className="rounded-[1.65rem] bg-white p-6 text-slate-950">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                What your league gets
-              </p>
-              <h2 className="mt-3 text-4xl font-black leading-[0.95] tracking-[-0.04em]">
-                The whole season, not just tonight’s score.
-              </h2>
-              <div className="mt-8 grid gap-3">
-                {[
-                  ["Current event", "Score entry, scorecards, skins, and points, low-gross, and low-net leaderboards."],
-                  ["League page", "Standings, announcements, records, schedule, and top performers."],
-                  ["Player page", "Round history, handicap detail, charts, and score breakdowns."],
-                ].map(([title, body]) => (
-                  <div key={title} className="rounded-2xl border border-slate-200 p-4">
-                    <p className="text-sm font-black">{title}</p>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">{body}</p>
-                  </div>
-                ))}
+        <div className="rounded-[2.25rem] bg-slate-950 p-7 text-white shadow-2xl shadow-blue-950/15 md:p-9">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-300">
+            Start the league
+          </p>
+          <h2 className="mt-4 max-w-2xl text-5xl font-black leading-[0.95] tracking-[-0.05em]">
+            Create the admin account, verify the email, and build the first season.
+          </h2>
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-white/60">
+            Account creation is free. Payment is based on the regular-golfer roster when the league
+            is created; substitutes do not add to the price.
+          </p>
+          <div className="mt-8 grid gap-3">
+            {[
+              ["1", "Create and verify the admin account"],
+              ["2", "Set the league dates, format, players, teams, and scoring rules"],
+              ["3", "Purchase the season and begin scheduling events"],
+            ].map(([step, text]) => (
+              <div key={step} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-sky-300 text-xs font-black text-slate-950">
+                  {step}
+                </span>
+                <p className="text-sm font-bold text-white/85">{text}</p>
               </div>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -551,20 +548,21 @@ function PricingSection() {
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
-            Simple launch pricing
+            Per-season pricing
           </p>
           <h2 className="mt-4 text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
-            Start with your first golfers. Add more when your league grows.
+            One clear price for one complete league season.
           </h2>
           <p className="mt-5 text-base leading-8 text-slate-600">
             Each league season starts with {BILLING_MIN_GOLFERS} regular golfer spots for {includedTotal}.
-            Regular players above the minimum are {formatBillingPrice(BILLING_PRICE_PER_GOLFER)} each per season; substitutes do not increase the price.
+            Regular players above the minimum are {formatBillingPrice(BILLING_PRICE_PER_GOLFER)} each for that season.
+            Substitutes do not increase the price, and the next season is purchased only when you renew it.
           </p>
         </div>
 
         <div className="mx-auto mt-12 grid max-w-5xl gap-4 lg:grid-cols-[0.82fr_1.18fr]">
           <div className="rounded-[2rem] border border-slate-200 bg-[#f8fafc] p-6">
-            <p className="text-sm font-black text-slate-950">Included launch pack</p>
+            <p className="text-sm font-black text-slate-950">League season minimum</p>
             <div className="mt-6 flex items-end gap-2">
               <span className="text-6xl font-black tracking-tight">{includedTotal}</span>
               <span className="mb-2 text-sm font-bold text-slate-500">
@@ -573,10 +571,10 @@ function PricingSection() {
             </div>
             <div className="mt-8 grid gap-3">
               {[
-                "Free admin account setup",
+                "Admin account included",
                 `${BILLING_MIN_GOLFERS}-golfer league minimum`,
-                "League creation workflow",
-                "Pay only for extra regular golfers",
+                "All league, event, scoring, and intelligence features",
+                "Substitutes do not count toward billing",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm font-semibold">
                   <Check size={15} className="text-blue-700" />
@@ -641,7 +639,7 @@ function DeferredRegisterPanel() {
   }, [shouldLoad]);
 
   return (
-    <div id="register" ref={containerRef} className="min-h-[560px] scroll-mt-6 lg:sticky lg:top-6">
+    <div ref={containerRef} className="min-h-[560px] lg:sticky lg:top-6">
       {shouldLoad ? (
         <Suspense
           fallback={

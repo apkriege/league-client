@@ -11,7 +11,7 @@
 
 ## What the product does
 
-League Night Pro provides a single operating system for running recurring golf leagues and tournaments. Administrators can configure a season, manage golfers and substitutes, create teams, schedule events, generate flights, print scorecards, enter scores, publish results, and retain historical player and season information.
+League Night Pro provides a single operating system for running recurring golf leagues and tournaments. Administrators can configure a season, manage golfers and substitutes, create teams, schedule events, generate flights, print scorecards, enter scores, publish results, identify operational issues, and retain historical player and season information.
 
 ## League and season management
 
@@ -40,7 +40,16 @@ League Night Pro provides a single operating system for running recurring golf l
 - Skins calculations.
 - Player round history and scorecards.
 - Handicap tracking and movement.
-- Player performance and scoring-distribution statistics.
+- Player scoring patterns, improvement priorities, form, records, league rank, and head-to-head results.
+
+## League Night Intelligence
+
+- League Pulse summarizes standings gaps, participation, season progress, improvement, and upcoming events.
+- Player Intelligence shows scoring patterns, par performance, improvement opportunities, form, personal records, league position, and head-to-head history.
+- Team DNA shows player contribution, current form, scoring identity, pairing performance, team records, and rivalries.
+- Event Recap identifies the event leader, performance relative to par, strongest finish, separation hole, and result context.
+- Matchup Preview compares assigned golfers using handicap, recent net form, head-to-head record, and course history.
+- Commissioner Operations Check flags missing scores, incomplete flight or opponent assignments, participation gaps, billing coverage, schedule gaps, handicap movement, and season-renewal readiness.
 
 ## Access and administration
 
