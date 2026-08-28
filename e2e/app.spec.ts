@@ -11,6 +11,21 @@ async function signIn(page: Page, email: string) {
   await expect(page).toHaveURL(/\/leagues$/);
 }
 
+async function findScoredPlayerId(page: Page) {
+  const playersResponse = await page.request.get(`${apiUrl}/leagues/1/players`);
+  expect(playersResponse.ok()).toBe(true);
+  const players = (await playersResponse.json()) as Array<{ id: number }>;
+
+  for (const player of players) {
+    const statsResponse = await page.request.get(`${apiUrl}/leagues/1/players/${player.id}/stats`);
+    if (!statsResponse.ok()) continue;
+    const body = await statsResponse.json() as { intelligence?: { sample?: { rounds?: number } } };
+    if (Number(body.intelligence?.sample?.rounds || 0) > 0) return player.id;
+  }
+
+  throw new Error('The seeded league does not contain a player with completed rounds.');
+}
+
 test('public landing and login pages expose the primary entry points', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle('Golf League Management Software | League Night Pro');
@@ -69,6 +84,7 @@ test('league-code viewers can read the seeded league but cannot see admin contro
 
   await expect(page).toHaveURL(/\/league\/\d+$/);
   await expect(page.getByText('Seeded Thursday Night League').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'League Pulse' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Admin', exact: true })).toHaveCount(0);
 });
 
@@ -87,6 +103,9 @@ test('regular members can open their league and are blocked from its admin page'
 test('admins can navigate league operations and use scorecard player controls', async ({ page }) => {
   await signIn(page, 'admin@test.com');
   await expect(page.getByText('Seeded Thursday Night League', { exact: true })).toBeVisible();
+
+  await page.goto('/league/1/admin');
+  await expect(page.getByRole('heading', { name: 'Operations Check' })).toBeVisible();
 
   const eventsResponse = await page.request.get(`${apiUrl}/leagues/1/events`);
   expect(eventsResponse.ok()).toBe(true);
@@ -115,6 +134,7 @@ test('completed events expose sortable points, low-gross, and low-net leaderboar
   expect(completedEvent).toBeTruthy();
 
   await page.goto(`/league/1/events/${completedEvent.id}`);
+  await expect(page.getByRole('heading', { name: 'Event Recap' })).toBeVisible();
   const points = page.getByRole('button', { name: 'Points', exact: true });
   const lowGross = page.getByRole('button', { name: 'Low Gross', exact: true });
   const lowNet = page.getByRole('button', { name: 'Low Net', exact: true });
@@ -138,6 +158,35 @@ test('completed events expose sortable points, low-gross, and low-net leaderboar
   await expect(scorecardsDrawer.locator('table').last()).toBeVisible();
 });
 
+test('team pages turn completed results into team intelligence', async ({ page }) => {
+  await signIn(page, 'admin@test.com');
+  const teamsResponse = await page.request.get(`${apiUrl}/leagues/1/teams`);
+  expect(teamsResponse.ok()).toBe(true);
+  const teams = await teamsResponse.json() as Array<{ id: number }>;
+  expect(teams.length).toBeGreaterThan(0);
+
+  await page.goto(`/league/1/team/${teams[0].id}`);
+  await expect(page.getByRole('heading', { name: 'Team DNA' })).toBeVisible();
+  await expect(page.getByText('Primary rivalry')).toBeVisible();
+});
+
+test('player intelligence turns scoring history into improvement and matchup views', async ({ page }) => {
+  await signIn(page, 'admin@test.com');
+  const scoredPlayerId = await findScoredPlayerId(page);
+  await page.goto(`/league/1/player/${scoredPlayerId}`);
+  await expect(page.getByRole('heading', { name: 'Game Pulse' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Where to improve/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('heading', { name: 'Scoring fingerprint' })).toBeVisible();
+
+  await page.getByRole('tab', { name: /How you compete/ }).click();
+  await expect(page.getByRole('heading', { name: 'League position' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Head-to-head' })).toBeVisible();
+
+  await page.getByRole('tab', { name: /How you're progressing/ }).click();
+  await expect(page.getByRole('heading', { name: 'Form line' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Personal records' })).toBeVisible();
+});
+
 test('sign out clears browser and server authentication', async ({ page }) => {
   await signIn(page, 'admin@test.com');
   await page.getByRole('button', { name: 'Sign out' }).click();
@@ -158,4 +207,19 @@ test('@mobile login remains usable on a phone viewport', async ({ page }) => {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page).toHaveURL(/\/leagues$/);
   await expect(page.getByRole('heading', { name: 'My Leagues' })).toBeVisible();
+});
+
+test('@mobile player intelligence stays navigable without horizontal page overflow', async ({ page }) => {
+  await signIn(page, 'admin@test.com');
+  const scoredPlayerId = await findScoredPlayerId(page);
+  await page.goto(`/league/1/player/${scoredPlayerId}`);
+
+  await expect(page.getByRole('heading', { name: 'Game Pulse' })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth))
+    .toBe(true);
+  await page.getByRole('tab', { name: 'Compete' }).click();
+  await expect(page.getByRole('heading', { name: 'Head-to-head' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Progress' }).click();
+  await expect(page.getByRole('heading', { name: 'Form line' })).toBeVisible();
 });

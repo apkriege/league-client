@@ -3,6 +3,7 @@ import PageState from "@/components/layout/PageState";
 import LoadingState from "@/components/layout/LoadingState";
 import SectionKicker from "@/components/layout/SectionKicker";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import TeamIntelligence from "@/features/league-intelligence/components/TeamIntelligence";
 import { useTeam } from "@api/teams/queries";
 import { CalendarDays, ChevronLeft, Medal, Trophy } from "lucide-react";
 import { Link, useParams } from "react-router";
@@ -139,6 +140,10 @@ export default function Team() {
         title={team.name || "Team"}
         subTitle="Team roster, season standings, and event-by-event results."
       />
+
+      <div className="mt-6">
+        <TeamIntelligence team={team} />
+      </div>
 
       <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <StatCard

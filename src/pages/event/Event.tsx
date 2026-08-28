@@ -9,6 +9,7 @@ import PageState from "@/components/layout/PageState";
 import { useCancelLeagueEvent, useDeleteLeagueEvent } from "@api/league/mutations";
 import { useLeagueEvent } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import EventRecap from "@/features/league-intelligence/components/EventRecap";
 import { getEventLocalDate } from "@/utils/eventDate";
 import { formatTime } from "@/utils/format";
 import { useAppStore } from "@/stores/appStore";
@@ -296,6 +297,12 @@ export default function Event() {
           </div>
         ))}
       </div>
+
+      {hasRounds && (
+        <div className="mb-6">
+          <EventRecap event={event} />
+        </div>
+      )}
 
       <div className="flex flex-col gap-4 mt-4">
         {hasRounds ? (

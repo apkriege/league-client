@@ -53,6 +53,7 @@ import { useCreateCheckoutSession } from "@api/payments/mutations";
 import { confirmCheckoutSession } from "@api/payments";
 import { clearCheckoutReturnFromUrl, getCheckoutReturn } from "@/features/payments/checkoutReturn";
 import PaymentReturnNotice from "@/features/payments/components/PaymentReturnNotice";
+import CommissionerInsights from "@/features/league-intelligence/components/CommissionerInsights";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -434,6 +435,12 @@ export default function LeagueAdmin() {
           </div>
         </div>
       </div>
+
+      <CommissionerInsights
+        league={league}
+        events={Array.isArray(events) ? events : []}
+        metrics={metrics}
+      />
 
       <section className="space-y-3">
         <SectionHeader

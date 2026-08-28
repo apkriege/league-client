@@ -157,7 +157,7 @@ export default function BaseLayout() {
   const location = useLocation();
   const { leagueId } = useParams();
   const { user, clearUser, clearLeagueId } = useAppStore();
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(() => window.innerWidth >= 768);
 
   const playerId = user?.leagues?.find((ul: any) => Number(ul.id) === Number(leagueId))?.playerId;
   const role = String(user?.role || "").toUpperCase();
@@ -238,6 +238,7 @@ export default function BaseLayout() {
           )}
           <button
             onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? "Collapse navigation" : "Expand navigation"}
             className="rounded-2xl border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
           >
             <Menu size={18} />

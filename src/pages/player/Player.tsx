@@ -1,5 +1,4 @@
 import LoadingState from "@/components/layout/LoadingState";
-import PanelBar from "@/components/layout/PanelBar";
 import SectionKicker from "@/components/layout/SectionKicker";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import { SummaryPillButton } from "@/components/layout/SummaryPill";
@@ -7,14 +6,12 @@ import Table from "@/components/Table";
 import SectionIntro from "@/components/layout/SectionIntro";
 import { useParams } from "react-router";
 import { usePlayerStats } from "@api/players/queries";
-import { useLeagueMetrics } from "@api/league/queries";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import useAnimatedDrawer from "@/hooks/useAnimatedDrawer";
 import {
-  BarChart2,
   Flag,
   Minus,
   ShieldHalf,
@@ -24,25 +21,14 @@ import {
   Trophy,
   User,
   X,
-  Zap,
 } from "lucide-react";
-import PlayerScoreDistributionChart from "./components/PlayerScoreDistributionChart";
 import { InfoChip, StatMini } from "./components/PlayerSummary";
 import { PlayerRoundBreakdown, RoundHistory } from "./components/PlayerRoundTables";
-import type { ScoreDistribution } from "./playerTypes";
 import { formatHandicap } from "./playerFormatters";
 import { buildHandicapDifferentialPool, getHandicapRule } from "./playerHandicap";
 import { calculatePlayerRoundAverages } from "./playerRoundAverages";
 import { formatPlayerRoundDate, getPlayerRoundTimestamp } from "./playerRoundDate";
-
-const EMPTY_DIST: ScoreDistribution = {
-  eagles: 0,
-  birdies: 0,
-  pars: 0,
-  bogeys: 0,
-  doubleBogeys: 0,
-  tripleBogeys: 0,
-};
+import PlayerIntelligenceDashboard from "@/features/player-intelligence/components/PlayerIntelligenceDashboard";
 
 const formatValue = (value: any, fallback: string | number = "-") => {
   if (value == null || value === "") return fallback;
@@ -54,26 +40,12 @@ const formatDelta = (delta: number) => {
   return delta < 0 ? delta.toFixed(2) : `+${delta.toFixed(2)}`;
 };
 
-type OverviewTile = {
-  label: string;
-  icon: ReactNode;
-  accent: string;
-  value?: string | number;
-  sub?: string;
-  split?: Array<{
-    label: "9H" | "18H";
-    value: string | number;
-    sub: string;
-  }>;
-};
-
 export default function Player() {
   const { leagueId, playerId } = useParams();
   const [roundBreakdownView, setRoundBreakdownView] = useState<"gross" | "net">("gross");
   const handicapDrawer = useAnimatedDrawer();
   const numericLeagueId = Number(leagueId);
   const { data, isLoading, isError, error } = usePlayerStats(numericLeagueId, Number(playerId));
-  const { data: leagueMetrics } = useLeagueMetrics(numericLeagueId);
   const handicapHoleCount = Number(data?.handicapHoleBasis) === 9 ? 9 : 18;
   const roundAverages = useMemo(
     () => calculatePlayerRoundAverages(data?.rounds ?? []),
@@ -184,59 +156,6 @@ export default function Player() {
   const hcpColor =
     hcpDelta < 0 ? "text-emerald-600" : hcpDelta > 0 ? "text-red-500" : "text-gray-400";
 
-  const playerDistribution: ScoreDistribution = stats
-    ? {
-        eagles: Number(stats.totalEagles || 0),
-        birdies: Number(stats.totalBirdies || 0),
-        pars: Number(stats.totalPars || 0),
-        bogeys: Number(stats.totalBogeys || 0),
-        doubleBogeys: Number(stats.totalDoubleBogeys || 0),
-        tripleBogeys: Number(stats.totalTripleBogeys || 0),
-      }
-    : EMPTY_DIST;
-
-  const leagueDistribution: ScoreDistribution =
-    leagueMetrics?.scoreDistribution || EMPTY_DIST;
-  const leagueRoundCount = Number(leagueMetrics?.seasonSummary?.totalRounds || 0);
-  const averageValue = (holes: 9 | 18, key: "avgGross" | "avgNet" | "avgPutts") =>
-    roundAverages[holes]?.[key] ?? "—";
-  const overviewTiles: OverviewTile[] = [
-    {
-      label: "Season Points",
-      value: stats?.totalPoints ?? 0,
-      sub: `9H ${roundAverages[9]?.avgPoints ?? "—"} avg · 18H ${roundAverages[18]?.avgPoints ?? "—"} avg`,
-      icon: <Zap size={15} className="text-slate-900" />,
-      accent: "from-slate-50 to-white border-slate-200",
-    },
-    {
-      label: "Avg Gross",
-      split: ([9, 18] as const).map((holes) => ({
-        label: `${holes}H` as const,
-        value: averageValue(holes, "avgGross"),
-        sub: `Low ${roundAverages[holes]?.lowGross ?? "—"}`,
-      })),
-      icon: <BarChart2 size={15} className="text-blue-500" />,
-      accent: "from-blue-50 to-white border-blue-100",
-    },
-    {
-      label: "Avg Net",
-      split: ([9, 18] as const).map((holes) => ({
-        label: `${holes}H` as const,
-        value: averageValue(holes, "avgNet"),
-        sub: `Low ${roundAverages[holes]?.lowNet ?? "—"}`,
-      })),
-      icon: <Target size={15} className="text-emerald-500" />,
-      accent: "from-emerald-50 to-white border-emerald-100",
-    },
-    {
-      label: "Rounds Played",
-      value: stats?.rounds ?? 0,
-      sub: `${roundAverages[9]?.rounds ?? 0} nine-hole · ${roundAverages[18]?.rounds ?? 0} eighteen-hole`,
-      icon: <Trophy size={15} className="text-amber-500" />,
-      accent: "from-amber-50 to-white border-amber-100",
-    },
-  ];
-
   return (
     <div>
       <PageHeader title={fullName} />
@@ -275,98 +194,27 @@ export default function Player() {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div>
-            <SectionIntro
-              title="Overview"
-              description="Season snapshot and key scoring metrics"
+          <div className="mb-2">
+            <PlayerIntelligenceDashboard
+              intelligence={data.intelligence}
+              teamName={player.team?.name}
+              seasonSnapshot={{
+                totalPoints: stats.totalPoints,
+                averagePoints9: roundAverages[9]?.avgPoints ?? null,
+                averagePoints18: roundAverages[18]?.avgPoints ?? null,
+                averageGross9: roundAverages[9]?.avgGross ?? null,
+                averageGross18: roundAverages[18]?.avgGross ?? null,
+                lowGross9: roundAverages[9]?.lowGross ?? null,
+                lowGross18: roundAverages[18]?.lowGross ?? null,
+                averageNet9: roundAverages[9]?.avgNet ?? null,
+                averageNet18: roundAverages[18]?.avgNet ?? null,
+                lowNet9: roundAverages[9]?.lowNet ?? null,
+                lowNet18: roundAverages[18]?.lowNet ?? null,
+                rounds: stats.rounds,
+                rounds9: roundAverages[9]?.rounds ?? 0,
+                rounds18: roundAverages[18]?.rounds ?? 0,
+              }}
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {overviewTiles.map((tile) => (
-                <div
-                  key={tile.label}
-                  className={`relative overflow-hidden bg-linear-to-br ${tile.accent} border rounded-xl px-4 py-3 shadow-sm flex items-start justify-between gap-3`}
-                >
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
-                      {tile.label}
-                    </p>
-                    {tile.split ? (
-                      <div className="mt-1.5 flex items-start gap-5">
-                        {tile.split.map((metric) => (
-                          <div key={metric.label}>
-                            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
-                              {metric.label}
-                            </p>
-                            <p className="text-xl font-black leading-tight text-gray-900">
-                              {metric.value}
-                            </p>
-                            <p className="mt-0.5 text-[9px] text-gray-500">{metric.sub}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <>
-                        <p className="mt-1 text-2xl font-black leading-tight text-gray-900">
-                          {tile.value}
-                        </p>
-                        <p className="mt-0.5 truncate text-[10px] text-gray-500">{tile.sub}</p>
-                      </>
-                    )}
-                  </div>
-                  <div className="shrink-0 p-2.5 bg-white/70 rounded-lg border border-white/70 shadow-[0_1px_0_rgba(255,255,255,0.8)]">
-                    {tile.icon}
-                  </div>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-gray-900/5" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <SectionIntro
-              title="Performance"
-              description="Scoring distribution and detailed stat breakdown"
-            />
-            <aside className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
-              <SurfaceCard as="section">
-                <PanelBar>
-                  <BarChart2 size={14} className="text-gray-400" strokeWidth={2} />
-                  <h2 className="text-sm font-semibold text-gray-900">Score Distribution</h2>
-                  <span className="ml-auto text-[10px] text-gray-400">Player vs league avg</span>
-                </PanelBar>
-                <div className="px-4 py-3">
-                  <PlayerScoreDistributionChart
-                    playerDistribution={playerDistribution}
-                    playerRounds={Number(stats.rounds || 0)}
-                    leagueDistribution={leagueDistribution}
-                    leagueRounds={leagueRoundCount}
-                  />
-                </div>
-              </SurfaceCard>
-
-              <SurfaceCard as="section">
-                <div className="px-4 py-3">
-                  <h2 className="text-sm font-semibold text-gray-900">Scoring Detail</h2>
-                </div>
-                <div className="grid grid-cols-2 divide-x divide-y divide-gray-100">
-                  {[
-                    { label: "Eagles", value: stats.totalEagles },
-                    { label: "Birdies", value: stats.totalBirdies },
-                    { label: "Net Eagles", value: stats.totalNetEagles },
-                    { label: "Net Birdies", value: stats.totalNetBirdies },
-                    { label: "Best Points", value: stats.bestPoints },
-                    { label: "Total Points", value: stats.totalPoints },
-                  ].map((item) => (
-                    <div key={item.label} className="px-4 py-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
-                        {item.label}
-                      </p>
-                      <p className="mt-0.5 text-lg font-black text-gray-900">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </SurfaceCard>
-            </aside>
           </div>
 
           <div className="pt-2">

@@ -2,8 +2,9 @@ import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import ScoringPeriodDivider from "@/components/league/ScoringPeriodDivider";
+import MatchupPreview from "@/features/league-intelligence/components/MatchupPreview";
 import { getScoringPeriodBoundariesBeforeEvent } from "@/features/leagues/scoringPeriodBoundaries";
-import { useLeague, useLeagueEvents } from "@api/league/queries";
+import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
 import { formatTime } from "@/utils/format";
@@ -65,6 +66,7 @@ export default function Schedule() {
     error: leagueError,
   } = useLeague(Number(leagueId));
   const { data: events, isLoading, isError, error } = useLeagueEvents(Number(leagueId));
+  const { data: metrics } = useLeagueMetrics(Number(leagueId));
   const scoringPeriods = Array.isArray(league?.scoringPeriods) ? league.scoringPeriods : [];
 
   // Always define arrays to avoid undefined
@@ -102,6 +104,10 @@ export default function Schedule() {
   return (
     <div>
       <PageHeader title="Schedule" />
+
+      <div className="mt-5">
+        <MatchupPreview events={sortedEvents} metrics={metrics} />
+      </div>
 
       <div className="mt-5 space-y-6">
         <section>

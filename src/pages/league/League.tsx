@@ -10,6 +10,7 @@ import Table from "@/components/Table";
 import { Input } from "@/components/form";
 import SharedLeagueAnnouncementsPanel from "@/components/league/LeagueAnnouncementsPanel";
 import ScoringPeriodDivider from "@/components/league/ScoringPeriodDivider";
+import LeaguePulse from "@/features/league-intelligence/components/LeaguePulse";
 import { getScoringPeriodBoundariesBeforeEvent } from "@/features/leagues/scoringPeriodBoundaries";
 import { useAppStore } from "@/stores/appStore";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
@@ -508,6 +509,11 @@ export default function League() {
       </div>
 
       <div className="flex flex-col gap-4">
+        <LeaguePulse
+          metrics={metrics}
+          events={Array.isArray(events) ? events : []}
+          roster={Array.isArray(league?.players) ? league.players : []}
+        />
         <SharedLeagueAnnouncementsPanel leagueId={Number(leagueId)} />
 
         {scoringPeriods.length > 0 && (
