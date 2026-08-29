@@ -5,6 +5,7 @@ import {
   useUpdateLeagueAnnouncement,
 } from "@api/operations/mutations";
 import { useLeagueAnnouncements } from "@api/operations/queries";
+import type { LeagueAnnouncement } from "@api/operations/types";
 import dayjs from "dayjs";
 import { ChevronDown, Edit, MessageSquareText, X } from "lucide-react";
 import { useState } from "react";
@@ -50,7 +51,7 @@ export default function LeagueAnnouncementsPanel({
     );
   };
 
-  const startEdit = (announcement: any) => {
+  const startEdit = (announcement: LeagueAnnouncement) => {
     const id = Number(announcement.id);
     setEditingId(id);
     setDrafts((prev) => ({
@@ -148,7 +149,7 @@ export default function LeagueAnnouncementsPanel({
                 <p>No announcements.</p>
               </div>
             ) : (
-              announcements.map((announcement: any) => {
+              announcements.map((announcement) => {
                 const id = Number(announcement.id);
                 const isEditing = editingId === id;
                 const draft = drafts[id] || {

@@ -495,7 +495,10 @@ export default function LeagueAdmin() {
             </div>
           ))}
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 shadow-sm">
+        <div
+          id="league-announcements"
+          className="scroll-mt-24 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 shadow-sm"
+        >
           <div>
             <p className="text-sm font-bold tracking-tight text-gray-900">Communication tools</p>
             <p className="mt-0.5 text-xs font-medium text-gray-500">

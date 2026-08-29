@@ -1,4 +1,4 @@
-import { Activity, BrainCircuit, Sparkles, Swords, Trophy, Users } from "lucide-react";
+import { BrainCircuit, Sparkles, Swords, Trophy } from "lucide-react";
 import type { TeamProfile } from "@api/teams/types";
 import { buildTeamIntelligence } from "../teamIntelligence";
 
@@ -31,14 +31,29 @@ function HeaderMetric({
 export default function TeamIntelligence({ team }: { team: TeamProfile }) {
   const insight = buildTeamIntelligence(team);
   const topContributor = insight.contributions[0];
-  const topPairing = insight.pairings[0];
   const primaryRival = insight.rivalries[0];
   const formLeader = insight.formOrder[0];
   const overviewMetrics = [
-    { label: "Team points", value: formatPoints(insight.overview.teamPoints), detail: "season total" },
-    { label: "Player points", value: formatPoints(insight.overview.playerPoints), detail: "from player rounds" },
-    { label: "Events played", value: String(insight.overview.completedEvents), detail: `${insight.overview.scheduledEvents} scheduled` },
-    { label: "Season rank", value: insight.overview.seasonRank ? `#${insight.overview.seasonRank}` : "—", detail: `${insight.overview.rankedTeams} teams ranked` },
+    {
+      label: "Team points",
+      value: formatPoints(insight.overview.teamPoints),
+      detail: "season total",
+    },
+    {
+      label: "Player points",
+      value: formatPoints(insight.overview.playerPoints),
+      detail: "from player rounds",
+    },
+    {
+      label: "Events played",
+      value: String(insight.overview.completedEvents),
+      detail: `${insight.overview.scheduledEvents} scheduled`,
+    },
+    {
+      label: "Season rank",
+      value: insight.overview.seasonRank ? `#${insight.overview.seasonRank}` : "—",
+      detail: `${insight.overview.rankedTeams} teams ranked`,
+    },
   ];
 
   return (
@@ -55,7 +70,10 @@ export default function TeamIntelligence({ team }: { team: TeamProfile }) {
             <BrainCircuit size={15} strokeWidth={2.5} />
             <p className="text-[10px] font-black uppercase tracking-[0.2em]">Team intelligence</p>
           </div>
-          <h2 id="team-intelligence-heading" className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
+          <h2
+            id="team-intelligence-heading"
+            className="mt-2 text-2xl font-black tracking-tight sm:text-3xl"
+          >
             Team DNA
           </h2>
           <p className="mt-1 max-w-xl text-xs leading-5 text-slate-300">
@@ -73,7 +91,9 @@ export default function TeamIntelligence({ team }: { team: TeamProfile }) {
           <HeaderMetric
             label="Win rate"
             value={`${insight.overview.winRate}%`}
-            detail={insight.record.matches > 0 ? `${insight.record.wins} team wins` : "Building baseline"}
+            detail={
+              insight.record.matches > 0 ? `${insight.record.wins} team wins` : "Building baseline"
+            }
             tone="text-emerald-300"
           />
           <HeaderMetric
@@ -86,8 +106,13 @@ export default function TeamIntelligence({ team }: { team: TeamProfile }) {
 
       <div className="relative grid grid-cols-2 border-t border-white/10 lg:grid-cols-4">
         {overviewMetrics.map((metric) => (
-          <div key={metric.label} className="border-b border-r border-white/10 px-4 py-3 last:border-r-0 lg:border-b-0">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">{metric.label}</p>
+          <div
+            key={metric.label}
+            className="border-b border-r border-white/10 px-4 py-3 last:border-r-0 lg:border-b-0"
+          >
+            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
+              {metric.label}
+            </p>
             <p className="mt-1 text-sm font-black tabular-nums text-white">{metric.value}</p>
             <p className="mt-0.5 text-[9px] text-slate-400">{metric.detail}</p>
           </div>
@@ -95,22 +120,7 @@ export default function TeamIntelligence({ team }: { team: TeamProfile }) {
       </div>
 
       <div className="relative border-t border-white/10">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 text-emerald-300">
-              <Activity size={15} strokeWidth={2.5} />
-            </span>
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300">Team story</p>
-              <h3 className="mt-0.5 text-sm font-black text-white">What defines this group</h3>
-            </div>
-          </div>
-          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold text-slate-400">
-            {team.players.length} {team.players.length === 1 ? "player" : "players"}
-          </span>
-        </div>
-
-        <div className="grid gap-px border-t border-white/10 bg-white/10 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-px bg-white/10 sm:grid-cols-2 xl:grid-cols-3">
           <article className="bg-slate-950/70 px-5 py-4">
             <div className="flex items-center justify-between gap-2 text-amber-300">
               <div className="flex items-center gap-2">
@@ -128,26 +138,6 @@ export default function TeamIntelligence({ team }: { team: TeamProfile }) {
               {topContributor
                 ? `${topContributor.averagePoints} average points across ${topContributor.events} events.`
                 : "Completed player rounds will reveal the team's leading scorer."}
-            </p>
-          </article>
-
-          <article className="bg-slate-950/70 px-5 py-4">
-            <div className="flex items-center justify-between gap-2 text-blue-200">
-              <div className="flex items-center gap-2">
-                <Users size={14} strokeWidth={2.5} />
-                <p className="text-[9px] font-black uppercase tracking-[0.12em]">Core pairing</p>
-              </div>
-              <span className="rounded-full bg-white/[0.07] px-2 py-1 text-[8px] font-bold text-slate-300 ring-1 ring-white/10">
-                {topPairing ? `${topPairing.winRate}% wins` : "No data"}
-              </span>
-            </div>
-            <h4 className="mt-3 text-[13px] font-black leading-5 text-white">
-              {topPairing?.names.join(" + ") ?? "Pairing history is building"}
-            </h4>
-            <p className="mt-1 text-[10px] leading-4 text-slate-400">
-              {topPairing
-                ? `${topPairing.events} events together and ${formatPoints(topPairing.points)} combined points.`
-                : "Shared events will identify the team's most reliable combination."}
             </p>
           </article>
 
@@ -177,17 +167,22 @@ export default function TeamIntelligence({ team }: { team: TeamProfile }) {
             <div className="flex items-center justify-between gap-2 text-emerald-300">
               <div className="flex items-center gap-2">
                 <Sparkles size={14} strokeWidth={2.5} />
-                <p className="text-[9px] font-black uppercase tracking-[0.12em]">Scoring identity</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.12em]">
+                  Scoring identity
+                </p>
               </div>
               <span className="rounded-full bg-white/[0.07] px-2 py-1 text-[8px] font-bold text-slate-300 ring-1 ring-white/10">
                 {insight.totals.birdies} birdies
               </span>
             </div>
             <h4 className="mt-3 text-[13px] font-black leading-5 text-white">
-              {insight.totals.birdies > 0 ? "The team can create red numbers" : "The scoring profile is building"}
+              {insight.totals.birdies > 0
+                ? "The team can create red numbers"
+                : "The scoring profile is building"}
             </h4>
             <p className="mt-1 text-[10px] leading-4 text-slate-400">
-              {insight.totals.pars} pars and {insight.totals.bogeys} bogeys accompany the team's {insight.totals.birdies} birdies.
+              {insight.totals.pars} pars and {insight.totals.bogeys} bogeys accompany the team's{" "}
+              {insight.totals.birdies} birdies.
             </p>
           </article>
         </div>

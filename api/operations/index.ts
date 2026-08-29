@@ -1,4 +1,5 @@
 import apiClient from "../client";
+import type { LeagueAnnouncement } from "./types";
 
 export async function getInvitation(token: string) {
   const response = await apiClient.get(`/invitations/${token}`);
@@ -29,7 +30,7 @@ export async function revokeLeagueInvitation(leagueId: number, invitationId: num
 }
 
 export async function getLeagueAnnouncements(leagueId: number) {
-  const response = await apiClient.get(`/leagues/${leagueId}/announcements`);
+  const response = await apiClient.get<LeagueAnnouncement[]>(`/leagues/${leagueId}/announcements`);
   return response.data;
 }
 
@@ -37,7 +38,10 @@ export async function createLeagueAnnouncement(
   leagueId: number,
   payload: { title: string; body: string }
 ) {
-  const response = await apiClient.post(`/leagues/${leagueId}/announcements`, payload);
+  const response = await apiClient.post<LeagueAnnouncement>(
+    `/leagues/${leagueId}/announcements`,
+    payload
+  );
   return response.data;
 }
 
@@ -46,7 +50,7 @@ export async function updateLeagueAnnouncement(
   announcementId: number,
   payload: { title?: string; body?: string }
 ) {
-  const response = await apiClient.put(
+  const response = await apiClient.put<LeagueAnnouncement>(
     `/leagues/${leagueId}/announcements/${announcementId}`,
     payload
   );

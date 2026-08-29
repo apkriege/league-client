@@ -1,4 +1,4 @@
-import { Award, Crosshair, Medal, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { Award, Crosshair, Medal, ShieldCheck, Zap } from "lucide-react";
 import { Link } from "react-router";
 import type { buildLeagueDashboard, LeagueCategoryBoard } from "../leagueDashboard";
 import type { LeagueIntelligenceMetrics } from "../types";
@@ -27,10 +27,93 @@ export default function LeagueLeadersPanel({
   leagueId: number;
 }) {
   const isTeamLeague = metrics?.standingsMode === "team";
-  const hasSkins = (metrics?.skins?.gross.length ?? 0) + (metrics?.skins?.net.length ?? 0) > 0;
+  const grossSkins = metrics?.skins?.gross ?? [];
+  const netSkins = metrics?.skins?.net ?? [];
+  const totalSkins = [...grossSkins, ...netSkins].reduce(
+    (total, player) => total + player.skins,
+    0,
+  );
 
   return (
     <div className="space-y-4">
+      <LeagueInsightSection
+        title="Skins race"
+        description="Season-long gross and net skins won outright"
+        action={
+          <LeagueInsightBadge>
+            <Zap size={10} /> {totalSkins} won
+          </LeagueInsightBadge>
+        }
+      >
+        <div className="grid gap-px bg-slate-100 md:grid-cols-2">
+          {([
+            { type: "gross", label: "Gross", rows: grossSkins, tone: "amber" },
+            { type: "net", label: "Net", rows: netSkins, tone: "violet" },
+          ] as const).map(({ type, label, rows, tone }) => (
+            <div key={type} className="bg-white p-4 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Zap
+                    size={13}
+                    className={tone === "amber" ? "text-amber-500" : "text-violet-500"}
+                    strokeWidth={2.5}
+                  />
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-600">
+                    {label} skins
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[9px] font-black ${
+                    tone === "amber"
+                      ? "border-amber-200 bg-amber-50 text-amber-700"
+                      : "border-violet-200 bg-violet-50 text-violet-700"
+                  }`}
+                >
+                  {rows.reduce((total, player) => total + player.skins, 0)}
+                </span>
+              </div>
+
+              {rows.length === 0 ? (
+                <LeagueInsightEmpty>No {type} skins have been won yet.</LeagueInsightEmpty>
+              ) : (
+                <div className="max-h-64 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
+                  {rows.map((player, index) => (
+                    <Link
+                      key={`${type}-${player.playerId}`}
+                      to={`/league/${leagueId}/player/${player.playerId}`}
+                      className={`group grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 px-3 py-3 transition hover:bg-emerald-50/30 ${
+                        index === 0 ? "bg-linear-to-r from-amber-50/70 to-white" : "bg-white"
+                      }`}
+                    >
+                      <span
+                        className={`grid h-7 w-7 place-items-center rounded-lg text-[9px] font-black ${
+                          index === 0
+                            ? "bg-slate-950 text-amber-300"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        {index + 1}
+                      </span>
+                      <span className="min-w-0 truncate text-xs font-bold text-slate-800 group-hover:text-emerald-700">
+                        {player.name}
+                      </span>
+                      <span className="text-right">
+                        <span className="block text-sm font-black tabular-nums text-slate-950">
+                          {player.skins}
+                        </span>
+                        <span className="block text-[8px] font-bold uppercase tracking-wide text-slate-400">
+                          skins
+                        </span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </LeagueInsightSection>
+
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {dashboard.categoryBoards.map((board) => (
           <LeagueInsightSection
@@ -118,39 +201,6 @@ export default function LeagueLeadersPanel({
         )}
       </LeagueInsightSection>
 
-      {hasSkins ? (
-        <LeagueInsightSection
-          title="Skins leaders"
-          description="Unique low scores won outright on a hole"
-          action={<Zap size={15} className="text-violet-500" />}
-        >
-          <div className="grid gap-px bg-slate-100 md:grid-cols-2">
-            {(["gross", "net"] as const).map((type) => (
-              <div key={type} className="bg-white p-4 sm:p-5">
-                <div className="mb-3 flex items-center gap-2">
-                  <Sparkles size={13} className={type === "gross" ? "text-amber-500" : "text-violet-500"} />
-                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
-                    {type} skins
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  {(metrics?.skins?.[type] ?? []).map((player, index) => (
-                    <Link
-                      key={`${type}-${player.playerId}`}
-                      to={`/league/${leagueId}/player/${player.playerId}`}
-                      className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 transition hover:border-emerald-200"
-                    >
-                      <span className="text-[10px] font-black text-slate-400">#{index + 1}</span>
-                      <span className="min-w-0 flex-1 truncate text-xs font-bold text-slate-800">{player.name}</span>
-                      <span className="text-sm font-black text-slate-950">{player.skins}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </LeagueInsightSection>
-      ) : null}
     </div>
   );
 }

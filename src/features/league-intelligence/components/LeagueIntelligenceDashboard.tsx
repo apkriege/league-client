@@ -37,9 +37,9 @@ const views: Array<{
   },
   {
     id: "leaders",
-    label: "League leaders",
+    label: "Leaders and skins",
     shortLabel: "Leaders",
-    description: "Category boards and achievements",
+    description: "Skins, category boards and awards",
     icon: ListOrdered,
   },
   {

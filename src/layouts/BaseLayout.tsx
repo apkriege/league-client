@@ -24,6 +24,7 @@ import { useLeague, useLeagueEvents } from "@api/league/queries";
 import { useAdminLeagues } from "@api/admin/queries";
 import lnLogo from "@/assets/league-night-logo.png";
 import { formatEventDate } from "@/utils/eventDate";
+import LeagueNotificationsMenu from "@/components/league/LeagueNotificationsMenu";
 
 const Section = ({ section, collapsed }: { section: string; collapsed?: boolean }) => (
   <div className="mt-5 mb-2 flex flex-col">
@@ -393,9 +394,19 @@ export default function BaseLayout() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {isLeagueRoute && hasLeagueAccess && (
+              <LeagueNotificationsMenu
+                key={`${String(user?.id ?? user?.email ?? "account")}:${numericLeagueId}`}
+                leagueId={numericLeagueId}
+                viewerKey={String(user?.id ?? user?.email ?? "account")}
+                canManage={canManageCurrentLeague}
+              />
+            )}
             <div className="flex items-center gap-3 rounded-full border border-black/5 bg-white/70 px-3 py-1.5 shadow-sm">
               <User size={22} className="rounded-full bg-sky-100 p-1 text-blue-800" />
-              <h2 className="text-sm font-black text-slate-900">{displayName}</h2>
+              <h2 className="hidden max-w-44 truncate text-sm font-black text-slate-900 sm:block">
+                {displayName}
+              </h2>
             </div>
           </div>
         </div>

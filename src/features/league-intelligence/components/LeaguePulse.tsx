@@ -2,7 +2,6 @@ import {
   Activity,
   BrainCircuit,
   Flame,
-  Gauge,
   Swords,
   Target,
   TrendingUp,
@@ -99,13 +98,14 @@ export default function LeaguePulse({
       detail: metrics?.records?.mostPoints?.playerName ?? "No result yet",
     },
   ];
-  const storyGridClass = pulse.spotlights.length === 1
-    ? ""
-    : pulse.spotlights.length === 2
-      ? "md:grid-cols-2"
-      : pulse.spotlights.length === 3
-        ? "md:grid-cols-3"
-        : "sm:grid-cols-2 xl:grid-cols-4";
+  const storyGridClass =
+    pulse.spotlights.length === 1
+      ? ""
+      : pulse.spotlights.length === 2
+        ? "md:grid-cols-2"
+        : pulse.spotlights.length === 3
+          ? "md:grid-cols-3"
+          : "sm:grid-cols-2 xl:grid-cols-4";
 
   return (
     <section
@@ -121,7 +121,10 @@ export default function LeaguePulse({
             <BrainCircuit size={15} strokeWidth={2.5} />
             <p className="text-[10px] font-black uppercase tracking-[0.2em]">League intelligence</p>
           </div>
-          <h2 id="league-intelligence-heading" className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
+          <h2
+            id="league-intelligence-heading"
+            className="mt-2 text-2xl font-black tracking-tight sm:text-3xl"
+          >
             League Pulse
           </h2>
           <p className="mt-1 max-w-xl text-xs leading-5 text-slate-300">
@@ -133,11 +136,13 @@ export default function LeaguePulse({
           <HeaderMetric
             label="Who's hot"
             value={pulse.hotPlayer?.name ?? "Form building"}
-            detail={pulse.hotPlayer
-              ? pulse.hotPlayer.improvement > 0
-                ? `${formatNumber(pulse.hotPlayer.improvement)} strokes better recently`
-                : `${formatNumber(pulse.hotPlayer.recentAverage)} recent net average`
-              : "Two results unlock form"}
+            detail={
+              pulse.hotPlayer
+                ? pulse.hotPlayer.improvement > 0
+                  ? `${formatNumber(pulse.hotPlayer.improvement)} strokes better recently`
+                  : `${formatNumber(pulse.hotPlayer.recentAverage)} recent net average`
+                : "Two results unlock form"
+            }
             tone={pulse.hotPlayer ? "text-orange-300" : "text-white"}
           />
           <HeaderMetric
@@ -156,8 +161,13 @@ export default function LeaguePulse({
 
       <div className="relative grid grid-cols-2 border-t border-white/10 lg:grid-cols-4">
         {recordMetrics.map((metric) => (
-          <div key={metric.label} className="border-b border-r border-white/10 px-4 py-3 last:border-r-0 lg:border-b-0">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">{metric.label}</p>
+          <div
+            key={metric.label}
+            className="border-b border-r border-white/10 px-4 py-3 last:border-r-0 lg:border-b-0"
+          >
+            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
+              {metric.label}
+            </p>
             <p className="mt-1 text-sm font-black tabular-nums text-white">{metric.value}</p>
             <p className="mt-0.5 truncate text-[9px] text-slate-400">{metric.detail}</p>
           </div>
@@ -165,23 +175,9 @@ export default function LeaguePulse({
       </div>
 
       <div className="relative border-t border-white/10">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 text-emerald-300">
-              <Activity size={15} strokeWidth={2.5} />
-            </span>
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300">Live storylines</p>
-              <h3 className="mt-0.5 text-sm font-black text-white">Who is making noise</h3>
-            </div>
-          </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold text-slate-400">
-            <Gauge size={11} />
-            {pulse.completedEvents}/{pulse.scheduledEvents} events complete
-          </span>
-        </div>
-
-        <div className={`grid gap-px border-t border-white/10 bg-white/10 ${storyGridClass}`}>
+        <div
+          className={`grid gap-px https://leaguenightpro.com/sitemap.xml bg-white/10 ${storyGridClass}`}
+        >
           {pulse.spotlights.map((spotlight) => {
             const destination = spotlight.playerId
               ? `/league/${leagueId}/player/${spotlight.playerId}`
@@ -220,9 +216,7 @@ export default function LeaguePulse({
                     {spotlight.title}
                   </h4>
                 )}
-                <p className="mt-1 text-[10px] leading-4 text-slate-400">
-                  {spotlight.detail}
-                </p>
+                <p className="mt-1 text-[10px] leading-4 text-slate-400">{spotlight.detail}</p>
               </article>
             );
           })}

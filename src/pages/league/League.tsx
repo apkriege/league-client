@@ -7,7 +7,6 @@ import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import Table from "@/components/Table";
 import { Input } from "@/components/form";
-import SharedLeagueAnnouncementsPanel from "@/components/league/LeagueAnnouncementsPanel";
 import ScoringPeriodDivider from "@/components/league/ScoringPeriodDivider";
 import LeagueIntelligenceDashboard from "@/features/league-intelligence/components/LeagueIntelligenceDashboard";
 import { getScoringPeriodBoundariesBeforeEvent } from "@/features/leagues/scoringPeriodBoundaries";
@@ -17,18 +16,6 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { sortEventsByDate } from "@/utils/eventDate";
 import { formatHandicap } from "@/utils/handicap";
 import LeagueEventRow from "./components/LeagueEventRow";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Tooltip,
-  Legend,
-  Filler,
-} from "chart.js";
-import { Line } from "react-chartjs-2";
 import dayjs from "dayjs";
 import {
   BarChart2,
@@ -40,21 +27,9 @@ import {
   TrendingDown,
   TrendingUp,
   Trophy,
-  Zap,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
 import { Fragment, useMemo, useState } from "react";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 type TeamStandingsRow = {
   rank: number;
@@ -395,114 +370,6 @@ export default function League() {
 
   const formatDate = (d: string | Date) => dayjs(d).format("MMM D, YYYY");
 
-  const seasonTrendChartData = useMemo(() => {
-    const labels = metrics?.playerWeeklyTrends?.labels ?? [];
-    const eventHoles = metrics?.playerWeeklyTrends?.holes ?? [];
-    const players = metrics?.playerWeeklyTrends?.players ?? [];
-
-    const weeklyAverage = (key: "avgGross" | "avgNet") => {
-      return labels.map((_: string, idx: number) => {
-        const values = players
-          .map((player: any) => {
-            const score = player?.[key]?.[idx];
-            if (typeof score !== "number" || !Number.isFinite(score)) return null;
-            return score * (18 / Math.max(1, Number(eventHoles[idx] || 18)));
-          })
-          .filter((value: any) => typeof value === "number" && Number.isFinite(value));
-
-        if (values.length === 0) return null;
-        return (
-          Math.round(
-            (values.reduce((sum: number, value: number) => sum + value, 0) / values.length) * 10
-          ) / 10
-        );
-      });
-    };
-
-    const datasets = [
-      {
-        label: "League Avg Gross",
-        data: weeklyAverage("avgGross"),
-        borderColor: "#2563eb",
-        backgroundColor: "#2563eb",
-        borderWidth: 2.5,
-        pointRadius: 2.5,
-        pointHoverRadius: 4.5,
-        tension: 0.25,
-        spanGaps: true,
-      },
-      {
-        label: "League Avg Net",
-        data: weeklyAverage("avgNet"),
-        borderColor: "#059669",
-        backgroundColor: "#059669",
-        borderWidth: 2.5,
-        pointRadius: 2.5,
-        pointHoverRadius: 4.5,
-        tension: 0.25,
-        spanGaps: true,
-      },
-    ];
-
-    return { labels, datasets };
-  }, [metrics?.playerWeeklyTrends]);
-
-  const seasonTrendChartOptions = useMemo(
-    () => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: "nearest" as const,
-        intersect: false,
-      },
-      plugins: {
-        legend: {
-          position: "bottom" as const,
-          labels: {
-            boxWidth: 10,
-            boxHeight: 10,
-            usePointStyle: true,
-            pointStyle: "line",
-            padding: 12,
-            font: { size: 10 },
-          },
-        },
-        tooltip: {
-          callbacks: {
-            label: (ctx: any) => `${ctx.dataset.label}: ${ctx.parsed.y}`,
-          },
-        },
-      },
-      scales: {
-        x: {
-          ticks: {
-            maxRotation: 0,
-            autoSkip: true,
-            font: { size: 10 },
-          },
-          grid: {
-            color: "rgba(148,163,184,0.2)",
-          },
-        },
-        y: {
-          beginAtZero: false,
-          ticks: {
-            font: { size: 10 },
-          },
-          title: {
-            display: true,
-            text: "18-hole equivalent",
-            font: { size: 10, weight: 600 as const },
-          },
-          grid: {
-            color: "rgba(148,163,184,0.2)",
-          },
-        },
-      },
-    }),
-    []
-  );
-
   if (leagueIsError || eventsIsError || metricsIsError) {
     return (
       <PageState
@@ -602,8 +469,6 @@ export default function League() {
           />
         </div>
 
-        <SharedLeagueAnnouncementsPanel leagueId={Number(leagueId)} />
-
         {metrics && (
           <section
             className={`space-y-9 transition-opacity ${metricsIsFetching ? "opacity-60" : ""}`}
@@ -677,112 +542,6 @@ export default function League() {
               </div>
             </DataSection>
 
-            <DataSection title="Scoring Detail" icon={<BarChart2 size={16} strokeWidth={2.5} />}>
-              <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(16rem,0.75fr)]">
-                <SurfaceCard className="w-full">
-                  <PanelBar>
-                    <div className="flex items-center gap-2">
-                      <BarChart2 size={13} className="text-emerald-600" strokeWidth={2.5} />
-                      <h3 className="text-xs font-bold text-slate-900">
-                        {selectedScoringPeriod?.name ?? "Season"} Trend
-                      </h3>
-                    </div>
-                  </PanelBar>
-                  <div className="px-4 py-3 h-64">
-                    {(metrics?.playerWeeklyTrends?.labels?.length ?? 0) > 0 ? (
-                      <Line data={seasonTrendChartData} options={seasonTrendChartOptions} />
-                    ) : (
-                      <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50/60">
-                        <div className="text-center">
-                          <BarChart2
-                            size={22}
-                            className="mx-auto mb-2 text-gray-300"
-                            strokeWidth={2}
-                          />
-                          <p className="text-xs font-semibold text-gray-500">No trend data yet</p>
-                          <p className="mt-1 text-[11px] text-gray-400">
-                            Completed event scores will populate this chart.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </SurfaceCard>
-
-                {metrics.skins && (
-                  <div className="grid w-full grid-cols-1 gap-4">
-                    {(
-                      [
-                        {
-                          type: "gross",
-                          label: "Gross",
-                          iconClass: "text-amber-500",
-                          badgeClass: "bg-amber-50 text-amber-600 border-amber-200",
-                        },
-                        {
-                          type: "net",
-                          label: "Net",
-                          iconClass: "text-violet-500",
-                          badgeClass: "bg-violet-50 text-violet-600 border-violet-200",
-                        },
-                      ] as const
-                    ).map(({ type, label, iconClass, badgeClass }) => {
-                      const rows = (metrics.skins[type] as any[]) ?? [];
-                      return (
-                        <SurfaceCard key={type}>
-                          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-                            <div className="flex items-center gap-1.5">
-                              <Zap size={13} className={iconClass} strokeWidth={2.5} />
-                              <h3 className="text-xs font-bold text-slate-900">{label} Skins</h3>
-                            </div>
-                            <span
-                              className={`text-[10px] font-bold border px-1.5 py-0.5 rounded-full ${badgeClass}`}
-                            >
-                              {rows.length}
-                            </span>
-                          </div>
-
-                          <div className="p-4">
-                            {rows.length === 0 ? (
-                              <p className="text-[11px] text-gray-300 italic">
-                                No {type} skins yet
-                              </p>
-                            ) : (
-                              <div className="max-h-32 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
-                                {rows.map((p: any, i: number) => (
-                                  <div
-                                    key={p.playerId}
-                                    className="flex items-center gap-2 bg-white px-2.5 py-2.5"
-                                  >
-                                    <span
-                                      className={`text-[10px] font-black w-4 shrink-0 ${
-                                        i === 0 ? "text-amber-400" : "text-gray-300"
-                                      }`}
-                                    >
-                                      {i + 1}
-                                    </span>
-                                    <span className="flex-1 text-[11px] font-semibold text-gray-800 truncate">
-                                      {p.name}
-                                    </span>
-                                    <span
-                                      className={`text-xs font-black tabular-nums ${
-                                        i === 0 ? "text-amber-500" : "text-gray-600"
-                                      }`}
-                                    >
-                                      {p.skins}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </SurfaceCard>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </DataSection>
           </section>
         )}
 

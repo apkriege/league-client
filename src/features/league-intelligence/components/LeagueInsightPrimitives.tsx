@@ -37,7 +37,7 @@ export function LeagueInsightEmpty({ children }: { children: ReactNode }) {
 
 export function LeagueInsightBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
       {children}
     </span>
   );
