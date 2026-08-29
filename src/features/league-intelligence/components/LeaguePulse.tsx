@@ -1,5 +1,16 @@
-import { Activity, BrainCircuit, Gauge, Trophy } from "lucide-react";
-import { buildLeaguePulse } from "../leaguePulse";
+import {
+  Activity,
+  BrainCircuit,
+  Flame,
+  Gauge,
+  Swords,
+  Target,
+  TrendingUp,
+  Trophy,
+  Users,
+} from "lucide-react";
+import { Link } from "react-router";
+import { buildLeaguePulse, type LeaguePulseSpotlightKind } from "../leaguePulse";
 import type {
   InsightTone,
   IntelligenceEvent,
@@ -39,16 +50,31 @@ const recordValue = (value: number | undefined, decimals = false) => {
   return decimals && !Number.isInteger(number) ? number.toFixed(1) : String(number);
 };
 
+const formatNumber = (value: number) =>
+  Number.isInteger(value) ? String(value) : value.toFixed(1);
+
+function SpotlightIcon({ kind }: { kind: LeaguePulseSpotlightKind }) {
+  if (kind === "hot") return <Flame size={14} strokeWidth={2.5} />;
+  if (kind === "rivalry") return <Swords size={14} strokeWidth={2.5} />;
+  if (kind === "team") return <Users size={14} strokeWidth={2.5} />;
+  if (kind === "birdies") return <Target size={14} strokeWidth={2.5} />;
+  if (kind === "improvement") return <TrendingUp size={14} strokeWidth={2.5} />;
+  if (kind === "participation") return <Activity size={14} strokeWidth={2.5} />;
+  return <Trophy size={14} strokeWidth={2.5} />;
+}
+
 export default function LeaguePulse({
   metrics,
   events,
   roster,
   periodLabel = "Overall",
+  leagueId,
 }: {
   metrics?: LeagueIntelligenceMetrics;
   events: IntelligenceEvent[];
   roster: LeagueRosterPlayer[];
   periodLabel?: string;
+  leagueId: number;
 }) {
   const pulse = buildLeaguePulse({ metrics, events, roster });
   const recordMetrics = [
@@ -73,11 +99,13 @@ export default function LeaguePulse({
       detail: metrics?.records?.mostPoints?.playerName ?? "No result yet",
     },
   ];
-  const storyGridClass = pulse.takeaways.length === 1
+  const storyGridClass = pulse.spotlights.length === 1
     ? ""
-    : pulse.takeaways.length === 2
+    : pulse.spotlights.length === 2
       ? "md:grid-cols-2"
-      : "md:grid-cols-3";
+      : pulse.spotlights.length === 3
+        ? "md:grid-cols-3"
+        : "sm:grid-cols-2 xl:grid-cols-4";
 
   return (
     <section
@@ -103,16 +131,20 @@ export default function LeaguePulse({
 
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 sm:min-w-105 sm:grid-cols-3">
           <HeaderMetric
+            label="Who's hot"
+            value={pulse.hotPlayer?.name ?? "Form building"}
+            detail={pulse.hotPlayer
+              ? pulse.hotPlayer.improvement > 0
+                ? `${formatNumber(pulse.hotPlayer.improvement)} strokes better recently`
+                : `${formatNumber(pulse.hotPlayer.recentAverage)} recent net average`
+              : "Two results unlock form"}
+            tone={pulse.hotPlayer ? "text-orange-300" : "text-white"}
+          />
+          <HeaderMetric
             label="Race leader"
             value={pulse.leader?.name ?? "Building standings"}
             detail={pulse.leader ? `${pulse.leader.points} points` : "No scored events"}
             tone={pulse.leader ? "text-amber-300" : "text-white"}
-          />
-          <HeaderMetric
-            label="Participation"
-            value={`${pulse.participation}% active`}
-            detail={`${pulse.activePlayers} of ${pulse.rosterSize} golfers`}
-            tone="text-emerald-300"
           />
           <HeaderMetric
             label="Next up"
@@ -139,8 +171,8 @@ export default function LeaguePulse({
               <Activity size={15} strokeWidth={2.5} />
             </span>
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300">Season story</p>
-              <h3 className="mt-0.5 text-sm font-black text-white">What is shaping the league</h3>
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300">Live storylines</p>
+              <h3 className="mt-0.5 text-sm font-black text-white">Who is making noise</h3>
             </div>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold text-slate-400">
@@ -150,22 +182,50 @@ export default function LeaguePulse({
         </div>
 
         <div className={`grid gap-px border-t border-white/10 bg-white/10 ${storyGridClass}`}>
-          {pulse.takeaways.slice(0, 3).map((takeaway) => (
-            <article key={takeaway.title} className="bg-slate-950/70 px-5 py-4">
-              <div className={`flex items-center gap-2 ${toneClass[takeaway.tone]}`}>
-                {takeaway.tone === "neutral" ? (
-                  <Trophy size={14} strokeWidth={2.5} />
+          {pulse.spotlights.map((spotlight) => {
+            const destination = spotlight.playerId
+              ? `/league/${leagueId}/player/${spotlight.playerId}`
+              : spotlight.teamId
+                ? `/league/${leagueId}/team/${spotlight.teamId}`
+                : null;
+            return (
+              <article
+                key={`${spotlight.kind}-${spotlight.title}`}
+                className="bg-slate-950/70 px-5 py-4"
+              >
+                <div
+                  className={`flex items-center justify-between gap-2 ${toneClass[spotlight.tone]}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <SpotlightIcon kind={spotlight.kind} />
+                    <p className="text-[9px] font-black uppercase tracking-[0.12em]">
+                      {spotlight.label}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white/[0.07] px-2 py-1 text-[8px] font-bold text-slate-300 ring-1 ring-white/10">
+                    {spotlight.stat}
+                  </span>
+                </div>
+                {destination ? (
+                  <Link
+                    to={destination}
+                    className={`mt-3 block text-[13px] font-black leading-5 transition hover:text-white ${toneClass[spotlight.tone]}`}
+                  >
+                    {spotlight.title}
+                  </Link>
                 ) : (
-                  <Activity size={14} strokeWidth={2.5} />
+                  <h4
+                    className={`mt-3 text-[13px] font-black leading-5 ${toneClass[spotlight.tone]}`}
+                  >
+                    {spotlight.title}
+                  </h4>
                 )}
-                <p className="text-[9px] font-black uppercase tracking-[0.12em]">League signal</p>
-              </div>
-              <h4 className={`mt-3 text-[13px] font-black leading-5 ${toneClass[takeaway.tone]}`}>
-                {takeaway.title}
-              </h4>
-              <p className="mt-1 text-[10px] leading-4 text-slate-400">{takeaway.detail}</p>
-            </article>
-          ))}
+                <p className="mt-1 text-[10px] leading-4 text-slate-400">
+                  {spotlight.detail}
+                </p>
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -1,8 +1,6 @@
 import { BrainCircuit } from "lucide-react";
 import { buildEventRecap } from "../eventRecap";
-import { buildEventStory } from "../eventStory";
 import type { EventInsightInput } from "../types";
-import EventRoundStory from "./EventRoundStory";
 
 const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
 
@@ -23,7 +21,6 @@ export default function EventRecap({
 }) {
   const recap = buildEventRecap(event);
   if (!recap) return null;
-  const story = buildEventStory(event, recap);
   const overviewMetrics = [
     { label: "Players", value: overview.players, detail: "scored players" },
     { label: "Gross skins", value: overview.grossSkins, detail: "winning holes" },
@@ -87,8 +84,6 @@ export default function EventRecap({
           </div>
         ))}
       </div>
-
-      {story && <EventRoundStory story={story} />}
     </section>
   );
 }

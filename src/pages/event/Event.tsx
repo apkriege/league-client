@@ -9,7 +9,6 @@ import PageState from "@/components/layout/PageState";
 import { useCancelLeagueEvent, useDeleteLeagueEvent } from "@api/league/mutations";
 import { useLeagueEvent } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import EventRecap from "@/features/league-intelligence/components/EventRecap";
 import { getEventLocalDate } from "@/utils/eventDate";
 import { formatTime } from "@/utils/format";
 import { useAppStore } from "@/stores/appStore";
@@ -23,62 +22,24 @@ import {
   MapPin,
   Medal,
   ShieldHalf,
-  Trophy,
   X,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router";
-import {
-  buildEventLeaderboard,
-  type EventLeaderboardSort,
-} from "./eventLeaderboard";
 import EventFlightsPreview from "./components/EventFlightsPreview";
 import EventActionsMenu from "./components/EventActionsMenu";
+import EventIntelligenceDashboard from "./components/EventIntelligenceDashboard";
 import EventRoundsTable from "./components/EventRoundsTable";
-import EventTeamStandings from "./components/EventTeamStandings";
 import {
   FlightScorecardsDrawer,
   IndividualStrokeScorecardsDrawer,
 } from "./components/EventScorecardDrawers";
 import {
-  SkinsList,
   SkinsRoundScoresDrawer,
   type SkinsDrawerContent,
 } from "./components/EventSkins";
-import { ScoreLeaderboard, TopThreePlayers } from "./components/EventLeaderboard";
 import { getEventStatusConfig, normalizeEventStatus } from "./eventStatus";
 import useAnimatedDrawer from "@/hooks/useAnimatedDrawer";
-
-const LEADERBOARD_TABS = [
-  { id: "points", label: "Points" },
-  { id: "lowGross", label: "Low Gross" },
-  { id: "lowNet", label: "Low Net" },
-] satisfies Array<{ id: EventLeaderboardSort; label: string }>;
-const SCORE_ONLY_LEADERBOARD_TABS = LEADERBOARD_TABS.filter((tab) => tab.id !== "points");
-const buildEventView = (event: any, activeTab: EventLeaderboardSort) => {
-  const rounds = event.metrics?.scores ?? [];
-  const pointsEnabled = event.pointsEnabled !== false;
-  const resolvedActiveTab = pointsEnabled
-    ? activeTab
-    : activeTab === "points"
-      ? "lowNet"
-      : activeTab;
-  const pointsLeaderboard = event.metrics?.leaderboards?.playerPoints ?? [];
-  const lowNetLeaderboard = event.metrics?.leaderboards?.playerLowNet ?? [];
-  const hasPointValues =
-    pointsEnabled && pointsLeaderboard.some((entry: any) => Number(entry?.value || 0) > 0);
-
-  return {
-    activeLeaderboard: buildEventLeaderboard(rounds, resolvedActiveTab),
-    hasRounds: rounds.length > 0,
-    leaderboardSort: resolvedActiveTab,
-    leaderboardTabs: pointsEnabled ? LEADERBOARD_TABS : SCORE_ONLY_LEADERBOARD_TABS,
-    normalizedStatus: normalizeEventStatus(event.status),
-    resolvedActiveTab,
-    topThree: (hasPointValues ? pointsLeaderboard : lowNetLeaderboard).slice(0, 3),
-    topThreeMode: hasPointValues ? ("points" as const) : ("net" as const),
-  };
-};
 
 function EventSectionHeading({
   icon,
@@ -102,15 +63,6 @@ function EventSectionHeading({
   );
 }
 
-function CompactGroupHeading({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="px-1">
-      <h3 className="text-xs font-black uppercase tracking-[0.12em] text-slate-700">{title}</h3>
-      <p className="mt-1 text-[10px] leading-4 text-slate-400">{description}</p>
-    </div>
-  );
-}
-
 export default function Event() {
   const { leagueId, eventId } = useParams();
   const navigate = useNavigate();
@@ -129,14 +81,9 @@ export default function Event() {
   const cancelEvent = useCancelLeagueEvent(() => {
     show("Event canceled.", "success");
   });
-  const [activeTab, setActiveTab] = useState<EventLeaderboardSort>("points");
   const [roundScoreMode, setRoundScoreMode] = useState<"gross" | "net">("gross");
   const scorecardDrawer = useAnimatedDrawer();
   const skinsDrawer = useAnimatedDrawer<SkinsDrawerContent>();
-  const eventView = useMemo(
-    () => (event ? buildEventView(event, activeTab) : null),
-    [activeTab, event],
-  );
 
   if (isLoading) {
     return (
@@ -179,16 +126,8 @@ export default function Event() {
 
   const status = getEventStatusConfig(event.status);
   const date = getEventLocalDate(event.startsAt, event.timeZone);
-  const {
-    activeLeaderboard,
-    hasRounds,
-    leaderboardSort,
-    leaderboardTabs,
-    normalizedStatus,
-    resolvedActiveTab,
-    topThree,
-    topThreeMode,
-  } = eventView!;
+  const hasRounds = (event.metrics?.scores?.length ?? 0) > 0;
+  const normalizedStatus = normalizeEventStatus(event.status);
   const role = String(user?.role || "").toUpperCase();
   const canManageEvent = role === "ADMIN" || role === "SUPER";
   const isCanceledEvent = normalizedStatus === "canceled";
@@ -202,8 +141,8 @@ export default function Event() {
     deleteEvent.mutate(
       { leagueId: Number(leagueId), eventId: Number(eventId) },
       {
-        onError: (error: any) => {
-          show(error?.message || "Failed to delete event.", "error");
+        onError: (error: unknown) => {
+          show(getApiErrorMessage(error, "Failed to delete event."), "error");
         },
       }
     );
@@ -217,8 +156,8 @@ export default function Event() {
     cancelEvent.mutate(
       { leagueId: Number(leagueId), eventId: Number(eventId) },
       {
-        onError: (error: any) => {
-          show(error?.message || "Failed to cancel event.", "error");
+        onError: (error: unknown) => {
+          show(getApiErrorMessage(error, "Failed to cancel event."), "error");
         },
       }
     );
@@ -273,112 +212,18 @@ export default function Event() {
       </div>
 
       {hasRounds && (
-        <div className="mt-6 mb-6">
-          <EventRecap
+        <div className="mb-8 mt-6">
+          <EventIntelligenceDashboard
             event={event}
-            overview={{
-              players: activeLeaderboard.length,
-              grossSkins: event.metrics.skins.playerSkins.length,
-              netSkins: event.metrics.skins.playerNetSkins.length,
-              holes: event.holes,
-              startSide: event.startSide === "back" ? "back" : "front",
-            }}
+            leagueId={Number(leagueId)}
+            onOpenSkins={skinsDrawer.open}
           />
         </div>
       )}
 
       <div className="mt-8 flex flex-col gap-10">
         {hasRounds ? (
-          <>
-            <section className="space-y-5">
-              <EventSectionHeading
-                icon={<Trophy size={16} strokeWidth={2.5} />}
-                title="Performance and Skins"
-                description="Event leaders, complete standings, and winning holes"
-              />
-              <div className="grid items-start gap-8 xl:grid-cols-[minmax(16rem,0.72fr)_minmax(0,1.28fr)]">
-                <div className="space-y-4">
-                  <CompactGroupHeading
-                    title="Podium and skins"
-                    description="Top finishers and every winning hole"
-                  />
-                  {topThree.length > 0 && (
-                    <TopThreePlayers players={topThree} mode={topThreeMode} />
-                  )}
-                  <div className="flex flex-col gap-4">
-                    <SkinsList
-                      label="Gross"
-                      skins={event.metrics.skins.playerSkins}
-                      valueKey="gross"
-                      iconClass="text-amber-500"
-                      badgeClass="bg-amber-50 text-amber-600 border-amber-200"
-                      onViewAll={() =>
-                        skinsDrawer.open({
-                          label: "Gross",
-                          skins: event.metrics.skins.playerSkins,
-                          valueKey: "gross",
-                          iconClass: "text-amber-500",
-                          badgeClass: "bg-amber-50 text-amber-600 border-amber-200",
-                        })
-                      }
-                    />
-                    <SkinsList
-                      label="Net"
-                      skins={event.metrics.skins.playerNetSkins}
-                      valueKey="net"
-                      iconClass="text-violet-500"
-                      badgeClass="bg-violet-50 text-violet-600 border-violet-200"
-                      onViewAll={() =>
-                        skinsDrawer.open({
-                          label: "Net",
-                          skins: event.metrics.skins.playerNetSkins,
-                          valueKey: "net",
-                          iconClass: "text-violet-500",
-                          badgeClass: "bg-violet-50 text-violet-600 border-violet-200",
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-end justify-between gap-3">
-                    <CompactGroupHeading
-                      title="Leaderboard"
-                      description="Switch between points, low gross, and low net"
-                    />
-                    <div className="flex rounded-xl border border-slate-200 bg-slate-100/80 p-1 shadow-inner">
-                      {leaderboardTabs.map((tab) => (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setActiveTab(tab.id)}
-                          aria-pressed={resolvedActiveTab === tab.id}
-                          className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition ${
-                            resolvedActiveTab === tab.id
-                              ? "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200"
-                              : "text-slate-500 hover:text-slate-800"
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <SurfaceCard>
-                    <ScoreLeaderboard
-                      leaderboard={activeLeaderboard}
-                      sortBy={leaderboardSort}
-                    />
-                  </SurfaceCard>
-                  {event.format === "team" && event.metrics.teamStandings?.length > 0 && (
-                    <EventTeamStandings standings={event.metrics.teamStandings} />
-                  )}
-                </div>
-              </div>
-            </section>
-
-            <section className="space-y-5 [content-visibility:auto] [contain-intrinsic-size:auto_560px]">
+          <section className="space-y-5 [content-visibility:auto] [contain-intrinsic-size:auto_560px]">
               <EventSectionHeading
                 icon={<ListOrdered size={16} strokeWidth={2.5} />}
                 title="Round Scores"
@@ -428,8 +273,7 @@ export default function Event() {
                   showRoundStats
                 />
               </SurfaceCard>
-            </section>
-          </>
+          </section>
         ) : (
           <div className="pt-2">
             <SectionIntro title="Flights" description="Pairings and tee time assignments" />

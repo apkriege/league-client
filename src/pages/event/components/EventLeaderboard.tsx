@@ -1,6 +1,5 @@
-import { Medal, TrendingDown, TrendingUp, Trophy, User } from "lucide-react";
+import { TrendingDown, TrendingUp, User } from "lucide-react";
 import Table from "@/components/Table";
-import SurfaceCard from "@/components/layout/SurfaceCard";
 import type { EventLeaderboardEntry, EventLeaderboardSort } from "../eventLeaderboard";
 import PlayerNameLink from "./PlayerNameLink";
 import { memo } from "react";
@@ -119,62 +118,6 @@ function LeaderboardValueCell({ value, active }: { value: number | null; active:
     </td>
   );
 }
-
-export const TopThreePlayers = memo(function TopThreePlayers({ players, mode }: { players: any[]; mode: "points" | "net" }) {
-  const label = mode === "points" ? "Top Points" : "Low Net Leaders";
-  const valueLabel = mode === "points" ? "PTS" : "NET";
-
-  return (
-    <SurfaceCard as="section">
-      <div className="flex items-center justify-between gap-3 px-3 py-2">
-        <div className="flex items-center gap-2">
-          <Trophy size={13} className="text-amber-500" strokeWidth={2.5} />
-          <h3 className="text-xs font-semibold text-gray-800">{label}</h3>
-        </div>
-        <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-bold text-gray-500">Top 3</span>
-      </div>
-      <div className="flex flex-col gap-2 p-3">
-        {players.map((player, index) => {
-          const style = podiumStyles[index] || podiumStyles[2];
-          const value = Number(player?.value ?? 0);
-          return (
-            <div key={`${player.playerId}-${index}`} className={`relative overflow-hidden rounded-lg border px-3 py-2.5 shadow-xs ${style.card}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-black ${style.medal}`}>
-                    {initials(player.name) || style.rank}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <Medal size={13} className={style.icon} />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">#{style.rank}</span>
-                    </div>
-                    <PlayerNameLink playerId={player.playerId} className="mt-0.5 block truncate text-xs font-bold text-gray-900 hover:text-slate-900 hover:underline">
-                      {player.name}
-                    </PlayerNameLink>
-                    <p className="text-[11px] font-medium text-gray-400">
-                      Index {formatHandicap(player.handicap)}
-                    </p>
-                  </div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{valueLabel}</p>
-                  <p className="text-xl font-black leading-none text-gray-950">{mode === "points" ? value : Math.round(value)}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </SurfaceCard>
-  );
-});
-
-const podiumStyles = [
-  { rank: "1", medal: "border-amber-200 bg-amber-100 text-amber-700", card: "border-amber-200 bg-linear-to-br from-amber-50 to-white", icon: "text-amber-500" },
-  { rank: "2", medal: "border-slate-200 bg-slate-100 text-slate-600", card: "border-slate-200 bg-linear-to-br from-slate-50 to-white", icon: "text-slate-400" },
-  { rank: "3", medal: "border-orange-200 bg-orange-100 text-orange-700", card: "border-orange-200 bg-linear-to-br from-orange-50 to-white", icon: "text-orange-500" },
-];
 
 const initials = (name: string) =>
   String(name || "").split(" ").filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase();

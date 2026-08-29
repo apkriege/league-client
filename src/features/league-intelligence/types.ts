@@ -7,6 +7,10 @@ export type IntelligenceStanding = {
   rounds: number;
   avgGross: number;
   avgNet: number;
+  birdies?: number;
+  eagles?: number;
+  startingHandicap?: number | null;
+  currentHandicap?: number | null;
   handicapChange: number | null;
 };
 
@@ -47,7 +51,7 @@ export type LeagueIntelligenceMetrics = {
   standingsMode?: string;
   standings?: IntelligenceStanding[];
   teamStandings?: IntelligenceTeamStanding[];
-  playerWeeklyTrends?: { labels: string[]; players: PlayerTrend[] };
+  playerWeeklyTrends?: { labels: string[]; holes?: number[]; players: PlayerTrend[] };
   headToHead?: HeadToHeadHistory[];
   playerCourseHistory?: PlayerCourseHistory[];
   seasonSummary?: {
@@ -57,11 +61,29 @@ export type LeagueIntelligenceMetrics = {
     avgHandicapChange?: number;
   };
   records?: {
-    lowGross?: { value: number; playerName: string } | null;
-    lowNet?: { value: number; playerName: string } | null;
-    mostBirdies?: { value: number; playerName: string } | null;
-    mostPoints?: { value: number; playerName: string } | null;
+    lowGross?: LeagueSeasonRecord | null;
+    lowNet?: LeagueSeasonRecord | null;
+    mostBirdies?: LeagueSeasonRecord | null;
+    mostPoints?: LeagueSeasonRecord | null;
   };
+  skins?: {
+    gross: LeagueSkinLeader[];
+    net: LeagueSkinLeader[];
+  };
+};
+
+export type LeagueSeasonRecord = {
+  value: number;
+  playerName: string;
+  eventName?: string;
+  eventDate?: string;
+  eventTimeZone?: string;
+};
+
+export type LeagueSkinLeader = {
+  playerId: number;
+  name: string;
+  skins: number;
 };
 
 export type LeagueRosterPlayer = {
@@ -136,7 +158,30 @@ export type EventInsightRound = {
   postHandicap?: number | null;
   pointsEarned?: number | null;
   matchPoints?: number | null;
+  eagles?: number;
+  birdies?: number;
+  pars?: number;
+  bogeys?: number;
   scores?: EventInsightScore[];
+};
+
+export type EventInsightSkin = {
+  playerId: number;
+  name?: string;
+  hole: number | string;
+  scoreLabel?: string;
+  gross?: number;
+  net?: number;
+};
+
+export type EventInsightTeamStanding = {
+  rank?: number;
+  teamId: number;
+  name: string;
+  players?: Array<{ playerId: number; name: string; points: number }>;
+  playerPoints?: number;
+  teamPoints?: number;
+  totalPoints: number;
 };
 
 export type EventInsightInput = {
@@ -150,19 +195,37 @@ export type EventInsightInput = {
       playerId: number;
       opponentId?: number | null;
     }>;
+    teams?: Array<{
+      teamId: number;
+      opponentId?: number | null;
+    }>;
   }>;
   metrics?: {
     scores?: EventInsightRound[];
     skins?: {
-      playerSkins?: Array<{ playerId: number; name?: string; hole: number | string }>;
-      playerNetSkins?: Array<{ playerId: number; name?: string; hole: number | string }>;
+      playerSkins?: EventInsightSkin[];
+      playerNetSkins?: EventInsightSkin[];
     };
-    teamStandings?: Array<{
-      teamId: number;
-      name: string;
-      totalPoints: number;
-    }>;
+    teamStandings?: EventInsightTeamStanding[];
+    leaderboards?: {
+      playerPoints?: Array<{ playerId: number; name: string; handicap?: number | null; value: number }>;
+      playerLowGross?: Array<{ playerId: number; name: string; handicap?: number | null; value: number }>;
+      playerLowNet?: Array<{ playerId: number; name: string; handicap?: number | null; value: number }>;
+    };
+    scoreDistribution?: {
+      thisEvent: EventScoreDistribution;
+      seasonAvg: EventScoreDistribution;
+    };
   };
+};
+
+export type EventScoreDistribution = {
+  eagles: number;
+  birdies: number;
+  pars: number;
+  bogeys: number;
+  doubleBogeys: number;
+  tripleBogeys: number;
 };
 
 export type EventStoryHighlightKind = "hot" | "battle" | "momentum" | "achievement";

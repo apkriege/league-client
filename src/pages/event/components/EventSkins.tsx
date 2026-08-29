@@ -3,10 +3,14 @@ import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import EventRoundsTable from "./EventRoundsTable";
 import PlayerNameLink from "./PlayerNameLink";
+import type {
+  EventInsightRound,
+  EventInsightSkin,
+} from "@/features/league-intelligence/types";
 
 export type SkinsDrawerContent = {
   label: string;
-  skins: any[];
+  skins: EventInsightSkin[];
   valueKey: "gross" | "net";
   iconClass: string;
   badgeClass: string;
@@ -46,13 +50,13 @@ export function SkinsList({
 export function SkinsRoundScoresDrawer({
   rounds,
   ...content
-}: SkinsDrawerContent & { rounds: any[] }) {
+}: SkinsDrawerContent & { rounds: EventInsightRound[] }) {
   if (!rounds?.length) {
     return <p className="text-sm text-gray-400">No scorecards available yet.</p>;
   }
 
   const highlightedHolesByPlayer = content.skins.reduce(
-    (holesByPlayer: Record<number, number[]>, skin: any) => {
+    (holesByPlayer: Record<number, number[]>, skin) => {
       const playerId = Number(skin?.playerId ?? 0);
       const hole = Number(skin?.hole ?? 0);
       if (playerId && hole) {
@@ -115,7 +119,7 @@ function SkinRows({
 
   return (
     <div className="max-h-45 divide-y divide-gray-50 overflow-y-auto rounded-md border border-gray-100 pr-1">
-      {skins.map((skin: any, index: number) => (
+      {skins.map((skin, index) => (
         <div key={`${skin.playerId}-${skin.hole}-${index}`} className="flex items-center justify-between bg-white px-2.5 py-2">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-amber-200 bg-amber-50">

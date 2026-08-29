@@ -9,7 +9,7 @@ import Table from "@/components/Table";
 import { Input } from "@/components/form";
 import SharedLeagueAnnouncementsPanel from "@/components/league/LeagueAnnouncementsPanel";
 import ScoringPeriodDivider from "@/components/league/ScoringPeriodDivider";
-import LeaguePulse from "@/features/league-intelligence/components/LeaguePulse";
+import LeagueIntelligenceDashboard from "@/features/league-intelligence/components/LeagueIntelligenceDashboard";
 import { getScoringPeriodBoundariesBeforeEvent } from "@/features/leagues/scoringPeriodBoundaries";
 import { useAppStore } from "@/stores/appStore";
 import { useLeague, useLeagueEvents, useLeagueMetrics } from "@api/league/queries";
@@ -397,12 +397,17 @@ export default function League() {
 
   const seasonTrendChartData = useMemo(() => {
     const labels = metrics?.playerWeeklyTrends?.labels ?? [];
+    const eventHoles = metrics?.playerWeeklyTrends?.holes ?? [];
     const players = metrics?.playerWeeklyTrends?.players ?? [];
 
     const weeklyAverage = (key: "avgGross" | "avgNet") => {
       return labels.map((_: string, idx: number) => {
         const values = players
-          .map((player: any) => player?.[key]?.[idx])
+          .map((player: any) => {
+            const score = player?.[key]?.[idx];
+            if (typeof score !== "number" || !Number.isFinite(score)) return null;
+            return score * (18 / Math.max(1, Number(eventHoles[idx] || 18)));
+          })
           .filter((value: any) => typeof value === "number" && Number.isFinite(value));
 
         if (values.length === 0) return null;
@@ -486,7 +491,7 @@ export default function League() {
           },
           title: {
             display: true,
-            text: "Average Score",
+            text: "18-hole equivalent",
             font: { size: 10, weight: 600 as const },
           },
           grid: {
@@ -588,11 +593,12 @@ export default function League() {
             </div>
           )}
 
-          <LeaguePulse
+          <LeagueIntelligenceDashboard
             metrics={metrics}
             events={Array.isArray(events) ? events : []}
             roster={Array.isArray(league?.players) ? league.players : []}
             periodLabel={selectedScoringPeriod?.name ?? "Overall"}
+            leagueId={Number(leagueId)}
           />
         </div>
 
@@ -602,7 +608,7 @@ export default function League() {
           <section
             className={`space-y-9 transition-opacity ${metricsIsFetching ? "opacity-60" : ""}`}
           >
-            <DataSection title="Competition" icon={<Trophy size={16} strokeWidth={2.5} />}>
+            <DataSection title="Detailed Standings" icon={<Trophy size={16} strokeWidth={2.5} />}>
               <div className="space-y-4">
                 <SurfaceCard className="min-w-0">
                   <PanelBar>
@@ -643,7 +649,7 @@ export default function League() {
                   <PanelBar className="justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <BarChart2 size={13} className="text-emerald-600" strokeWidth={2.5} />
-                      <h3 className="text-xs font-bold text-slate-900">Player Results</h3>
+                      <h3 className="text-xs font-bold text-slate-900">Full Player Results</h3>
                     </div>
                     <Input
                       dense
@@ -671,7 +677,7 @@ export default function League() {
               </div>
             </DataSection>
 
-            <DataSection title="Season Performance" icon={<BarChart2 size={16} strokeWidth={2.5} />}>
+            <DataSection title="Scoring Detail" icon={<BarChart2 size={16} strokeWidth={2.5} />}>
               <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(16rem,0.75fr)]">
                 <SurfaceCard className="w-full">
                   <PanelBar>

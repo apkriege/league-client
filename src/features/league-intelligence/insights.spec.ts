@@ -83,9 +83,21 @@ describe("league intelligence", () => {
       ],
       metrics: {
         standings: [
-          { playerId: 1, name: "Avery Green", points: 12, rounds: 3, avgGross: 40, avgNet: 35, handicapChange: -1.8 },
-          { playerId: 2, name: "Blake Fairway", points: 10.5, rounds: 2, avgGross: 42, avgNet: 36, handicapChange: 0.2 },
+          { playerId: 1, name: "Avery Green", points: 12, rounds: 3, avgGross: 40, avgNet: 35, birdies: 5, handicapChange: -1.8 },
+          { playerId: 2, name: "Blake Fairway", points: 10.5, rounds: 2, avgGross: 42, avgNet: 36, birdies: 2, handicapChange: 0.2 },
           { playerId: 3, name: "Casey Links", points: 0, rounds: 0, avgGross: 0, avgNet: 0, handicapChange: null },
+        ],
+        playerWeeklyTrends: {
+          labels: ["Week 1", "Week 2", "Week 3"],
+          holes: [18, 18, 18],
+          players: [
+            { playerId: 1, name: "Avery Green", avgGross: [43, 41, 39], avgNet: [38, 37, 34] },
+            { playerId: 2, name: "Blake Fairway", avgGross: [42, 43, null], avgNet: [36, 37, null] },
+          ],
+        },
+        headToHead: [
+          { playerId: 1, playerName: "Avery Green", opponentId: 2, opponentName: "Blake Fairway", wins: 2, losses: 1, ties: 0 },
+          { playerId: 2, playerName: "Blake Fairway", opponentId: 1, opponentName: "Avery Green", wins: 1, losses: 2, ties: 0 },
         ],
       },
     });
@@ -94,6 +106,13 @@ describe("league intelligence", () => {
     expect(pulse.rosterSize).toBe(3);
     expect(pulse.leadGap).toBe(1.5);
     expect(pulse.mostImproved?.name).toBe("Avery Green");
+    expect(pulse.hotPlayer).toMatchObject({ name: "Avery Green", improvement: 2.5, improvingStreak: 3 });
+    expect(pulse.spotlights.map((spotlight) => spotlight.kind)).toEqual([
+      "hot",
+      "race",
+      "rivalry",
+      "birdies",
+    ]);
     expect(pulse.behindParticipation.map((player) => player.id)).toEqual([3]);
     expect(pulse.nextEvent?.name).toBe("Week Two");
   });

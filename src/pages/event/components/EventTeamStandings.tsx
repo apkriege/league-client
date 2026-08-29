@@ -1,25 +1,9 @@
-import PanelBar from "@/components/layout/PanelBar";
-import SurfaceCard from "@/components/layout/SurfaceCard";
-import { ShieldHalf } from "lucide-react";
 import { memo } from "react";
 import PlayerNameLink from "./PlayerNameLink";
-
-export type EventTeamStanding = {
-  rank: number;
-  teamId: number;
-  name: string;
-  players: Array<{
-    playerId: number;
-    name: string;
-    points: number;
-  }>;
-  playerPoints: number;
-  teamPoints: number;
-  totalPoints: number;
-};
+import type { EventInsightTeamStanding } from "@/features/league-intelligence/types";
 
 type EventTeamStandingsProps = {
-  standings: EventTeamStanding[];
+  standings: EventInsightTeamStanding[];
 };
 
 const formatPoints = (value: number) =>
@@ -29,38 +13,31 @@ function EventTeamStandings({ standings }: EventTeamStandingsProps) {
   if (standings.length === 0) return null;
 
   return (
-    <SurfaceCard>
-      <PanelBar>
-        <ShieldHalf size={14} className="text-gray-400" strokeWidth={2} />
-        <h3 className="text-sm font-semibold text-gray-800">Team Standings</h3>
-        <span className="ml-auto text-[10px] font-medium text-gray-400">
-          {standings.length} {standings.length === 1 ? "team" : "teams"}
-        </span>
-      </PanelBar>
-
-      <div className="max-h-80 overflow-auto">
-        <table className="w-full min-w-[28rem] table-fixed text-left text-xs">
-          <colgroup>
-            <col className="w-10" />
-            <col />
-            <col className="w-18" />
-            <col className="w-16" />
-            <col className="w-16" />
-          </colgroup>
-          <thead className="sticky top-0 z-10 bg-gray-50">
-            <tr className="section-kicker border-b border-gray-100">
-              <th className="px-3 py-2">#</th>
-              <th className="px-2.5 py-2">Team / Player</th>
-              <th className="px-1.5 py-2 text-right">Player</th>
-              <th className="px-1.5 py-2 text-right">Team</th>
-              <th className="px-3 py-2 text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {standings.map((standing) => (
+    <div className="max-h-80 overflow-auto">
+      <table className="w-full min-w-[28rem] table-fixed text-left text-xs">
+        <colgroup>
+          <col className="w-10" />
+          <col />
+          <col className="w-18" />
+          <col className="w-16" />
+          <col className="w-16" />
+        </colgroup>
+        <thead className="sticky top-0 z-10 bg-gray-50">
+          <tr className="section-kicker border-b border-gray-100">
+            <th className="px-3 py-2">#</th>
+            <th className="px-2.5 py-2">Team / Player</th>
+            <th className="px-1.5 py-2 text-right">Player</th>
+            <th className="px-1.5 py-2 text-right">Team</th>
+            <th className="px-3 py-2 text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {standings.map((standing, index) => {
+            const rank = standing.rank ?? index + 1;
+            return (
               <tr key={standing.teamId} className="bg-slate-50/40 text-xs hover:bg-gray-50/80">
                 <td className="px-3 py-2 align-top font-bold text-gray-500">
-                  {standing.rank < 10 ? `0${standing.rank}` : standing.rank}
+                  {rank < 10 ? `0${rank}` : rank}
                 </td>
                 <th scope="row" className="px-2.5 py-2 text-left">
                   <div className="flex items-start gap-2">
@@ -72,9 +49,9 @@ function EventTeamStandings({ standings }: EventTeamStandingsProps) {
                         {standing.name}
                       </p>
                       <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                        {standing.players.map((player, index) => (
+                        {(standing.players ?? []).map((player, playerIndex) => (
                           <span key={player.playerId} className="inline-flex min-w-0 items-center gap-1">
-                            {index > 0 && (
+                            {playerIndex > 0 && (
                               <span aria-hidden="true" className="text-[10px] text-gray-300">
                                 •
                               </span>
@@ -95,20 +72,20 @@ function EventTeamStandings({ standings }: EventTeamStandingsProps) {
                   </div>
                 </th>
                 <td className="px-1.5 py-2 text-right align-top">
-                  <PointBadge value={standing.playerPoints} />
+                  <PointBadge value={standing.playerPoints ?? 0} />
                 </td>
                 <td className="px-1.5 py-2 text-right align-top">
-                  <PointBadge value={standing.teamPoints} />
+                  <PointBadge value={standing.teamPoints ?? 0} />
                 </td>
                 <td className="px-3 py-2 text-right align-top">
                   <PointBadge value={standing.totalPoints} highlighted />
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </SurfaceCard>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
