@@ -14,7 +14,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import lnLogo from "@/assets/league-night-logo.png";
 import { publicLinks } from "@/config/publicLinks";
@@ -29,14 +29,14 @@ const GOLF_IMAGES = {
 
 const stats = [
   { value: "Every week", label: "Schedule, flights, cards, scoring, and results" },
-  { value: "Every golfer", label: "Performance, progress, matchups, and history" },
+  { value: "Every golfer", label: "Improvement, form, rivalries, and history" },
   { value: "Every season", label: "Renew the league while preserving its legacy" },
 ];
 
 const workflow = [
   {
     title: "League administration",
-    body: "Manage golfers, substitutes, teams, invitations, announcements, scoring rules, admin permissions, and view-only access.",
+    body: "Manage golfers, substitutes, teams, invitations, scoring rules, access, season renewal, and announcement notifications visible throughout the league.",
     icon: <Flag size={18} />,
   },
   {
@@ -46,7 +46,7 @@ const workflow = [
   },
   {
     title: "Scoring and competition",
-    body: "Enter gross scores and calculate net results, points, skins, standings, handicap movement, records, and intelligence.",
+    body: "Enter scores once to calculate net results, points, skins, standings, records, event stories, and player, team, and league intelligence.",
     icon: <Trophy size={18} />,
   },
 ];
@@ -224,7 +224,7 @@ function HeroProductCard() {
                 ["92%", "Participation"],
                 ["8 / 12", "Events"],
                 ["1.5", "Lead gap"],
-                ["-2.1", "Best HCP"],
+                ["3", "Hot golfers"],
               ].map(([value, label]) => (
                 <div key={label} className="rounded-2xl border border-slate-200 bg-white p-3">
                   <p className="text-lg font-black tracking-tight">{value}</p>
@@ -259,16 +259,16 @@ function HeroProductCard() {
 
             <div className="grid grid-cols-3 gap-2">
               {[
-                ["Player", "Development"],
-                ["Team", "Chemistry"],
-                ["Admin", "Operations"],
+                ["Player", "Improve · Compete · Progress"],
+                ["League", "Race · Form · Rivalries"],
+                ["Event", "Results · Story · Battles"],
               ].map(([title, body]) => (
                 <div
                   key={title}
                   className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-center"
                 >
                   <p className="text-xs font-black">{title}</p>
-                  <p className="text-[10px] text-slate-500">{body}</p>
+                  <p className="mt-0.5 text-[9px] leading-3 text-slate-500">{body}</p>
                 </div>
               ))}
             </div>
@@ -342,11 +342,7 @@ function ProductSection() {
               </div>
             </div>
 
-            <div className="grid gap-4">
-              <MetricCard label="Scoring" value="Gross + net" icon={<Gauge size={16} />} />
-              <MetricCard label="Competition" value="Points + skins" icon={<Trophy size={16} />} />
-              <MetricCard label="Access" value="Admin + viewer" icon={<ShieldCheck size={16} />} />
-            </div>
+            <ScoreToInsightCards />
           </div>
         </div>
       </div>
@@ -354,14 +350,50 @@ function ProductSection() {
   );
 }
 
-function MetricCard({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+function ScoreToInsightCards() {
+  const steps = [
+    {
+      label: "Capture",
+      title: "Hole-by-hole scoring",
+      body: "Record each golfer's gross scores once.",
+      icon: <ClipboardList size={16} />,
+    },
+    {
+      label: "Calculate",
+      title: "Every league result",
+      body: "Net, points, skins, standings, and records update together when a score changes.",
+      icon: <Gauge size={16} />,
+    },
+    {
+      label: "Explain",
+      title: "The story behind it",
+      body: "Reveal round drama, player progress, league form, and rivalries.",
+      icon: <BrainCircuit size={16} />,
+    },
+  ];
+
   return (
-    <div className="rounded-[1.5rem] border border-black/5 bg-white p-5 shadow-xl shadow-blue-950/8">
-      <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-blue-800">
-        {icon}
-      </div>
-      <p className="text-2xl font-black tracking-tight text-slate-950">{value}</p>
-      <p className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p>
+    <div className="grid gap-4">
+      {steps.map((step, index) => (
+        <article
+          key={step.label}
+          className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-lg shadow-blue-950/6"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-emerald-200">
+              {step.icon}
+            </span>
+            <span className="text-[9px] font-black tabular-nums text-slate-300">
+              0{index + 1}
+            </span>
+          </div>
+          <p className="mt-4 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-700">
+            {step.label}
+          </p>
+          <h3 className="mt-1 text-base font-black tracking-tight text-slate-950">{step.title}</h3>
+          <p className="mt-1.5 text-[11px] leading-4 text-slate-500">{step.body}</p>
+        </article>
+      ))}
     </div>
   );
 }
@@ -370,26 +402,26 @@ function IntelligenceSection() {
   const views = [
     {
       title: "League Pulse",
-      body: "See the standings gap, season progress, participation rate, most-improved golfer, and who is falling behind.",
-      result: "Know what is changing across the league.",
+      body: "Track the live race, who's hot or cooling off, recent winners, category leaders, skins, awards, and rivalry pressure.",
+      result: "See the complete state of the league at a glance.",
       icon: <Activity size={17} />,
     },
     {
       title: "Player Intelligence",
-      body: "Show each golfer scoring patterns, par splits, form, personal records, league rank, head-to-head results, and where to improve.",
-      result: "Give golfers a reason to check the app after every round.",
+      body: "Give every golfer focused Improve, Compete, and Progress views covering scoring patterns, course splits, form, records, rankings, and head-to-head history.",
+      result: "Show each golfer what to work on and how they stack up.",
       icon: <LineChart size={17} />,
     },
     {
       title: "Team DNA",
-      body: "Measure player contribution, recent form, scoring identity, pairing results, team record, and season rivalries.",
+      body: "Track team scoring, player contribution, recent form, scoring identity, matchup records, and season rivalries.",
       result: "See why a team is winning—not only where it ranks.",
       icon: <Users size={17} />,
     },
     {
       title: "Event Recap",
-      body: "Identify the event leader, best net performance, strongest finish, separation hole, and result context from completed scores.",
-      result: "Turn a leaderboard into the story of the round.",
+      body: "Move between results, the round story, performance awards, decisive holes, bounce-backs, matchups, and skins without losing the full score data.",
+      result: "Turn every completed event into a story worth checking.",
       icon: <Trophy size={17} />,
     },
     {
@@ -410,21 +442,14 @@ function IntelligenceSection() {
     <section id="intelligence" className="landing-deferred-section relative overflow-hidden bg-white px-5 py-24 md:px-8">
       <div className="absolute inset-x-0 top-0 h-px bg-slate-200" />
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-end">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-800">
-              <BrainCircuit size={13} />
-              League Night Intelligence
-            </div>
-            <h2 className="mt-5 max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
-              Your scores should explain the league—not just fill a table.
-            </h2>
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-800">
+            <BrainCircuit size={13} />
+            League Night Intelligence
           </div>
-          <p className="max-w-2xl text-base leading-8 text-slate-600 lg:justify-self-end">
-            League Night Pro connects every completed round to the next decision: what a player
-            should improve, which team combinations work, what decided an event, which matchup to
-            watch, and what the commissioner needs to fix.
-          </p>
+          <h2 className="mt-5 max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
+            Your scores should explain the league—not just fill a table.
+          </h2>
         </div>
 
         <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -474,7 +499,7 @@ function WorkflowSection() {
           </div>
           <p className="max-w-md text-sm leading-7 text-white/58">
             The same player, team, event, and scoring data drives scorecards, results, standings,
-            intelligence, and historical records. You do not rebuild the league after every round.
+            intelligence, announcements, and historical records. You do not rebuild the league after every round.
           </p>
         </div>
 
@@ -483,7 +508,7 @@ function WorkflowSection() {
             ["01", "Create", "Set season dates, golfers, substitutes, teams, formats, and scoring rules."],
             ["02", "Schedule", "Create recurring events, select courses and tees, then assign flights and matchups."],
             ["03", "Run", "Print scorecards, handle swaps, enter gross scores, and calculate net, points, and skins."],
-            ["04", "Publish", "Release event results, standings, player and team intelligence, and round history."],
+            ["04", "Publish", "Release event stories, standings, league pulse, player and team intelligence, and member announcements."],
             ["05", "Renew", "Create the next season from the prior league while preserving players and legacy rounds."],
           ].map(([step, title, body]) => (
             <div
