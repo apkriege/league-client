@@ -13,23 +13,28 @@ const formatNumber = (value: number) =>
   Number.isInteger(value) ? String(value) : value.toFixed(1);
 
 export default function LeagueRacePanel({
-  dashboard,
+  race,
   leagueId,
+  entity,
 }: {
-  dashboard: LeagueDashboard;
+  race: LeagueDashboard["playerRace"];
   leagueId: number;
+  entity: "player" | "team";
 }) {
-  const { rows, contenders, contenderThreshold, leadGap } = dashboard.race;
+  const { rows, contenders, contenderThreshold, leadGap } = race;
+  const title = entity === "team" ? "Team live race" : "Player live race";
   const leaderPoints = rows[0]?.points ?? 0;
   const podium = rows.slice(0, 3);
 
   if (rows.length === 0 || !rows.some((row) => row.points !== 0 || row.appearances > 0)) {
     return (
       <LeagueInsightSection
-        title="The live race"
+        title={title}
         description="Standings pressure and contender status update as points are recorded"
       >
-        <LeagueInsightEmpty>Complete a scored event to open the league race.</LeagueInsightEmpty>
+        <LeagueInsightEmpty>
+          Complete a scored {entity === "team" ? "team " : ""}event to open this race.
+        </LeagueInsightEmpty>
       </LeagueInsightSection>
     );
   }

@@ -21,6 +21,7 @@ import {
   getFixedEventHoleCount,
   normalizeLeagueHoleFormat,
 } from "@/features/leagues/leagueHoleFormat";
+import { createDefaultScoringConfiguration } from "@/features/scoring/scoringModes";
 
 const defaultValues = {
   name: "",
@@ -33,7 +34,8 @@ const defaultValues = {
   startSide: "front",
   holes: 9,
   format: "team",
-  scoringFormat: "match", // stroke, match
+  scoringMode: "match-play",
+  scoringConfig: createDefaultScoringConfiguration("match-play"),
   ptsPerHole: 1,
   ptsPerMatch: 2,
   ptsPerTeamWin: 2,
@@ -57,7 +59,7 @@ export default function CreateEvent() {
   });
 
   const format = useWatch({ control: eventForm.control, name: "format" });
-  const scoringFormat = useWatch({ control: eventForm.control, name: "scoringFormat" });
+  const scoringMode = useWatch({ control: eventForm.control, name: "scoringMode" });
   const leagueHoleFormat = normalizeLeagueHoleFormat(league?.holeFormat);
   const fixedEventHoleCount = getFixedEventHoleCount(leagueHoleFormat);
   const isMixedHoleLeague = leagueHoleFormat === "mixed";
@@ -65,7 +67,7 @@ export default function CreateEvent() {
 
   useEffect(() => {
     eventForm.setValue("flights", [], { shouldDirty: true });
-  }, [eventForm, format, scoringFormat]);
+  }, [eventForm, format, scoringMode]);
 
   useEffect(() => {
     if (!fixedEventHoleCount) return;

@@ -32,6 +32,7 @@ import {
 } from "@/features/payments/PaymentPipelineError";
 import dayjs from "dayjs";
 import { getLeagueDateInputValue } from "./leagueDates";
+import { getLeagueBillingStatus } from "@/lib/billing";
 
 export default function Leagues() {
   const { user } = useAppStore();
@@ -248,7 +249,7 @@ const LeagueCard = ({ league, canManageLeague, canRenewLeague }: any) => {
     daysUntilEnd >= 0 &&
     daysUntilEnd <= 30 &&
     !league?.renewedLeague?.id;
-  const seasonStatus = league?.billingStatus === "payment_due"
+  const seasonStatus = getLeagueBillingStatus(league) === "payment_due"
     ? "Payment Due"
     : league?.seasonStatus === "reopened"
       ? "Reopened"

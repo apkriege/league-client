@@ -10,6 +10,11 @@ import {
 } from "./util";
 import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
+import {
+  deriveScoringMode,
+  getScoringFamily,
+  isSharedTeamScoringMode,
+} from "@/features/scoring/scoringModes";
 
 function PlayerNameLink({
   playerId,
@@ -40,8 +45,13 @@ function PlayerNameLink({
 
 function ViewFlightScores({ event, flight }: any) {
   const holes = getEventScoringHoles(event);
+  const scoringMode = deriveScoringMode(event);
 
-  if (event?.format === "individual" && event?.scoringFormat === "match") {
+  if (isSharedTeamScoringMode(scoringMode)) {
+    return <SharedTeamScoreView event={event} flight={flight} holes={holes} />;
+  }
+
+  if (event?.format === "individual" && getScoringFamily(scoringMode) === "match") {
     return <IndividualMatchView flight={flight} event={event} holes={holes} />;
   }
 
@@ -119,7 +129,7 @@ function ViewFlightScores({ event, flight }: any) {
     }, 0);
   };
 
-  const isTeamStroke = event?.format === "team" && event?.scoringFormat === "stroke";
+  const isTeamStroke = event?.format === "team" && getScoringFamily(scoringMode) === "stroke";
 
   const standardTeamHelpers = createTeamScoringHelpers({
     event,
@@ -202,6 +212,79 @@ function ViewFlightScores({ event, flight }: any) {
 }
 
 export default memo(ViewFlightScores);
+
+function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any; holes: any[] }) {
+  const rounds = (event.teamRounds ?? []).filter(
+    (round: any) => Number(round.flightId) === Number(flight.id),
+  );
+  const roundByTeamId = new Map(rounds.map((round: any) => [Number(round.teamId), round]));
+  const teams = flight.teams ?? [];
+
+  if (rounds.length === 0) {
+    return <p className="py-6 text-center text-sm text-slate-500">No team scores entered.</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200">
+      <Table
+        data={teams}
+        search={false}
+        pagination={false}
+        variant="clean"
+        noBorder
+        tableClassName="score-table"
+        renderTable={(visibleTeams) => (
+          <>
+            <thead>
+              <tr className="text-xs text-slate-700">
+                <th className="min-w-40 pl-4">Team</th>
+                {holes.map((hole: any) => (
+                  <ScoreHeaderCell key={hole.num}>{hole.num}</ScoreHeaderCell>
+                ))}
+                <th className="text-center">Gross</th>
+                <th className="text-center">Net</th>
+                <th className="text-center">Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleTeams.map((team: any) => {
+                const round: any = roundByTeamId.get(Number(team.teamId));
+                const scoreByHole = new Map(
+                  (round?.scores ?? []).map((score: any) => [Number(score.hole), score]),
+                );
+                return (
+                  <tr key={team.teamId} className="text-sm">
+                    <td className="p-3">
+                      <p className="font-bold text-slate-900">{team.team?.name || `Team ${team.teamId}`}</p>
+                      <p className="mt-0.5 text-[10px] text-slate-500">
+                        {round ? `${round.courseHandicap ?? 0} team handicap` : "No score"}
+                      </p>
+                    </td>
+                    {holes.map((hole: any) => {
+                      const score: any = scoreByHole.get(Number(hole.num));
+                      return (
+                        <td key={hole.num} className="p-2">
+                          <div className="flex h-8 items-center justify-center rounded border bg-white text-xs font-bold">
+                            {score?.gross ?? "—"}
+                          </div>
+                        </td>
+                      );
+                    })}
+                    <ScoreValueCell>{round?.gross ?? "—"}</ScoreValueCell>
+                    <ScoreValueCell>{round?.net ?? "—"}</ScoreValueCell>
+                    <ScoreValueCell>
+                      {round ? Number(round.pointsEarned ?? 0) + Number(round.matchPoints ?? 0) : "—"}
+                    </ScoreValueCell>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </>
+        )}
+      />
+    </div>
+  );
+}
 
 const PlayerRow = ({ player, holes }: any) => {
   const p = player.player;

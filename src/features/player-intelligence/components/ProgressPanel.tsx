@@ -10,7 +10,7 @@ export default function ProgressPanel({ intelligence }: { intelligence: PlayerIn
     <div className="space-y-4">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.7fr)]">
         <InsightSection
-          title="Form line"
+          title="Performance trend"
           description="Each round is normalized to an 18-hole equivalent so short and full rounds compare fairly"
           action={<SampleBadge>{intelligence.trend.length} rounds</SampleBadge>}
         >

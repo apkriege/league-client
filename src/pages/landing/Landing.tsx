@@ -29,7 +29,7 @@ const GOLF_IMAGES = {
 
 const stats = [
   { value: "Every week", label: "Schedule, flights, cards, scoring, and results" },
-  { value: "Every golfer", label: "Improvement, form, rivalries, and history" },
+  { value: "Every golfer", label: "Improvement, recent performance, rivalries, and history" },
   { value: "Every season", label: "Renew the league while preserving its legacy" },
 ];
 
@@ -260,7 +260,7 @@ function HeroProductCard() {
             <div className="grid grid-cols-3 gap-2">
               {[
                 ["Player", "Improve · Compete · Progress"],
-                ["League", "Race · Form · Rivalries"],
+                ["League", "Race · Performance · Rivalries"],
                 ["Event", "Results · Story · Battles"],
               ].map(([title, body]) => (
                 <div
@@ -367,7 +367,7 @@ function ScoreToInsightCards() {
     {
       label: "Explain",
       title: "The story behind it",
-      body: "Reveal round drama, player progress, league form, and rivalries.",
+      body: "Reveal round drama, player progress, recent performance, and rivalries.",
       icon: <BrainCircuit size={16} />,
     },
   ];
@@ -408,13 +408,13 @@ function IntelligenceSection() {
     },
     {
       title: "Player Intelligence",
-      body: "Give every golfer focused Improve, Compete, and Progress views covering scoring patterns, course splits, form, records, rankings, and head-to-head history.",
+      body: "Give every golfer focused Improve, Compete, and Progress views covering scoring patterns, course splits, recent performance, records, rankings, and head-to-head history.",
       result: "Show each golfer what to work on and how they stack up.",
       icon: <LineChart size={17} />,
     },
     {
       title: "Team DNA",
-      body: "Track team scoring, player contribution, recent form, scoring identity, matchup records, and season rivalries.",
+      body: "Track team scoring, player contribution, recent performance, scoring identity, matchup records, and season rivalries.",
       result: "See why a team is winning—not only where it ranks.",
       icon: <Users size={17} />,
     },
@@ -426,7 +426,7 @@ function IntelligenceSection() {
     },
     {
       title: "Matchup Preview",
-      body: "Compare handicap, recent net form, head-to-head record, and course history before assigned players meet.",
+      body: "Compare handicap, recent net averages, head-to-head record, and course history before assigned players meet.",
       result: "Make the next event interesting before the first tee shot.",
       icon: <Swords size={17} />,
     },

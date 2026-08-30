@@ -2,6 +2,7 @@ import Table, { type Column } from "@/components/Table";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import { formatTime } from "@/utils/format";
 import { formatEventDate } from "@/utils/eventDate";
+import { getScoringModeLabel } from "@/features/scoring/scoringModes";
 import type { TeamEventResult } from "@api/teams/types";
 import { useMemo } from "react";
 import { useNavigate } from "react-router";
@@ -27,7 +28,7 @@ const getStatus = (event: TeamEventResult) => {
 
   if (status === "canceled") return { label: "Canceled", className: "bg-red-50 text-red-600" };
   if (type === "off") return { label: "Off", className: "bg-slate-100 text-slate-500" };
-  if (event.isComplete || status === "completed") {
+  if (status === "completed") {
     return { label: "Complete", className: "bg-emerald-50 text-emerald-700" };
   }
   return { label: "Scheduled", className: "bg-blue-50 text-blue-700" };
@@ -70,7 +71,7 @@ export default function TeamEventResultsTable({ events, leagueId }: TeamEventRes
             <p className="text-xs font-semibold text-slate-700">{getOpponentLabel(event)}</p>
             {event.isAssigned && event.holes > 0 && (
               <p className="mt-0.5 text-[10px] capitalize text-slate-400">
-                {event.holes} holes · {event.scoringFormat}
+                {event.holes} holes · {getScoringModeLabel(event)}
               </p>
             )}
           </div>
@@ -141,7 +142,7 @@ export default function TeamEventResultsTable({ events, leagueId }: TeamEventRes
   );
 
   const completedCount = events.filter(
-    (event) => event.isComplete || event.status.toLowerCase() === "completed",
+    (event) => event.status.toLowerCase() === "completed",
   ).length;
 
   return (

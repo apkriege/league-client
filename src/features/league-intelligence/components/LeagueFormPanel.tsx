@@ -31,7 +31,7 @@ export default function LeagueFormPanel({
       <div className="grid gap-3 sm:grid-cols-3">
         {[
           { label: "Heating up", value: dashboard.formCounts.hot, detail: "recent net trend improving", icon: Flame, tone: "text-orange-600", surface: "from-orange-50" },
-          { label: "Holding form", value: dashboard.formCounts.steady, detail: "inside a 0.75-stroke band", icon: Activity, tone: "text-blue-600", surface: "from-blue-50" },
+          { label: "Staying steady", value: dashboard.formCounts.steady, detail: "inside a 0.75-stroke band", icon: Activity, tone: "text-blue-600", surface: "from-blue-50" },
           { label: "Looking to rebound", value: dashboard.formCounts.cooling, detail: "recent net trend slipping", icon: Snowflake, tone: "text-slate-500", surface: "from-slate-50" },
         ].map((metric) => {
           const Icon = metric.icon;
@@ -50,12 +50,12 @@ export default function LeagueFormPanel({
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
         <LeagueInsightSection
-          title="Form board"
+          title="Recent performance"
           description="Recent net pace versus the prior sample, normalized to 18 holes"
           action={hottest ? <LeagueInsightBadge>{hottest.name} leads</LeagueInsightBadge> : undefined}
         >
           {dashboard.formRows.length === 0 ? (
-            <LeagueInsightEmpty>Two completed scoring results per golfer unlock the form board.</LeagueInsightEmpty>
+            <LeagueInsightEmpty>Two completed scoring results per golfer unlock recent performance insights.</LeagueInsightEmpty>
           ) : (
             <div className="divide-y divide-slate-100">
               {dashboard.formRows.slice(0, 10).map((player, index) => {

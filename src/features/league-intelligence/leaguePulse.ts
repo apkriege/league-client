@@ -106,15 +106,12 @@ export function buildLeaguePulse({
   const playerStandings = metrics?.standings ?? [];
   const teamStandings = metrics?.teamStandings ?? [];
   const standings = metrics?.standingsMode === "team" ? teamStandings : playerStandings;
-  const completedEvents = events.filter(
-    (event) =>
-      event.isComplete ||
-      ["complete", "completed"].includes(String(event.status).toLowerCase()),
+  const completedEvents = events.filter((event) =>
+    ["complete", "completed"].includes(String(event.status).toLowerCase()),
   );
   const upcomingEvents = events
     .filter(
       (event) =>
-        !event.isComplete &&
         !["complete", "completed", "canceled", "cancelled"].includes(
           String(event.status).toLowerCase(),
         ) &&
@@ -172,7 +169,7 @@ export function buildLeaguePulse({
       kind: "hot",
       tone: "positive",
       label: "Who's hot",
-      title: isImproving ? `${hotPlayer.name} is heating up` : `${hotPlayer.name} owns recent form`,
+      title: isImproving ? `${hotPlayer.name} is heating up` : `${hotPlayer.name} leads recent performance`,
       detail: isImproving
         ? `Recent net scoring is ${formatNumber(hotPlayer.improvement)} strokes better than the prior sample.`
         : `A ${formatNumber(hotPlayer.recentAverage)} recent net average sets the pace.`,
@@ -264,7 +261,7 @@ export function buildLeaguePulse({
       tone: "neutral",
       label: "League pulse",
       title: "The season story is taking shape",
-      detail: "Complete more rounds to unlock form, rivalry, scoring, and momentum signals.",
+      detail: "Complete more rounds to unlock recent performance, rivalry, scoring, and momentum insights.",
       stat: "Building",
     });
   }

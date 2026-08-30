@@ -28,12 +28,13 @@ describe("league dashboard", () => {
   it("builds race pressure, recent form, category boards, rivalries, and earned achievements", () => {
     const dashboard = buildLeagueDashboard(metrics);
 
-    expect(dashboard.race.rows.map((row) => [row.name, row.gap])).toEqual([
+    expect(dashboard.playerRace.rows.map((row) => [row.name, row.gap])).toEqual([
       ["Avery Green", 0],
       ["Blake Fairway", 2],
       ["Casey Links", 4],
     ]);
-    expect(dashboard.race.contenders).toBe(2);
+    expect(dashboard.playerRace.contenders).toBe(2);
+    expect(dashboard.hasTeamRace).toBe(false);
     expect(dashboard.formRows[0]).toMatchObject({
       name: "Avery Green",
       change: -2.5,
@@ -96,5 +97,29 @@ describe("league dashboard", () => {
       playerName: "Avery Green & Blake Fairway",
       net: 72,
     });
+  });
+
+  it("builds independent player and team races only when teams have activity", () => {
+    const dashboard = buildLeagueDashboard({
+      standingsMode: "team",
+      standings: [
+        { playerId: 1, name: "Avery Green", points: 7, rounds: 2, avgGross: 40, avgNet: 35, handicapChange: 0 },
+        { playerId: 2, name: "Blake Fairway", points: 5, rounds: 2, avgGross: 42, avgNet: 37, handicapChange: 0 },
+      ],
+      teamStandings: [
+        { teamId: 10, name: "Fairway Finders", points: 12, eventsPlayed: 2 },
+        { teamId: 20, name: "Pin Seekers", points: 8, eventsPlayed: 2 },
+      ],
+    });
+
+    expect(dashboard.playerRace.rows.map((row) => row.name)).toEqual([
+      "Avery Green",
+      "Blake Fairway",
+    ]);
+    expect(dashboard.teamRace.rows.map((row) => row.name)).toEqual([
+      "Fairway Finders",
+      "Pin Seekers",
+    ]);
+    expect(dashboard.hasTeamRace).toBe(true);
   });
 });

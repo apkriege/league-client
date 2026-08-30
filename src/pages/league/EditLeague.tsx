@@ -16,6 +16,7 @@ import {
   normalizeLeagueHoleFormat,
   type LeagueHoleFormat,
 } from "@/features/leagues/leagueHoleFormat";
+import { getLeagueCapacity } from "@/lib/billing";
 
 type LeagueFormData = {
   id?: number;
@@ -56,7 +57,7 @@ const mapLeagueToForm = (league: any): LeagueFormData => {
     adminId: Number(league.adminId),
     name: league.name || "",
     description: league.description || "",
-    numPlayers: Number(league.numPlayers ?? 0),
+    numPlayers: getLeagueCapacity(league),
     type: String(league.type || "season").toLowerCase(),
     holeFormat: normalizeLeagueHoleFormat(league.holeFormat),
     format: league.format ? String(league.format).toLowerCase() : null,

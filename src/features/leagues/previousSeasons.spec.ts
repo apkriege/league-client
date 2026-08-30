@@ -11,6 +11,12 @@ const league = (overrides: Partial<AdminLeagueListItem> = {}): AdminLeagueListIt
     roundCount: 0,
     startDate: "2025-01-01",
     endDate: "2026-01-01",
+    entitlement: {
+      requiredGolfers: 8,
+      paidGolfers: 8,
+      refundedGolfers: 0,
+      status: "consumed",
+    },
     renewedLeague: null,
     _count: { players: 8, events: 0 },
     ...overrides,

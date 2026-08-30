@@ -24,6 +24,12 @@ import {
   getPlayerCourseHandicap,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
+import {
+  DEFAULT_STABLEFORD_SCALE,
+  deriveScoringMode,
+  type MaximumScoreRule,
+  type StablefordPointScale,
+} from "@/features/scoring/scoringModes";
 
 export const CreateFlightScoresIndividualStroke = ({
   flight,
@@ -39,6 +45,7 @@ export const CreateFlightScoresIndividualStroke = ({
   const { show } = useToast();
 
   const holes = getEventScoringHoles(event);
+  const scoringMode = deriveScoringMode(event);
 
   const [players, setPlayers] = useState<any[]>(flight.players ?? []);
 
@@ -111,12 +118,27 @@ export const CreateFlightScoresIndividualStroke = ({
   };
 
   const getPlayerNetScore = (playerId: number) => {
+    if (scoringMode === "maximum-score") {
+      const scores = watchedPlayers?.[playerId]?.scores ?? [];
+      const rule = event?.scoringConfig?.maximumScore as MaximumScoreRule | undefined;
+      return holes.reduce((total: number, hole: any, index: number) => {
+        const gross = Number(scores[index]) || 0;
+        const pops = popsForHole(playerId, hole.num);
+        if (!gross || !rule) return total + Math.max(0, gross - pops);
+        const cappedGross =
+          rule.type === "fixed"
+            ? Math.min(gross, rule.strokes)
+            : rule.type === "relative-to-par"
+              ? Math.min(gross, Number(hole.par) + rule.strokesOverPar)
+              : Math.min(gross, Number(hole.par) + 2 + Math.max(0, pops));
+        return total + Math.max(0, cappedGross - pops);
+      }, 0);
+    }
     const playerEntry = players.find((p: any) => Number(p.playerId) === playerId);
     const hcp = Math.round(getEffectiveHandicap(playerEntry));
     return getPlayerTotalScore(playerId) - hcp;
   };
 
-  // Stableford points: net diff vs par → eagle+=4, birdie=3, par=2, bogey=1, double+=0
   const getPlayerStablefordPoints = (playerId: number) => {
     const scores = watchedPlayers?.[playerId]?.scores;
     if (!Array.isArray(scores)) return 0;
@@ -125,11 +147,14 @@ export const CreateFlightScoresIndividualStroke = ({
       if (!gross) return total;
       const net = gross - popsForHole(playerId, hole.num);
       const diff = net - (hole.par ?? 4);
-      if (diff <= -2) return total + 4;
-      if (diff === -1) return total + 3;
-      if (diff === 0) return total + 2;
-      if (diff === 1) return total + 1;
-      return total;
+      const scale = (event?.scoringConfig?.stablefordPointScale ??
+        DEFAULT_STABLEFORD_SCALE) as StablefordPointScale;
+      if (diff <= -3) return total + scale.albatrossOrBetter;
+      if (diff === -2) return total + scale.eagle;
+      if (diff === -1) return total + scale.birdie;
+      if (diff === 0) return total + scale.par;
+      if (diff === 1) return total + scale.bogey;
+      return total + scale.doubleBogeyOrWorse;
     }, 0);
   };
 

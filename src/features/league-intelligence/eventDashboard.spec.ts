@@ -6,7 +6,7 @@ const event: EventInsightInput = {
   name: "Rivalry Night",
   holes: 6,
   format: "individual",
-  scoringFormat: "match",
+  scoringMode: "match-play",
   pointsEnabled: true,
   flights: [{
     players: [

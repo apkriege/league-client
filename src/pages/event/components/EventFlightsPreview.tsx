@@ -1,7 +1,9 @@
 import { compareTimes, formatTime } from "@/utils/format";
 import PlayerNameLink from "./PlayerNameLink";
+import { getScoringFamilyForEvent } from "@/features/scoring/scoringModes";
 
 export default function EventFlightsPreview({ event }: { event: any }) {
+  const scoringFamily = getScoringFamilyForEvent(event);
   const flights = [...(event.flights || [])].sort((a: any, b: any) =>
     compareTimes(a?.startsAt, b?.startsAt),
   );
@@ -20,7 +22,7 @@ export default function EventFlightsPreview({ event }: { event: any }) {
           <div className="p-3">
             {event.format === "team" ? (
               <TeamFlightPreview flight={flight} />
-            ) : event.scoringFormat === "match" ? (
+            ) : scoringFamily === "match" ? (
               <IndividualMatchFlightPreview flight={flight} />
             ) : (
               <StrokeFlightPreview flight={flight} />

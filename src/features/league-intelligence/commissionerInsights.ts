@@ -4,6 +4,8 @@ import type {
   LeagueAdminInput,
   LeagueIntelligenceMetrics,
 } from "./types";
+import { getScoringFamilyForEvent } from "@/features/scoring/scoringModes";
+import { getLeagueCapacity } from "@/lib/billing";
 
 const dayMs = 24 * 60 * 60 * 1000;
 
@@ -21,8 +23,8 @@ export function buildCommissionerInsights({
   const regularPlayers = (league.players ?? []).filter(
     (player) => String(player.type || "player").toLowerCase() === "player",
   );
-  const paidGolfers = Number(league.billingPaidGolfers ?? league.numPlayers ?? 0);
-  const unpaidGolfers = league.billingExempt
+  const paidGolfers = getLeagueCapacity(league);
+  const unpaidGolfers = league.entitlement?.status === "bypassed"
     ? 0
     : Math.max(0, regularPlayers.length - paidGolfers);
   const sortedEvents = [...events]
@@ -37,7 +39,7 @@ export function buildCommissionerInsights({
   });
   const missingScores = events.filter((event) => {
     const status = String(event.status || "").toLowerCase();
-    if (!["active", "complete", "completed"].includes(status) && !event.isComplete) return false;
+    if (!["active", "complete", "completed"].includes(status)) return false;
     const assignedPlayers = new Set(
       (event.flights ?? []).flatMap((flight) =>
         [
@@ -56,13 +58,13 @@ export function buildCommissionerInsights({
       ? Math.max(...playerCounts) - Math.min(...playerCounts)
       : 0;
     const missingPlayerOpponent =
-      String(event.scoringFormat || "").toLowerCase() === "match" &&
+      getScoringFamilyForEvent(event) === "match" &&
       (event.flights ?? []).some((flight) =>
         (flight.teams?.length ?? 0) === 0 &&
         (flight.players ?? []).some((player) => !player.opponentId),
       );
     const missingTeamOpponent =
-      String(event.scoringFormat || "").toLowerCase() === "match" &&
+      getScoringFamilyForEvent(event) === "match" &&
       (event.flights ?? []).some((flight) =>
         (flight.teams ?? []).some((team) => !team.opponentId),
       );

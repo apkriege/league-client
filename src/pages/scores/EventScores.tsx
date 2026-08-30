@@ -23,7 +23,9 @@ import { CreateFlightScores } from "./CreateFlightScores";
 import { CreateFlightScoresIndividualMatch } from "./CreateFlightScoresIndividualMatch";
 import { CreateFlightScoresIndividualStroke } from "./CreateFlightScoresIndividualStroke";
 import { CreateFlightScoresTeamStroke } from "./CreateFlightScoresTeamStroke";
+import { CreateFlightScoresSharedTeam } from "./CreateFlightScoresSharedTeam";
 import ViewFlightScores from "./ViewFlightScores";
+import { deriveScoringMode, isSharedTeamScoringMode } from "@/features/scoring/scoringModes";
 
 export default function EventScores() {
   const { leagueId, eventId } = useParams();
@@ -108,12 +110,20 @@ export default function EventScores() {
   const totalFlights = event.flights.length;
   const completedFlights = event.flights.filter((f: any) => f.status === "completed").length;
   const allPlayers = event.flights.flatMap((f: any) => f.players ?? []);
+  const scoringMode = deriveScoringMode(event);
+  const isSharedTeamMode = isSharedTeamScoringMode(scoringMode);
   const eventPlayerIds = allPlayers.map((entry: any) => Number(entry?.playerId)).filter(Boolean);
   const totalPlayers = allPlayers.length;
   const playersWithScores = allPlayers.filter((p: any) => {
     const scores = p?.player?.rounds?.[0]?.scores;
     return Array.isArray(scores) && scores.some((s: any) => Number(s?.gross) > 0);
   }).length;
+  const totalScoringEntries = isSharedTeamMode
+    ? event.flights.flatMap((flight: any) => flight.teams ?? []).length
+    : totalPlayers;
+  const completedScoringEntries = isSharedTeamMode
+    ? (event.teamRounds ?? []).filter((round: any) => round.status === "completed").length
+    : playersWithScores;
 
   // Filter
   const sortedFlights = [...event.flights].sort((left: any, right: any) =>
@@ -124,13 +134,16 @@ export default function EventScores() {
     : sortedFlights;
 
   const getFlightScoresComponent = () => {
-    if (event.format === "individual" && event.scoringFormat === "stroke") {
+    if (isSharedTeamMode) {
+      return CreateFlightScoresSharedTeam;
+    }
+    if (event.format === "individual" && scoringMode !== "match-play") {
       return CreateFlightScoresIndividualStroke;
     }
-    if (event.format === "individual" && event.scoringFormat === "match") {
+    if (event.format === "individual" && scoringMode === "match-play") {
       return CreateFlightScoresIndividualMatch;
     }
-    if (event.format === "team" && event.scoringFormat === "stroke") {
+    if (event.format === "team" && scoringMode !== "match-play") {
       return CreateFlightScoresTeamStroke;
     }
     return CreateFlightScores;
@@ -158,8 +171,8 @@ export default function EventScores() {
             bg: "bg-slate-900/5 border-slate-900/10",
           },
           {
-            label: "Scores Entered",
-            value: `${playersWithScores} / ${totalPlayers}`,
+            label: isSharedTeamMode ? "Teams Entered" : "Scores Entered",
+            value: `${completedScoringEntries} / ${totalScoringEntries}`,
             icon: <Users size={14} className="text-blue-400" />,
             bg: "bg-blue-50 border-blue-100",
           },

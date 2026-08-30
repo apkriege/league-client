@@ -1,8 +1,9 @@
+import type { SeasonEntitlement } from "@/lib/billing";
+
 export type League = {
   id?: number;
   name: string;
   description: string;
-  numPlayers: number;
   type: "season" | "tournament" | string;
   holeFormat: "9" | "18" | "mixed";
   format?: "individual" | "team" | null | string;
@@ -22,7 +23,7 @@ export type League = {
   renewedLeague?: LeagueSeasonLink | null;
   billingDraftKey?: string;
   seasonStatus?: "active" | "archived" | "reopened" | string;
-  billingStatus?: "active" | "exempt" | "payment_due" | string;
+  entitlement?: SeasonEntitlement | null;
   archivedAt?: string | Date | null;
 };
 
@@ -35,7 +36,7 @@ export type LeagueSeasonLink = {
 
 export type LeagueRenewalTemplate = {
   sourceLeague: LeagueSeasonLink;
-  league: League & { renewedFromLeagueId: number };
+  league: League & { renewedFromLeagueId: number; numPlayers: number };
 };
 
 export type LeagueScoringPeriod = {

@@ -125,9 +125,8 @@ export type IntelligenceEvent = {
   startsAt: string;
   timeZone?: string;
   status?: string;
-  isComplete?: boolean;
   format?: string;
-  scoringFormat?: string;
+  scoringMode?: string;
   holes?: number;
   courseId?: number;
   course?: { id?: number; name?: string } | null;
@@ -188,7 +187,7 @@ export type EventInsightInput = {
   name: string;
   holes?: number;
   format?: "individual" | "team";
-  scoringFormat?: "stroke" | "match";
+  scoringMode?: string;
   pointsEnabled?: boolean;
   flights?: Array<{
     players?: Array<{
@@ -245,10 +244,12 @@ export type EventRoundStory = {
 
 export type LeagueAdminInput = {
   endDate?: string;
-  billingStatus?: string;
-  billingExempt?: boolean;
-  billingPaidGolfers?: number;
-  numPlayers?: number;
+  entitlement?: {
+    requiredGolfers: number;
+    paidGolfers: number;
+    refundedGolfers: number;
+    status: string;
+  } | null;
   seasonStatus?: string;
   renewedLeague?: { id: number } | null;
   players?: LeagueRosterPlayer[];

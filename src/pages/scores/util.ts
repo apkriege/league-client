@@ -113,32 +113,30 @@ export const createTeamScoringHelpers = ({
     return teamPoints;
   };
 
-  const getTeamNetTotal = (team: 1 | 2) => {
-    const players = team === 1 ? team1 : team2;
-    let netTotal = 0;
-
-    players.forEach((player: any) => {
-      holes.forEach((hole: any, holeIdx: number) => {
-        const score = getScoreAtHole(player, holeIdx);
-        if (!score) return;
-        netTotal += score - popsForHole(player.playerId, hole.num);
-      });
-    });
-
-    return netTotal;
-  };
-
   const getTeamWinBonus = (team: 1 | 2) => {
     const bonus = Number(event?.ptsPerTeamWin) || 0;
     if (bonus <= 0) return 0;
 
-    const team1Net = getTeamNetTotal(1);
-    const team2Net = getTeamNetTotal(2);
+    let team1HolesWon = 0;
+    let team2HolesWon = 0;
+    let playedHoles = 0;
+    for (let i = 0; i < matchupCount; i++) {
+      holes.forEach((hole: any, holeIdx: number) => {
+        const p1Score = getScoreAtHole(team1[i], holeIdx);
+        const p2Score = getScoreAtHole(team2[i], holeIdx);
+        if (!p1Score || !p2Score) return;
+        const p1Net = p1Score - popsForHole(team1[i].playerId, hole.num);
+        const p2Net = p2Score - popsForHole(team2[i].playerId, hole.num);
+        playedHoles++;
+        if (p1Net < p2Net) team1HolesWon++;
+        else if (p2Net < p1Net) team2HolesWon++;
+      });
+    }
 
-    if (team1Net === 0 && team2Net === 0) return 0;
-    if (team1Net === team2Net) return bonus / 2;
+    if (playedHoles === 0) return 0;
+    if (team1HolesWon === team2HolesWon) return bonus / 2;
 
-    const winner = team1Net < team2Net ? 1 : 2;
+    const winner = team1HolesWon > team2HolesWon ? 1 : 2;
     return team === winner ? bonus : 0;
   };
 
@@ -152,8 +150,8 @@ export const createTeamScoringHelpers = ({
       const p1 = team1[i];
       const p2 = team2[i];
 
-      let p1NetTotal = 0;
-      let p2NetTotal = 0;
+      let p1HolesWon = 0;
+      let p2HolesWon = 0;
       let playedHoles = 0;
 
       holes.forEach((hole: any, holeIdx: number) => {
@@ -162,18 +160,20 @@ export const createTeamScoringHelpers = ({
 
         if (!p1Score || !p2Score) return;
 
-        p1NetTotal += p1Score - popsForHole(p1.playerId, hole.num);
-        p2NetTotal += p2Score - popsForHole(p2.playerId, hole.num);
+        const p1Net = p1Score - popsForHole(p1.playerId, hole.num);
+        const p2Net = p2Score - popsForHole(p2.playerId, hole.num);
+        if (p1Net < p2Net) p1HolesWon++;
+        else if (p2Net < p1Net) p2HolesWon++;
         playedHoles++;
       });
 
       if (playedHoles === 0) continue;
 
-      if (p1NetTotal === p2NetTotal) {
+      if (p1HolesWon === p2HolesWon) {
         total += pointsPerMatch / 2;
       } else if (
-        (team === 1 && p1NetTotal < p2NetTotal) ||
-        (team === 2 && p2NetTotal < p1NetTotal)
+        (team === 1 && p1HolesWon > p2HolesWon) ||
+        (team === 2 && p2HolesWon > p1HolesWon)
       ) {
         total += pointsPerMatch;
       }

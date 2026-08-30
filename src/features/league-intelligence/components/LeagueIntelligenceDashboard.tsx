@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Activity, ChartNoAxesCombined, ListOrdered, Swords } from "lucide-react";
+import { Activity, ChartNoAxesCombined, ListOrdered, Swords, Users } from "lucide-react";
 import { buildLeagueDashboard } from "../leagueDashboard";
 import type {
   IntelligenceEvent,
@@ -12,9 +12,9 @@ import LeaguePulse from "./LeaguePulse";
 import LeagueRacePanel from "./LeagueRacePanel";
 import LeagueRivalriesPanel from "./LeagueRivalriesPanel";
 
-type LeagueInsightView = "race" | "form" | "leaders" | "rivalries";
+type LeagueInsightView = "player-race" | "team-race" | "form" | "leaders" | "rivalries";
 
-const views: Array<{
+const baseViews: Array<{
   id: LeagueInsightView;
   label: string;
   shortLabel: string;
@@ -22,16 +22,16 @@ const views: Array<{
   icon: typeof Activity;
 }> = [
   {
-    id: "race",
-    label: "The live race",
-    shortLabel: "Race",
-    description: "Podium, gaps and contenders",
+    id: "player-race",
+    label: "Player live race",
+    shortLabel: "Players",
+    description: "Player podium, gaps and contenders",
     icon: Activity,
   },
   {
     id: "form",
-    label: "Who's playing well",
-    shortLabel: "Form",
+    label: "Recent performance",
+    shortLabel: "Recent",
     description: "Recent scoring and momentum",
     icon: ChartNoAxesCombined,
   },
@@ -64,8 +64,22 @@ export default function LeagueIntelligenceDashboard({
   periodLabel: string;
   leagueId: number;
 }) {
-  const [view, setView] = useState<LeagueInsightView>("race");
+  const [view, setView] = useState<LeagueInsightView>("player-race");
   const dashboard = useMemo(() => buildLeagueDashboard(metrics), [metrics]);
+  const views = dashboard.hasTeamRace
+    ? [
+        baseViews[0],
+        {
+          id: "team-race" as const,
+          label: "Team live race",
+          shortLabel: "Teams",
+          description: "Team podium, gaps and contenders",
+          icon: Users,
+        },
+        ...baseViews.slice(1),
+      ]
+    : baseViews;
+  const activeView = view === "team-race" && !dashboard.hasTeamRace ? "player-race" : view;
 
   return (
     <section aria-label="League intelligence" className="space-y-5">
@@ -78,10 +92,14 @@ export default function LeagueIntelligenceDashboard({
       />
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-1.5 shadow-sm">
-        <div className="grid grid-cols-4 gap-1" role="tablist" aria-label="League intelligence views">
+        <div
+          className={`grid gap-1 ${dashboard.hasTeamRace ? "grid-cols-5" : "grid-cols-4"}`}
+          role="tablist"
+          aria-label="League intelligence views"
+        >
           {views.map((item) => {
             const Icon = item.icon;
-            const active = view === item.id;
+            const active = activeView === item.id;
             return (
               <button
                 key={item.id}
@@ -110,17 +128,22 @@ export default function LeagueIntelligenceDashboard({
         </div>
       </div>
 
-      <div id={`league-intelligence-${view}`} role="tabpanel">
-        {view === "race" ? <LeagueRacePanel dashboard={dashboard} leagueId={leagueId} /> : null}
-        {view === "form" ? <LeagueFormPanel dashboard={dashboard} leagueId={leagueId} /> : null}
-        {view === "leaders" ? (
+      <div id={`league-intelligence-${activeView}`} role="tabpanel">
+        {activeView === "player-race" ? (
+          <LeagueRacePanel race={dashboard.playerRace} leagueId={leagueId} entity="player" />
+        ) : null}
+        {activeView === "team-race" ? (
+          <LeagueRacePanel race={dashboard.teamRace} leagueId={leagueId} entity="team" />
+        ) : null}
+        {activeView === "form" ? <LeagueFormPanel dashboard={dashboard} leagueId={leagueId} /> : null}
+        {activeView === "leaders" ? (
           <LeagueLeadersPanel dashboard={dashboard} metrics={metrics} leagueId={leagueId} />
         ) : null}
-        {view === "rivalries" ? <LeagueRivalriesPanel dashboard={dashboard} leagueId={leagueId} /> : null}
+        {activeView === "rivalries" ? <LeagueRivalriesPanel dashboard={dashboard} leagueId={leagueId} /> : null}
       </div>
 
       <p className="px-1 text-[10px] leading-4 text-slate-400">
-        Insights use completed results from {periodLabel.toLowerCase() === "overall" ? "the full league" : periodLabel}. Recent form compares up to three latest net results with the prior sample. Full standings and scoring totals remain below.
+        Insights use completed results from {periodLabel.toLowerCase() === "overall" ? "the full league" : periodLabel}. Recent performance compares up to three latest net results with the prior sample. Full standings and scoring totals remain below.
       </p>
     </section>
   );

@@ -127,9 +127,17 @@ function buildForm(metrics?: LeagueIntelligenceMetrics) {
   return { rows, recentWinners };
 }
 
-function buildRace(metrics?: LeagueIntelligenceMetrics) {
-  const isTeam = metrics?.standingsMode === "team";
-  const standings = isTeam ? metrics?.teamStandings ?? [] : metrics?.standings ?? [];
+function buildRace(
+  standings: Array<{
+    name: string;
+    points: number;
+    playerId?: number;
+    teamId?: number;
+    rounds?: number;
+    eventsPlayed?: number;
+  }>,
+  entity: "player" | "team",
+) {
   const sorted = [...standings].sort((left, right) => right.points - left.points);
   const leaderPoints = Number(sorted[0]?.points || 0);
   let previousPoints: number | null = null;
@@ -143,12 +151,14 @@ function buildRace(metrics?: LeagueIntelligenceMetrics) {
     previousRank = rank;
     return {
       rank,
-      id: isTeam && "teamId" in standing ? standing.teamId : "playerId" in standing ? standing.playerId : 0,
+      id: entity === "team" ? Number(standing.teamId || 0) : Number(standing.playerId || 0),
       name: standing.name,
       points,
       gap: roundOne(Math.max(0, leaderPoints - points)),
-      appearances: isTeam && "eventsPlayed" in standing ? standing.eventsPlayed : "rounds" in standing ? standing.rounds : 0,
-      entity: isTeam ? "team" : "player",
+      appearances: entity === "team"
+        ? Number(standing.eventsPlayed || 0)
+        : Number(standing.rounds || 0),
+      entity,
     };
   });
   const contenderThreshold = Math.max(2, roundOne(leaderPoints * 0.15));
@@ -341,8 +351,12 @@ function buildAchievements(metrics?: LeagueIntelligenceMetrics): LeagueAchieveme
 
 export function buildLeagueDashboard(metrics?: LeagueIntelligenceMetrics) {
   const form = buildForm(metrics);
+  const playerRace = buildRace(metrics?.standings ?? [], "player");
+  const teamRace = buildRace(metrics?.teamStandings ?? [], "team");
   return {
-    race: buildRace(metrics),
+    playerRace,
+    teamRace,
+    hasTeamRace: teamRace.rows.some((row) => row.appearances > 0 || row.points !== 0),
     formRows: form.rows,
     recentWinners: form.recentWinners,
     categoryBoards: buildCategoryBoards(metrics),

@@ -35,7 +35,7 @@ export function generateRoundRobin(ids: number[]): number[][] {
 export function buildFlights(
   pairs: number[],
   format: string,
-  scoringFormat: string
+  scoringFamily: string
 ): ScheduleFlight[] {
   const flights: ScheduleFlight[] = [];
 
@@ -46,7 +46,7 @@ export function buildFlights(
     return flights;
   }
 
-  if (scoringFormat === "match") {
+  if (scoringFamily === "match") {
     for (let index = 0; index < pairs.length; index += 2) {
       flights.push([[pairs[index], pairs[index + 1]]]);
     }

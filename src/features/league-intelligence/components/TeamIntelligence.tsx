@@ -97,8 +97,8 @@ export default function TeamIntelligence({ team }: { team: TeamProfile }) {
             tone="text-emerald-300"
           />
           <HeaderMetric
-            label="In form"
-            value={formLeader?.name ?? "Building form"}
+            label="Playing well"
+            value={formLeader?.name ?? "Building performance history"}
             detail={formLeader ? `${formLeader.recentAverage} avg points` : "No completed events"}
           />
         </div>

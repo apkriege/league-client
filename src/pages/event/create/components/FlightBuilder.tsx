@@ -9,6 +9,7 @@ import { useParams } from "react-router";
 import { useLeague } from "@api/league/queries";
 import Card from "@/components/layout/Card";
 import { Shuffle } from "lucide-react";
+import { deriveScoringMode, getScoringFamily } from "@/features/scoring/scoringModes";
 
 interface FlightBuilderProps {
   flights: any[];
@@ -36,7 +37,7 @@ export default function FlightBuilder({ flights, setFlights, event }: FlightBuil
   const { show } = useToast();
 
   const { watch } = useFormContext();
-  const scoringFormat = watch("scoringFormat");
+  const scoringFamily = getScoringFamily(deriveScoringMode({ scoringMode: watch("scoringMode") }));
   const { data: league } = useLeague(Number(leagueId)!);
 
   // 4 slots for individual stroke flights
@@ -150,7 +151,7 @@ export default function FlightBuilder({ flights, setFlights, event }: FlightBuil
   return (
     <div>
       <Card>
-        {event.format === "individual" && scoringFormat === "stroke" && (
+        {event.format === "individual" && scoringFamily === "stroke" && (
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-4 gap-3">
               {([0, 1, 2, 3] as const).map((slot) => (
@@ -195,7 +196,7 @@ export default function FlightBuilder({ flights, setFlights, event }: FlightBuil
             </div>
           </div>
         )}
-        {event.format === "individual" && scoringFormat === "match" && (
+        {event.format === "individual" && scoringFamily === "match" && (
           <div className="flex flex-col gap-3">
             {[0, 1].map((matchup) => (
               <div key={matchup} className="flex items-end gap-3">
@@ -248,13 +249,13 @@ export default function FlightBuilder({ flights, setFlights, event }: FlightBuil
             </div>
           </div>
         )}
-        {event.format !== "individual" && scoringFormat !== "match" && event.format !== "team" && (
+        {event.format !== "individual" && scoringFamily !== "match" && event.format !== "team" && (
           <p className="text-xs text-slate-900/50">
             Set format to <span className="font-semibold">Individual</span> in Event Settings to
             build player flights.
           </p>
         )}
-        {event.format === "team" && (scoringFormat === "match" || scoringFormat === "stroke") && (
+        {event.format === "team" && (scoringFamily === "match" || scoringFamily === "stroke") && (
           <div className="grid grid-cols-10 gap-4 items-end">
             <div className="col-span-4">
               <Select

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Fragment, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
+import { getScoringModeLabel } from "@/features/scoring/scoringModes";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   scheduled: {
@@ -202,7 +203,7 @@ function EventCard({ event, onClick }: { event: any; onClick: () => void }) {
             />
             <MetaChip
               icon={<Medal size={10} />}
-              label={`${event.scoringFormat.charAt(0).toUpperCase() + event.scoringFormat.slice(1)} play`}
+              label={getScoringModeLabel(event)}
             />
             {event.type && event.type !== "regular" && (
               <MetaChip

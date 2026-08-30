@@ -104,7 +104,12 @@ export type AdminLeagueListItem = {
   startDate: string;
   endDate: string;
   seasonStatus?: "active" | "archived" | "reopened" | string;
-  billingStatus?: "active" | "exempt" | "payment_due" | string;
+  entitlement: {
+    requiredGolfers: number;
+    paidGolfers: number;
+    refundedGolfers: number;
+    status: string;
+  };
   renewedFromLeague?: {
     id: number;
     name: string;

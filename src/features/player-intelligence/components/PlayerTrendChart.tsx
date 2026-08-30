@@ -37,7 +37,7 @@ export default function PlayerTrendChart({
         tension: 0.28,
       },
       {
-        label: "3-round form",
+        label: "3-round performance",
         data: trend.map((row) => row.rollingAverage),
         borderColor: "#10b981",
         backgroundColor: "rgba(16, 185, 129, 0.1)",

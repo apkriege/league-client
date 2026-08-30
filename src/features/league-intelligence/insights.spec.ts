@@ -18,10 +18,9 @@ const teamEvent = (
   startsAt: `2026-06-${String(id).padStart(2, "0")}T22:00:00.000Z`,
   timeZone: "America/Indiana/Indianapolis",
   format: "head-to-head",
-  scoringFormat: "match",
+  scoringMode: "match-play",
   type: "regular",
   status: "completed",
-  isComplete: true,
   holes: 9,
   courseName: "River Bend",
   flightId: id,
@@ -195,7 +194,7 @@ describe("league intelligence", () => {
     const story = buildEventStory({
       name: "Rivalry Night",
       format: "individual",
-      scoringFormat: "match",
+      scoringMode: "match-play",
       pointsEnabled: true,
       flights: [{
         players: [
@@ -369,13 +368,17 @@ describe("league intelligence", () => {
     expect(preview?.playerMatchups[0].history).toMatchObject({ wins: 3, losses: 1, ties: 1 });
   });
 
-  it("prioritizes commissioner issues without billing exempt leagues", () => {
+  it("prioritizes commissioner issues while honoring bypassed season entitlements", () => {
     const input = {
       now: new Date("2026-06-01T12:00:00.000Z"),
       league: {
         endDate: "2026-06-30T00:00:00.000Z",
-        billingPaidGolfers: 1,
-        numPlayers: 3,
+        entitlement: {
+          requiredGolfers: 1,
+          paidGolfers: 1,
+          refundedGolfers: 0,
+          status: "consumed",
+        },
         players: [
           { id: 1, firstName: "A", lastName: "One", type: "player" },
           { id: 2, firstName: "B", lastName: "Two", type: "player" },
@@ -387,7 +390,7 @@ describe("league intelligence", () => {
         name: "Score Check",
         startsAt: "2026-05-20T22:00:00.000Z",
         status: "active",
-        scoringFormat: "match",
+        scoringMode: "match-play",
         _count: { rounds: 1 },
         flights: [{
           id: 1,
@@ -412,7 +415,10 @@ describe("league intelligence", () => {
     );
     expect(buildCommissionerInsights({
       ...input,
-      league: { ...input.league, billingExempt: true },
+      league: {
+        ...input.league,
+        entitlement: { ...input.league.entitlement, status: "bypassed" },
+      },
     }).items.map((item) => item.key)).not.toContain("billing");
   });
 });

@@ -24,7 +24,7 @@ export default function MatchupPreview({
     <IntelligenceShell
       kicker="Schedule intelligence"
       title="Matchup Preview"
-      description={`What to watch in ${preview.event.name}, based on current form, handicap, course history, and recorded meetings.`}
+      description={`What to watch in ${preview.event.name}, based on recent performance, handicap, course history, and recorded meetings.`}
       aside={(
         <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white">
           <CalendarClock size={14} className="text-emerald-300" />
@@ -81,8 +81,8 @@ export default function MatchupPreview({
               </div>
               <p className="mt-3 text-[10px] leading-4 text-slate-500">
                 {matchup.recentNet != null && matchup.opponentRecentNet != null
-                  ? `Recent net form: ${matchup.recentNet} vs ${matchup.opponentRecentNet}.`
-                  : "Recent form will strengthen as both golfers complete more rounds."}
+                  ? `Recent net averages: ${matchup.recentNet} vs ${matchup.opponentRecentNet}.`
+                  : "Recent performance insights will strengthen as both golfers complete more rounds."}
                 {matchup.courseEdge != null
                   ? matchup.courseEdge === 0
                     ? " Their course scoring history is even."

@@ -34,7 +34,7 @@ const views: Array<{
 }> = [
   { id: "improve", label: "Where to improve", shortLabel: "Improve", description: "Par, hole, course and tee insights", icon: Crosshair },
   { id: "compete", label: "How you compete", shortLabel: "Compete", description: "Rankings, opponents and rivalries", icon: Swords },
-  { id: "progress", label: "How you're progressing", shortLabel: "Progress", description: "Form, records and season history", icon: ChartNoAxesCombined },
+  { id: "progress", label: "How you're progressing", shortLabel: "Progress", description: "Recent performance, records and season history", icon: ChartNoAxesCombined },
 ];
 
 const formSummary = (delta: number | null) => {
@@ -112,7 +112,7 @@ export default function PlayerIntelligenceDashboard({
               <p className="text-[9px] text-slate-400">per 18 holes</p>
             </div>
             <div className="bg-slate-950/70 px-3 py-3.5 sm:px-4">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Recent form</p>
+              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Recent performance</p>
               <p className={`mt-1 truncate text-sm font-black ${form.tone}`}>{form.label}</p>
               <p className="mt-1 text-[9px] text-slate-400">{form.detail}</p>
             </div>

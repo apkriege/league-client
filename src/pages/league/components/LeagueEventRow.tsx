@@ -13,6 +13,7 @@ import {
   Timer,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { getScoringModeLabel } from "@/features/scoring/scoringModes";
 
 const statuses: Record<string, { label: string; icon: ReactNode; className: string }> = {
   upcoming: {
@@ -53,8 +54,7 @@ export default function LeagueEventRow({
   const status = statuses[event.status] ?? statuses.upcoming;
   const date = getEventLocalDate(event.startsAt, event.timeZone);
   const normalizedStatus = String(event?.status || "").toLowerCase();
-  const canEditEvent =
-    !event?.isComplete && normalizedStatus !== "completed" && normalizedStatus !== "canceled";
+  const canEditEvent = normalizedStatus !== "completed" && normalizedStatus !== "canceled";
 
   return (
     <SurfaceCard
@@ -97,10 +97,10 @@ export default function LeagueEventRow({
               <MetaChip icon={<Clock size={10} />} label={formatTime(event.startsAt, event.timeZone)} />
             )}
             <MetaChip icon={<Flag size={10} />} label={`${event.holes}h`} />
-            {event.scoringFormat && (
+            {event.scoringMode && (
               <MetaChip
                 icon={<Award size={10} />}
-                label={event.scoringFormat.charAt(0).toUpperCase() + event.scoringFormat.slice(1)}
+                label={getScoringModeLabel(event)}
               />
             )}
           </div>

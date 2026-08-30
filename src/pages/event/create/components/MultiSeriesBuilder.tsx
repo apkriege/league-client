@@ -10,11 +10,8 @@ import {
   RefreshCw,
   ShieldHalf,
   Shuffle,
-  CircleCheck,
-  Tally5,
   User,
   Users,
-  Zap,
 } from "lucide-react";
 
 import Card from "@/components/layout/Card";
@@ -22,7 +19,6 @@ import {
   AutocompleteSelect,
   DateInput,
   Input,
-  SelectableInfoCard,
   ToggleCards,
 } from "@/components/form";
 import { Label } from "@/components/form/Label";
@@ -36,7 +32,6 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { getEventDateInputValue } from "@/utils/eventDate";
 import { getScoringPeriodBoundariesBeforeEvent } from "@/features/leagues/scoringPeriodBoundaries";
 import type { LeagueScoringPeriod } from "@/types/league";
-import { DEFAULT_STROKE_POINTS } from "../constants";
 import {
   buildDates,
   buildFlights,
@@ -54,6 +49,12 @@ import {
   buildHalfScoringPeriods,
   suggestFirstHalfEndDate,
 } from "../scoringPeriods";
+import ScoringModeFields from "@/features/scoring/components/ScoringModeFields";
+import {
+  deriveScoringMode,
+  getScoringFamily,
+  getTeamSizeError,
+} from "@/features/scoring/scoringModes";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -80,15 +81,9 @@ export default function MultiSeriesBuilder() {
 
   // Shared settings from the parent form context
   const format: string = methods.watch("format") || "team";
-  const scoringFormat: string = methods.watch("scoringFormat") || "match";
-  const pointsEnabled = methods.watch("pointsEnabled") !== false;
-  const selectScoringFormat = (nextScoringFormat: "stroke" | "match") => {
-    methods.setValue("scoringFormat", nextScoringFormat);
-
-    if (nextScoringFormat === "stroke" && !String(methods.getValues("strokePoints") || "").trim()) {
-      methods.setValue("strokePoints", DEFAULT_STROKE_POINTS, { shouldDirty: true });
-    }
-  };
+  const scoringFamily = getScoringFamily(
+    deriveScoringMode({ scoringMode: methods.watch("scoringMode") })
+  );
   const isTeamFormat = format === "team";
   const teams: any[] = methods.watch("teams") || [];
   const players: any[] = league?.players || [];
@@ -254,7 +249,7 @@ export default function MultiSeriesBuilder() {
     setSchedule(
       dates.map((date, i) => ({
         date,
-        flights: buildFlights(rrData[i % rrData.length] ?? [], format, scoringFormat),
+        flights: buildFlights(rrData[i % rrData.length] ?? [], format, scoringFamily),
       }))
     );
   };
@@ -286,6 +281,16 @@ export default function MultiSeriesBuilder() {
       return;
     }
     const shared = methods.getValues();
+    const scoringMode = deriveScoringMode(shared);
+    if (shared.format === "team") {
+      for (const team of shared.teams ?? []) {
+        const sizeError = getTeamSizeError(scoringMode, team.players?.length ?? 0);
+        if (sizeError) {
+          show(sizeError, "error");
+          return;
+        }
+      }
+    }
     const halfScoringPeriods = buildHalfScoringPeriods(
       resolvedStartDate,
       resolvedEndDate,
@@ -315,7 +320,8 @@ export default function MultiSeriesBuilder() {
           startSide: getEventStartSide(i),
           holes: shared.holes,
           format: shared.format,
-          scoringFormat: shared.scoringFormat,
+          scoringMode: shared.scoringMode,
+          scoringConfig: shared.scoringConfig,
           pointsEnabled: shared.pointsEnabled,
           ptsPerHole: shared.ptsPerHole,
           ptsPerMatch: shared.ptsPerMatch,
@@ -343,8 +349,8 @@ export default function MultiSeriesBuilder() {
   return (
     <div className="flex flex-col gap-6">
       {/* ── Event Settings + Scoring ── */}
-      <div className="flex gap-4">
-        <div className="w-2/3 flex flex-col gap-5">
+      <div className="flex flex-col gap-6 xl:flex-row">
+        <div className="flex w-full flex-col gap-5 xl:w-2/3">
           <Card>
             <h3 className="text-base font-semibold mb-1">Event Settings</h3>
             <p className="text-xs text-slate-900/60 mb-4">
@@ -454,98 +460,15 @@ export default function MultiSeriesBuilder() {
             </div>
           </Card>
         </div>
-        <div className="w-1/3 flex flex-col gap-5">
+        <div className="flex w-full flex-col gap-5 xl:w-1/3">
           {/* ── Scoring ── */}
           <Card>
             <h3 className="text-lg font-bold">Scoring</h3>
-            <p className="text-sm text-gray-500">Choose how you want to score each event.</p>
-
-            <div className="mt-4">
-              <div>
-                <Label text="Scoring Format" />
-                <div className="flex flex-col gap-2">
-                  <SelectableInfoCard
-                    active={scoringFormat === "stroke"}
-                    onClick={() => selectScoringFormat("stroke")}
-                    icon={<Tally5 size={26} />}
-                    title="Stroke Play"
-                    description={
-                      isTeamFormat
-                        ? "Best-ball stroke play. Teams use their best net score on each hole."
-                        : "Players record total strokes. Lowest total wins."
-                    }
-                    activeIndicator={<CircleCheck size={26} />}
-                  />
-                  <SelectableInfoCard
-                    active={scoringFormat === "match"}
-                    onClick={() => selectScoringFormat("match")}
-                    icon={<Zap size={26} />}
-                    title="Match Play"
-                    description={
-                      isTeamFormat
-                        ? "2-man team match play with hole and match points."
-                        : "Individual match play with hole and match points."
-                    }
-                    activeIndicator={<CircleCheck size={26} />}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              {scoringFormat === "stroke" && (
-                <>
-                  <label className="mb-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
-                    <MuiCheckbox
-                      checked={pointsEnabled}
-                      onChange={(event) =>
-                        methods.setValue("pointsEnabled", event.target.checked, {
-                          shouldDirty: true,
-                        })
-                      }
-                      size="small"
-                      sx={{ mt: -0.5, p: 0.5 }}
-                    />
-                    <span>
-                      <span className="block font-semibold text-slate-900">Award points</span>
-                      <span className="block text-slate-900/60">
-                        Turn this off when each event should rank by net score only.
-                      </span>
-                    </span>
-                  </label>
-                  <Input
-                    label="Stroke Points (CSV)"
-                    placeholder={`e.g. ${DEFAULT_STROKE_POINTS}`}
-                    disabled={!pointsEnabled}
-                    {...methods.register("strokePoints")}
-                  />
-                  <p className="text-[11px] text-slate-900/60 mt-1">
-                    {pointsEnabled
-                      ? "Optional. Leave blank to use Stableford scoring."
-                      : "Points are disabled; event leaderboards will use low net."}
-                  </p>
-                </>
-              )}
-              {scoringFormat === "match" && (
-                <>
-                  <Input
-                    label="Points Per Hole"
-                    type="number"
-                    {...methods.register("ptsPerHole", { valueAsNumber: true })}
-                  />
-                  <Input
-                    label="Points Per Match"
-                    type="number"
-                    {...methods.register("ptsPerMatch", { valueAsNumber: true })}
-                  />
-                  <Input
-                    label="Points Per Team Win"
-                    type="number"
-                    {...methods.register("ptsPerTeamWin", { valueAsNumber: true })}
-                  />
-                </>
-              )}
-            </div>
+            <p className="text-sm text-gray-500">Pick the format once for the full series.</p>
+            <ScoringModeFields
+              format={isTeamFormat ? "team" : "individual"}
+              onModeChange={() => setSchedule([])}
+            />
           </Card>
         </div>
       </div>

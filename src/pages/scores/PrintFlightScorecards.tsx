@@ -14,6 +14,10 @@ import {
   PlayerSwapControl,
 } from "./PlayerSwapControl";
 import { buildSwappedPlayerEntry, getSwapCandidates } from "./playerSwapUtils";
+import {
+  getScoringFamilyForEvent,
+  getScoringModeLabel,
+} from "@/features/scoring/scoringModes";
 
 export default function PrintFlightScorecards() {
   const { leagueId, eventId } = useParams();
@@ -287,7 +291,7 @@ function FlightCard({
     );
 
     const playersToSave =
-      event?.scoringFormat === "match"
+      getScoringFamilyForEvent(event) === "match"
         ? nextPlayers.map((player: any) =>
             Number(player?.opponentId) === currentId
               ? { ...player, opponentId: nextId }
@@ -313,7 +317,7 @@ function FlightCard({
           <div className="text-right text-[10px] text-slate-500">
             <p>Date: {formatEventDate(event.startsAt, undefined, "en-US", event.timeZone)}</p>
             <p>Format: {String(event.format || "").toUpperCase()}</p>
-            <p>Scoring: {String(event.scoringFormat || "").toUpperCase()}</p>
+            <p>Scoring: {getScoringModeLabel(event)}</p>
           </div>
         </header>
 
@@ -494,7 +498,7 @@ function getFlightRows(
     });
   }
 
-  if (event?.scoringFormat === "match") {
+  if (getScoringFamilyForEvent(event) === "match") {
     const byId = new Map<number, any>(flightPlayers.map((p: any) => [Number(p.playerId), p]));
     const slotByPlayerId = new Map<number, number>(
       flightPlayers.map((entry: any, idx: number) => [Number(entry.playerId), idx])

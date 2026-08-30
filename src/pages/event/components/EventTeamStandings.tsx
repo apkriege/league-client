@@ -13,7 +13,7 @@ function EventTeamStandings({ standings }: EventTeamStandingsProps) {
   if (standings.length === 0) return null;
 
   return (
-    <div className="max-h-80 overflow-auto">
+    <div className="max-h-80 overflow-x-auto overflow-y-scroll">
       <table className="w-full min-w-[28rem] table-fixed text-left text-xs">
         <colgroup>
           <col className="w-10" />

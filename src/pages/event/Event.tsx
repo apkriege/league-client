@@ -30,6 +30,7 @@ import EventFlightsPreview from "./components/EventFlightsPreview";
 import EventActionsMenu from "./components/EventActionsMenu";
 import EventIntelligenceDashboard from "./components/EventIntelligenceDashboard";
 import EventRoundsTable from "./components/EventRoundsTable";
+import EventScoringSetup from "./components/EventScoringSetup";
 import {
   FlightScorecardsDrawer,
   IndividualStrokeScorecardsDrawer,
@@ -40,6 +41,12 @@ import {
 } from "./components/EventSkins";
 import { getEventStatusConfig, normalizeEventStatus } from "./eventStatus";
 import useAnimatedDrawer from "@/hooks/useAnimatedDrawer";
+import {
+  deriveScoringMode,
+  getScoringFamilyForEvent,
+  getScoringModeLabel,
+  isSharedTeamScoringMode,
+} from "@/features/scoring/scoringModes";
 
 function EventSectionHeading({
   icon,
@@ -127,6 +134,8 @@ export default function Event() {
   const status = getEventStatusConfig(event.status);
   const date = getEventLocalDate(event.startsAt, event.timeZone);
   const hasRounds = (event.metrics?.scores?.length ?? 0) > 0;
+  const isSharedTeamMode = isSharedTeamScoringMode(deriveScoringMode(event));
+  const hasSharedTeamRounds = isSharedTeamMode && (event.teamRounds?.length ?? 0) > 0;
   const normalizedStatus = normalizeEventStatus(event.status);
   const role = String(user?.role || "").toUpperCase();
   const canManageEvent = role === "ADMIN" || role === "SUPER";
@@ -188,7 +197,7 @@ export default function Event() {
             {event.format}
           </SummaryPill>
           <SummaryPill icon={<Medal size={12} />} className="capitalize">
-            {event.scoringFormat} play
+            {getScoringModeLabel(event)}
           </SummaryPill>
           <SummaryPill icon={status.icon} strong>
             {status.label}
@@ -211,7 +220,11 @@ export default function Event() {
         )}
       </div>
 
-      {hasRounds && (
+      <div className="mt-4">
+        <EventScoringSetup event={event} />
+      </div>
+
+      {hasRounds && !isSharedTeamMode && (
         <div className="mb-8 mt-6">
           <EventIntelligenceDashboard
             event={event}
@@ -222,7 +235,26 @@ export default function Event() {
       )}
 
       <div className="mt-8 flex flex-col gap-10">
-        {hasRounds ? (
+        {hasSharedTeamRounds ? (
+          <section className="space-y-5 [content-visibility:auto] [contain-intrinsic-size:auto_480px]">
+            <EventSectionHeading
+              icon={<ListOrdered size={16} strokeWidth={2.5} />}
+              title="Team Scores"
+              description="One shared scorecard per team with gross, net, and event points"
+            />
+            <SurfaceCard>
+              <div className="border-b border-slate-200 px-4 py-3 sm:px-5">
+                <div className="flex items-center gap-2">
+                  <Flag size={13} className="text-emerald-600" strokeWidth={2.5} />
+                  <h3 className="text-xs font-bold text-slate-900">Event Score Breakdown</h3>
+                </div>
+              </div>
+              <div className="p-4 sm:p-5">
+                <FlightScorecardsDrawer event={event} emptyMessage="No team scorecards available." />
+              </div>
+            </SurfaceCard>
+          </section>
+        ) : hasRounds ? (
           <section className="space-y-5 [content-visibility:auto] [contain-intrinsic-size:auto_560px]">
               <EventSectionHeading
                 icon={<ListOrdered size={16} strokeWidth={2.5} />}
@@ -331,7 +363,7 @@ export default function Event() {
                   event={event}
                   emptyMessage="No flight scorecards available."
                 />
-              ) : event.scoringFormat === "match" ? (
+              ) : getScoringFamilyForEvent(event) === "match" ? (
                 <FlightScorecardsDrawer event={event} />
               ) : (
                 <IndividualStrokeScorecardsDrawer rounds={event.metrics.scores || []} />

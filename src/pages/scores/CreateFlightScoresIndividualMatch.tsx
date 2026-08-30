@@ -162,8 +162,8 @@ export const CreateFlightScoresIndividualMatch = ({
     const ptsPerMatch = Number(event?.ptsPerMatch) || 0;
 
     let holePoints = 0;
-    let playerNetTotal = 0;
-    let opponentNetTotal = 0;
+    let playerHolesWon = 0;
+    let opponentHolesWon = 0;
     let playedHoles = 0;
 
     holes.forEach((hole: any, holeIdx: number) => {
@@ -173,20 +173,19 @@ export const CreateFlightScoresIndividualMatch = ({
 
       const playerNet = playerGross - popsForHole(playerId, hole.num);
       const opponentNet = opponentGross - popsForHole(opponentId, hole.num);
-      playerNetTotal += playerNet;
-      opponentNetTotal += opponentNet;
       playedHoles++;
 
-      if (ptsPerHole > 0) {
-        if (playerNet === opponentNet) holePoints += ptsPerHole / 2;
-        else if (playerNet < opponentNet) holePoints += ptsPerHole;
-      }
+      if (playerNet === opponentNet) holePoints += ptsPerHole > 0 ? ptsPerHole / 2 : 0;
+      else if (playerNet < opponentNet) {
+        playerHolesWon++;
+        if (ptsPerHole > 0) holePoints += ptsPerHole;
+      } else opponentHolesWon++;
     });
 
     let matchPoints = 0;
     if (ptsPerMatch > 0 && playedHoles > 0) {
-      if (playerNetTotal < opponentNetTotal) matchPoints = ptsPerMatch;
-      else if (playerNetTotal === opponentNetTotal) matchPoints = ptsPerMatch / 2;
+      if (playerHolesWon > opponentHolesWon) matchPoints = ptsPerMatch;
+      else if (playerHolesWon === opponentHolesWon) matchPoints = ptsPerMatch / 2;
     }
 
     return { holePoints, matchPoints };

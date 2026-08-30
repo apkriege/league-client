@@ -5,7 +5,7 @@ describe("event edit flight transformation", () => {
   it("preserves both individual matchups using opponent assignments", () => {
     const result = transformEventFlights({
       format: "individual",
-      scoringFormat: "match",
+      scoringMode: "match-play",
       flights: [
         {
           players: [
@@ -24,7 +24,7 @@ describe("event edit flight transformation", () => {
   it("falls back to stable adjacent pairs for older assignments without opponents", () => {
     const result = transformEventFlights({
       format: "individual",
-      scoringFormat: "match",
+      scoringMode: "match-play",
       flights: [{ players: [{ playerId: 21 }, { playerId: 22 }, { playerId: 23 }, { playerId: 24 }] }],
     });
 

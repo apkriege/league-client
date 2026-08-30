@@ -3,6 +3,7 @@ import { Check, SquarePen, Trash2, X } from "lucide-react";
 import { FlightMatchOutput, FlightStrokeOutput, FlightTeamOutput } from "./FlightOutputs";
 import { MultiSelect, Select } from "@/components/form";
 import { formatTimeWithOffset } from "@/utils/format";
+import { deriveScoringMode, getScoringFamily } from "@/features/scoring/scoringModes";
 
 // HAVE TO ADD THE LOGIC THAT IF THIS IS USING
 // THE MULTI CREATOR THEN THERE SHOULDN'T BE THE OPTION TO DELETE
@@ -97,6 +98,7 @@ export const FlightsDragRow = ({
   highlightId = null,
 }: FlightsDragRowProps) => {
   const fs = flights;
+  const scoringFamily = getScoringFamily(deriveScoringMode(event));
   const [editingFlightIndex, setEditingFlightIndex] = useState<number | null>(null);
   const [editStrokePlayers, setEditStrokePlayers] = useState<(string | number)[]>([]);
   const [editMatchPlayers, setEditMatchPlayers] = useState<(number | undefined)[]>([
@@ -150,12 +152,12 @@ export const FlightsDragRow = ({
     const flight = fs[flightIdx];
     setEditingFlightIndex(flightIdx);
 
-    if (event.format === "individual" && event.scoringFormat === "stroke") {
+    if (event.format === "individual" && scoringFamily === "stroke") {
       setEditStrokePlayers(Array.isArray(flight) ? flight : []);
       return;
     }
 
-    if (event.format === "individual" && event.scoringFormat === "match") {
+    if (event.format === "individual" && scoringFamily === "match") {
       const playerIds = (Array.isArray(flight) ? flight : [])
         .slice(0, 2)
         .flatMap((pair: any) => (Array.isArray(pair) ? pair.slice(0, 2) : []))
@@ -166,7 +168,7 @@ export const FlightsDragRow = ({
 
     if (
       event.format === "team" &&
-      (event.scoringFormat === "match" || event.scoringFormat === "stroke")
+      (scoringFamily === "match" || scoringFamily === "stroke")
     ) {
       setEditTeam1(extractId(flight?.[0]) ?? undefined);
       setEditTeam2(extractId(flight?.[1]) ?? undefined);
@@ -184,12 +186,12 @@ export const FlightsDragRow = ({
   const saveEditFlight = (flightIdx: number) => {
     const newFlights = [...fs];
 
-    if (event.format === "individual" && event.scoringFormat === "stroke") {
+    if (event.format === "individual" && scoringFamily === "stroke") {
       if (editStrokePlayers.length === 0) return;
       newFlights[flightIdx] = editStrokePlayers;
     }
 
-    if (event.format === "individual" && event.scoringFormat === "match") {
+    if (event.format === "individual" && scoringFamily === "match") {
       const selectedPlayers = editMatchPlayers.filter(
         (playerId): playerId is number => Number.isInteger(playerId) && Number(playerId) > 0,
       );
@@ -207,7 +209,7 @@ export const FlightsDragRow = ({
 
     if (
       event.format === "team" &&
-      (event.scoringFormat === "match" || event.scoringFormat === "stroke")
+      (scoringFamily === "match" || scoringFamily === "stroke")
     ) {
       if (!editTeam1 || !editTeam2 || editTeam1 === editTeam2) return;
       newFlights[flightIdx] = [editTeam1, editTeam2];
@@ -376,7 +378,7 @@ export const FlightsDragRow = ({
               <div className="flex flex-col text-sm">
                 {editingFlightIndex === fIdx &&
                   event.format === "individual" &&
-                  event.scoringFormat === "stroke" && (
+                  scoringFamily === "stroke" && (
                     <MultiSelect
                       label="Edit Players"
                       options={getPlayerOptionsForFlight(fIdx)}
@@ -387,7 +389,7 @@ export const FlightsDragRow = ({
                   )}
                 {editingFlightIndex === fIdx &&
                   event.format === "individual" &&
-                  event.scoringFormat === "match" && (
+                  scoringFamily === "match" && (
                     <div className="grid grid-cols-1 gap-2">
                       {editMatchPlayers.map((playerId, slotIndex) => (
                         <Select
@@ -410,7 +412,7 @@ export const FlightsDragRow = ({
                   )}
                 {editingFlightIndex === fIdx &&
                   event.format === "team" &&
-                  (event.scoringFormat === "match" || event.scoringFormat === "stroke") && (
+                  (scoringFamily === "match" || scoringFamily === "stroke") && (
                     <div className="grid grid-cols-1 gap-2">
                       <Select
                         label="Team 1"
@@ -428,17 +430,17 @@ export const FlightsDragRow = ({
                   )}
                 {editingFlightIndex !== fIdx &&
                   event.format === "individual" &&
-                  event.scoringFormat === "stroke" && (
+                  scoringFamily === "stroke" && (
                     <FlightStrokeOutput players={players} playerIds={flight} />
                   )}
                 {editingFlightIndex !== fIdx &&
                   event.format === "individual" &&
-                  event.scoringFormat === "match" && (
+                  scoringFamily === "match" && (
                     <FlightMatchOutput players={players} matchups={flight} />
                   )}
                 {editingFlightIndex !== fIdx &&
                   event.format === "team" &&
-                  (event.scoringFormat === "match" || event.scoringFormat === "stroke") && (
+                  (scoringFamily === "match" || scoringFamily === "stroke") && (
                     <FlightTeamOutput players={players} teams={event.teams} matchups={flight} />
                   )}
               </div>

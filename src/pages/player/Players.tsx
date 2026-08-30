@@ -7,6 +7,7 @@ import { useToast } from "@/context/useToast";
 import { formatPhone } from "@/utils/format";
 import { useLeague } from "@api/league/queries";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
+import { getLeagueCapacity } from "@/lib/billing";
 import { useCreatePlayers, useDeletePlayer, useUpdatePlayer } from "@api/players/mutations";
 import { useCreateCheckoutSession } from "@api/payments/mutations";
 import { confirmCheckoutSession } from "@api/payments";
@@ -375,7 +376,7 @@ export default function Players() {
       const regularPlayerCount = league.players.filter(
         (player: any) => player.type === "player"
       ).length;
-      const paidCapacity = Math.max(0, Number(league.numPlayers || 0));
+      const paidCapacity = getLeagueCapacity(league);
 
       if (isEditMode && editingPlayerId) {
         if (!validateForm) {

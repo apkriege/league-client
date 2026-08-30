@@ -3,7 +3,6 @@ import {
   DateInput,
   Input,
   Select,
-  SelectableInfoCard,
   ToggleCards,
 } from "@/components/form";
 import { Label } from "@/components/form/Label";
@@ -11,18 +10,17 @@ import Card from "@/components/layout/Card";
 import { useCoursesWithTees } from "@api/courses";
 import { useLeague } from "@api/league/queries";
 import { getEventDateInputValue } from "@/utils/eventDate";
-import { CircleCheck, Tally5, User, Users, Zap } from "lucide-react";
+import { User, Users } from "lucide-react";
 import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { Link, useParams } from "react-router";
-import { DEFAULT_STROKE_POINTS } from "../constants";
-import MuiCheckbox from "@mui/material/Checkbox";
 import { useToast } from "@/context/useToast";
 import {
   getFixedEventHoleCount,
   normalizeLeagueHoleFormat,
 } from "@/features/leagues/leagueHoleFormat";
 import { createCourseAutocompleteOptions } from "../courseAutocompleteOptions";
+import ScoringModeFields from "@/features/scoring/components/ScoringModeFields";
 
 export default function InfoForm() {
   const { leagueId } = useParams();
@@ -94,8 +92,6 @@ export default function InfoForm() {
   const lockedSeasonFormat = String(league?.format || "").toLowerCase();
   const isFormatLocked = isSeasonLeague && ["individual", "team"].includes(lockedSeasonFormat);
   const isTeamFormat = methods.watch("format") === "team";
-  const scoringFormat = methods.watch("scoringFormat");
-  const pointsEnabled = methods.watch("pointsEnabled") !== false;
   const clearFlightsForModeChange = () => {
     const flights = methods.getValues("flights");
     if (!Array.isArray(flights) || flights.length === 0) return;
@@ -107,19 +103,10 @@ export default function InfoForm() {
     clearFlightsForModeChange();
     methods.setValue("format", nextFormat, { shouldDirty: true });
   };
-  const selectScoringFormat = (nextScoringFormat: "stroke" | "match") => {
-    if (nextScoringFormat === methods.getValues("scoringFormat")) return;
-    clearFlightsForModeChange();
-    methods.setValue("scoringFormat", nextScoringFormat, { shouldDirty: true });
-
-    if (nextScoringFormat === "stroke" && !String(methods.getValues("strokePoints") || "").trim()) {
-      methods.setValue("strokePoints", DEFAULT_STROKE_POINTS, { shouldDirty: true });
-    }
-  };
 
   return (
-    <div className="flex gap-4">
-      <div className="w-2/3 flex flex-col gap-5">
+    <div className="flex flex-col gap-6 xl:flex-row">
+      <div className="flex w-full flex-col gap-5 xl:w-2/3">
         <Card>
           <h3 className="text-lg font-bold">Event Details</h3>
           <p className="text-sm text-gray-500">
@@ -259,107 +246,14 @@ export default function InfoForm() {
           </div>
         </Card>
       </div>
-      <div className="w-1/3 flex flex-col gap-5">
+      <div className="flex w-full flex-col gap-5 xl:w-1/3">
         <Card>
           <h3 className="text-lg font-bold">Scoring</h3>
-          <p className="text-sm text-gray-500">Choose how you want to score your event.</p>
-
-          <div className="mt-4">
-            <div>
-              <Label text="Scoring Format" />
-              <div className="flex flex-col gap-2">
-                <SelectableInfoCard
-                  active={scoringFormat === "stroke"}
-                  onClick={() => selectScoringFormat("stroke")}
-                  icon={<Tally5 size={26} />}
-                  title="Stroke Play"
-                  description={
-                    isTeamFormat
-                      ? "Best-ball stroke play. Each team uses its best net score on each hole."
-                      : "Each player records total strokes. Lowest total wins."
-                  }
-                  activeIndicator={<CircleCheck size={26} />}
-                />
-                <SelectableInfoCard
-                  active={scoringFormat === "match"}
-                  onClick={() => selectScoringFormat("match")}
-                  icon={<Zap size={26} />}
-                  title="Match Play"
-                  description={
-                    isTeamFormat
-                      ? "2-man team match play. Teams compete hole-by-hole with match bonuses."
-                      : "Players compete hole-by-hole. Hole wins and match wins award points."
-                  }
-                  activeIndicator={<CircleCheck size={26} />}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            {scoringFormat === "stroke" && (
-              <>
-                <label className="mb-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
-                  <MuiCheckbox
-                    checked={pointsEnabled}
-                    onChange={(event) =>
-                      methods.setValue("pointsEnabled", event.target.checked, { shouldDirty: true })
-                    }
-                    size="small"
-                    sx={{ mt: -0.5, p: 0.5 }}
-                  />
-                  <span>
-                    <span className="block font-semibold text-slate-900">Award points</span>
-                    <span className="block text-slate-900/60">
-                      Turn this off for tournament events where the leaderboard should rank by net score only.
-                    </span>
-                  </span>
-                </label>
-                <Input
-                  label="Stroke Points (CSV)"
-                  placeholder={`e.g. ${DEFAULT_STROKE_POINTS}`}
-                  disabled={!pointsEnabled}
-                  {...methods.register("strokePoints")}
-                />
-                <p className="text-[11px] text-slate-900/60 mt-1">
-                  {pointsEnabled
-                    ? "Optional. Leave blank to use Stableford scoring."
-                    : "Points are disabled; this event leaderboard will use low net."}
-                </p>
-              </>
-            )}
-            {scoringFormat === "match" && (
-              <>
-                <Input
-                  label="Points Per Hole"
-                  type="number"
-                  {...methods.register("ptsPerHole", {
-                    required: "Points per hole win is required",
-                    valueAsNumber: true,
-                    min: { value: 0, message: "Must be at least 0 points" },
-                  })}
-                />
-                <Input
-                  label="Points Per Match"
-                  type="number"
-                  {...methods.register("ptsPerMatch", {
-                    required: "Points per player win is required",
-                    valueAsNumber: true,
-                    min: { value: 0, message: "Must be at least 0 points" },
-                  })}
-                />
-                <Input
-                  label={isTeamFormat ? "Points Per Team Win" : "Points Per Side Win"}
-                  type="number"
-                  {...methods.register("ptsPerTeamWin", {
-                    required: "Points per team win is required",
-                    valueAsNumber: true,
-                    min: { value: 0, message: "Must be at least 0 points" },
-                  })}
-                />
-              </>
-            )}
-          </div>
+          <p className="text-sm text-gray-500">Pick the format, then configure only what it needs.</p>
+          <ScoringModeFields
+            format={isTeamFormat ? "team" : "individual"}
+            onModeChange={clearFlightsForModeChange}
+          />
         </Card>
       </div>
     </div>

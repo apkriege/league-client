@@ -31,10 +31,9 @@ export type TeamEventResult = {
   startsAt: string;
   timeZone: string;
   format: string;
-  scoringFormat: string;
+  scoringMode: string;
   type: string;
   status: string;
-  isComplete: boolean;
   holes: number;
   courseName: string | null;
   flightId: number | null;

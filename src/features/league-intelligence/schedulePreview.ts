@@ -50,8 +50,9 @@ export function buildSchedulePreview({
   const nextEvent = [...events]
     .filter(
       (event) =>
-        !event.isComplete &&
-        !["completed", "complete", "canceled", "cancelled"].includes(String(event.status)) &&
+        !["completed", "complete", "canceled", "cancelled"].includes(
+          String(event.status).toLowerCase(),
+        ) &&
         new Date(event.startsAt).getTime() >= now.getTime(),
     )
     .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime())[0];

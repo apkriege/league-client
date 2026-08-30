@@ -451,8 +451,8 @@ export const CreateFlightScores = ({
     number,
     {
       holePoints: number;
-      playerNetTotal: number;
-      opponentNetTotal: number;
+      playerHolesWon: number;
+      opponentHolesWon: number;
       playedHoles: number;
     }
   >();
@@ -463,7 +463,7 @@ export const CreateFlightScores = ({
 
     const matchup = getPlayerMatchup(playerId);
     if (!matchup) {
-      const empty = { holePoints: 0, playerNetTotal: 0, opponentNetTotal: 0, playedHoles: 0 };
+      const empty = { holePoints: 0, playerHolesWon: 0, opponentHolesWon: 0, playedHoles: 0 };
       matchupSummaryByPlayerId.set(playerId, empty);
       return empty;
     }
@@ -472,8 +472,8 @@ export const CreateFlightScores = ({
     const pointsPerMatchup = Number(event?.ptsPerHole) || 0;
 
     let holePoints = 0;
-    let playerNetTotal = 0;
-    let opponentNetTotal = 0;
+    let playerHolesWon = 0;
+    let opponentHolesWon = 0;
     let playedHoles = 0;
 
     holes.forEach((hole: any, holeIdx: number) => {
@@ -484,23 +484,22 @@ export const CreateFlightScores = ({
 
       const playerNet = playerScore - popsForHole(playerId, hole.num);
       const opponentNet = opponentScore - popsForHole(opponent.playerId, hole.num);
-      playerNetTotal += playerNet;
-      opponentNetTotal += opponentNet;
       playedHoles++;
 
-      if (pointsPerMatchup > 0) {
-        if (playerNet === opponentNet) {
-          holePoints += pointsPerMatchup / 2;
-        } else if (playerNet < opponentNet) {
-          holePoints += pointsPerMatchup;
-        }
+      if (playerNet === opponentNet) {
+        if (pointsPerMatchup > 0) holePoints += pointsPerMatchup / 2;
+      } else if (playerNet < opponentNet) {
+        playerHolesWon++;
+        if (pointsPerMatchup > 0) holePoints += pointsPerMatchup;
+      } else {
+        opponentHolesWon++;
       }
     });
 
     const summary = {
       holePoints,
-      playerNetTotal,
-      opponentNetTotal,
+      playerHolesWon,
+      opponentHolesWon,
       playedHoles,
     };
 
@@ -518,17 +517,17 @@ export const CreateFlightScores = ({
     const pointsPerMatch = Number(event?.ptsPerMatch) || 0;
     if (pointsPerMatch <= 0) return 0;
 
-    const { playerNetTotal, opponentNetTotal, playedHoles } = getMatchupSummaryForPlayer(
+    const { playerHolesWon, opponentHolesWon, playedHoles } = getMatchupSummaryForPlayer(
       Number(player.playerId)
     );
 
     if (playedHoles === 0) return 0;
 
-    if (playerNetTotal < opponentNetTotal) {
+    if (playerHolesWon > opponentHolesWon) {
       return pointsPerMatch;
     }
 
-    if (playerNetTotal === opponentNetTotal) {
+    if (playerHolesWon === opponentHolesWon) {
       return pointsPerMatch / 2;
     }
 

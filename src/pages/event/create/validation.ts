@@ -1,4 +1,11 @@
 import { getEventDateInputValue } from "@/utils/eventDate";
+import {
+  SCORING_MODES,
+  deriveScoringMode,
+  getScoringFamily,
+  getTeamSizeError,
+  type CompetitionModel,
+} from "@/features/scoring/scoringModes";
 
 const isBlank = (value: unknown) => value == null || String(value).trim() === "";
 const isPositiveNumber = (value: unknown) => Number.isFinite(Number(value)) && Number(value) > 0;
@@ -20,7 +27,7 @@ const parsePositiveId = (value: unknown) => {
   return Number.isInteger(id) && id > 0 ? id : null;
 };
 
-function validateFlights(flights: unknown[], format: string, scoringFormat: string) {
+function validateFlights(flights: unknown[], format: string, scoringFamily: string) {
   const assignedIds = new Set<number>();
 
   for (const [flightIndex, flight] of flights.entries()) {
@@ -30,7 +37,7 @@ function validateFlights(flights: unknown[], format: string, scoringFormat: stri
     if (format === "team") {
       if (flight.length !== 2) return `Flight ${flightIndex + 1} must contain two teams.`;
       ids = flight.map(parsePositiveId);
-    } else if (scoringFormat === "stroke") {
+    } else if (scoringFamily === "stroke") {
       if (flight.length < 1 || flight.length > 4) {
         return `Flight ${flightIndex + 1} must contain one to four players.`;
       }
@@ -83,17 +90,47 @@ export function validateEventForm(
   if (![9, 18].includes(Number(data.holes))) return "Please select 9 or 18 holes.";
 
   const format = String(data.format || "").toLowerCase();
-  const scoringFormat = String(data.scoringFormat || "").toLowerCase();
   if (!["individual", "team"].includes(format)) return "Please select an event format.";
-  if (!["stroke", "match"].includes(scoringFormat)) return "Please select a scoring format.";
+  const scoringMode = deriveScoringMode(data);
+  const scoringFamily = getScoringFamily(scoringMode);
+  if (!SCORING_MODES[scoringMode].models.includes(format as CompetitionModel)) {
+    return `${SCORING_MODES[scoringMode].label} is not available for ${format} events.`;
+  }
 
-  if (scoringFormat === "match") {
+  const scoringConfig = data.scoringConfig;
+  const allowance = Number(scoringConfig?.handicapAllowance ?? 1);
+  if (!Number.isFinite(allowance) || allowance < 0 || allowance > 1) {
+    return "Handicap allowance must be between 0 and 1.";
+  }
+  if (scoringMode === "maximum-score") {
+    const rule = scoringConfig?.maximumScore;
+    if (!rule || !["fixed", "relative-to-par", "net-double-bogey"].includes(rule.type)) {
+      return "Please select a maximum-score rule.";
+    }
+    if (rule.type === "fixed" && !isPositiveNumber(rule.strokes)) {
+      return "Maximum strokes must be at least 1.";
+    }
+    if (rule.type === "relative-to-par" && !isNonNegativeNumber(rule.strokesOverPar)) {
+      return "Strokes over par must be 0 or higher.";
+    }
+  }
+  if (scoringMode === "stableford") {
+    const scale = scoringConfig?.stablefordPointScale;
+    if (
+      !scale ||
+      Object.values(scale).some((points) => !isNonNegativeNumber(points))
+    ) {
+      return "Stableford point values must be 0 or higher.";
+    }
+  }
+
+  if (scoringFamily === "match") {
     if (!isNonNegativeNumber(data.ptsPerHole)) return "Points per hole must be 0 or higher.";
     if (!isNonNegativeNumber(data.ptsPerMatch)) return "Points per match must be 0 or higher.";
     if (!isNonNegativeNumber(data.ptsPerTeamWin)) return "Points per team win must be 0 or higher.";
   }
 
-  if (scoringFormat === "stroke" && data.pointsEnabled !== false && !isBlank(data.strokePoints)) {
+  if (scoringFamily === "stroke" && data.pointsEnabled !== false && !isBlank(data.strokePoints)) {
     if (parseStrokePoints(data.strokePoints).length === 0) {
       return "Stroke points must be comma-separated numbers, or left blank.";
     }
@@ -109,11 +146,15 @@ export function validateEventForm(
       );
       if (invalidTeam) return "Each team needs a name and at least one player.";
     }
+    for (const team of teams) {
+      const sizeError = getTeamSizeError(scoringMode, team.players.length);
+      if (sizeError) return sizeError;
+    }
   }
 
   const flights = Array.isArray(data.flights) ? data.flights : [];
   if (flights.length === 0) return "Please add at least one flight.";
-  const flightError = validateFlights(flights, format, scoringFormat);
+  const flightError = validateFlights(flights, format, scoringFamily);
   if (flightError) return flightError;
 
   return null;

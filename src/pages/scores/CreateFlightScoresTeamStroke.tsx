@@ -24,6 +24,12 @@ import {
   getPlayerCourseHandicap,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
+import {
+  DEFAULT_STABLEFORD_SCALE,
+  deriveScoringMode,
+  type MaximumScoreRule,
+  type StablefordPointScale,
+} from "@/features/scoring/scoringModes";
 
 export const CreateFlightScoresTeamStroke = ({
   flight,
@@ -39,6 +45,7 @@ export const CreateFlightScoresTeamStroke = ({
   const { show } = useToast();
 
   const holes = getEventScoringHoles(event);
+  const scoringMode = deriveScoringMode(event);
 
   const team1Id = Number(flight?.teams?.[0]?.teamId ?? 0);
   const team2Id = Number(flight?.teams?.[1]?.teamId ?? 0);
@@ -130,7 +137,18 @@ export const CreateFlightScoresTeamStroke = ({
     const gross = Number(watchedPlayers?.[playerId]?.scores?.[holeIdx] ?? 0);
     if (!gross) return null;
     const holeNum = holes[holeIdx]?.num;
-    return gross - popsForHole(playerId, holeNum);
+    const pops = popsForHole(playerId, holeNum);
+    const rule = event?.scoringConfig?.maximumScore as MaximumScoreRule | undefined;
+    const par = Number(holes[holeIdx]?.par ?? 4);
+    const cappedGross =
+      scoringMode !== "maximum-score" || !rule
+        ? gross
+        : rule.type === "fixed"
+          ? Math.min(gross, rule.strokes)
+          : rule.type === "relative-to-par"
+            ? Math.min(gross, par + rule.strokesOverPar)
+            : Math.min(gross, par + 2 + Math.max(0, pops));
+    return Math.max(0, cappedGross - pops);
   };
 
   const getBestBallForHole = (teamPlayers: any[], holeIdx: number) => {
@@ -145,21 +163,37 @@ export const CreateFlightScoresTeamStroke = ({
     return best;
   };
 
-  const pointsPerHole = Number(event?.ptsPerHole) || 0;
-  const getTeamPointsAtHole = (team: 1 | 2, holeIdx: number) => {
-    const left = getBestBallForHole(team1Players, holeIdx);
-    const right = getBestBallForHole(team2Players, holeIdx);
-
-    if (left == null || right == null || pointsPerHole <= 0) return 0;
-    if (left === right) return pointsPerHole / 2;
-
-    if (team === 1) return left < right ? pointsPerHole : 0;
-    return right < left ? pointsPerHole : 0;
+  const stablefordPoints = (net: number, par: number) => {
+    const scale = (event?.scoringConfig?.stablefordPointScale ??
+      DEFAULT_STABLEFORD_SCALE) as StablefordPointScale;
+    const difference = net - par;
+    if (difference <= -3) return scale.albatrossOrBetter;
+    if (difference === -2) return scale.eagle;
+    if (difference === -1) return scale.birdie;
+    if (difference === 0) return scale.par;
+    if (difference === 1) return scale.bogey;
+    return scale.doubleBogeyOrWorse;
+  };
+  const getTeamMetricAtHole = (team: 1 | 2, holeIdx: number) => {
+    const teamPlayers = team === 1 ? team1Players : team2Players;
+    if (scoringMode === "best-ball" || scoringMode === "four-ball-match") {
+      return getBestBallForHole(teamPlayers, holeIdx) ?? 0;
+    }
+    if (scoringMode === "stableford") {
+      return teamPlayers.reduce((total, player) => {
+        const net = getPlayerNetAtHole(Number(player.playerId), holeIdx);
+        return net == null ? total : total + stablefordPoints(net, Number(holes[holeIdx]?.par ?? 4));
+      }, 0);
+    }
+    return teamPlayers.reduce(
+      (total, player) => total + (getPlayerNetAtHole(Number(player.playerId), holeIdx) ?? 0),
+      0,
+    );
   };
 
-  const getTeamTotalPoints = (team: 1 | 2) => {
+  const getTeamFormatTotal = (team: 1 | 2) => {
     return holes.reduce((sum: number, _hole: any, holeIdx: number) => {
-      return sum + getTeamPointsAtHole(team, holeIdx);
+      return sum + getTeamMetricAtHole(team, holeIdx);
     }, 0);
   };
 
@@ -251,8 +285,8 @@ export const CreateFlightScoresTeamStroke = ({
       teams:
         team1Id > 0 && team2Id > 0
           ? [
-              { teamId: team1Id, points: getTeamTotalPoints(1) },
-              { teamId: team2Id, points: getTeamTotalPoints(2) },
+              { teamId: team1Id, points: 0 },
+              { teamId: team2Id, points: 0 },
             ]
           : [],
     };
@@ -334,22 +368,28 @@ export const CreateFlightScoresTeamStroke = ({
         <ScoreValueCell>
           {getPlayerNetScore(Number(player.playerId))}
         </ScoreValueCell>
-        <ScoreValueCell>0</ScoreValueCell>
+        <ScoreValueCell>—</ScoreValueCell>
       </tr>
     );
   };
 
+  const teamMetricLabel =
+    scoringMode === "stableford"
+      ? "Stableford"
+      : scoringMode === "best-ball" || scoringMode === "four-ball-match"
+        ? "Best Net"
+        : "Team Net";
   const renderTeamPointsRow = (teamName: string, team: 1 | 2) => (
     <tr aria-hidden="true" className="bg-gray-100">
-      <td className="font-semibold text-xs">{teamName} Best Ball</td>
+      <td className="font-semibold text-xs">{teamName} {teamMetricLabel}</td>
       {holes.map((hole: any, holeIdx: number) => (
         <ScoreValueCell key={hole.num} className="p-2">
-          {getTeamPointsAtHole(team, holeIdx)}
+          {getTeamMetricAtHole(team, holeIdx)}
         </ScoreValueCell>
       ))}
       <td />
       <td />
-      <ScoreValueCell className="p-2">{getTeamTotalPoints(team)}</ScoreValueCell>
+      <ScoreValueCell className="p-2">{getTeamFormatTotal(team)}</ScoreValueCell>
     </tr>
   );
 
@@ -406,7 +446,7 @@ export const CreateFlightScoresTeamStroke = ({
                     ))}
                     <ScoreHeaderCell>Total</ScoreHeaderCell>
                     <ScoreHeaderCell>Net</ScoreHeaderCell>
-                    <ScoreHeaderCell>Points</ScoreHeaderCell>
+                    <ScoreHeaderCell>{teamMetricLabel}</ScoreHeaderCell>
                   </tr>
                 </thead>
                 <tbody>

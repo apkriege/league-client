@@ -14,7 +14,7 @@ export function transformEventFlights(event: any): FlightTransformResult {
   if (apiFlights.length === 0) return { flights: [], teams: [] };
 
   const format = String(event?.format || "team");
-  const scoringFormat = String(event?.scoringFormat || "match");
+  const scoringFamily = getScoringFamily(deriveScoringMode(event));
 
   if (format === "team") {
     const teamMap = new Map<number, EventTeam>();
@@ -40,14 +40,14 @@ export function transformEventFlights(event: any): FlightTransformResult {
     };
   }
 
-  if (format === "individual" && scoringFormat === "stroke") {
+  if (format === "individual" && scoringFamily === "stroke") {
     return {
       flights: apiFlights.map((flight) => (flight.players ?? []).map(playerIdFor)),
       teams: [],
     };
   }
 
-  if (format === "individual" && scoringFormat === "match") {
+  if (format === "individual" && scoringFamily === "match") {
     return {
       flights: apiFlights.map((flight) => {
         const entries = Array.isArray(flight.players) ? flight.players : [];
@@ -86,3 +86,4 @@ export function transformEventFlights(event: any): FlightTransformResult {
 
   return { flights: [], teams: [] };
 }
+import { deriveScoringMode, getScoringFamily } from "@/features/scoring/scoringModes";

@@ -11,7 +11,8 @@ const validEvent = {
   startSide: "front",
   holes: 9,
   format: "individual",
-  scoringFormat: "stroke",
+  scoringMode: "stroke-play",
+  scoringConfig: { handicapAllowance: 1 },
   pointsEnabled: true,
   strokePoints: "10,8,6",
   flights: [[1, 2, 3, 4]],
@@ -24,7 +25,7 @@ describe("event form validation", () => {
       validateEventForm(
         {
           ...validEvent,
-          scoringFormat: "match",
+          scoringMode: "match-play",
           ptsPerHole: 1,
           ptsPerMatch: 2,
           ptsPerTeamWin: 2,
@@ -46,7 +47,7 @@ describe("event form validation", () => {
       validateEventForm(
         {
           ...validEvent,
-          scoringFormat: "match",
+          scoringMode: "match-play",
           ptsPerHole: 1,
           ptsPerMatch: 2,
           ptsPerTeamWin: 2,
@@ -55,5 +56,43 @@ describe("event form validation", () => {
         { showTeamsSection: false },
       ),
     ).toMatch(/two players/i);
+  });
+
+  it("validates mode applicability and format-specific team sizes", () => {
+    expect(
+      validateEventForm(
+        { ...validEvent, scoringMode: "scramble" },
+        { showTeamsSection: false },
+      ),
+    ).toMatch(/not available for individual/i);
+
+    expect(
+      validateEventForm(
+        {
+          ...validEvent,
+          format: "team",
+          scoringMode: "alternate-shot",
+          teams: [
+            { id: 10, name: "A", players: [1, 2, 3] },
+            { id: 20, name: "B", players: [4, 5] },
+          ],
+          flights: [[10, 20]],
+        },
+        { showTeamsSection: true },
+      ),
+    ).toMatch(/exactly two players/i);
+  });
+
+  it("requires a valid maximum-score rule", () => {
+    expect(
+      validateEventForm(
+        {
+          ...validEvent,
+          scoringMode: "maximum-score",
+          scoringConfig: { handicapAllowance: 1 },
+        },
+        { showTeamsSection: false },
+      ),
+    ).toMatch(/maximum-score rule/i);
   });
 });

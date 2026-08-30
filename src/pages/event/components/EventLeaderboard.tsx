@@ -16,9 +16,10 @@ export const ScoreLeaderboard = memo(function ScoreLeaderboard({
     <Table
       data={leaderboard}
       search={false}
+      pagination={false}
       variant="clean"
       noBorder
-      className="max-h-80 overflow-auto"
+      contentClassName="max-h-80 overflow-y-scroll"
       tableClassName="w-full min-w-[28rem] table-fixed text-left"
       renderTable={(visibleLeaderboard) => (
         <>

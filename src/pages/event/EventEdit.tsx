@@ -17,6 +17,12 @@ import { validateEventForm } from "./create/validation";
 import { getEventDateInputValue } from "@/utils/eventDate";
 import { toTimeInputValue } from "@/utils/format";
 import { transformEventFlights, type EventFlight } from "./eventEditModel";
+import {
+  createDefaultScoringConfiguration,
+  deriveScoringMode,
+  type ScoringConfiguration,
+  type ScoringMode,
+} from "@/features/scoring/scoringModes";
 
 type EventEditTeam = {
   id: number;
@@ -35,7 +41,8 @@ type EventEditFormValues = {
   startSide: string;
   holes: number;
   format: string;
-  scoringFormat: string;
+  scoringMode: ScoringMode;
+  scoringConfig: ScoringConfiguration;
   ptsPerHole: number;
   ptsPerMatch: number;
   ptsPerTeamWin: number;
@@ -63,10 +70,10 @@ export default function EventEdit() {
   });
 
   const eventStatus = String(event?.status || "").toLowerCase();
-  const isCompletedEvent =
-    Boolean(event?.isComplete) || String(event?.status || "").toLowerCase() === "completed";
+  const isCompletedEvent = eventStatus === "completed";
   const isCanceledEvent = eventStatus === "canceled";
-  const hasScores = Number(event?._count?.rounds || 0) > 0;
+  const hasScores =
+    Number(event?._count?.rounds || 0) > 0 || Number(event?._count?.teamRounds || 0) > 0;
   const isLockedEvent = isCompletedEvent || isCanceledEvent || hasScores;
 
   const eventForm = useForm<EventEditFormValues>({
@@ -81,7 +88,8 @@ export default function EventEdit() {
       startSide: "front",
       holes: 9,
       format: "team",
-      scoringFormat: "match",
+      scoringMode: "match-play",
+      scoringConfig: createDefaultScoringConfiguration("match-play"),
       ptsPerHole: 1,
       ptsPerMatch: 2,
       ptsPerTeamWin: 2,
@@ -110,6 +118,7 @@ export default function EventEdit() {
         typeof p === "object" ? Number(p.id) : Number(p)
       ),
     }));
+    const scoringMode = deriveScoringMode(event);
     eventForm.reset({
       name: event.name ?? "",
       type: event.type ?? "regular",
@@ -121,7 +130,8 @@ export default function EventEdit() {
       startSide: event.startSide ?? "front",
       holes: event.holes ?? 9,
       format: event.format ?? "team",
-      scoringFormat: event.scoringFormat ?? "match",
+      scoringMode,
+      scoringConfig: event.scoringConfig ?? createDefaultScoringConfiguration(scoringMode),
       ptsPerHole: event.ptsPerHole ?? 1,
       ptsPerMatch: event.ptsPerMatch ?? 2,
       ptsPerTeamWin: event.ptsPerTeamWin ?? 2,

@@ -34,6 +34,7 @@ interface TableProps<T> {
   pagination?: boolean;
   pageSize?: number;
   tableClassName?: string;
+  contentClassName?: string;
   renderTable?: (rows: T[]) => React.ReactNode;
 }
 
@@ -52,6 +53,7 @@ export default function Table<T>({
   pagination = true,
   pageSize = 10,
   tableClassName = "w-full border-collapse",
+  contentClassName = "",
   renderTable,
 }: TableProps<T>) {
   const [sortConfig, setSortConfig] = useState<{
@@ -196,7 +198,7 @@ export default function Table<T>({
           </div>
         </div>
       )}
-      <div className="overflow-x-auto">
+      <div className={`overflow-x-auto ${contentClassName}`}>
         <table className={tableClassName}>
           {renderTable ? (
             renderTable(visibleData)

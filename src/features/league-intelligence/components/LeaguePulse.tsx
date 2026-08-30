@@ -132,16 +132,16 @@ export default function LeaguePulse({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 sm:min-w-105 sm:grid-cols-3">
+        <div className="grid w-full grid-cols-3 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 lg:w-120 lg:justify-self-end xl:w-135">
           <HeaderMetric
             label="Who's hot"
-            value={pulse.hotPlayer?.name ?? "Form building"}
+            value={pulse.hotPlayer?.name ?? "Performance building"}
             detail={
               pulse.hotPlayer
                 ? pulse.hotPlayer.improvement > 0
                   ? `${formatNumber(pulse.hotPlayer.improvement)} strokes better recently`
                   : `${formatNumber(pulse.hotPlayer.recentAverage)} recent net average`
-                : "Two results unlock form"
+                : "Two results unlock performance insights"
             }
             tone={pulse.hotPlayer ? "text-orange-300" : "text-white"}
           />
@@ -176,7 +176,7 @@ export default function LeaguePulse({
 
       <div className="relative border-t border-white/10">
         <div
-          className={`grid gap-px https://leaguenightpro.com/sitemap.xml bg-white/10 ${storyGridClass}`}
+          className={`grid gap-px bg-white/10 ${storyGridClass}`}
         >
           {pulse.spotlights.map((spotlight) => {
             const destination = spotlight.playerId

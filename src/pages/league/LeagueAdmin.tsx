@@ -18,6 +18,7 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { formatEventDate, getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
 import { formatTime } from "@/utils/format";
 import { useToast } from "@/context/useToast";
+import { getScoringModeLabel } from "@/features/scoring/scoringModes";
 import {
   Award,
   Ban,
@@ -42,6 +43,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { getLeagueBillingStatus, getLeagueCapacity } from "@/lib/billing";
 import { Link, useNavigate, useParams } from "react-router";
 import Tooltip from "@mui/material/Tooltip";
 import { useAppStore } from "@/stores/appStore";
@@ -208,8 +210,9 @@ export default function LeagueAdmin() {
   const role = String(user?.role || "").toUpperCase();
   const isSuperAdmin = role === "SUPER";
   const ownsLeague = Number(league?.adminId) === Number(user?.id);
+  const leagueBillingStatus = getLeagueBillingStatus(league);
   const isReadOnly =
-    league?.seasonStatus === "archived" || league?.billingStatus === "payment_due";
+    league?.seasonStatus === "archived" || leagueBillingStatus === "payment_due";
 
   const leader = metrics?.standings?.[0] ?? null;
   const handleDeleteEvent = (event: any) => {
@@ -274,19 +277,19 @@ export default function LeagueAdmin() {
 
       {isReadOnly && (
         <div className={`rounded-xl border px-4 py-3 ${
-          league?.billingStatus === "payment_due"
+          leagueBillingStatus === "payment_due"
             ? "border-red-200 bg-red-50 text-red-900"
             : "border-amber-200 bg-amber-50 text-amber-950"
         }`}>
           <p className="text-sm font-black">
-            {league?.billingStatus === "payment_due" ? "Season payment needs attention" : "Past season — read only"}
+            {leagueBillingStatus === "payment_due" ? "Season payment needs attention" : "Past season — read only"}
           </p>
           <p className="mt-1 text-xs leading-5 opacity-80">
-            {league?.billingStatus === "payment_due"
+            {leagueBillingStatus === "payment_due"
               ? "A refund or dispute left this season underpaid. Results remain visible, but changes are blocked until payment is restored."
               : "Historical players, events, scores, and announcements are locked. Renew the league to manage the next season."}
           </p>
-          {league?.billingStatus === "payment_due" && ownsLeague && (
+          {leagueBillingStatus === "payment_due" && ownsLeague && (
             <button
               type="button"
               disabled={restorePayment.isPending}
@@ -295,7 +298,7 @@ export default function LeagueAdmin() {
                   const checkout = await restorePayment.mutateAsync({
                     purpose: "league_capacity",
                     leagueId: Number(leagueId),
-                    requestedGolfers: Number(league.numPlayers),
+                    requestedGolfers: getLeagueCapacity(league),
                     successUrl: `${window.location.origin}/league/${leagueId}/admin?checkout=season_payment_success`,
                     cancelUrl: `${window.location.origin}/league/${leagueId}/admin?checkout=season_payment_cancel`,
                   });
@@ -773,7 +776,6 @@ function AdminEventRow({
   const date = getEventLocalDate(event.startsAt, event.timeZone);
   const isCanceledEvent = String(event?.status || "").toLowerCase() === "canceled";
   const canEditEvent =
-    !event?.isComplete &&
     String(event?.status || "").toLowerCase() !== "completed" &&
     !isCanceledEvent;
 
@@ -824,10 +826,10 @@ function AdminEventRow({
               <MetaChip icon={<Clock size={10} />} label={formatTime(event.startsAt, event.timeZone)} />
             )}
             <MetaChip icon={<Flag size={10} />} label={`${event.holes}h`} />
-            {event.scoringFormat && (
+            {event.scoringMode && (
               <MetaChip
                 icon={<Award size={10} />}
-                label={event.scoringFormat.charAt(0).toUpperCase() + event.scoringFormat.slice(1)}
+                label={getScoringModeLabel(event)}
               />
             )}
             {event.playerCount != null && (
