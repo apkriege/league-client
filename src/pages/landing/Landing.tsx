@@ -29,25 +29,25 @@ const GOLF_IMAGES = {
 };
 
 const stats = [
-  { value: "Every week", label: "Schedule, flights, cards, scoring, and results" },
-  { value: "Every golfer", label: "Improvement, recent performance, rivalries, and history" },
-  { value: "Every season", label: "Renew the league while preserving its legacy" },
+  { value: "8 formats", label: "Individual and team scoring built in" },
+  { value: "One entry", label: "Scores update results, points, skins, and standings" },
+  { value: "Full history", label: "Renew each season without losing league records" },
 ];
 
 const workflow = [
   {
     title: "League administration",
-    body: "Manage golfers, substitutes, teams, invitations, scoring rules, access, season renewal, and announcement notifications visible throughout the league.",
+    body: "Manage golfers, substitutes, teams, invitations, announcements, scoring rules, and renewals.",
     icon: <Flag size={18} />,
   },
   {
     title: "Event execution",
-    body: "Schedule rounds, select courses and tees, generate flights, assign matchups, print scorecards, and handle substitutions.",
+    body: "Schedule rounds, select courses and tees, build flights and matchups, print cards, and handle substitutions.",
     icon: <ClipboardList size={18} />,
   },
   {
     title: "Scoring and competition",
-    body: "Enter scores once to calculate net results, points, skins, standings, records, event stories, and player, team, and league intelligence.",
+    body: "Enter scores once to calculate net results, points, skins, standings, records, and performance insights.",
     icon: <Trophy size={18} />,
   },
 ];
@@ -154,13 +154,12 @@ function Hero() {
           </div>
 
           <h1 className="landing-reveal landing-delay-1 mt-6 max-w-5xl text-6xl font-black leading-[0.88] tracking-[-0.065em] text-white md:text-7xl">
-            Run the league. Score the rounds. Understand the results.
+            Run your golf league without spreadsheet chaos.
           </h1>
 
           <p className="landing-reveal landing-delay-2 mt-7 max-w-2xl text-base leading-8 text-white/72 md:text-lg">
-            Replace registration lists, schedule sheets, printed pairings, scoring formulas, and
-            disconnected results with one league system. Create the season, run every event,
-            publish standings, show golfers how they are playing, and bring the league back next year.
+            Manage players, schedules, flights, scorecards, formats, standings, and season renewals—then
+            turn every score into useful player, team, and league insight.
           </p>
 
           <div className="landing-reveal landing-delay-3 mt-8 flex flex-wrap gap-3">
@@ -291,12 +290,10 @@ function ProductSection() {
             Everything the commissioner runs
           </p>
           <h2 className="mt-4 max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
-            One source of truth from registration through the final standings.
+            Everything a commissioner needs to run the season.
           </h2>
           <p className="mt-5 max-w-xl text-base leading-8 text-slate-600">
-            Every player, team, event, flight, scorecard, score, point, skin, handicap update,
-            announcement, and season record stays connected. Change a result once and the league
-            views update from the same data.
+            Set up the league, run each event, enter scores once, and keep every result and standing connected.
           </p>
 
           <div className="mt-8 grid gap-3">
@@ -539,8 +536,7 @@ function WorkflowSection() {
             </h2>
           </div>
           <p className="max-w-md text-sm leading-7 text-white/58">
-            The same player, team, event, and scoring data drives scorecards, results, standings,
-            intelligence, announcements, and historical records. You do not rebuild the league after every round.
+            Renew from the previous season with the same golfers and historical rounds—without rebuilding the league.
           </p>
         </div>
 
@@ -620,9 +616,8 @@ function PricingSection() {
             One clear price for one complete league season.
           </h2>
           <p className="mt-5 text-base leading-8 text-slate-600">
-            Each league season starts with {BILLING_MIN_GOLFERS} regular golfer spots for {includedTotal}.
-            Regular players above the minimum are {formatBillingPrice(BILLING_PRICE_PER_GOLFER)} each for that season.
-            Substitutes do not increase the price, and the next season is purchased only when you renew it.
+            Start with {BILLING_MIN_GOLFERS} regular golfers for {includedTotal}. Additional regular golfers
+            are {formatBillingPrice(BILLING_PRICE_PER_GOLFER)} each per season, and substitutes are free.
           </p>
         </div>
 

@@ -17,19 +17,20 @@ export type CourseTeePayload = {
   par: number;
   frontPar: number;
   backPar: number;
-  slopeMen: number;
-  slopeFrontMen: number;
-  slopeBackMen: number;
+  slopeMen: number | null;
+  slopeFrontMen: number | null;
+  slopeBackMen: number | null;
   slopeWomen?: number | null;
   slopeFrontWomen?: number | null;
   slopeBackWomen?: number | null;
-  ratingMen: number;
-  ratingFrontMen: number;
-  ratingBackMen: number;
+  ratingMen: number | null;
+  ratingFrontMen: number | null;
+  ratingBackMen: number | null;
   ratingWomen?: number | null;
   ratingFrontWomen?: number | null;
   ratingBackWomen?: number | null;
   holes: CourseHolePayload[];
+  holesWomen: CourseHolePayload[];
 };
 
 export type CoursePayload = {
@@ -42,6 +43,9 @@ export type CoursePayload = {
   accessType: string;
   numHoles?: number;
   par: number;
+  externalProvider?: string | null;
+  externalId?: string | null;
+  scorecardUrl?: string | null;
   tees?: CourseTeePayload[];
 };
 
@@ -56,10 +60,15 @@ export type CourseImportSearchResult = {
   par: number | null;
   phone: string;
   website: string;
+  maleTeeCount: number;
+  femaleTeeCount: number;
+  alreadyImported?: boolean;
+  availabilityUnchecked?: boolean;
 };
 
 export type ImportedCourse = {
-  provider: "OpenGolfAPI";
+  provider: "GolfCourseAPI";
+  externalId: string;
   attribution: string;
   warnings: string[];
   club: {
@@ -80,6 +89,9 @@ export type ImportedCourse = {
     par: number;
     numHoles: number;
     tees: CourseTeePayload[];
+    externalProvider: "GolfCourseAPI";
+    externalId: string;
+    scorecardUrl: string;
   };
 };
 
@@ -112,12 +124,31 @@ export const deleteCourse = async (id: number) => {
   return response.data;
 };
 
-export const searchCourseDirectory = async (name: string) => {
+export const searchCourseDirectory = async (name: string, state?: string) => {
   const response = await apiClient.get<{
     results: CourseImportSearchResult[];
     attribution: string;
   }>("/courses/import/search", {
-    params: { name },
+    params: { name, state: state || undefined },
+  });
+  return response.data;
+};
+
+export type StateCourseSearchResponse = {
+  results: CourseImportSearchResult[];
+  attribution: string;
+  offset: number;
+  checked: number;
+  unavailable: number;
+  total: number;
+  hasMore: boolean;
+  nextOffset: number;
+};
+
+export const searchStateCourseDirectory = async (state: string, offset = 0) => {
+  const response = await apiClient.get<StateCourseSearchResponse>("/courses/import/state", {
+    params: { state, offset },
+    timeout: 120000,
   });
   return response.data;
 };

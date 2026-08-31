@@ -11,6 +11,9 @@ export type CourseFormData = {
   accessType: string;
   numHoles: string;
   par: string;
+  externalProvider: string;
+  externalId: string;
+  scorecardUrl: string;
 };
 
 export type ClubFormData = {
@@ -50,6 +53,7 @@ export type TeeFormData = {
   ratingFrontWomen: string;
   ratingBackWomen: string;
   holes: HoleFormData[];
+  holesWomen: HoleFormData[];
 };
 
 type CourseTeeRecord = {
@@ -78,6 +82,12 @@ type CourseTeeRecord = {
     dis?: string | number | null;
     hcp?: string | number | null;
   }> | null;
+  holesWomen?: Array<{
+    num?: number | null;
+    par?: string | number | null;
+    dis?: string | number | null;
+    hcp?: string | number | null;
+  }> | null;
 };
 
 export type CourseRecord = {
@@ -91,6 +101,9 @@ export type CourseRecord = {
   accessType?: string | null;
   numHoles?: number | null;
   par?: number | null;
+  externalProvider?: string | null;
+  externalId?: string | null;
+  scorecardUrl?: string | null;
   club?: { id?: number; name?: string | null; location?: string | null } | null;
   tees?: CourseTeeRecord[] | null;
 };
@@ -105,6 +118,9 @@ export const emptyCourseForm: CourseFormData = {
   accessType: "public",
   numHoles: "18",
   par: "72",
+  externalProvider: "",
+  externalId: "",
+  scorecardUrl: "",
 };
 
 export const emptyClubForm: ClubFormData = {
@@ -144,6 +160,7 @@ export const buildEmptyTee = (count: number): TeeFormData => ({
   ratingFrontWomen: "",
   ratingBackWomen: count === 9 ? "0" : "",
   holes: buildEmptyHoles(count),
+  holesWomen: buildEmptyHoles(count),
 });
 
 export const ensureHoleCount = (holes: HoleFormData[], count: number) =>
@@ -171,6 +188,9 @@ export const courseToEditorState = (course: CourseRecord) => {
     accessType: String(course.accessType || "public"),
     numHoles: String(holeCount),
     par: String(course.par ?? 72),
+    externalProvider: String(course.externalProvider || ""),
+    externalId: String(course.externalId || ""),
+    scorecardUrl: String(course.scorecardUrl || ""),
   };
   const tees = Array.isArray(course.tees)
     ? course.tees.map((tee): TeeFormData => ({
@@ -196,6 +216,17 @@ export const courseToEditorState = (course: CourseRecord) => {
         holes: ensureHoleCount(
           Array.isArray(tee.holes)
             ? tee.holes.map((hole, index) => ({
+                num: Number(hole.num ?? index + 1),
+                par: String(hole.par ?? 4),
+                dis: String(hole.dis ?? 0),
+                hcp: String(hole.hcp ?? index + 1),
+              }))
+            : [],
+          holeCount
+        ),
+        holesWomen: ensureHoleCount(
+          Array.isArray(tee.holesWomen)
+            ? tee.holesWomen.map((hole, index) => ({
                 num: Number(hole.num ?? index + 1),
                 par: String(hole.par ?? 4),
                 dis: String(hole.dis ?? 0),
@@ -259,19 +290,25 @@ const toTeePayload = (tee: TeeFormData): CourseTeePayload => ({
   par: Number(tee.par || 0),
   frontPar: Number(tee.frontPar || 0),
   backPar: Number(tee.backPar || 0),
-  slopeMen: Number(tee.slopeMen || 0),
-  slopeFrontMen: Number(tee.slopeFrontMen || 0),
-  slopeBackMen: Number(tee.slopeBackMen || 0),
+  slopeMen: toNullableNumber(tee.slopeMen),
+  slopeFrontMen: toNullableNumber(tee.slopeFrontMen),
+  slopeBackMen: toNullableNumber(tee.slopeBackMen),
   slopeWomen: toNullableNumber(tee.slopeWomen),
   slopeFrontWomen: toNullableNumber(tee.slopeFrontWomen),
   slopeBackWomen: toNullableNumber(tee.slopeBackWomen),
-  ratingMen: Number(tee.ratingMen || 0),
-  ratingFrontMen: Number(tee.ratingFrontMen || 0),
-  ratingBackMen: Number(tee.ratingBackMen || 0),
+  ratingMen: toNullableNumber(tee.ratingMen),
+  ratingFrontMen: toNullableNumber(tee.ratingFrontMen),
+  ratingBackMen: toNullableNumber(tee.ratingBackMen),
   ratingWomen: toNullableNumber(tee.ratingWomen),
   ratingFrontWomen: toNullableNumber(tee.ratingFrontWomen),
   ratingBackWomen: toNullableNumber(tee.ratingBackWomen),
   holes: tee.holes.map((hole) => ({
+    num: hole.num,
+    par: Number(hole.par),
+    dis: Number(hole.dis),
+    hcp: Number(hole.hcp),
+  })),
+  holesWomen: tee.holesWomen.map((hole) => ({
     num: hole.num,
     par: Number(hole.par),
     dis: Number(hole.dis),
@@ -292,5 +329,8 @@ export const toCoursePayload = (
   accessType: form.accessType || "public",
   numHoles: form.numHoles ? Number(form.numHoles) : undefined,
   par: Number(form.par),
+  externalProvider: form.externalProvider || null,
+  externalId: form.externalId || null,
+  scorecardUrl: form.scorecardUrl || null,
   tees: tees.map(toTeePayload),
 });

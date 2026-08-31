@@ -3,6 +3,7 @@ import { useToast } from "@/context/useToast";
 import {
   loadCourseImport,
   searchCourseDirectory,
+  searchStateCourseDirectory,
   type CourseImportSearchResult,
   type ImportedCourse,
 } from "@api/courses";
@@ -26,6 +27,10 @@ const errorMessage = (error: unknown, fallback: string) => {
 export const useCourseDirectorySelection = () => {
   const { show } = useToast();
   const [courseName, setCourseName] = useState("");
+  const [state, setState] = useState("");
+  const [stateOffset, setStateOffset] = useState(0);
+  const [hasMoreStateResults, setHasMoreStateResults] = useState(false);
+  const [stateSummary, setStateSummary] = useState("");
   const [results, setResults] = useState<CourseImportSearchResult[]>([]);
   const [attribution, setAttribution] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -43,7 +48,7 @@ export const useCourseDirectorySelection = () => {
 
     setIsSearching(true);
     try {
-      const response = await searchCourseDirectory(name);
+      const response = await searchCourseDirectory(name, state.trim());
       setResults(response.results);
       setAttribution(response.attribution);
       setSelectedResult(null);
@@ -61,6 +66,32 @@ export const useCourseDirectorySelection = () => {
       setIsOpen(true);
     } catch (error) {
       show(errorMessage(error, "Course search failed."), "error");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const searchState = async (offset = 0) => {
+    const stateCode = state.trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(stateCode)) {
+      show("Enter a two-letter state code.", "error");
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const response = await searchStateCourseDirectory(stateCode, offset);
+      setResults(response.results);
+      setAttribution(response.attribution);
+      setStateOffset(response.nextOffset);
+      setHasMoreStateResults(response.hasMore);
+      setStateSummary(
+        `${response.results.length} courses shown · availability is checked when selected`,
+      );
+      setSelectedResult(null);
+      setPreview(null);
+      setIsOpen(true);
+    } catch (error) {
+      show(errorMessage(error, "State course search failed."), "error");
     } finally {
       setIsSearching(false);
     }
@@ -94,6 +125,10 @@ export const useCourseDirectorySelection = () => {
     setResults([]);
     setAttribution("");
     setCourseName("");
+    setState("");
+    setStateOffset(0);
+    setHasMoreStateResults(false);
+    setStateSummary("");
   };
 
   const back = () => {
@@ -125,6 +160,11 @@ export const useCourseDirectorySelection = () => {
   return {
     courseName,
     setCourseName,
+    state,
+    setState,
+    stateOffset,
+    hasMoreStateResults,
+    stateSummary,
     results,
     attribution,
     isSearching,
@@ -132,6 +172,7 @@ export const useCourseDirectorySelection = () => {
     preview,
     isOpen,
     search,
+    searchState,
     review,
     close,
     reset,

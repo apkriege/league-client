@@ -94,6 +94,7 @@ function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord })
         prev.map((tee) => ({
           ...tee,
           holes: ensureHoleCount(tee.holes, nextCount),
+          holesWomen: ensureHoleCount(tee.holesWomen, nextCount),
         }))
       );
     }

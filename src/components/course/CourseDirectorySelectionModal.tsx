@@ -136,14 +136,25 @@ export default function CourseDirectorySelectionModal({
                           {result.location || "Location unavailable"}
                           {result.par ? ` · Par ${result.par}` : ""}
                         </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {result.availabilityUnchecked
+                            ? "Select to check GolfCourseAPI availability"
+                            : `${result.maleTeeCount} men's tees · ${result.femaleTeeCount} women's tees`}
+                        </p>
                       </div>
                       <Button
                         type="button"
                         variant="primary"
                         onClick={() => void onReview(result)}
-                        disabled={Boolean(loadingId)}
+                        disabled={Boolean(loadingId) || result.alreadyImported}
                       >
-                        {loadingId === result.externalId ? "Loading..." : "Select Course"}
+                        {result.alreadyImported
+                          ? "Already Imported"
+                          : loadingId === result.externalId
+                            ? "Loading..."
+                            : result.availabilityUnchecked
+                              ? "Check & Load"
+                              : "Select Course"}
                       </Button>
                     </div>
                   </div>

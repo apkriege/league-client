@@ -41,7 +41,7 @@ export default function CourseImportSearch({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-2.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+        <div className="mt-4 grid grid-cols-1 gap-2.5 md:grid-cols-[minmax(0,1fr)_120px_auto_auto] md:items-end">
           <Input
             dense
             label="Course Name"
@@ -53,6 +53,14 @@ export default function CourseImportSearch({
               if (event.key === "Enter") void directory.search();
             }}
           />
+          <Input
+            dense
+            label="State"
+            placeholder="MI"
+            maxLength={2}
+            value={directory.state}
+            onChange={(event) => directory.setState(event.target.value.toUpperCase())}
+          />
           <Button
             type="button"
             variant="primary"
@@ -61,6 +69,15 @@ export default function CourseImportSearch({
           >
             <Search size={14} />
             {directory.isSearching ? "Searching..." : "Search Courses"}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => void directory.searchState(0)}
+            disabled={disabled || directory.isSearching}
+          >
+            <Database size={14} />
+            Search State
           </Button>
         </div>
       </div>
@@ -75,6 +92,23 @@ export default function CourseImportSearch({
         confirmLabel="Confirm & Load Into Form"
         confirmingLabel="Preparing..."
         warningDescription="The data will remain editable in the form before you create the course."
+        resultsFooter={
+          directory.stateSummary ? (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+              <p className="text-xs text-slate-500">{directory.stateSummary}</p>
+              {directory.hasMoreStateResults && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => void directory.searchState(directory.stateOffset)}
+                  disabled={directory.isSearching}
+                >
+                  Show next 50
+                </Button>
+              )}
+            </div>
+          ) : undefined
+        }
         onClose={directory.close}
         onReview={directory.review}
         onConfirm={handleConfirm}
