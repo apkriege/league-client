@@ -166,7 +166,7 @@ export default function Login() {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="grid gap-4">
+              <form onSubmit={handleSubmit} autoComplete="on" className="grid gap-4">
                 {passwordResetComplete && (
                   <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
                     Password updated. You can sign in now.
@@ -193,12 +193,18 @@ export default function Login() {
                   <div className="auth-field">
                     <Mail size={14} className="text-slate-400" />
                     <input
+                      id="login-email"
+                      name="username"
                       type="email"
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       className="w-full bg-transparent text-sm font-semibold text-slate-950 outline-none placeholder:text-slate-400"
                       placeholder="name@example.com"
-                      autoComplete="email"
+                      autoComplete="username"
+                      inputMode="email"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      required
                     />
                   </div>
                 </label>
@@ -212,12 +218,15 @@ export default function Login() {
                   <div className="auth-field">
                     <Lock size={14} className="text-slate-400" />
                     <input
+                      id="login-password"
+                      name="password"
                       type="password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       className="w-full bg-transparent text-sm font-semibold text-slate-950 outline-none placeholder:text-slate-400"
                       placeholder="••••••••"
                       autoComplete="current-password"
+                      required
                     />
                   </div>
                 </label>
@@ -246,6 +255,7 @@ export default function Login() {
                   <div className="auth-field">
                     <KeyRound size={14} className="text-slate-400" />
                     <input
+                      name="leagueCode"
                       type="text"
                       value={leagueCode}
                       onChange={(event) => setLeagueCode(event.target.value.toUpperCase())}
