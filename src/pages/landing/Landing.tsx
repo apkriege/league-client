@@ -18,6 +18,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import lnLogo from "@/assets/league-night-logo.png";
 import { publicLinks } from "@/config/publicLinks";
+import { SCORING_MODES } from "@/features/scoring/scoringModes";
 
 const RegisterPanel = lazy(() => import("./components/RegisterPanel"));
 
@@ -179,7 +180,7 @@ function Hero() {
             </a>
           </div>
 
-          <div className="landing-reveal landing-delay-3 mt-10 grid max-w-2xl grid-cols-3 gap-3">
+          <div className="landing-reveal landing-delay-3 mt-10 hidden max-w-2xl grid-cols-3 gap-3 md:grid">
             {stats.map((stat) => (
               <div
                 key={stat.label}
@@ -202,7 +203,7 @@ function Hero() {
 
 function HeroProductCard() {
   return (
-    <div className="landing-reveal landing-delay-2 relative">
+    <div className="landing-reveal landing-delay-2 relative hidden lg:block">
       <div className="absolute -inset-5 rounded-[2.5rem] bg-[radial-gradient(circle,rgba(125,211,252,.22),transparent_70%)]" />
       <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-slate-900/75 p-3 shadow-2xl shadow-black/30">
         <div className="rounded-[1.5rem] bg-[#f8fafc] text-slate-950 shadow-2xl">
@@ -280,6 +281,8 @@ function HeroProductCard() {
 }
 
 function ProductSection() {
+  const scoringModes = Object.values(SCORING_MODES);
+
   return (
     <section id="product" className="landing-deferred-section relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
       <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
@@ -320,7 +323,7 @@ function ProductSection() {
         <div className="relative">
           <div className="absolute -inset-6 rounded-[3rem] bg-blue-900/10 blur-2xl" />
           <div className="relative grid gap-4 lg:grid-cols-[1fr_0.74fr]">
-            <div className="overflow-hidden rounded-[2rem] bg-slate-950 p-3 shadow-2xl shadow-blue-950/18">
+            <div className="hidden overflow-hidden rounded-[2rem] bg-slate-950 p-3 shadow-2xl shadow-blue-950/18 lg:block">
               <img
                 src={`${GOLF_IMAGES.aerial}&w=1100`}
                 srcSet={`${GOLF_IMAGES.aerial}&w=560 560w, ${GOLF_IMAGES.aerial}&w=800 800w, ${GOLF_IMAGES.aerial}&w=1100 1100w`}
@@ -343,6 +346,42 @@ function ProductSection() {
             </div>
 
             <ScoreToInsightCards />
+          </div>
+        </div>
+
+        <div className="lg:col-span-2">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+            <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-800">
+                  Flexible event scoring
+                </p>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+                  Use the format your league actually plays.
+                </h3>
+              </div>
+              <p className="max-w-lg text-sm leading-6 text-slate-600">
+                Run individual and team events in the same season, with configurable handicap
+                allowances, placement points, match points, and Stableford values.
+              </p>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-2 lg:grid-cols-4">
+              {scoringModes.map((mode) => (
+                <div
+                  key={mode.id}
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3"
+                >
+                  <Check size={15} className="shrink-0 text-emerald-700" />
+                  <div>
+                    <p className="text-sm font-black text-slate-950">{mode.label}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                      {mode.models.length === 2 ? "Individual + team" : "Team"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -457,6 +496,8 @@ function IntelligenceSection() {
             <article
               key={view.title}
               className={`group rounded-[1.75rem] border p-5 transition hover:-translate-y-1 hover:shadow-xl ${
+                index > 3 ? "hidden md:block " : ""
+              }${
                 index === 0
                   ? "border-slate-950 bg-slate-950 text-white shadow-xl shadow-slate-950/15"
                   : "border-slate-200 bg-[#f8fafc] text-slate-950"
@@ -486,7 +527,7 @@ function IntelligenceSection() {
 
 function WorkflowSection() {
   return (
-    <section id="workflow" className="landing-deferred-section bg-[#101828] px-5 py-24 text-white md:px-8">
+    <section id="workflow" className="landing-deferred-section hidden bg-[#101828] px-5 py-24 text-white md:block md:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
           <div>
@@ -532,7 +573,7 @@ function RegistrationSection() {
     <section id="register" className="landing-deferred-section relative scroll-mt-6 overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
       <div className="absolute inset-x-0 top-0 h-px bg-black/5" />
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
-        <div className="rounded-[2.25rem] bg-slate-950 p-7 text-white shadow-2xl shadow-blue-950/15 md:p-9">
+        <div className="hidden rounded-[2.25rem] bg-slate-950 p-7 text-white shadow-2xl shadow-blue-950/15 lg:block lg:p-9">
           <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-300">
             Start the league
           </p>
