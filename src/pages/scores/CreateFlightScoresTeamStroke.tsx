@@ -22,6 +22,7 @@ import { formatTime } from "@/utils/format";
 import {
   getEventScoringHoles,
   getPlayerCourseHandicap,
+  getPlayerScoringHoles,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
 import {
@@ -63,11 +64,18 @@ export const CreateFlightScoresTeamStroke = ({
   const getEffectiveHandicap = (playerEntry: any) => {
     return getPlayerCourseHandicap(playerEntry);
   };
+  const getHolesForPlayer = (playerId: number) => {
+    const player = players.find((entry: any) => Number(entry.playerId) === Number(playerId));
+    return getPlayerScoringHoles(event, player);
+  };
 
   const popsByPlayerId = new Map<number, Map<number, number>>();
   for (const player of players) {
     const hcp = getEffectiveHandicap(player);
-    popsByPlayerId.set(Number(player.playerId), calculateStrokeplayPops(hcp, holes));
+    popsByPlayerId.set(
+      Number(player.playerId),
+      calculateStrokeplayPops(hcp, getPlayerScoringHoles(event, player)),
+    );
   }
 
   const popsForHole = (playerId: number, holeNum: number) =>
@@ -136,10 +144,11 @@ export const CreateFlightScoresTeamStroke = ({
   const getPlayerNetAtHole = (playerId: number, holeIdx: number) => {
     const gross = Number(watchedPlayers?.[playerId]?.scores?.[holeIdx] ?? 0);
     if (!gross) return null;
-    const holeNum = holes[holeIdx]?.num;
+    const playerHole = getHolesForPlayer(playerId)[holeIdx];
+    const holeNum = playerHole?.num;
     const pops = popsForHole(playerId, holeNum);
     const rule = event?.scoringConfig?.maximumScore as MaximumScoreRule | undefined;
-    const par = Number(holes[holeIdx]?.par ?? 4);
+    const par = Number(playerHole?.par ?? 4);
     const cappedGross =
       scoringMode !== "maximum-score" || !rule
         ? gross
@@ -181,8 +190,10 @@ export const CreateFlightScoresTeamStroke = ({
     }
     if (scoringMode === "stableford") {
       return teamPlayers.reduce((total, player) => {
-        const net = getPlayerNetAtHole(Number(player.playerId), holeIdx);
-        return net == null ? total : total + stablefordPoints(net, Number(holes[holeIdx]?.par ?? 4));
+        const playerId = Number(player.playerId);
+        const net = getPlayerNetAtHole(playerId, holeIdx);
+        const par = Number(getHolesForPlayer(playerId)[holeIdx]?.par ?? 4);
+        return net == null ? total : total + stablefordPoints(net, par);
       }, 0);
     }
     return teamPlayers.reduce(

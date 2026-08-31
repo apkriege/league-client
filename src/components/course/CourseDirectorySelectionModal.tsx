@@ -13,7 +13,8 @@ type CourseDirectorySelectionModalProps = {
   confirmationDescription: string;
   confirmLabel: string;
   confirmingLabel: string;
-  warningDescription: string;
+  warningDescription?: string;
+  showWarnings?: boolean;
   emptyContent?: ReactNode;
   emptyTitle?: string;
   resultsFooter?: ReactNode;
@@ -33,6 +34,7 @@ export default function CourseDirectorySelectionModal({
   confirmLabel,
   confirmingLabel,
   warningDescription,
+  showWarnings = true,
   emptyContent,
   emptyTitle = "Course not found",
   resultsFooter,
@@ -77,13 +79,15 @@ export default function CourseDirectorySelectionModal({
             </div>
           </div>
 
-          {preview.warnings.length > 0 && (
+          {showWarnings && preview.warnings.length > 0 && (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
               <p className="text-sm font-semibold text-amber-900">
                 {preview.warnings.length} data warning
                 {preview.warnings.length === 1 ? "" : "s"} found
               </p>
-              <p className="mt-1 text-xs text-amber-800">{warningDescription}</p>
+              {warningDescription && (
+                <p className="mt-1 text-xs text-amber-800">{warningDescription}</p>
+              )}
             </div>
           )}
 

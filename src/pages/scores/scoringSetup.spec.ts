@@ -4,6 +4,7 @@ import {
   getEventScoringHoles,
   getPlayerCourseHandicap,
   getPlayerHandicapIndex,
+  getPlayerScoringHoles,
 } from "./scoringSetup";
 
 const holes = Array.from({ length: 9 }, (_, index) => ({
@@ -15,6 +16,15 @@ describe("event scoring setup", () => {
   it("uses the holes selected by the backend", () => {
     expect(getEventScoringHoles({ scoringHoles: holes })).toEqual(holes);
     expect(getEventScoringHoles({ tee: { holes } })).toEqual([]);
+  });
+
+  it("uses the scorecard matching the player's gender", () => {
+    const male = [{ num: 1, par: 4, hcp: 1 }];
+    const female = [{ num: 1, par: 5, hcp: 9 }];
+    const event = { scoringHoles: male, scoringHolesByGender: { male, female } };
+
+    expect(getPlayerScoringHoles(event, { player: { gender: "female" } })).toEqual(female);
+    expect(getPlayerScoringHoles(event, { player: { gender: "male" } })).toEqual(male);
   });
 
   it("requires a backend-calculated Course Handicap", () => {

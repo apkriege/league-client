@@ -118,7 +118,7 @@ export default function CourseRequestPanel() {
         confirmationDescription="Verify that this is the exact club, course, and location you want added."
         confirmLabel="Verify & Send Request"
         confirmingLabel="Sending Request..."
-        warningDescription="The course will be reviewed before it is added to League Night Pro."
+        showWarnings={false}
         emptyTitle="Request a Course Manually"
         emptyContent={
           <ManualCourseRequestForm

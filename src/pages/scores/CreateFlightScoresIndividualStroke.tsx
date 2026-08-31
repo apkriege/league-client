@@ -22,6 +22,7 @@ import { formatTime } from "@/utils/format";
 import {
   getEventScoringHoles,
   getPlayerCourseHandicap,
+  getPlayerScoringHoles,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
 import {
@@ -52,12 +53,19 @@ export const CreateFlightScoresIndividualStroke = ({
   const getEffectiveHandicap = (playerEntry: any) => {
     return getPlayerCourseHandicap(playerEntry);
   };
+  const getHolesForPlayer = (playerId: number) => {
+    const player = players.find((entry: any) => Number(entry.playerId) === Number(playerId));
+    return getPlayerScoringHoles(event, player);
+  };
 
   // Per-hole handicap stroke allocation for each player
   const popsByPlayerId = new Map<number, Map<number, number>>();
   for (const player of players) {
     const hcp = getEffectiveHandicap(player);
-    popsByPlayerId.set(Number(player.playerId), calculateStrokeplayPops(hcp, holes));
+    popsByPlayerId.set(
+      Number(player.playerId),
+      calculateStrokeplayPops(hcp, getPlayerScoringHoles(event, player)),
+    );
   }
 
   const popsForHole = (playerId: number, holeNum: number) =>
@@ -121,7 +129,7 @@ export const CreateFlightScoresIndividualStroke = ({
     if (scoringMode === "maximum-score") {
       const scores = watchedPlayers?.[playerId]?.scores ?? [];
       const rule = event?.scoringConfig?.maximumScore as MaximumScoreRule | undefined;
-      return holes.reduce((total: number, hole: any, index: number) => {
+      return getHolesForPlayer(playerId).reduce((total: number, hole: any, index: number) => {
         const gross = Number(scores[index]) || 0;
         const pops = popsForHole(playerId, hole.num);
         if (!gross || !rule) return total + Math.max(0, gross - pops);
@@ -142,7 +150,7 @@ export const CreateFlightScoresIndividualStroke = ({
   const getPlayerStablefordPoints = (playerId: number) => {
     const scores = watchedPlayers?.[playerId]?.scores;
     if (!Array.isArray(scores)) return 0;
-    return holes.reduce((total: number, hole: any, idx: number) => {
+    return getHolesForPlayer(playerId).reduce((total: number, hole: any, idx: number) => {
       const gross = Number(scores[idx]) || 0;
       if (!gross) return total;
       const net = gross - popsForHole(playerId, hole.num);

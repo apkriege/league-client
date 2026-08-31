@@ -8,7 +8,11 @@ import {
   createTeamScoringHelpers,
   sortFlightTeamsByHandicap,
 } from "./util";
-import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
+import {
+  getEventScoringHoles,
+  getPlayerCourseHandicap,
+  getPlayerScoringHoles,
+} from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
 import {
   deriveScoringMode,
@@ -48,7 +52,18 @@ function ViewFlightScores({ event, flight }: any) {
   const scoringMode = deriveScoringMode(event);
 
   if (isSharedTeamScoringMode(scoringMode)) {
-    return <SharedTeamScoreView event={event} flight={flight} holes={holes} />;
+    const competitionGender = (flight.players ?? []).every(
+      (entry: any) => String(entry.player?.gender || '').toLowerCase() === 'female',
+    )
+      ? 'female'
+      : 'male';
+    return (
+      <SharedTeamScoreView
+        event={event}
+        flight={flight}
+        holes={getPlayerScoringHoles(event, { player: { gender: competitionGender } })}
+      />
+    );
   }
 
   if (event?.format === "individual" && getScoringFamily(scoringMode) === "match") {
@@ -107,7 +122,11 @@ function ViewFlightScores({ event, flight }: any) {
     const left = team1[i];
     const right = team2[i];
 
-    const [leftPops, rightPops] = calculateMatchplayPops(left.player, right.player, holes);
+    const [leftPops, rightPops] = calculateMatchplayPops(
+      { ...left.player, handicap: getPlayerCourseHandicap(left) },
+      { ...right.player, handicap: getPlayerCourseHandicap(right) },
+      holes,
+    );
     popsByPlayerId.set(Number(left.playerId), leftPops);
     popsByPlayerId.set(Number(right.playerId), rightPops);
   }

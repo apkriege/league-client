@@ -14,7 +14,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
 import { ScoreDraftStatus } from "./ScoreDraftStatus";
 import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
-import { getEventScoringHoles, getPlayerCourseHandicap } from "./scoringSetup";
+import { getPlayerCourseHandicap, getPlayerScoringHoles } from "./scoringSetup";
 import { calculateStrokeplayPops } from "./util";
 import { useScoreDraft } from "./useScoreDraft";
 import { formatTime } from "@/utils/format";
@@ -44,7 +44,7 @@ type TeamAssignment = {
 type PlayerAssignment = {
   playerId: number;
   teamId?: number | null;
-  player?: { firstName?: string; lastName?: string; handicap?: number };
+  player?: { firstName?: string; lastName?: string; handicap?: number; gender?: string };
 };
 
 type TeamRound = {
@@ -66,7 +66,12 @@ export function CreateFlightScoresSharedTeam({
 }: SharedTeamScoreProps) {
   const { leagueId, eventId } = useParams();
   const { show } = useToast();
-  const holes = getEventScoringHoles(event);
+  const competitionGender = (flight.players ?? []).every(
+    (entry) => String(entry.player?.gender || '').toLowerCase() === 'female',
+  )
+    ? 'female'
+    : 'male';
+  const holes = getPlayerScoringHoles(event, { player: { gender: competitionGender } });
   const mode = deriveScoringMode(event);
   const teamAssignments = flight.teams ?? [];
   const savedRounds = event.teamRounds ?? [];
