@@ -14,6 +14,7 @@ export type CourseFormData = {
   externalProvider: string;
   externalId: string;
   scorecardUrl: string;
+  usgaCourseId: string;
 };
 
 export type ClubFormData = {
@@ -104,6 +105,7 @@ export type CourseRecord = {
   externalProvider?: string | null;
   externalId?: string | null;
   scorecardUrl?: string | null;
+  usgaCourseId?: string | number | null;
   club?: { id?: number; name?: string | null; location?: string | null } | null;
   tees?: CourseTeeRecord[] | null;
 };
@@ -121,6 +123,7 @@ export const emptyCourseForm: CourseFormData = {
   externalProvider: "",
   externalId: "",
   scorecardUrl: "",
+  usgaCourseId: "",
 };
 
 export const emptyClubForm: ClubFormData = {
@@ -191,6 +194,7 @@ export const courseToEditorState = (course: CourseRecord) => {
     externalProvider: String(course.externalProvider || ""),
     externalId: String(course.externalId || ""),
     scorecardUrl: String(course.scorecardUrl || ""),
+    usgaCourseId: course.usgaCourseId == null ? "" : String(course.usgaCourseId),
   };
   const tees = Array.isArray(course.tees)
     ? course.tees.map((tee): TeeFormData => ({
@@ -332,5 +336,6 @@ export const toCoursePayload = (
   externalProvider: form.externalProvider || null,
   externalId: form.externalId || null,
   scorecardUrl: form.scorecardUrl || null,
+  usgaCourseId: toNullableNumber(form.usgaCourseId),
   tees: tees.map(toTeePayload),
 });

@@ -29,6 +29,7 @@ import {
 } from "./courseAdminForm";
 import ScorecardInputTable from "./components/ScorecardInputTable";
 import CourseImportSearch from "./components/CourseImportSearch";
+import UsgaRatingImport from "./components/UsgaRatingImport";
 
 export default function CoursesAdmin() {
   const [searchParams] = useSearchParams();
@@ -396,6 +397,18 @@ function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord })
               </div>
             </div>
           )}
+
+          {form.externalProvider === "GolfCourseAPI" && tees.length > 0 ? (
+            <UsgaRatingImport
+              courseId={form.usgaCourseId}
+              tees={tees}
+              onCourseIdChange={(value) => handleChange("usgaCourseId", value)}
+              onApply={(updatedTees) => {
+                setTees(updatedTees);
+                show("USGA ratings applied. Review the tee fields, then save the course.", "success");
+              }}
+            />
+          ) : null}
 
           <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

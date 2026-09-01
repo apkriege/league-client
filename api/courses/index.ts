@@ -46,6 +46,7 @@ export type CoursePayload = {
   externalProvider?: string | null;
   externalId?: string | null;
   scorecardUrl?: string | null;
+  usgaCourseId?: number | null;
   tees?: CourseTeePayload[];
 };
 
