@@ -15,9 +15,23 @@ import {
 } from "./PlayerSwapControl";
 import { buildSwappedPlayerEntry, getSwapCandidates } from "./playerSwapUtils";
 import {
+  deriveScoringMode,
   getScoringFamilyForEvent,
   getScoringModeLabel,
+  isSharedTeamScoringMode,
 } from "@/features/scoring/scoringModes";
+import { getEventRouteLabel, getEventRouteTeeLabel } from "@/features/courses/eventRoute";
+import { buildSharedTeamHandicapSetups } from "./sharedTeamSetup";
+
+type PrintScorecardRow = {
+  id: string;
+  name: string;
+  teamName?: string;
+  handicap?: number | null;
+  handicapLabel?: "CH" | "PH";
+  slotIndex: number;
+  entry: any;
+};
 
 export default function PrintFlightScorecards() {
   const { leagueId, eventId } = useParams();
@@ -192,7 +206,7 @@ export default function PrintFlightScorecards() {
         <div>
           <h1 className="text-lg font-bold text-slate-900">Flight Scorecards</h1>
           <p className="text-xs text-slate-500">
-            {event.name} · {formatEventDate(event.startsAt, undefined, "en-US", event.timeZone)} · {event.course?.name}
+            {event.name} · {formatEventDate(event.startsAt, undefined, "en-US", event.timeZone)} · {getEventRouteLabel(event)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -256,6 +270,7 @@ function FlightCard({
   onSaveFlightPlayers: (flightId: number, players: any[]) => Promise<void>;
   isSaving: boolean;
 }) {
+  const usesSharedTeamScore = isSharedTeamScoringMode(deriveScoringMode(event));
   const rows = getFlightRows(event, flight);
   const getRowSwapCandidates = (row: any) =>
     getSwapCandidates({
@@ -310,9 +325,9 @@ function FlightCard({
             <p className="text-[11px] text-slate-600">
               Flight {flightNumber}
               {flight?.startsAt ? ` · ${formatTime(flight.startsAt, event.timeZone)}` : ""}
-              {event?.tee?.name ? ` · ${event.tee.name}` : ""}
+              {getEventRouteTeeLabel(event) ? ` · ${getEventRouteTeeLabel(event)}` : ""}
             </p>
-            <p className="text-[11px] text-slate-500">{event?.course?.name || ""}</p>
+            <p className="text-[11px] text-slate-500">{getEventRouteLabel(event)}</p>
           </div>
           <div className="text-right text-[10px] text-slate-500">
             <p>Date: {formatEventDate(event.startsAt, undefined, "en-US", event.timeZone)}</p>
@@ -335,14 +350,14 @@ function FlightCard({
             players={rows}
             startHole={event.startSide === "back" && holeCount === 9 ? 10 : 1}
             holeCount={holeCount}
-            renderPlayerActions={(row) => (
-              <PlayerSwapControl
-                currentPlayerId={Number(row.entry?.playerId)}
-                candidates={getRowSwapCandidates(row)}
-                isSaving={isSaving}
-                onSwap={(replacementId) => savePlayerSwap(row, replacementId)}
-              />
-            )}
+            renderPlayerActions={usesSharedTeamScore ? undefined : (row) => (
+                <PlayerSwapControl
+                  currentPlayerId={Number(row.entry?.playerId)}
+                  candidates={getRowSwapCandidates(row)}
+                  isSaving={isSaving}
+                  onSwap={(replacementId) => savePlayerSwap(row, replacementId)}
+                />
+              )}
           />
         </div>
 
@@ -360,14 +375,7 @@ function ScorecardGrid({
   holeCount,
   renderPlayerActions,
 }: {
-  players: Array<{
-    id: string;
-    name: string;
-    teamName?: string;
-    handicap?: number | null;
-    slotIndex: number;
-    entry: any;
-  }>;
+  players: PrintScorecardRow[];
   startHole: number;
   holeCount: number;
   renderPlayerActions?: (player: any) => ReactNode;
@@ -406,7 +414,7 @@ function ScorecardGrid({
                 <td className="scorecard-player-cell border border-slate-300 px-1.5 py-1 align-top">
                   <p className="font-semibold leading-tight text-slate-800">{player.name}</p>
                   <p className="text-[9px] leading-tight text-slate-500">
-                    HCP {formatHandicap(player.handicap)}
+                    {player.handicapLabel ?? "CH"} {formatHandicap(player.handicap)}
                   </p>
                   {player.teamName ? (
                     <p className="text-[9px] leading-tight text-slate-500">{player.teamName}</p>
@@ -431,21 +439,31 @@ function ScorecardGrid({
 function getFlightRows(
   event: any,
   flight: any
-): Array<{
-  id: string;
-  name: string;
-  teamName?: string;
-  handicap?: number | null;
-  slotIndex: number;
-  entry: any;
-}> {
+): PrintScorecardRow[] {
   const flightPlayers = flight?.players || [];
   const getDisplayHandicap = (entry: any): number | null => {
-    const courseHandicap = Number(entry?.courseHandicap);
-    return Number.isFinite(courseHandicap) ? courseHandicap : null;
+    const playerHandicap = Number(entry?.handicapIndex ?? entry?.player?.handicap);
+    return Number.isFinite(playerHandicap) ? playerHandicap : null;
   };
 
   const getSortHandicap = (entry: any) => getDisplayHandicap(entry) ?? 999;
+
+  if (isSharedTeamScoringMode(deriveScoringMode(event))) {
+    return buildSharedTeamHandicapSetups(event, flight).map((setup, slotIndex) => ({
+      id: `t-${setup.teamId}`,
+      name: setup.teamName,
+      teamName: setup.players
+        .map((player) =>
+          `${player.player?.firstName || ""} ${player.player?.lastName || ""}`.trim(),
+        )
+        .filter(Boolean)
+        .join(" · "),
+      handicap: setup.playingHandicap,
+      handicapLabel: "PH",
+      slotIndex,
+      entry: null,
+    }));
+  }
 
   if (event?.format === "team") {
     const teamNamesById = new Map<number, string>();
@@ -504,14 +522,7 @@ function getFlightRows(
       flightPlayers.map((entry: any, idx: number) => [Number(entry.playerId), idx])
     );
     const used = new Set<number>();
-    const rows: Array<{
-      id: string;
-      name: string;
-      teamName?: string;
-      handicap?: number | null;
-      slotIndex: number;
-      entry: any;
-    }> = [];
+    const rows: PrintScorecardRow[] = [];
 
     flightPlayers.forEach((entry: any) => {
       const id = Number(entry.playerId);

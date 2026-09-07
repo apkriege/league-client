@@ -196,7 +196,9 @@ export function PlayerRoundBreakdown({
                     </span>
                     <span className="text-[10px] font-medium text-slate-400">
                       {formatPlayerRoundDate(round)}
-                      {round.course?.name ? ` · ${round.course.name}` : ""}
+                      {round.routeName || round.course?.name
+                        ? ` · ${round.routeName || round.course?.name}`
+                        : ""}
                       {round.tee?.name ? ` · ${round.tee.name}` : ""}
                       {round.event?.startSide ? ` · ${round.event.startSide}` : ""}
                     </span>

@@ -24,6 +24,7 @@ const formatPoints = (value: unknown) => {
 const parsePlacementPoints = (value: unknown): number[] => {
   const values = Array.isArray(value) ? value : String(value || "").split(",");
   return values
+    .filter((point) => point != null && String(point).trim() !== "")
     .map(Number)
     .filter((point) => Number.isFinite(point) && point >= 0);
 };
@@ -76,7 +77,7 @@ export function getEventScoringSummary(event: EventScoringInput) {
   return {
     format: `${model} · ${getScoringModeLabel(event)}`,
     points: placementPoints.length > 0
-      ? `Placement points · ${placementPoints.join(" / ")}`
+      ? `${model === "Team" ? "Event-wide placement points" : "Placement points"} · ${placementPoints.join(" / ")}`
       : "Hole-performance points",
   };
 }

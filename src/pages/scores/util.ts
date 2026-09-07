@@ -1,38 +1,55 @@
-export const calculateMatchplayPops = (p1: any, p2: any, holes: any) => {
-  const p1hcp = Math.round(Number(p1.handicap));
-  const p2hcp = Math.round(Number(p2.handicap));
-  const hcpDiff = Math.abs(p1hcp - p2hcp);
-  const sortedHoles = [...holes].sort((a: any, b: any) => a.hcp - b.hcp);
+export const calculateMatchplayPops = (
+  p1: any,
+  p2: any,
+  holes: any[],
+  options: {
+    p1Holes?: any[];
+    p2Holes?: any[];
+    allowance?: number;
+  } = {}
+) => {
+  const p1hcp = Number(p1.handicap);
+  const p2hcp = Number(p2.handicap);
+  const p1Holes = options.p1Holes?.length ? options.p1Holes : holes;
+  const p2Holes = options.p2Holes?.length ? options.p2Holes : holes;
+  const allowance = Number(options.allowance ?? 1);
+  const p1Playing = Math.round(p1hcp * allowance);
+  const p2Playing = Math.round(p2hcp * allowance);
+  const baseline = Math.min(p1Playing, p2Playing);
 
-  // Map hole number to number of pops
-  const p1PopsMap = new Map<number, number>();
-  const p2PopsMap = new Map<number, number>();
+  return [
+    calculateStrokeplayPops(p1Playing - baseline, p1Holes),
+    calculateStrokeplayPops(p2Playing - baseline, p2Holes),
+  ] as const;
+};
 
-  let remainingPops = hcpDiff;
-  let holeIndex = 0;
-
-  while (remainingPops > 0) {
-    const hole = sortedHoles[holeIndex % sortedHoles.length];
-    const currentPops = (p1hcp > p2hcp ? p1PopsMap.get(hole.num) : p2PopsMap.get(hole.num)) || 0;
-
-    if (p1hcp > p2hcp) {
-      p1PopsMap.set(hole.num, currentPops + 1);
-    } else if (p2hcp > p1hcp) {
-      p2PopsMap.set(hole.num, currentPops + 1);
-    }
-
-    remainingPops--;
-    holeIndex++;
-  }
-
-  return [p1PopsMap, p2PopsMap];
+export const calculateMatchPlayHolePoints = ({
+  playerGross,
+  opponentGross,
+  playerPops = 0,
+  opponentPops = 0,
+  pointsPerHole = 0,
+}: {
+  playerGross: number;
+  opponentGross: number;
+  playerPops?: number;
+  opponentPops?: number;
+  pointsPerHole?: number;
+}) => {
+  if (playerGross <= 0 || opponentGross <= 0 || pointsPerHole <= 0) return 0;
+  const playerNet = playerGross - playerPops;
+  const opponentNet = opponentGross - opponentPops;
+  if (playerNet === opponentNet) return pointsPerHole / 2;
+  return playerNet < opponentNet ? pointsPerHole : 0;
 };
 
 export const calculateStrokeplayPops = (hcp: number, holes: any) => {
   hcp = Math.round(Number(hcp));
-  const sortedHoles = [...holes].sort((a, b) => a.hcp - b.hcp);
-  const popsMap = new Map<number, number>();
   const direction = hcp < 0 ? -1 : 1;
+  const sortedHoles = [...holes].sort((a, b) =>
+    direction < 0 ? b.hcp - a.hcp : a.hcp - b.hcp
+  );
+  const popsMap = new Map<number, number>();
   let remaining = Math.abs(hcp);
   let holeIndex = 0;
 
@@ -51,9 +68,11 @@ export const sortFlightTeamsByHandicap = (flight: any) => {
   const t2Id = flight.teams?.[1]?.teamId;
 
   const getSortHandicap = (playerEntry: any) => {
-    const courseHandicap = Number(playerEntry?.courseHandicap);
-    if (Number.isFinite(courseHandicap)) {
-      return courseHandicap;
+    const playerHandicap = Number(
+      playerEntry?.handicapIndex ?? playerEntry?.player?.handicap,
+    );
+    if (Number.isFinite(playerHandicap)) {
+      return playerHandicap;
     }
 
     return 999;
@@ -84,35 +103,7 @@ export const createTeamScoringHelpers = ({
   matchupCount,
   popsForHole,
   getScoreAtHole,
-  getTeamPlayerPointsTotal,
 }: any) => {
-  const getTeamPointsForHole = (team: 1 | 2, hole: any, holeIdx: number) => {
-    const pointsPerMatchup = Number(event?.ptsPerHole) || 0;
-    let teamPoints = 0;
-
-    for (let i = 0; i < matchupCount; i++) {
-      const p1 = team1[i];
-      const p2 = team2[i];
-
-      const p1Score = getScoreAtHole(p1, holeIdx);
-      const p2Score = getScoreAtHole(p2, holeIdx);
-      if (!p1Score || !p2Score || pointsPerMatchup <= 0) continue;
-
-      const p1Net = p1Score - popsForHole(p1.playerId, hole.num);
-      const p2Net = p2Score - popsForHole(p2.playerId, hole.num);
-
-      if (p1Net === p2Net) {
-        teamPoints += pointsPerMatchup / 2;
-      } else if (team === 1 && p1Net < p2Net) {
-        teamPoints += pointsPerMatchup;
-      } else if (team === 2 && p2Net < p1Net) {
-        teamPoints += pointsPerMatchup;
-      }
-    }
-
-    return teamPoints;
-  };
-
   const getTeamWinBonus = (team: 1 | 2) => {
     const bonus = Number(event?.ptsPerTeamWin) || 0;
     if (bonus <= 0) return 0;
@@ -140,62 +131,7 @@ export const createTeamScoringHelpers = ({
     return team === winner ? bonus : 0;
   };
 
-  const getTeamMatchBonusTotal = (team: 1 | 2) => {
-    const pointsPerMatch = Number(event?.ptsPerMatch) || 0;
-    if (pointsPerMatch <= 0) return 0;
-
-    let total = 0;
-
-    for (let i = 0; i < matchupCount; i++) {
-      const p1 = team1[i];
-      const p2 = team2[i];
-
-      let p1HolesWon = 0;
-      let p2HolesWon = 0;
-      let playedHoles = 0;
-
-      holes.forEach((hole: any, holeIdx: number) => {
-        const p1Score = getScoreAtHole(p1, holeIdx);
-        const p2Score = getScoreAtHole(p2, holeIdx);
-
-        if (!p1Score || !p2Score) return;
-
-        const p1Net = p1Score - popsForHole(p1.playerId, hole.num);
-        const p2Net = p2Score - popsForHole(p2.playerId, hole.num);
-        if (p1Net < p2Net) p1HolesWon++;
-        else if (p2Net < p1Net) p2HolesWon++;
-        playedHoles++;
-      });
-
-      if (playedHoles === 0) continue;
-
-      if (p1HolesWon === p2HolesWon) {
-        total += pointsPerMatch / 2;
-      } else if (
-        (team === 1 && p1HolesWon > p2HolesWon) ||
-        (team === 2 && p2HolesWon > p1HolesWon)
-      ) {
-        total += pointsPerMatch;
-      }
-    }
-
-    return total;
-  };
-
-  const getTeamMedalPoints = (team: 1 | 2) => {
-    return getTeamMatchBonusTotal(team) + getTeamWinBonus(team);
-  };
-
-  const getTeamTotalPoints = (team: 1 | 2) => {
-    return getTeamPlayerPointsTotal(team) + getTeamWinBonus(team);
-  };
-
-  return {
-    getTeamPointsForHole,
-    getTeamWinBonus,
-    getTeamMedalPoints,
-    getTeamTotalPoints,
-  };
+  return { getTeamWinBonus };
 };
 
 export const createTeamBestBallScoringHelpers = ({

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { calculateStrokeplayPops } from "./util";
 import {
   getEventScoringHoles,
-  getPlayerCourseHandicap,
   getPlayerHandicapIndex,
   getPlayerScoringHoles,
 } from "./scoringSetup";
@@ -27,22 +26,15 @@ describe("event scoring setup", () => {
     expect(getPlayerScoringHoles(event, { player: { gender: "male" } })).toEqual(male);
   });
 
-  it("requires a backend-calculated Course Handicap", () => {
-    expect(getPlayerCourseHandicap({ courseHandicap: 5 })).toBe(5);
-    expect(() => getPlayerCourseHandicap({ player: { handicap: 10 } })).toThrow(
-      "Course Handicap is missing",
-    );
+  it("uses the stored player handicap directly", () => {
+    expect(getPlayerHandicapIndex({ handicapIndex: 4 })).toBe(4);
+    expect(getPlayerHandicapIndex({ player: { handicap: 3 } })).toBe(3);
   });
 
-  it("keeps the displayed Handicap Index separate from the Course Handicap", () => {
-    expect(getPlayerHandicapIndex({ handicapIndex: 4, courseHandicap: 2 })).toBe(4);
-    expect(getPlayerHandicapIndex({ player: { handicap: 3 }, courseHandicap: 1 })).toBe(3);
-  });
-
-  it("allocates plus Course Handicaps as strokes given back", () => {
+  it("allocates plus player handicaps as strokes given back", () => {
     expect([...calculateStrokeplayPops(-2, holes).entries()]).toEqual([
-      [1, -1],
-      [2, -1],
+      [9, -1],
+      [8, -1],
     ]);
   });
 });

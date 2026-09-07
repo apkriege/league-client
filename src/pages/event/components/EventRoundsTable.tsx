@@ -14,27 +14,32 @@ type EventScore = {
 
 type EventRound = {
   id?: number | string;
-  playerId: number | string;
-  player: {
-    firstName: string;
-    lastName: string;
-  };
-  preHandicap?: number | null;
-  postHandicap?: number | null;
   gross: number;
   net: number;
   pointsEarned?: number | null;
   matchPoints?: number | null;
   scores?: EventScore[];
-};
+} & ({
+  playerId: number | string;
+  player: { firstName: string; lastName: string };
+  preHandicap?: number | null;
+  postHandicap?: number | null;
+} | {
+  teamId: number | string;
+  team?: { name?: string | null } | null;
+});
 
 type EventRoundsTableProps = {
   rounds: EventRound[];
+  participantLabel?: "Player" | "Team";
   highlightedHolesByPlayer?: Record<number, number[]>;
   highlightUnderPar?: boolean;
   holeScoreKey?: HoleScoreMode;
   showRoundStats?: boolean;
 };
+
+const getRoundSortName = (round: EventRound) =>
+  "teamId" in round ? round.team?.name || `Team ${round.teamId}` : round.player.lastName;
 
 const formatPoints = (value: number) =>
   Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -44,6 +49,7 @@ const getRoundPoints = (round: EventRound) =>
 
 function EventRoundsTable({
   rounds,
+  participantLabel = "Player",
   highlightedHolesByPlayer,
   highlightUnderPar = true,
   holeScoreKey = "gross",
@@ -70,7 +76,7 @@ function EventRoundsTable({
           ),
         }))
         .sort((left, right) =>
-          left.round.player.lastName.localeCompare(right.round.player.lastName),
+          getRoundSortName(left.round).localeCompare(getRoundSortName(right.round)),
         ),
     [rounds],
   );
@@ -111,7 +117,7 @@ function EventRoundsTable({
           </colgroup>
           <thead>
             <tr className="section-kicker border-b border-slate-200 bg-slate-50/90">
-              <th className="py-3 pl-5 text-left">Player</th>
+              <th className="py-3 pl-5 text-left">{participantLabel}</th>
               {holes.map((hole) => (
                 <th key={hole} className="py-3 text-center">{hole}</th>
               ))}
@@ -134,22 +140,30 @@ function EventRoundsTable({
               const roundStats = calculateRoundScoreStats(round.scores ?? [], holeScoreKey);
 
               return (
-                <tr key={round.id ?? round.playerId} className="transition-colors hover:bg-emerald-50/35">
+                <tr key={round.id ?? ("teamId" in round ? round.teamId : round.playerId)} className="transition-colors hover:bg-emerald-50/35">
                   <td className="py-3 pl-5">
                     <div className="flex flex-col gap-0.5">
-                      <PlayerNameLink
-                        playerId={round.playerId}
-                        className="truncate text-xs font-bold text-slate-800 transition-colors hover:text-emerald-700 hover:underline"
-                      >
-                        {round.player.firstName} {round.player.lastName}
-                      </PlayerNameLink>
-                      <HandicapChange before={round.preHandicap} after={round.postHandicap} />
+                      {"teamId" in round ? (
+                        <span className="text-xs font-bold text-slate-800">
+                          {round.team?.name || `Team ${round.teamId}`}
+                        </span>
+                      ) : (
+                        <>
+                          <PlayerNameLink
+                            playerId={round.playerId}
+                            className="truncate text-xs font-bold text-slate-800 transition-colors hover:text-emerald-700 hover:underline"
+                          >
+                            {round.player.firstName} {round.player.lastName}
+                          </PlayerNameLink>
+                          <HandicapChange before={round.preHandicap} after={round.postHandicap} />
+                        </>
+                      )}
                     </div>
                   </td>
                   {holes.map((hole) => {
                     const score = scoresByHole.get(hole);
                     const isHighlighted = highlightedHoleSets
-                      .get(Number(round.playerId))
+                      .get("playerId" in round ? Number(round.playerId) : NaN)
                       ?.has(hole);
                     const displayedScore = score?.[holeScoreKey];
                     return (

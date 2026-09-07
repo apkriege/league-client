@@ -1,12 +1,15 @@
 export function ScoreDraftStatus({
   hasDraft,
+  storageError = false,
   savedAt,
   onClear,
 }: {
   hasDraft: boolean;
+  storageError?: boolean;
   savedAt: string | null;
   onClear: () => void;
 }) {
+  if (storageError) return <p role="status" className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">Draft storage is unavailable. Keep this page open until your scores are saved.</p>;
   if (!hasDraft) return null;
 
   return (

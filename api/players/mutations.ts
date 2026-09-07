@@ -1,3 +1,4 @@
+import { invalidateResults } from "@/lib/invalidateResults";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPlayers, deletePlayer, updatePlayer } from ".";
 
@@ -9,6 +10,7 @@ export const useCreatePlayers = () => {
       return await createPlayers(leagueId, players);
     },
     onSuccess: (_, variables) => {
+      void invalidateResults(queryClient);
       queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId] });
       queryClient.invalidateQueries({ queryKey: ["players", variables.leagueId] });
     },
@@ -26,6 +28,7 @@ export const useUpdatePlayer = () => {
       return await updatePlayer(id, data);
     },
     onSuccess: () => {
+      void invalidateResults(queryClient);
       queryClient.invalidateQueries({ queryKey: ["league"] });
       queryClient.invalidateQueries({ queryKey: ["players"] });
     },
@@ -43,6 +46,7 @@ export const useDeletePlayer = () => {
       return await deletePlayer(id);
     },
     onSuccess: () => {
+      void invalidateResults(queryClient);
       queryClient.invalidateQueries({ queryKey: ["league"] });
       queryClient.invalidateQueries({ queryKey: ["players"] });
     },

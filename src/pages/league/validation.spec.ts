@@ -21,7 +21,7 @@ describe("league form validation", () => {
     expect(validateLeagueForm(validLeague)).toBeNull();
   });
 
-  it("requires the fields used to calculate each player's Course Handicap", () => {
+  it("requires tee rating data used to calculate player handicap differentials", () => {
     expect(
       validateLeagueForm(
         {

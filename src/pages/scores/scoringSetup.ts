@@ -8,23 +8,10 @@ export const getPlayerScoringHoles = (event: any, entry: any): any[] => {
 };
 
 export type ScoringHandicapEntry = {
-  courseHandicap?: unknown;
   handicapIndex?: unknown;
   player?: {
     handicap?: unknown;
   };
-};
-
-export const getPlayerCourseHandicap = (entry: ScoringHandicapEntry): number => {
-  const rawCourseHandicap = entry?.courseHandicap;
-  const courseHandicap =
-    rawCourseHandicap === null || rawCourseHandicap === undefined || rawCourseHandicap === ""
-      ? Number.NaN
-      : Number(rawCourseHandicap);
-  if (!Number.isFinite(courseHandicap)) {
-    throw new Error('Course Handicap is missing from the event scoring setup.');
-  }
-  return courseHandicap;
 };
 
 export const getPlayerHandicapIndex = (entry: ScoringHandicapEntry): number => {

@@ -1,7 +1,10 @@
 export type EventLeaderboardSort = "points" | "lowGross" | "lowNet";
 
 export type EventLeaderboardEntry = {
+  rank: number;
+  tied: boolean;
   playerId: number;
+  teamId?: number;
   name: string;
   handicap: number | null;
   points: number;
@@ -11,6 +14,7 @@ export type EventLeaderboardEntry = {
 
 type EventRound = {
   playerId?: unknown;
+  teamId?: unknown;
   player?: {
     firstName?: unknown;
     lastName?: unknown;
@@ -21,6 +25,8 @@ type EventRound = {
   matchPoints?: unknown;
   gross?: unknown;
   net?: unknown;
+  competitionGross?: unknown;
+  competitionNet?: unknown;
 };
 
 const toFiniteNumber = (value: unknown): number | null => {
@@ -73,8 +79,8 @@ const compareLeaderboardEntries = (
 export const buildEventLeaderboard = (
   rounds: EventRound[],
   sortBy: EventLeaderboardSort
-): EventLeaderboardEntry[] =>
-  rounds
+): EventLeaderboardEntry[] => {
+  const entries = rounds
     .map((round) => {
       const firstName = String(round.player?.firstName || "").trim();
       const lastName = String(round.player?.lastName || "").trim();
@@ -82,13 +88,23 @@ export const buildEventLeaderboard = (
       const matchPoints = toFiniteNumber(round.matchPoints) ?? 0;
 
       return {
+        rank: 0,
+        tied: false,
         playerId: Number(round.playerId),
+        teamId: toFiniteNumber(round.teamId) ?? undefined,
         name: `${firstName} ${lastName}`.trim() || "Unknown Player",
         handicap: toFiniteNumber(round.preHandicap ?? round.postHandicap),
         points: pointsEarned + matchPoints,
-        gross: toFiniteNumber(round.gross),
-        net: toFiniteNumber(round.net),
+        gross: toFiniteNumber(round.competitionGross ?? round.gross),
+        net: toFiniteNumber(round.competitionNet ?? round.net),
       };
     })
     .filter((entry) => Number.isFinite(entry.playerId) && entry.playerId > 0)
     .sort((left, right) => compareLeaderboardEntries(left, right, sortBy));
+  const value = (entry: EventLeaderboardEntry) =>
+    sortBy === "points" ? entry.points : sortBy === "lowGross" ? entry.gross : entry.net;
+  return entries.map((entry, index) => {
+    const first = entries.findIndex((other) => value(other) === value(entry));
+    return { ...entry, rank: first + 1, tied: entries.some((other, otherIndex) => otherIndex !== index && value(other) === value(entry)) };
+  });
+};

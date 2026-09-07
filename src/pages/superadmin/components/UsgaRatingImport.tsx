@@ -12,6 +12,7 @@ import {
 
 type UsgaRatingImportProps = {
   courseId: string;
+  holeCount: number;
   tees: TeeFormData[];
   onCourseIdChange: (value: string) => void;
   onApply: (tees: TeeFormData[]) => void;
@@ -22,6 +23,7 @@ const formatNine = (rating: number | null, slope: number | null) =>
 
 export default function UsgaRatingImport({
   courseId,
+  holeCount,
   tees,
   onCourseIdChange,
   onApply,
@@ -30,6 +32,7 @@ export default function UsgaRatingImport({
   const [rows, setRows] = useState<UsgaRatingRow[]>([]);
   const [teeIndexes, setTeeIndexes] = useState<number[]>([]);
   const [error, setError] = useState("");
+  const [nineSide, setNineSide] = useState<"front" | "back">("front");
 
   const numericCourseId = Number(courseId);
   const courseUrl = Number.isInteger(numericCourseId) && numericCourseId > 0
@@ -67,7 +70,12 @@ export default function UsgaRatingImport({
 
   const apply = () => {
     try {
-      onApply(applyUsgaRatingRows(tees, rows, teeIndexes));
+      onApply(applyUsgaRatingRows(
+        tees,
+        rows,
+        teeIndexes,
+        holeCount <= 9 ? { nineSide } : {},
+      ));
       setError("");
     } catch (applyError) {
       setError(applyError instanceof Error ? applyError.message : "Unable to apply USGA ratings.");
@@ -127,6 +135,19 @@ export default function UsgaRatingImport({
             />
           </div>
         </div>
+
+        {holeCount <= 9 ? (
+          <Select
+            dense
+            label="Nine represented on the USGA page"
+            value={nineSide}
+            options={[
+              { value: "front", label: "Front nine" },
+              { value: "back", label: "Back nine" },
+            ]}
+            onChange={(event) => setNineSide(event.target.value === "back" ? "back" : "front")}
+          />
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-3">
           <Button type="button" variant="primary" outline onClick={preview}>

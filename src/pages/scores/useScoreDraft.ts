@@ -1,76 +1,56 @@
-import { useEffect, useMemo, useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FieldValues, UseFormReturn } from "react-hook-form";
+import { readScoreDraft } from "./scoreDraftStorage";
 
-type StoredDraft = {
-  values: unknown;
-  savedAt: string | null;
-};
-
-const readStoredDraft = (storageKey: string, enabled: boolean): StoredDraft | null => {
-  if (!enabled) return null;
-
-  const raw = window.localStorage.getItem(storageKey);
-  if (!raw) return null;
-
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed?.values) return null;
-    return {
-      values: parsed.values,
-      savedAt: parsed.savedAt || null,
-    };
-  } catch {
-    window.localStorage.removeItem(storageKey);
-    return null;
-  }
-};
-
-export function useScoreDraft({
-  methods,
-  leagueId,
-  eventId,
-  flightId,
-  enabled,
+export function useScoreDraft<T extends FieldValues>({
+  methods, leagueId, eventId, flightId, enabled, scope = "",
 }: {
-  methods: UseFormReturn<any>;
+  methods: UseFormReturn<T>;
   leagueId?: string | number;
   eventId?: string | number;
   flightId?: string | number;
   enabled: boolean;
+  scope?: string;
 }) {
-  const storageKey = useMemo(
-    () => `score-draft:${leagueId}:${eventId}:${flightId}`,
-    [leagueId, eventId, flightId],
-  );
-  const [initialDraft] = useState(() => readStoredDraft(storageKey, enabled));
-  const [hasDraft, setHasDraft] = useState(Boolean(initialDraft));
-  const [savedAt, setSavedAt] = useState<string | null>(initialDraft?.savedAt ?? null);
+  const [baseline] = useState(() => methods.getValues());
+  const draftScope = useMemo(() => JSON.stringify([scope, baseline]), [scope, baseline]);
+  const storageKey = `score-draft:v2:${leagueId}:${eventId}:${flightId}`;
+  const cleared = useRef(false);
+  const [initial] = useState(() => {
+    try {
+      return { draft: enabled ? readScoreDraft(window.localStorage, storageKey, draftScope, baseline) : null, error: false };
+    } catch { return { draft: null, error: true }; }
+  });
+  const [hasDraft, setHasDraft] = useState(Boolean(initial.draft));
+  const [savedAt, setSavedAt] = useState<string | null>(initial.draft?.savedAt ?? null);
+  const [storageError, setStorageError] = useState(initial.error);
 
   useEffect(() => {
-    if (enabled && initialDraft?.values) {
-      methods.reset(initialDraft.values);
-    }
-  }, [enabled, initialDraft, methods]);
+    if (enabled && initial.draft?.scope === draftScope) methods.reset(initial.draft.values);
+  }, [enabled, initial, methods, draftScope]);
 
   useEffect(() => {
     if (!enabled) return;
-
     return methods.subscribe({
       formState: { values: true },
       callback: ({ values }) => {
-        const payload = { values, savedAt: new Date().toISOString() };
-        window.localStorage.setItem(storageKey, JSON.stringify(payload));
-        setHasDraft(true);
-        setSavedAt(payload.savedAt);
+        if (cleared.current) return;
+        try {
+          const savedAt = new Date().toISOString();
+          window.localStorage.setItem(storageKey, JSON.stringify({ version: 2, scope: draftScope, values, savedAt }));
+          setHasDraft(true);
+          setSavedAt(savedAt);
+          setStorageError(false);
+        } catch { setStorageError(true); }
       },
     });
-  }, [enabled, methods, storageKey]);
+  }, [enabled, methods, storageKey, draftScope]);
 
   const clearDraft = () => {
-    window.localStorage.removeItem(storageKey);
+    cleared.current = true;
+    try { window.localStorage.removeItem(storageKey); } catch { setStorageError(true); }
     setHasDraft(false);
     setSavedAt(null);
   };
-
-  return { hasDraft, savedAt, clearDraft };
+  return { hasDraft, savedAt, storageError, clearDraft, discardDraft: () => { clearDraft(); cleared.current = false; } };
 }

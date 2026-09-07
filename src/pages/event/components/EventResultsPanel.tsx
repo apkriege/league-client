@@ -1,5 +1,6 @@
 import { Crown, Medal, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 import type { EventInsightInput } from "@/features/league-intelligence/types";
 import {
   buildEventLeaderboard,
@@ -21,7 +22,13 @@ const formatNumber = (value: number | null) => {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 };
 
-export default function EventResultsPanel({ event }: { event: EventInsightInput }) {
+export default function EventResultsPanel({
+  event,
+  leagueId,
+}: {
+  event: EventInsightInput;
+  leagueId: number;
+}) {
   const rounds = useMemo(() => event.metrics?.scores ?? [], [event.metrics?.scores]);
   const teamStandings = event.metrics?.teamStandings ?? [];
   const pointsEnabled = event.pointsEnabled !== false;
@@ -51,23 +58,23 @@ export default function EventResultsPanel({ event }: { event: EventInsightInput 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-3">
-        {podium.map((player, index) => (
+        {podium.map((player) => (
           <div
             key={player.playerId}
             className={`relative overflow-hidden rounded-2xl border p-4 shadow-sm ${
-              index === 0
+              player.rank === 1
                 ? "border-amber-200 bg-linear-to-br from-amber-50 via-white to-emerald-50"
                 : "border-slate-200 bg-white"
             }`}
           >
-            {index === 0 ? (
+            {player.rank === 1 ? (
               <div className="pointer-events-none absolute -right-7 -top-9 h-28 w-28 rounded-full bg-amber-200/40 blur-2xl" />
             ) : null}
             <div className="relative flex items-start justify-between gap-3">
               <span className={`grid h-9 w-9 place-items-center rounded-xl text-xs font-black ${
-                index === 0 ? "bg-slate-950 text-amber-300" : "bg-slate-100 text-slate-500"
+                player.rank === 1 ? "bg-slate-950 text-amber-300" : "bg-slate-100 text-slate-500"
               }`}>
-                {index === 0 ? <Crown size={15} /> : <Medal size={14} />}
+                {player.rank === 1 ? <><Crown size={15} /><span className="sr-only">{player.tied ? "Tied first" : "First"}</span></> : <Medal size={14} />}
               </span>
               <span className="text-right">
                 <span className="block text-2xl font-black tabular-nums text-slate-950">
@@ -78,12 +85,21 @@ export default function EventResultsPanel({ event }: { event: EventInsightInput 
                 </span>
               </span>
             </div>
-            <PlayerNameLink
-              playerId={player.playerId}
-              className="relative mt-4 block truncate text-sm font-black text-slate-900 hover:text-emerald-700"
-            >
-              {player.name}
-            </PlayerNameLink>
+            {player.teamId ? (
+              <Link
+                to={`/league/${leagueId}/team/${player.teamId}`}
+                className="relative mt-4 block truncate text-sm font-black text-slate-900 hover:text-emerald-700"
+              >
+                {player.name}
+              </Link>
+            ) : (
+              <PlayerNameLink
+                playerId={player.playerId}
+                className="relative mt-4 block truncate text-sm font-black text-slate-900 hover:text-emerald-700"
+              >
+                {player.name}
+              </PlayerNameLink>
+            )}
             <p className="relative mt-1 text-[10px] text-slate-500">
               {formatNumber(player.points)} pts · {formatNumber(player.gross)} gross · {formatNumber(player.net)} net
             </p>
@@ -116,7 +132,7 @@ export default function EventResultsPanel({ event }: { event: EventInsightInput 
       >
         <div className="grid border-b border-slate-100 bg-slate-50/60 sm:grid-cols-3">
           {[
-            { label: "Field", value: leaderboard.length, detail: "scored players" },
+            { label: "Field", value: leaderboard.length, detail: leaderboard.some((entry) => entry.teamId) ? "scored teams" : "scored players" },
             { label: "Winning margin", value: margin == null ? "—" : formatNumber(Math.abs(margin)), detail: resolvedSort === "points" ? "points" : "strokes" },
             { label: margin === 0 ? "Result" : "Leader", value: margin === 0 ? "Tied" : leader?.name ?? "—", detail: resolvedSort === "points" ? "points race" : `low ${primaryLabel}` },
           ].map((metric) => (
@@ -133,7 +149,7 @@ export default function EventResultsPanel({ event }: { event: EventInsightInput 
       {event.format === "team" && teamStandings.length > 0 ? (
         <EventInsightSection
           title="Team result"
-          description="Player contributions and team points combined"
+          description="Team points determine the order; player results are context only"
           action={<EventInsightBadge><Trophy size={10} /> Team event</EventInsightBadge>}
         >
           <EventTeamStandings standings={teamStandings} />

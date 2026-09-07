@@ -43,6 +43,11 @@ export default function EventPerformancePanel({
   dashboard: EventDashboard;
   leagueId: number;
 }) {
+  const participantLabel = dashboard.players.some((player) => player.teamId) ? "Team" : "Player";
+  const participantPath = (playerId: number, teamId?: number) =>
+    teamId
+      ? `/league/${leagueId}/team/${teamId}`
+      : `/league/${leagueId}/player/${playerId}`;
   return (
     <div className="space-y-4">
       <EventInsightSection
@@ -59,7 +64,7 @@ export default function EventPerformancePanel({
               return (
                 <Link
                   key={award.id}
-                  to={`/league/${leagueId}/player/${award.playerId}`}
+                  to={participantPath(award.playerId, award.teamId)}
                   className="group bg-white p-4 transition hover:bg-emerald-50/30 sm:p-5"
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -87,7 +92,7 @@ export default function EventPerformancePanel({
       </EventInsightSection>
 
       <EventInsightSection
-        title="Player impact board"
+        title={`${participantLabel} impact board`}
         description="How each card was built: scoring bursts, control, recovery, damage, and finish"
         action={<Crosshair size={15} className="text-emerald-600" />}
       >
@@ -98,7 +103,7 @@ export default function EventPerformancePanel({
             <table className="w-full min-w-190 text-left text-xs">
               <thead className="bg-slate-50 text-[9px] font-black uppercase tracking-wide text-slate-400">
                 <tr>
-                  <th className="px-4 py-2.5 sm:px-5">Player</th>
+                  <th className="px-4 py-2.5 sm:px-5">{participantLabel}</th>
                   <th className="px-2 py-2.5 text-right">Net</th>
                   <th className="px-2 py-2.5 text-right">Points</th>
                   <th className="px-2 py-2.5 text-right">Red</th>
@@ -119,7 +124,7 @@ export default function EventPerformancePanel({
                         }`}>
                           {index + 1}
                         </span>
-                        <Link className="font-bold text-slate-900 hover:text-emerald-700" to={`/league/${leagueId}/player/${player.playerId}`}>
+                        <Link className="font-bold text-slate-900 hover:text-emerald-700" to={participantPath(player.playerId, player.teamId)}>
                           {player.name}
                         </Link>
                       </div>

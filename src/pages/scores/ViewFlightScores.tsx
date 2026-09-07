@@ -3,17 +3,19 @@ import Table from "@/components/Table";
 import { Fragment, memo } from "react";
 import { Link, useParams } from "react-router";
 import {
+  calculateMatchPlayHolePoints,
   createTeamBestBallScoringHelpers,
   calculateMatchplayPops,
-  createTeamScoringHelpers,
+  calculateStrokeplayPops,
   sortFlightTeamsByHandicap,
 } from "./util";
 import {
   getEventScoringHoles,
-  getPlayerCourseHandicap,
+  getPlayerHandicapIndex,
   getPlayerScoringHoles,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
+import HandicapStrokeIndicator from "./components/HandicapStrokeIndicator";
 import {
   deriveScoringMode,
   getScoringFamily,
@@ -52,18 +54,7 @@ function ViewFlightScores({ event, flight }: any) {
   const scoringMode = deriveScoringMode(event);
 
   if (isSharedTeamScoringMode(scoringMode)) {
-    const competitionGender = (flight.players ?? []).every(
-      (entry: any) => String(entry.player?.gender || '').toLowerCase() === 'female',
-    )
-      ? 'female'
-      : 'male';
-    return (
-      <SharedTeamScoreView
-        event={event}
-        flight={flight}
-        holes={getPlayerScoringHoles(event, { player: { gender: competitionGender } })}
-      />
-    );
+    return <SharedTeamScoreView event={event} flight={flight} holes={holes} />;
   }
 
   if (event?.format === "individual" && getScoringFamily(scoringMode) === "match") {
@@ -85,14 +76,8 @@ function ViewFlightScores({ event, flight }: any) {
     return roundOpponentId > 0 ? roundOpponentId : null;
   };
 
-  const baseTeam1 =
-    t1Id != null
-      ? (flight.players || []).filter((p: any) => Number(p.teamId) === Number(t1Id))
-      : [...fallbackTeam1];
-  const baseTeam2 =
-    t2Id != null
-      ? (flight.players || []).filter((p: any) => Number(p.teamId) === Number(t2Id))
-      : [...fallbackTeam2];
+  const baseTeam1 = [...fallbackTeam1];
+  const baseTeam2 = [...fallbackTeam2];
 
   const team2ByPlayerId = new Map<number, any>(baseTeam2.map((p: any) => [Number(p.playerId), p]));
   const usedTeam2Ids = new Set<number>();
@@ -118,17 +103,49 @@ function ViewFlightScores({ event, flight }: any) {
   const matchupCount = Math.min(team1.length, team2.length);
 
   const popsByPlayerId = new Map<number, Map<number, number>>();
-  for (let i = 0; i < matchupCount; i++) {
-    const left = team1[i];
-    const right = team2[i];
-
-    const [leftPops, rightPops] = calculateMatchplayPops(
-      { ...left.player, handicap: getPlayerCourseHandicap(left) },
-      { ...right.player, handicap: getPlayerCourseHandicap(right) },
-      holes,
+  if (scoringMode === "match-play") {
+    for (let i = 0; i < matchupCount; i++) {
+      const left = team1[i];
+      const right = team2[i];
+      const [leftPops, rightPops] = calculateMatchplayPops(
+        { ...left.player, handicap: getPlayerHandicapIndex(left) },
+        { ...right.player, handicap: getPlayerHandicapIndex(right) },
+        holes,
+        {
+          p1Holes: getPlayerScoringHoles(event, left),
+          p2Holes: getPlayerScoringHoles(event, right),
+          allowance: Number(event?.scoringConfig?.handicapAllowance ?? 1),
+        },
+      );
+      popsByPlayerId.set(Number(left.playerId), leftPops);
+      popsByPlayerId.set(Number(right.playerId), rightPops);
+    }
+  } else {
+    const players = [...team1, ...team2];
+    const allowance = Number(
+      event?.scoringConfig?.handicapAllowance ??
+        (scoringMode === "four-ball-match" ? 0.9 : 1),
     );
-    popsByPlayerId.set(Number(left.playerId), leftPops);
-    popsByPlayerId.set(Number(right.playerId), rightPops);
+    const playingHandicaps = new Map(
+      players.map((player: any) => [
+        Number(player.playerId),
+        Math.round(getPlayerHandicapIndex(player) * allowance),
+      ]),
+    );
+    const baseline =
+      scoringMode === "four-ball-match" && playingHandicaps.size > 0
+        ? Math.min(...playingHandicaps.values())
+        : 0;
+    for (const player of players) {
+      const playerId = Number(player.playerId);
+      popsByPlayerId.set(
+        playerId,
+        calculateStrokeplayPops(
+          Number(playingHandicaps.get(playerId) || 0) - baseline,
+          getPlayerScoringHoles(event, player),
+        ),
+      );
+    }
   }
 
   const popsForHole = (playerId: number, holeNum: number) => {
@@ -136,30 +153,29 @@ function ViewFlightScores({ event, flight }: any) {
   };
 
   const getScoreAtHole = (player: any, holeIdx: number) => {
-    return Number(player?.player?.rounds?.[0]?.scores?.[holeIdx]?.gross ?? 0);
+    const holeNum = Number(holes[holeIdx]?.num);
+    const score = (player?.player?.rounds?.[0]?.scores ?? []).find(
+      (entry: any) => Number(entry?.hole) === holeNum,
+    );
+    return Number(score?.gross ?? 0);
   };
 
-  const getTeamPlayerPointsTotal = (team: 1 | 2) => {
-    const players = team === 1 ? team1 : team2;
-    return players.reduce((sum: number, player: any) => {
-      const round = player?.player?.rounds?.[0];
-      const points = Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0);
-      return sum + points;
-    }, 0);
+  const allPlayersById = new Map(
+    [...team1, ...team2].map((player: any) => [Number(player.playerId), player]),
+  );
+  const getPlayerHolePoints = (player: any, hole: any, holeIdx: number) => {
+    const opponentId = Number(getSavedOpponentId(player) ?? 0);
+    const opponent: any = allPlayersById.get(opponentId);
+    if (!opponent) return 0;
+    return calculateMatchPlayHolePoints({
+      playerGross: getScoreAtHole(player, holeIdx),
+      opponentGross: getScoreAtHole(opponent, holeIdx),
+      playerPops: popsForHole(Number(player.playerId), Number(hole.num)),
+      opponentPops: popsForHole(opponentId, Number(hole.num)),
+      pointsPerHole: Number(event?.ptsPerHole ?? 0),
+    });
   };
 
-  const isTeamStroke = event?.format === "team" && getScoringFamily(scoringMode) === "stroke";
-
-  const standardTeamHelpers = createTeamScoringHelpers({
-    event,
-    holes,
-    team1,
-    team2,
-    matchupCount,
-    popsForHole,
-    getScoreAtHole,
-    getTeamPlayerPointsTotal,
-  });
   const teamStrokeHelpers = createTeamBestBallScoringHelpers({
     event,
     holes,
@@ -169,15 +185,42 @@ function ViewFlightScores({ event, flight }: any) {
     getScoreAtHole,
   });
 
-  const getTeamPointsForHole = isTeamStroke
-    ? teamStrokeHelpers.getTeamPointsForHole
-    : standardTeamHelpers.getTeamPointsForHole;
-  const getTeamTotalPoints = isTeamStroke
-    ? teamStrokeHelpers.getTeamTotalPoints
-    : standardTeamHelpers.getTeamTotalPoints;
-  const getTeamMedalPoints = isTeamStroke
-    ? (_team: 1 | 2) => 0
-    : standardTeamHelpers.getTeamMedalPoints;
+  const getTeamPointsForHole = (team: 1 | 2, hole: any, holeIdx: number) =>
+    scoringMode === "match-play"
+      ? (team === 1 ? team1 : team2).reduce(
+          (sum: number, player: any) => sum + getPlayerHolePoints(player, hole, holeIdx),
+          0,
+        )
+      : teamStrokeHelpers.getTeamPointsForHole(team, hole, holeIdx);
+  const getTeamTotalPoints = (team: 1 | 2) => {
+    const teamId = Number(team === 1 ? t1Id : t2Id);
+    return Number(
+      (event.teamEventPoints ?? []).find((row: any) => Number(row.teamId) === teamId)?.points ?? 0,
+    );
+  };
+  const getTeamPlayerPoints = (team: 1 | 2) =>
+    (team === 1 ? team1 : team2).reduce((total: number, player: any) => {
+      const round = player?.player?.rounds?.[0];
+      return total + Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0);
+    }, 0);
+  const showHolePoints = scoringMode === "four-ball-match" || scoringMode === "match-play";
+  const showPlayerMatchDetails = scoringMode === "match-play";
+  const getTeamMedalPoints = (team: 1 | 2) => {
+    if (scoringMode === "match-play") {
+      return (team === 1 ? team1 : team2).reduce(
+        (total: number, player: any) =>
+          total + Number(player?.player?.rounds?.[0]?.matchPoints ?? 0),
+        0,
+      );
+    }
+    if (!showHolePoints) return 0;
+    const holePoints = holes.reduce(
+      (total: number, hole: any, holeIndex: number) =>
+        total + Number(getTeamPointsForHole(team, hole, holeIndex) || 0),
+      0,
+    );
+    return Math.round((getTeamTotalPoints(team) - holePoints) * 10) / 10;
+  };
 
   return (
     <div className="border rounded-lg">
@@ -200,14 +243,24 @@ function ViewFlightScores({ event, flight }: any) {
                 ))}
                 <th className="text-center">Total</th>
                 <th className="text-center">Net</th>
-                <th className="text-center">Points</th>
+                {showPlayerMatchDetails ? (
+                  <th className="text-center">Pts</th>
+                ) : (
+                  <th className="text-center">Points</th>
+                )}
               </tr>
             </thead>
             <tbody>
               {visibleTeams.map((team) => (
                 <Fragment key={team}>
                   {(team === 1 ? team1 : team2).map((player: any) => (
-                    <PlayerRow key={player.id} player={player} holes={holes} />
+                    <PlayerRow
+                      key={player.id}
+                      player={player}
+                      holes={holes}
+                      popsForHole={popsForHole}
+                      showMatchDetails={showPlayerMatchDetails}
+                    />
                   ))}
                   {team1.length > 0 && team2.length > 0 && (
                     <TeamPointsRow
@@ -217,7 +270,9 @@ function ViewFlightScores({ event, flight }: any) {
                       getTeamPointsForHole={getTeamPointsForHole}
                       getTeamMedalPoints={getTeamMedalPoints}
                       getTeamTotalPoints={getTeamTotalPoints}
-                      isTeamStroke={isTeamStroke}
+                      getTeamPlayerPoints={getTeamPlayerPoints}
+                      showHolePoints={showHolePoints}
+                      showPlayerPointBreakdown={showPlayerMatchDetails}
                     />
                   )}
                 </Fragment>
@@ -262,7 +317,7 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
                 ))}
                 <th className="text-center">Gross</th>
                 <th className="text-center">Net</th>
-                <th className="text-center">Points</th>
+                <th className="text-center">Event points</th>
               </tr>
             </thead>
             <tbody>
@@ -276,7 +331,7 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
                     <td className="p-3">
                       <p className="font-bold text-slate-900">{team.team?.name || `Team ${team.teamId}`}</p>
                       <p className="mt-0.5 text-[10px] text-slate-500">
-                        {round ? `${round.courseHandicap ?? 0} team handicap` : "No score"}
+                        {round ? `PH ${round.playingHandicap ?? 0}` : "No score"}
                       </p>
                     </td>
                     {holes.map((hole: any) => {
@@ -305,31 +360,41 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
   );
 }
 
-const PlayerRow = ({ player, holes }: any) => {
+const PlayerRow = ({
+  player,
+  holes,
+  popsForHole,
+  showMatchDetails,
+}: any) => {
   const p = player.player;
   const round = p.rounds[0];
   const scores = round?.scores || [];
 
   return (
-    <tr key={player.id} className="text-sm bg-slate-50/50">
+    <tr className="text-sm bg-slate-50/50">
       <td className="p-2 text-xs">
         <PlayerNameLink playerId={player.playerId}>
           {p.firstName} {p.lastName}
         </PlayerNameLink>
         <PlayerHandicapSummary entry={player} className="mt-0.5 block text-[10px] leading-tight text-gray-500" />
       </td>
-      {holes.map((hole: any, holeIdx: number) => {
-        const score = scores[holeIdx]?.gross;
+      {holes.map((hole: any) => {
+        const score = scores.find((entry: any) => Number(entry?.hole) === Number(hole.num))?.gross;
         return (
           <td key={hole.num} className="p-2">
             <div className="relative h-8 border rounded flex items-center justify-center text-xs font-semibold bg-white">
               {score ?? "-"}
+              {showMatchDetails ? (
+                <HandicapStrokeIndicator
+                  strokes={popsForHole(Number(player.playerId), Number(hole.num))}
+                />
+              ) : null}
             </div>
           </td>
         );
       })}
-      <ScoreValueCell>{round?.gross ?? 0}</ScoreValueCell>
-      <ScoreValueCell>{round?.net ?? 0}</ScoreValueCell>
+      <ScoreValueCell>{round?.competitionGross ?? round?.gross ?? 0}</ScoreValueCell>
+      <ScoreValueCell>{round?.competitionNet ?? round?.net ?? 0}</ScoreValueCell>
       <ScoreValueCell>
         {Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0)}
       </ScoreValueCell>
@@ -349,10 +414,6 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
 
     const roundOpponentId = Number(playerEntry?.player?.rounds?.[0]?.opponentId ?? 0);
     return roundOpponentId > 0 ? roundOpponentId : null;
-  };
-
-  const getEffectiveHandicap = (playerEntry: any) => {
-    return getPlayerCourseHandicap(playerEntry);
   };
 
   const buildPairs = () => {
@@ -385,9 +446,14 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
 
   for (const [left, right] of pairs) {
     const [leftPops, rightPops] = calculateMatchplayPops(
-      { ...left.player, handicap: getEffectiveHandicap(left) },
-      { ...right.player, handicap: getEffectiveHandicap(right) },
-      holes
+      { ...left.player, handicap: getPlayerHandicapIndex(left) },
+      { ...right.player, handicap: getPlayerHandicapIndex(right) },
+      holes,
+      {
+        p1Holes: getPlayerScoringHoles(event, left),
+        p2Holes: getPlayerScoringHoles(event, right),
+        allowance: Number(event?.scoringConfig?.handicapAllowance ?? 1),
+      }
     );
     popsByPlayerId.set(Number(left.playerId), leftPops);
     popsByPlayerId.set(Number(right.playerId), rightPops);
@@ -409,7 +475,7 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
       matchPoints: Number(round?.matchPoints ?? 0),
       totalPoints: Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0),
       gross: Number(round?.gross ?? 0),
-      net: Number(round?.net ?? 0),
+      net: Number(round?.competitionNet ?? round?.net ?? 0),
     };
   };
 
@@ -458,15 +524,9 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
               <td key={hole.num} className="p-2">
                 <div className="relative h-8 border rounded flex items-center justify-center text-xs font-semibold bg-white">
                   {score || "-"}
-                  {popsForHole(Number(playerEntry.playerId), hole.num) > 0 && (
-                    <span className="score-medals">
-                      {Array.from({
-                        length: popsForHole(Number(playerEntry.playerId), hole.num),
-                      }).map((_, idx) => (
-                        <span key={idx} className="h-1 w-1 rounded-full bg-black" />
-                      ))}
-                    </span>
-                  )}
+                  <HandicapStrokeIndicator
+                    strokes={popsForHole(Number(playerEntry.playerId), hole.num)}
+                  />
                 </div>
               </td>
             );
@@ -563,29 +623,49 @@ const TeamPointsRow = ({
   getTeamPointsForHole,
   getTeamMedalPoints,
   getTeamTotalPoints,
-  isTeamStroke,
+  getTeamPlayerPoints,
+  showHolePoints,
+  showPlayerPointBreakdown,
 }: any) => {
   return (
     <tr aria-hidden="true" className="bg-gray-200">
       <td>{label}</td>
       {holes.map((hole: any, holeIdx: number) => (
         <ScoreValueCell key={hole.num} className="p-2">
-          {getTeamPointsForHole(team, hole, holeIdx)}
+          {showHolePoints ? getTeamPointsForHole(team, hole, holeIdx) : "—"}
         </ScoreValueCell>
       ))}
-      <td />
-      <td className="p-2 font-bold text-center">
-        <div className="flex flex-col items-center leading-tight">
-          <span className="text-sm">{getTeamMedalPoints(team)}</span>
-          <span className="text-[10px]">{isTeamStroke ? "Bonus" : "Medal"}</span>
-        </div>
-      </td>
-      <td className="p-2 font-bold text-center">
-        <div className="flex flex-col items-center leading-tight">
-          <span className="text-sm">{getTeamTotalPoints(team)}</span>
-          <span className="text-[10px]">Total</span>
-        </div>
-      </td>
+      {showPlayerPointBreakdown ? (
+        <>
+          <td colSpan={2} className="p-2 text-center font-bold">
+            <div className="flex flex-col items-center leading-tight">
+              <span className="text-sm">{getTeamTotalPoints(team)}</span>
+              <span className="text-[10px]">Match</span>
+            </div>
+          </td>
+          <td className="p-2 text-center font-bold">
+            <div className="flex flex-col items-center leading-tight">
+              <span className="text-sm">{getTeamPlayerPoints(team)}</span>
+              <span className="text-[10px]">Player</span>
+            </div>
+          </td>
+        </>
+      ) : (
+        <>
+        <td />
+        <td className="p-2 font-bold text-center">
+          {showHolePoints ? (
+          <div className="flex flex-col items-center leading-tight">
+            <span className="text-sm">{getTeamMedalPoints(team)}</span>
+            <span className="text-[10px]">Match</span>
+          </div>
+        ) : (
+          <span className="text-gray-400">—</span>
+          )}
+        </td>
+        <td className="p-2 font-bold text-center">{getTeamTotalPoints(team)}</td>
+        </>
+      )}
     </tr>
   );
 };

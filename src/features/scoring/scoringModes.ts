@@ -11,6 +11,7 @@ export type ScoringMode =
   | "alternate-shot";
 
 export type StablefordPointScale = {
+  condorOrBetter: number;
   albatrossOrBetter: number;
   eagle: number;
   birdie: number;
@@ -28,6 +29,7 @@ export type ScoringConfiguration = {
   handicapAllowance: number;
   stablefordPointScale?: StablefordPointScale;
   maximumScore?: MaximumScoreRule;
+  sharedTeamScorecard?: "male" | "female";
 };
 
 export type ScoringModeDefinition = {
@@ -40,7 +42,8 @@ export type ScoringModeDefinition = {
 };
 
 export const DEFAULT_STABLEFORD_SCALE: StablefordPointScale = {
-  albatrossOrBetter: 4,
+  condorOrBetter: 6,
+  albatrossOrBetter: 5,
   eagle: 4,
   birdie: 3,
   par: 2,
@@ -136,10 +139,13 @@ export const deriveScoringMode = (event: {
 };
 
 export const createDefaultScoringConfiguration = (mode: ScoringMode): ScoringConfiguration => ({
-  handicapAllowance: 1,
+  handicapAllowance: mode === "four-ball-match" ? 0.9 : 1,
   ...(mode === "stableford" ? { stablefordPointScale: { ...DEFAULT_STABLEFORD_SCALE } } : {}),
   ...(mode === "maximum-score"
     ? { maximumScore: { type: "relative-to-par" as const, strokesOverPar: 2 } }
+    : {}),
+  ...(mode === "scramble" || mode === "alternate-shot"
+    ? { sharedTeamScorecard: "male" as const }
     : {}),
 });
 
@@ -151,7 +157,21 @@ export const getScoringModeLabel = (event: {
   scoringMode?: unknown;
 }) => SCORING_MODES[deriveScoringMode(event)].label;
 
+export const hasPlacementPoints = (value: unknown) => {
+  const entries = Array.isArray(value) ? value : String(value ?? '').split(',');
+  return entries.some(
+    (entry) =>
+      entry != null &&
+      String(entry).trim() !== '' &&
+      Number.isFinite(Number(entry)) &&
+      Number(entry) >= 0,
+  );
+};
+
 export const getTeamSizeError = (mode: ScoringMode, playerCount: number) => {
+  if (mode === "match-play" && playerCount < 2) {
+    return "Team match play requires at least two players on every team.";
+  }
   if (mode === "four-ball-match" && playerCount !== 2) {
     return "Four-ball match play requires exactly two players on every team.";
   }

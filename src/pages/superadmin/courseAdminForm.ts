@@ -152,16 +152,16 @@ export const buildEmptyTee = (count: number): TeeFormData => ({
   backPar: count === 9 ? "0" : "36",
   slopeMen: "",
   slopeFrontMen: "",
-  slopeBackMen: count === 9 ? "0" : "",
+  slopeBackMen: "",
   slopeWomen: "",
   slopeFrontWomen: "",
-  slopeBackWomen: count === 9 ? "0" : "",
+  slopeBackWomen: "",
   ratingMen: "",
   ratingFrontMen: "",
-  ratingBackMen: count === 9 ? "0" : "",
+  ratingBackMen: "",
   ratingWomen: "",
   ratingFrontWomen: "",
-  ratingBackWomen: count === 9 ? "0" : "",
+  ratingBackWomen: "",
   holes: buildEmptyHoles(count),
   holesWomen: buildEmptyHoles(count),
 });
@@ -255,32 +255,103 @@ export const getCourseValidationError = (
     return "Enter a valid IANA timezone, such as America/Detroit.";
   }
 
-  const coursePar = Number(form.par);
-  if (Number.isNaN(coursePar) || coursePar <= 0) return "Par must be a positive number.";
-
   const holeCount = Number(form.numHoles);
-  if (!holeCount || Number.isNaN(holeCount) || holeCount <= 0) {
-    return "Number of holes must be a positive number.";
+  if (![9, 18].includes(holeCount)) {
+    return "A course must be one independently playable 9-hole or 18-hole layout.";
   }
+  const coursePar = Number(form.par);
+  const minimumPar = holeCount === 9 ? 18 : 36;
+  const maximumPar = holeCount === 9 ? 54 : 108;
+  if (!Number.isInteger(coursePar) || coursePar < minimumPar || coursePar > maximumPar) {
+    return `Course par must be a whole number from ${minimumPar} to ${maximumPar}.`;
+  }
+  if (tees.length === 0) return "At least one tee is required.";
+
+  const names = new Set<string>();
+  const validateScorecard = (
+    holes: TeeFormData["holes"],
+    teeIndex: number,
+    label: string
+  ) => {
+    if (holes.length !== holeCount) {
+      return `${label} on tee ${teeIndex + 1} must have ${holeCount} holes.`;
+    }
+    const expected = Array.from({ length: holeCount }, (_, index) => index + 1);
+    const numbers = holes.map((hole) => Number(hole.num)).sort((left, right) => left - right);
+    const ranks = holes.map((hole) => Number(hole.hcp)).sort((left, right) => left - right);
+    if (numbers.some((value, index) => value !== expected[index])) {
+      return `${label} hole numbers must use 1 through ${holeCount} once.`;
+    }
+    if (ranks.some((value, index) => value !== expected[index])) {
+      return `${label} handicap ranks must use 1 through ${holeCount} once.`;
+    }
+    for (const hole of holes) {
+      if (!Number.isInteger(Number(hole.par)) || Number(hole.par) < 2 || Number(hole.par) > 7) {
+        return `Hole ${hole.num} on tee ${teeIndex + 1} needs a whole-number par from 2 to 7.`;
+      }
+      if (!Number.isInteger(Number(hole.dis)) || Number(hole.dis) < 0 || Number(hole.dis) > 900) {
+        return `Hole ${hole.num} on tee ${teeIndex + 1} needs a valid whole-number distance.`;
+      }
+    }
+    return null;
+  };
+
+  const validateRatingPair = (
+    rating: unknown,
+    slope: unknown,
+    label: string,
+    minRating: number,
+    maxRating: number
+  ) => {
+    const hasRating = rating != null && String(rating).trim() !== "";
+    const hasSlope = slope != null && String(slope).trim() !== "";
+    if (hasRating !== hasSlope) return `${label} rating and slope must both be entered or blank.`;
+    if (!hasRating) return null;
+    const ratingValue = Number(rating);
+    const slopeValue = Number(slope);
+    if (!Number.isFinite(ratingValue) || ratingValue < minRating || ratingValue > maxRating) {
+      return `${label} rating must be from ${minRating} to ${maxRating}.`;
+    }
+    if (!Number.isInteger(slopeValue) || slopeValue < 55 || slopeValue > 155) {
+      return `${label} slope must be a whole number from 55 to 155.`;
+    }
+    return null;
+  };
 
   for (const [teeIndex, tee] of tees.entries()) {
     if (!tee.name.trim()) return `Tee ${teeIndex + 1} needs a name.`;
     if (!tee.color.trim()) return `Tee ${teeIndex + 1} needs a color.`;
-    if (tee.holes.length !== holeCount) {
-      return `Tee ${teeIndex + 1} must have ${holeCount} holes.`;
+    if (!Number.isInteger(Number(tee.distance)) || Number(tee.distance) < 0 || Number(tee.distance) > 20000) {
+      return `Tee ${teeIndex + 1} needs a whole-number total distance from 0 to 20000.`;
     }
-
-    for (const hole of tee.holes) {
-      if (Number.isNaN(Number(hole.par)) || Number(hole.par) <= 0) {
-        return `Hole ${hole.num} on tee ${teeIndex + 1} needs a valid par.`;
-      }
-      if (Number.isNaN(Number(hole.dis)) || Number(hole.dis) < 0) {
-        return `Hole ${hole.num} on tee ${teeIndex + 1} needs a valid distance.`;
-      }
-      if (Number.isNaN(Number(hole.hcp)) || Number(hole.hcp) <= 0) {
-        return `Hole ${hole.num} on tee ${teeIndex + 1} needs a valid handicap rank.`;
-      }
+    const normalizedName = tee.name.trim().toLowerCase();
+    if (names.has(normalizedName)) return "Tee names must be unique within a course.";
+    names.add(normalizedName);
+    const scorecardError =
+      validateScorecard(tee.holes, teeIndex, "Men's scorecard") ||
+      validateScorecard(tee.holesWomen, teeIndex, "Women's scorecard");
+    if (scorecardError) return scorecardError;
+    const frontPar = tee.holes.slice(0, 9).reduce((total, hole) => total + Number(hole.par), 0);
+    const backPar = holeCount === 18
+      ? tee.holes.slice(9, 18).reduce((total, hole) => total + Number(hole.par), 0)
+      : 0;
+    if (
+      Number(tee.par) !== frontPar + backPar ||
+      Number(tee.frontPar) !== frontPar ||
+      Number(tee.backPar) !== backPar
+    ) {
+      return `Tee ${teeIndex + 1} par and front/back par must match its men's scorecard.`;
     }
+    const fullMin = holeCount === 9 ? 20 : 40;
+    const fullMax = holeCount === 9 ? 50 : 100;
+    const ratingError =
+      validateRatingPair(tee.ratingMen, tee.slopeMen, `Tee ${teeIndex + 1} men's full-course`, fullMin, fullMax) ||
+      validateRatingPair(tee.ratingWomen, tee.slopeWomen, `Tee ${teeIndex + 1} women's full-course`, fullMin, fullMax) ||
+      validateRatingPair(tee.ratingFrontMen, tee.slopeFrontMen, `Tee ${teeIndex + 1} men's front-nine`, 20, 50) ||
+      validateRatingPair(tee.ratingBackMen, tee.slopeBackMen, `Tee ${teeIndex + 1} men's back-nine`, 20, 50) ||
+      validateRatingPair(tee.ratingFrontWomen, tee.slopeFrontWomen, `Tee ${teeIndex + 1} women's front-nine`, 20, 50) ||
+      validateRatingPair(tee.ratingBackWomen, tee.slopeBackWomen, `Tee ${teeIndex + 1} women's back-nine`, 20, 50);
+    if (ratingError) return ratingError;
   }
 
   return null;

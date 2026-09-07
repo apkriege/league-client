@@ -26,6 +26,14 @@ export type TeamEventPlayerRound = {
 };
 
 export type TeamEventResult = {
+  fieldRank?: number | null;
+  fieldSize?: number;
+  sharedRound?: {
+    teamId: number;
+    gross: number;
+    net: number;
+    scores: Array<{ hole: number; gross: number; net: number; par: number }>;
+  };
   id: number;
   name: string;
   startsAt: string;

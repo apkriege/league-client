@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { getScoringModeLabel } from "@/features/scoring/scoringModes";
+import { getEventRouteLabel, getEventRouteTeeLabel } from "@/features/courses/eventRoute";
 
 const statuses: Record<string, { label: string; icon: ReactNode; className: string }> = {
   upcoming: {
@@ -82,11 +83,11 @@ export default function LeagueEventRow({
             </div>
             <div className="mt-0.5 flex items-center gap-1">
               <MapPin size={10} className="text-gray-400" strokeWidth={2} />
-              <span className="text-xs text-gray-400">{event.course?.name}</span>
-              {event.tee?.name && (
+              <span className="text-xs text-gray-400">{getEventRouteLabel(event)}</span>
+              {getEventRouteTeeLabel(event) && (
                 <>
                   <span className="text-xs text-gray-300">&bull;</span>
-                  <span className="text-xs text-gray-400">{event.tee.name} tees</span>
+                  <span className="text-xs text-gray-400">{getEventRouteTeeLabel(event)} tees</span>
                 </>
               )}
             </div>

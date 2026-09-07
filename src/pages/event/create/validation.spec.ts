@@ -19,6 +19,18 @@ const validEvent = {
 };
 
 describe("event form validation", () => {
+  it("requires the second course and tee as a pair", () => {
+    expect(validateEventForm(
+      { ...validEvent, secondCourseId: 2, secondTeeId: "" },
+      { showTeamsSection: false },
+    )).toBe("Select both the second nine and its tee.");
+  });
+  it("requires a second nine when the first nine will not be repeated", () => {
+    expect(validateEventForm(
+      { ...validEvent, holes: 18, repeatFirstNine: false },
+      { showTeamsSection: false },
+    )).toBe("Select a course and tee for the second nine.");
+  });
   it("accepts valid flight structures", () => {
     expect(validateEventForm(validEvent, { showTeamsSection: false })).toBeNull();
     expect(
@@ -81,6 +93,22 @@ describe("event form validation", () => {
         { showTeamsSection: true },
       ),
     ).toMatch(/exactly two players/i);
+
+    expect(
+      validateEventForm(
+        {
+          ...validEvent,
+          format: "team",
+          scoringMode: "best-ball",
+          teams: [
+            { id: 10, name: "A", players: [1, 2] },
+            { id: 20, name: "B", players: [3] },
+          ],
+          flights: [[10, 20]],
+        },
+        { showTeamsSection: true },
+      ),
+    ).toMatch(/equal roster sizes/i);
   });
 
   it("requires a valid maximum-score rule", () => {
@@ -94,5 +122,27 @@ describe("event form validation", () => {
         { showTeamsSection: false },
       ),
     ).toMatch(/maximum-score rule/i);
+  });
+
+  it("requires whole-number intervals and match point settings", () => {
+    expect(
+      validateEventForm(
+        { ...validEvent, interval: 10.5 },
+        { showTeamsSection: false },
+      ),
+    ).toMatch(/whole number/i);
+    expect(
+      validateEventForm(
+        {
+          ...validEvent,
+          scoringMode: "match-play",
+          ptsPerHole: 0.5,
+          ptsPerMatch: 2,
+          ptsPerTeamWin: 2,
+          flights: [[[1, 2], [3, 4]]],
+        },
+        { showTeamsSection: false },
+      ),
+    ).toMatch(/points per hole.*whole number/i);
   });
 });

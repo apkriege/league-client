@@ -150,6 +150,7 @@ export type EventInsightScore = {
 
 export type EventInsightRound = {
   playerId: number;
+  teamId?: number;
   player: { firstName: string; lastName: string };
   gross: number;
   net: number;

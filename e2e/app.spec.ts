@@ -35,7 +35,7 @@ test('public landing and login pages expose the primary entry points', async ({ 
   );
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /index, follow/);
   await expect(
-    page.getByRole('heading', { name: 'Run the league. Score the rounds. Understand the results.' }),
+    page.getByRole('heading', { name: 'Run your golf league without spreadsheet chaos.' }),
   ).toBeVisible();
   await page.getByRole('link', { name: 'Intelligence', exact: true }).click();
   await expect(page.getByRole('heading', {
@@ -188,7 +188,7 @@ test('player intelligence turns scoring history into improvement and matchup vie
   await expect(page.getByRole('heading', { name: 'Head-to-head' })).toBeVisible();
 
   await page.getByRole('tab', { name: /How you're progressing/ }).click();
-  await expect(page.getByRole('heading', { name: 'Form line' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Performance trend' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Personal records' })).toBeVisible();
 });
 
@@ -226,5 +226,61 @@ test('@mobile player intelligence stays navigable without horizontal page overfl
   await page.getByRole('tab', { name: 'Compete' }).click();
   await expect(page.getByRole('heading', { name: 'Head-to-head' })).toBeVisible();
   await page.getByRole('tab', { name: 'Progress' }).click();
-  await expect(page.getByRole('heading', { name: 'Form line' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Performance trend' })).toBeVisible();
+});
+
+async function findSharedTeamEvent(page: Page, status: 'completed' | 'active' = 'completed') {
+  const leagues = await (await page.request.get(`${apiUrl}/admin/leagues`)).json();
+  const league = leagues.find((entry: { name: string }) => entry.name === '[SCORING LAB] All Formats');
+  expect(league).toBeTruthy();
+  const events = await (await page.request.get(`${apiUrl}/leagues/${league.id}/events`)).json();
+  const event = events.find((entry: { scoringMode: string; status: string }) => entry.scoringMode === 'scramble' && entry.status === status);
+  expect(event).toBeTruthy();
+  return { leagueId: Number(league.id), eventId: Number(event.id) };
+}
+
+test('team leaderboard links open teams and edited team scores survive a refresh', async ({ page }) => {
+  await signIn(page, 'admin@test.com');
+  const { leagueId, eventId } = await findSharedTeamEvent(page);
+  await page.goto(`/league/${leagueId}/events/${eventId}`);
+  const leaderboard = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Event leaderboard', exact: true }) }).last();
+  const teamLink = leaderboard.locator('tbody a').first();
+  await expect(teamLink).toHaveAttribute('href', /\/team\/\d+$/);
+  await expect(leaderboard.getByRole('columnheader', { name: 'Team', exact: true })).toBeVisible();
+
+  await page.goto(`/league/${leagueId}/events/${eventId}/scores`);
+  await page.getByRole('button', { name: 'Edit Scores' }).first().click();
+  await page.getByRole('spinbutton').first().fill('9');
+  await expect(page.getByText(/Draft autosaved/)).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Edit Scores' }).first().click();
+  await expect(page.getByRole('spinbutton').first()).toHaveValue('9');
+
+  await page.getByRole('button', { name: 'Save Changes' }).click();
+  await expect(page).toHaveURL(`/league/${leagueId}`);
+  await page.goto(`/league/${leagueId}/events/${eventId}/scores`);
+  await page.getByRole('button', { name: 'Score history', exact: true }).click();
+  const revision = page.getByRole('region', { name: 'Score history' }).locator('details').first();
+  await revision.locator('summary').click();
+  await expect(revision.getByRole('button', { name: 'Restore these scores' })).toBeVisible();
+  await expect(revision.getByRole('columnheader', { name: 'Before', exact: true })).toBeVisible();
+});
+
+test('@mobile team score entry remains usable when draft storage is blocked', async ({ page }) => {
+  await signIn(page, 'admin@test.com');
+  const { leagueId, eventId } = await findSharedTeamEvent(page);
+  await page.addInitScript(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (key.startsWith('score-draft:')) throw new DOMException('Storage full', 'QuotaExceededError');
+      original.call(this, key, value);
+    };
+  });
+  await page.goto(`/league/${leagueId}/events/${eventId}/scores`);
+  await page.getByRole('button', { name: 'Edit Scores' }).first().click();
+  const input = page.getByRole('spinbutton').first();
+  await input.fill('8');
+  await expect(input).toHaveValue('8');
+  await expect(page.getByText('Draft storage is unavailable.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save Changes' })).toBeEnabled();
 });

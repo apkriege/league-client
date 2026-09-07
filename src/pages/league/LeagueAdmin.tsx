@@ -19,6 +19,7 @@ import { formatEventDate, getEventLocalDate, sortEventsByDate } from "@/utils/ev
 import { formatTime } from "@/utils/format";
 import { useToast } from "@/context/useToast";
 import { getScoringModeLabel } from "@/features/scoring/scoringModes";
+import { getEventRouteLabel, getEventRouteTeeLabel } from "@/features/courses/eventRoute";
 import {
   Award,
   Ban,
@@ -600,7 +601,7 @@ export default function LeagueAdmin() {
                     <p className="font-semibold text-gray-800">{nextEvent.name}</p>
                     <div className="flex items-center gap-1 mt-0.5">
                       <MapPin size={11} className="text-gray-400" strokeWidth={2} />
-                      <span className="text-xs text-gray-400">{nextEvent.course?.name}</span>
+                      <span className="text-xs text-gray-400">{getEventRouteLabel(nextEvent)}</span>
                       {nextEvent.tee?.name && (
                         <>
                           <span className="text-gray-300">&bull;</span>
@@ -724,7 +725,7 @@ function ScoreEntryRow({
         <p className="font-bold text-gray-900 text-sm tracking-tight truncate">{event.name}</p>
         <div className="flex items-center gap-1 mt-0.5">
           <MapPin size={10} className="text-gray-400" strokeWidth={2} />
-          <span className="text-xs font-medium text-gray-400 truncate">{event.course?.name}</span>
+          <span className="text-xs font-medium text-gray-400 truncate">{getEventRouteLabel(event)}</span>
         </div>
       </div>
       <div className="flex gap-2 shrink-0">
@@ -809,12 +810,14 @@ function AdminEventRow({
               <div className="flex items-center gap-1 mt-0.5">
                 <MapPin size={10} className="text-gray-400" strokeWidth={2} />
                 <span className="text-xs font-medium text-gray-400 truncate">
-                  {event.course?.name}
+                  {getEventRouteLabel(event)}
                 </span>
-                {event.tee?.name && (
+                {getEventRouteTeeLabel(event) && (
                   <>
                     <span className="text-gray-300 text-xs">&bull;</span>
-                    <span className="text-xs font-medium text-gray-400">{event.tee.name} tees</span>
+                    <span className="text-xs font-medium text-gray-400">
+                      {getEventRouteTeeLabel(event)} tees
+                    </span>
                   </>
                 )}
               </div>

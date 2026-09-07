@@ -83,14 +83,14 @@ export default function TeamIntelligence({ team }: { team: TeamProfile }) {
 
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 sm:min-w-105 sm:grid-cols-3">
           <HeaderMetric
-            label="Match record"
-            value={record(insight.record.wins, insight.record.losses, insight.record.ties)}
-            detail={`${insight.record.matches} completed matchups`}
+            label={insight.record.matches ? "Match record" : "Event wins"}
+            value={insight.record.matches ? record(insight.record.wins, insight.record.losses, insight.record.ties) : String(insight.field.wins)}
+            detail={insight.record.matches ? `${insight.record.matches} completed matchups` : `${insight.field.events} completed field events`}
             tone="text-amber-300"
           />
           <HeaderMetric
-            label="Win rate"
-            value={`${insight.overview.winRate}%`}
+            label={insight.record.matches ? "Match win rate" : "Podium finishes"}
+            value={insight.record.matches ? `${insight.overview.winRate}%` : String(insight.field.podiums)}
             detail={
               insight.record.matches > 0 ? `${insight.record.wins} team wins` : "Building baseline"
             }

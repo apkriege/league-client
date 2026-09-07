@@ -19,6 +19,7 @@ import {
   AutocompleteSelect,
   DateInput,
   Input,
+  Select,
   ToggleCards,
 } from "@/components/form";
 import { Label } from "@/components/form/Label";
@@ -71,13 +72,30 @@ export default function MultiSeriesBuilder() {
   const leagueEndDate = getEventDateInputValue(league?.endDate);
   const leagueHoleFormat = normalizeLeagueHoleFormat(league?.holeFormat);
   const fixedEventHoleCount = getFixedEventHoleCount(leagueHoleFormat);
-  const availableCourses = (courses || []).filter(
-    (course: any) => fixedEventHoleCount !== 18 || Number(course.numHoles) >= 18
-  );
+  const availableCourses = courses || [];
+  const primaryCourseId = methods.watch("courseId");
+  const primaryTeeId = methods.watch("teeId");
+  const secondCourseId = methods.watch("secondCourseId");
+  const secondTeeId = methods.watch("secondTeeId");
+  const repeatFirstNine = methods.watch("repeatFirstNine") !== false;
   const selectedCourse = availableCourses.find(
-    (course: any) => Number(course.id) === Number(methods.watch("courseId"))
+    (course: any) => Number(course.id) === Number(primaryCourseId)
   );
-  const isNineHoleCourse = Number(selectedCourse?.numHoles) <= 9;
+  const selectedCourseHoleCount =
+    Number(selectedCourse?.numHoles) || Number(selectedCourse?.tees?.[0]?.holes?.length);
+  const isNineHoleCourse =
+    Boolean(selectedCourse) && selectedCourseHoleCount > 0 && selectedCourseHoleCount <= 9;
+  const canChooseEventLength = fixedEventHoleCount === 9 && isNineHoleCourse;
+  const usesTwoNineRoute = isNineHoleCourse && Number(methods.watch("holes")) === 18;
+  const selectedClubId = Number(selectedCourse?.clubId ?? selectedCourse?.club?.id);
+  const secondNineCourses = availableCourses.filter((course: any) => {
+    const holeCount = Number(course.numHoles) || Number(course.tees?.[0]?.holes?.length);
+    return holeCount > 0 && holeCount <= 9 &&
+      Number(course.clubId ?? course.club?.id) === selectedClubId;
+  });
+  const selectedSecondCourse = secondNineCourses.find(
+    (course: any) => Number(course.id) === Number(secondCourseId),
+  );
 
   // Shared settings from the parent form context
   const format: string = methods.watch("format") || "team";
@@ -178,13 +196,43 @@ export default function MultiSeriesBuilder() {
   ]);
 
   useEffect(() => {
-    if (fixedEventHoleCount) {
+    if (fixedEventHoleCount === 18 || (fixedEventHoleCount === 9 && !isNineHoleCourse)) {
       methods.setValue("holes", fixedEventHoleCount, { shouldDirty: true });
     }
     if (isNineHoleCourse) {
       methods.setValue("startSide", "front", { shouldDirty: true });
     }
   }, [fixedEventHoleCount, isNineHoleCourse, methods]);
+
+  useEffect(() => {
+    if (!usesTwoNineRoute) {
+      if (secondCourseId) methods.setValue("secondCourseId", "", { shouldDirty: true });
+      if (secondTeeId) methods.setValue("secondTeeId", "", { shouldDirty: true });
+      return;
+    }
+    if (repeatFirstNine) {
+      if (Number(secondCourseId) !== Number(primaryCourseId)) {
+        methods.setValue("secondCourseId", primaryCourseId, { shouldDirty: true });
+      }
+      if (Number(secondTeeId) !== Number(primaryTeeId)) {
+        methods.setValue("secondTeeId", primaryTeeId || "", { shouldDirty: true });
+      }
+      return;
+    }
+    if (secondCourseId && !selectedSecondCourse) {
+      methods.setValue("secondCourseId", "", { shouldDirty: true });
+      methods.setValue("secondTeeId", "", { shouldDirty: true });
+    }
+  }, [
+    methods,
+    primaryCourseId,
+    primaryTeeId,
+    repeatFirstNine,
+    secondCourseId,
+    secondTeeId,
+    selectedSecondCourse,
+    usesTwoNineRoute,
+  ]);
 
   const sharedStartSide = methods.watch("startSide") === "back" ? "back" : "front";
   const getEventStartSide = (index: number) => {
@@ -220,6 +268,10 @@ export default function MultiSeriesBuilder() {
         </div>
       ),
     }));
+  const secondTeeOptions = (selectedSecondCourse?.tees || [])
+    .slice()
+    .sort((a: any, b: any) => Number(b.distance || 0) - Number(a.distance || 0))
+    .map((tee: any) => ({ value: tee.id, label: `${tee.name} · ${tee.distance} yards` }));
 
   // ---------------------------------------------------------------------------
   // Schedule generation
@@ -317,6 +369,9 @@ export default function MultiSeriesBuilder() {
           interval: shared.interval,
           courseId: shared.courseId,
           teeId: shared.teeId,
+          secondCourseId: shared.secondCourseId,
+          secondTeeId: shared.secondTeeId,
+          repeatFirstNine: shared.repeatFirstNine,
           startSide: getEventStartSide(i),
           holes: shared.holes,
           format: shared.format,
@@ -378,6 +433,27 @@ export default function MultiSeriesBuilder() {
                 </div>
               )}
 
+              <div>
+                <Label text="Holes" />
+                {canChooseEventLength ? (
+                  <ToggleCards
+                    value={String(methods.watch("holes"))}
+                    onChange={(value) =>
+                      methods.setValue("holes", Number(value), { shouldDirty: true })
+                    }
+                    options={[
+                      { value: "9", label: "9" },
+                      { value: "18", label: "18" },
+                    ]}
+                  />
+                ) : (
+                  <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
+                    <span className="font-semibold">{fixedEventHoleCount ?? 18} holes</span>
+                    <span className="ml-1 text-slate-900/60">locked by league settings.</span>
+                  </div>
+                )}
+              </div>
+
               <AutocompleteSelect
                 label="Course"
                 placeholder="Search by course, club, or location"
@@ -387,29 +463,111 @@ export default function MultiSeriesBuilder() {
                 onChange={(v) => {
                   if (Number(v) !== Number(methods.getValues("courseId"))) {
                     methods.setValue("teeId", undefined, { shouldDirty: true });
+                    methods.setValue("secondCourseId", "", { shouldDirty: true });
+                    methods.setValue("secondTeeId", "", { shouldDirty: true });
                   }
                   methods.setValue("courseId", v, { shouldDirty: true });
                 }}
                 value={methods.watch("courseId")}
               />
-              <Link
-                to="/courses"
-                className="-mt-3 block w-full text-right text-[10px] font-medium text-sky-700 hover:text-sky-900 hover:underline"
-              >
-                Can't find your course?
-              </Link>
+              <div className="-mt-3 flex min-h-6 items-center justify-between gap-3">
+                {usesTwoNineRoute ? (
+                  <label className="flex cursor-pointer items-center gap-1 text-[11px] font-medium text-slate-600">
+                    <MuiCheckbox
+                      checked={repeatFirstNine}
+                      onChange={(event) => {
+                        const checked = event.target.checked;
+                        methods.setValue("repeatFirstNine", checked, { shouldDirty: true });
+                        methods.setValue("secondCourseId", checked ? primaryCourseId : "", { shouldDirty: true });
+                        methods.setValue("secondTeeId", checked ? primaryTeeId || "" : "", { shouldDirty: true });
+                      }}
+                      size="small"
+                      sx={{ p: 0.25 }}
+                    />
+                    Play the first nine twice
+                  </label>
+                ) : <span />}
+                <Link
+                  to="/courses"
+                  className="text-[10px] font-medium text-sky-700 hover:text-sky-900 hover:underline"
+                >
+                  Can't find your course?
+                </Link>
+              </div>
 
               {methods.watch("courseId") && teeOptions.length > 0 && (
                 <div>
                   <Label text="Tee" />
                   <ToggleCards
                     value={methods.watch("teeId")}
-                    onChange={(v) => methods.setValue("teeId", v)}
+                    onChange={(v) => {
+                      const previousTeeId = methods.getValues("teeId");
+                      methods.setValue("teeId", v, { shouldDirty: true });
+                      if (
+                        repeatFirstNine &&
+                        Number(methods.getValues("secondCourseId")) ===
+                          Number(methods.getValues("courseId")) &&
+                        (!methods.getValues("secondTeeId") ||
+                          Number(methods.getValues("secondTeeId")) === Number(previousTeeId))
+                      ) {
+                        methods.setValue("secondTeeId", v, { shouldDirty: true });
+                      }
+                    }}
                     options={teeOptions}
                     className="max-grid-cols-2!"
                   />
                 </div>
               )}
+
+              {usesTwoNineRoute && !repeatFirstNine ? (
+                <div className="my-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-6 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white">
+                        2
+                      </span>
+                      <p className="text-sm font-semibold text-slate-900">Second nine</p>
+                    </div>
+                    <span className="truncate text-[10px] font-medium text-slate-500">
+                      {selectedCourse?.club?.name || "Same club"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    <AutocompleteSelect
+                      label="Course"
+                      placeholder="Choose the second nine"
+                      options={createCourseAutocompleteOptions(secondNineCourses)}
+                      noResultsText="No other nine-hole courses at this club"
+                      denseOptions
+                      value={methods.watch("secondCourseId")}
+                      onChange={(value) => {
+                        if (Number(value) !== Number(methods.getValues("secondCourseId"))) {
+                          methods.setValue("secondTeeId", "", { shouldDirty: true });
+                        }
+                        methods.setValue("secondCourseId", value, { shouldDirty: true });
+                      }}
+                    />
+                    {secondCourseId ? (
+                      <Select
+                        label="Tee"
+                        value={methods.watch("secondTeeId")}
+                        options={secondTeeOptions}
+                        onChange={(event) =>
+                          methods.setValue("secondTeeId", event.target.value, { shouldDirty: true })
+                        }
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {isNineHoleCourse && Number(methods.watch("holes")) === 18 ? (
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                  {repeatFirstNine
+                    ? "Each event repeats the first nine and scores it again as holes 10–18."
+                    : "Each event scores the selected second nine as holes 10–18."}
+                </div>
+              ) : null}
 
               <div>
                 <Label text="Starting Side" />
@@ -442,20 +600,20 @@ export default function MultiSeriesBuilder() {
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <Input label="Start Time" type="time" {...methods.register("startTime")} />
                 <Input
                   label="Interval (min)"
                   type="number"
-                  {...methods.register("interval", { valueAsNumber: true })}
+                  min={1}
+                  max={180}
+                  step={1}
+                  {...methods.register("interval", {
+                    valueAsNumber: true,
+                    min: { value: 1, message: "Interval must be at least 1 minute" },
+                    max: { value: 180, message: "Interval cannot exceed 180 minutes" },
+                  })}
                 />
-                <div>
-                  <Label text="Holes" />
-                  <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
-                    <span className="font-semibold">{fixedEventHoleCount ?? 18} holes</span>
-                    <span className="ml-1 text-slate-900/60">locked by league settings.</span>
-                  </div>
-                </div>
               </div>
             </div>
           </Card>

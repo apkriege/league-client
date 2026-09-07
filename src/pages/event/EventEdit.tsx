@@ -38,6 +38,9 @@ type EventEditFormValues = {
   interval: number;
   courseId?: number;
   teeId?: number;
+  secondCourseId?: number;
+  secondTeeId?: number;
+  repeatFirstNine: boolean;
   startSide: string;
   holes: number;
   format: string;
@@ -85,6 +88,9 @@ export default function EventEdit() {
       interval: 10,
       courseId: undefined,
       teeId: undefined,
+      secondCourseId: undefined,
+      secondTeeId: undefined,
+      repeatFirstNine: true,
       startSide: "front",
       holes: 9,
       format: "team",
@@ -119,6 +125,17 @@ export default function EventEdit() {
       ),
     }));
     const scoringMode = deriveScoringMode(event);
+    const secondRouteSegment = Array.isArray(event.routeSegments)
+      ? [...event.routeSegments].sort(
+          (left: { position?: number }, right: { position?: number }) =>
+            Number(left.position || 0) - Number(right.position || 0),
+        )[1]
+      : undefined;
+    const repeatFirstNine =
+      Number(event.holes) === 18 &&
+      (!secondRouteSegment ||
+        (Number(secondRouteSegment.courseId) === Number(event.courseId) &&
+          Number(secondRouteSegment.teeId) === Number(event.teeId)));
     eventForm.reset({
       name: event.name ?? "",
       type: event.type ?? "regular",
@@ -127,6 +144,9 @@ export default function EventEdit() {
       interval: event.interval ?? 10,
       courseId: event.courseId ?? undefined,
       teeId: event.teeId ?? undefined,
+      secondCourseId: secondRouteSegment?.courseId ?? undefined,
+      secondTeeId: secondRouteSegment?.teeId ?? undefined,
+      repeatFirstNine,
       startSide: event.startSide ?? "front",
       holes: event.holes ?? 9,
       format: event.format ?? "team",

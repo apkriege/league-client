@@ -18,6 +18,9 @@ const formatPoints = (value: number) =>
 
 const getOpponentLabel = (event: TeamEventResult) => {
   if (event.type.toLowerCase() === "off") return "Off week";
+  if (!["match-play", "four-ball-match"].includes(event.scoringMode)) {
+    return event.isAssigned ? (event.fieldRank != null ? `Finish ${event.fieldRank} of ${event.fieldSize}` : "Event field") : "Not assigned";
+  }
   if (event.opponents.length > 0) return event.opponents.map((opponent) => opponent.name).join(", ");
   return event.isAssigned ? "Opponent TBD" : "Not assigned";
 };
@@ -64,7 +67,7 @@ export default function TeamEventResultsTable({ events, leagueId }: TeamEventRes
       },
       {
         key: "opponents",
-        label: "Opponent",
+        label: "Competition",
         sortable: false,
         render: (_value, event) => (
           <div className="min-w-32">
@@ -79,7 +82,7 @@ export default function TeamEventResultsTable({ events, leagueId }: TeamEventRes
       },
       {
         key: "totalPoints",
-        label: "Points Earned",
+        label: "Team Points",
         sortable: false,
         headerClassName: "[&>div]:justify-end",
         cellClassName: "text-right",
@@ -89,17 +92,28 @@ export default function TeamEventResultsTable({ events, leagueId }: TeamEventRes
           ) : (
             <div className="min-w-28">
               <p className="text-sm font-black text-slate-900">
-                {formatPoints(event.totalPoints)}
+                {formatPoints(event.teamPoints)}
               </p>
               <p className="mt-0.5 text-[10px] text-slate-400">
-                {formatPoints(event.playerPoints)} player · {formatPoints(event.teamPoints)} team
+                {event.sharedRound ? `${event.sharedRound.gross} gross · ${event.sharedRound.net} net` : `${formatPoints(event.playerPoints)} player pts shown for context`}
               </p>
+              {event.sharedRound && (
+                <details className="mt-2 text-left" onClick={(click) => click.stopPropagation()}>
+                  <summary className="cursor-pointer text-xs font-bold text-emerald-700">Team scorecard</summary>
+                  <div className="mt-2 overflow-x-auto">
+                    <table className="text-xs tabular-nums">
+                      <thead><tr><th className="p-2">Hole</th><th className="p-2">Par</th><th className="p-2">Gross</th><th className="p-2">Net</th></tr></thead>
+                      <tbody>{event.sharedRound.scores.map((score) => <tr key={score.hole}><th className="p-2">{score.hole}</th><td className="p-2">{score.par}</td><td className="p-2">{score.gross}</td><td className="p-2">{score.net}</td></tr>)}</tbody>
+                    </table>
+                  </div>
+                </details>
+              )}
             </div>
           ),
       },
       {
         key: "opponents",
-        label: "Opponent Points",
+        label: "Opponent Team Points",
         sortable: false,
         headerClassName: "[&>div]:justify-end",
         cellClassName: "text-right",
@@ -112,11 +126,11 @@ export default function TeamEventResultsTable({ events, leagueId }: TeamEventRes
               {event.opponents.map((opponent) => (
                 <div key={opponent.id}>
                   <p className="text-sm font-black text-slate-700">
-                    {opponent.totalPoints == null ? "—" : formatPoints(opponent.totalPoints)}
+                    {opponent.totalPoints == null ? "—" : formatPoints(opponent.teamPoints)}
                   </p>
                   {opponent.totalPoints != null && (
                     <p className="text-[10px] text-slate-400">
-                      {formatPoints(opponent.playerPoints)} player · {formatPoints(opponent.teamPoints)} team
+                      {formatPoints(opponent.playerPoints)} player pts shown for context
                     </p>
                   )}
                 </div>

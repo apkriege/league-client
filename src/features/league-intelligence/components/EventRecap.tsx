@@ -21,8 +21,11 @@ export default function EventRecap({
 }) {
   const recap = buildEventRecap(event);
   if (!recap) return null;
+  const participantLabel = event.metrics?.scores?.some((round) => round.teamId)
+    ? "Teams"
+    : "Players";
   const overviewMetrics = [
-    { label: "Players", value: overview.players, detail: "scored players" },
+    { label: participantLabel, value: overview.players, detail: `scored ${participantLabel.toLowerCase()}` },
     { label: "Gross skins", value: overview.grossSkins, detail: "winning holes" },
     { label: "Net skins", value: overview.netSkins, detail: "winning holes" },
     { label: "Holes", value: overview.holes, detail: `${overview.startSide} start` },

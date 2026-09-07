@@ -10,14 +10,20 @@ import {
 const isBlank = (value: unknown) => value == null || String(value).trim() === "";
 const isPositiveNumber = (value: unknown) => Number.isFinite(Number(value)) && Number(value) > 0;
 const isNonNegativeNumber = (value: unknown) => Number.isFinite(Number(value)) && Number(value) >= 0;
+const isNonNegativeInteger = (value: unknown) =>
+  Number.isInteger(Number(value)) && Number(value) >= 0;
 
 function parseStrokePoints(value: unknown) {
   if (Array.isArray(value)) {
-    return value.map(Number).filter((point) => Number.isFinite(point) && point >= 0);
+    return value
+      .filter((point) => point != null && String(point).trim() !== "")
+      .map(Number)
+      .filter((point) => Number.isFinite(point) && point >= 0);
   }
 
   return String(value || "")
     .split(",")
+    .filter((point) => point.trim() !== "")
     .map((point) => Number(point.trim()))
     .filter((point) => Number.isFinite(point) && point >= 0);
 }
@@ -81,13 +87,21 @@ export function validateEventForm(
     return "Event date cannot be after the league end date.";
   }
   if (isBlank(data.startTime)) return "Start time is required.";
-  if (!isPositiveNumber(data.interval)) return "Interval must be at least 1 minute.";
+  if (!Number.isInteger(Number(data.interval)) || Number(data.interval) < 1 || Number(data.interval) > 180) {
+    return "Interval must be a whole number from 1 to 180 minutes.";
+  }
   if (!isPositiveNumber(data.courseId)) return "Please select a course.";
   if (!isPositiveNumber(data.teeId)) return "Please select a tee.";
   if (!["front", "back"].includes(String(data.startSide || ""))) {
     return "Please select a starting side.";
   }
   if (![9, 18].includes(Number(data.holes))) return "Please select 9 or 18 holes.";
+  const hasSecondCourse = isPositiveNumber(data.secondCourseId);
+  const hasSecondTee = isPositiveNumber(data.secondTeeId);
+  if (hasSecondCourse !== hasSecondTee) return "Select both the second nine and its tee.";
+  if (Number(data.holes) === 18 && data.repeatFirstNine === false && !hasSecondCourse) {
+    return "Select a course and tee for the second nine.";
+  }
 
   const format = String(data.format || "").toLowerCase();
   if (!["individual", "team"].includes(format)) return "Please select an event format.";
@@ -125,9 +139,9 @@ export function validateEventForm(
   }
 
   if (scoringFamily === "match") {
-    if (!isNonNegativeNumber(data.ptsPerHole)) return "Points per hole must be 0 or higher.";
-    if (!isNonNegativeNumber(data.ptsPerMatch)) return "Points per match must be 0 or higher.";
-    if (!isNonNegativeNumber(data.ptsPerTeamWin)) return "Points per team win must be 0 or higher.";
+    if (!isNonNegativeInteger(data.ptsPerHole)) return "Points per hole must be a whole number of 0 or higher.";
+    if (!isNonNegativeInteger(data.ptsPerMatch)) return "Points per match must be a whole number of 0 or higher.";
+    if (!isNonNegativeInteger(data.ptsPerTeamWin)) return "Points per team win must be a whole number of 0 or higher.";
   }
 
   if (scoringFamily === "stroke" && data.pointsEnabled !== false && !isBlank(data.strokePoints)) {
@@ -156,6 +170,24 @@ export function validateEventForm(
   if (flights.length === 0) return "Please add at least one flight.";
   const flightError = validateFlights(flights, format, scoringFamily);
   if (flightError) return flightError;
+  if (
+    format === "team" &&
+    ["stroke-play", "stableford", "maximum-score", "best-ball", "match-play", "four-ball-match"]
+      .includes(scoringMode)
+  ) {
+    const teamsById = new Map(
+      (Array.isArray(data.teams) ? data.teams : []).map((team: any) => [
+        Number(team?.id),
+        Array.isArray(team?.players) ? team.players.length : 0,
+      ]),
+    );
+    for (const [flightIndex, flight] of flights.entries()) {
+      const rosterSizes = (flight as unknown[]).map((teamId) => teamsById.get(Number(teamId)) ?? 0);
+      if (new Set(rosterSizes).size !== 1) {
+        return `Team flight ${flightIndex + 1} requires equal roster sizes.`;
+      }
+    }
+  }
 
   return null;
 }

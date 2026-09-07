@@ -21,10 +21,11 @@ import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
 import {
   getEventScoringHoles,
-  getPlayerCourseHandicap,
+  getPlayerHandicapIndex,
   getPlayerScoringHoles,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
+import HandicapStrokeIndicator from "./components/HandicapStrokeIndicator";
 import {
   DEFAULT_STABLEFORD_SCALE,
   deriveScoringMode,
@@ -61,17 +62,28 @@ export const CreateFlightScoresTeamStroke = ({
   );
   const players = [...team1Players, ...team2Players];
 
-  const getEffectiveHandicap = (playerEntry: any) => {
-    return getPlayerCourseHandicap(playerEntry);
-  };
   const getHolesForPlayer = (playerId: number) => {
     const player = players.find((entry: any) => Number(entry.playerId) === Number(playerId));
     return getPlayerScoringHoles(event, player);
   };
 
   const popsByPlayerId = new Map<number, Map<number, number>>();
+  const allowance =
+    scoringMode === "best-ball" || scoringMode === "four-ball-match"
+      ? Number(event?.scoringConfig?.handicapAllowance ?? (scoringMode === "four-ball-match" ? 0.9 : 1))
+      : 1;
+  const playingHandicaps = new Map(
+    players.map((player) => [
+      Number(player.playerId),
+      Math.round(getPlayerHandicapIndex(player) * allowance),
+    ])
+  );
+  const relativeBaseline =
+    scoringMode === "four-ball-match" && playingHandicaps.size > 0
+      ? Math.min(...playingHandicaps.values())
+      : 0;
   for (const player of players) {
-    const hcp = getEffectiveHandicap(player);
+    const hcp = Number(playingHandicaps.get(Number(player.playerId))) - relativeBaseline;
     popsByPlayerId.set(
       Number(player.playerId),
       calculateStrokeplayPops(hcp, getPlayerScoringHoles(event, player)),
@@ -109,7 +121,8 @@ export const CreateFlightScoresTeamStroke = ({
     leagueId,
     eventId,
     flightId: flight.id,
-    enabled: !isEditMode,
+    enabled: true,
+    scope: JSON.stringify([event.scoringMode, event.scoringConfig, isEditMode, flight.players, flight.teams]),
   });
 
   const handleHoleChange = (e: any, holeIndex: number, playerId: number) => {
@@ -136,9 +149,11 @@ export const CreateFlightScoresTeamStroke = ({
   };
 
   const getPlayerNetScore = (playerId: number) => {
-    const playerEntry = players.find((p: any) => Number(p.playerId) === playerId);
-    const hcp = Math.round(getEffectiveHandicap(playerEntry));
-    return getPlayerTotalScore(playerId) - hcp;
+    return getHolesForPlayer(playerId).reduce(
+      (total: number, _hole: any, index: number) =>
+        total + (getPlayerNetAtHole(playerId, index) ?? 0),
+      0,
+    );
   };
 
   const getPlayerNetAtHole = (playerId: number, holeIdx: number) => {
@@ -176,7 +191,8 @@ export const CreateFlightScoresTeamStroke = ({
     const scale = (event?.scoringConfig?.stablefordPointScale ??
       DEFAULT_STABLEFORD_SCALE) as StablefordPointScale;
     const difference = net - par;
-    if (difference <= -3) return scale.albatrossOrBetter;
+    if (difference <= -4) return scale.condorOrBetter ?? 6;
+    if (difference === -3) return scale.albatrossOrBetter ?? 5;
     if (difference === -2) return scale.eagle;
     if (difference === -1) return scale.birdie;
     if (difference === 0) return scale.par;
@@ -358,18 +374,12 @@ export const CreateFlightScoresTeamStroke = ({
               <input
                 type="number"
                 min="1"
-                max="10"
+                max="30"
                 className="score-input"
                 value={watchedPlayers?.[player.playerId]?.scores?.[holeIdx] ?? ""}
                 onChange={(e) => handleHoleChange(e, holeIdx, player.playerId)}
               />
-              {popsForHole(player.playerId, hole.num) > 0 && (
-                <span className="score-medals">
-                  {Array.from({ length: popsForHole(player.playerId, hole.num) }).map((_, idx) => (
-                    <span key={idx} className="h-1 w-1 rounded-full bg-black" />
-                  ))}
-                </span>
-              )}
+              <HandicapStrokeIndicator strokes={popsForHole(player.playerId, hole.num)} />
             </div>
           </td>
         ))}
@@ -433,8 +443,9 @@ export const CreateFlightScoresTeamStroke = ({
         <div className="mb-3">
           <ScoreDraftStatus
             hasDraft={scoreDraft.hasDraft}
+            storageError={scoreDraft.storageError}
             savedAt={scoreDraft.savedAt}
-            onClear={scoreDraft.clearDraft}
+            onClear={scoreDraft.discardDraft}
           />
         </div>
         <div className="border rounded-lg">

@@ -15,20 +15,16 @@ function EventTeamStandings({ standings }: EventTeamStandingsProps) {
   return (
     <div className="max-h-80 overflow-x-auto overflow-y-scroll">
       <table className="w-full min-w-[28rem] table-fixed text-left text-xs">
-        <colgroup>
-          <col className="w-10" />
-          <col />
-          <col className="w-18" />
-          <col className="w-16" />
-          <col className="w-16" />
+          <colgroup>
+            <col className="w-10" />
+            <col />
+            <col className="w-16" />
         </colgroup>
         <thead className="sticky top-0 z-10 bg-gray-50">
           <tr className="section-kicker border-b border-gray-100">
             <th className="px-3 py-2">#</th>
-            <th className="px-2.5 py-2">Team / Player</th>
-            <th className="px-1.5 py-2 text-right">Player</th>
-            <th className="px-1.5 py-2 text-right">Team</th>
-            <th className="px-3 py-2 text-right">Total</th>
+            <th className="px-2.5 py-2">Team / Player context</th>
+            <th className="px-3 py-2 text-right">Team points</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -71,14 +67,8 @@ function EventTeamStandings({ standings }: EventTeamStandingsProps) {
                     </div>
                   </div>
                 </th>
-                <td className="px-1.5 py-2 text-right align-top">
-                  <PointBadge value={standing.playerPoints ?? 0} />
-                </td>
-                <td className="px-1.5 py-2 text-right align-top">
-                  <PointBadge value={standing.teamPoints ?? 0} />
-                </td>
                 <td className="px-3 py-2 text-right align-top">
-                  <PointBadge value={standing.totalPoints} highlighted />
+                  <PointBadge value={standing.teamPoints ?? 0} highlighted />
                 </td>
               </tr>
             );

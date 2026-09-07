@@ -25,6 +25,7 @@ import {
 import { Fragment, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import { getScoringModeLabel } from "@/features/scoring/scoringModes";
+import { getEventRouteLabel, getEventRouteTeeLabel } from "@/features/courses/eventRoute";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   scheduled: {
@@ -177,11 +178,11 @@ function EventCard({ event, onClick }: { event: any; onClick: () => void }) {
               </h3>
               <div className="flex items-center gap-1 mt-0.5">
                 <MapPin size={10} className="text-gray-400" strokeWidth={2} />
-                <span className="text-[11px] text-gray-500 truncate">{event.course?.name}</span>
-                {event.tee?.name && (
+                <span className="text-[11px] text-gray-500 truncate">{getEventRouteLabel(event)}</span>
+                {getEventRouteTeeLabel(event) && (
                   <>
                     <span className="text-gray-300 text-[11px]">&bull;</span>
-                    <span className="text-[11px] text-gray-500">{event.tee.name} tees</span>
+                    <span className="text-[11px] text-gray-500">{getEventRouteTeeLabel(event)} tees</span>
                   </>
                 )}
               </div>

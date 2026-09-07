@@ -148,6 +148,7 @@ export const applyUsgaRatingRows = (
   tees: TeeFormData[],
   rows: UsgaRatingRow[],
   teeIndexes: number[],
+  options: { nineSide?: "front" | "back" } = {},
 ) => {
   const updated = tees.map((tee) => ({ ...tee }));
   const assigned = new Set<string>();
@@ -164,11 +165,18 @@ export const applyUsgaRatingRows = (
     assigned.add(assignmentKey);
 
     const tee = updated[teeIndex];
+    const selectedNineRating = options.nineSide === "back" ? row.backRating : row.frontRating;
+    const selectedNineSlope = options.nineSide === "back" ? row.backSlope : row.frontSlope;
+    const fullRating = options.nineSide ? selectedNineRating : row.rating;
+    const fullSlope = options.nineSide ? selectedNineSlope : row.slope;
+    if (fullRating == null || fullSlope == null) {
+      throw new Error(`${row.teeName} is missing the selected nine's rating or slope.`);
+    }
     if (row.gender === "male") {
       updated[teeIndex] = {
         ...tee,
-        ratingMen: String(row.rating),
-        slopeMen: String(row.slope),
+        ratingMen: String(fullRating),
+        slopeMen: String(fullSlope),
         ratingFrontMen: setIfPresent(tee.ratingFrontMen, row.frontRating),
         slopeFrontMen: setIfPresent(tee.slopeFrontMen, row.frontSlope),
         ratingBackMen: setIfPresent(tee.ratingBackMen, row.backRating),
@@ -177,8 +185,8 @@ export const applyUsgaRatingRows = (
     } else {
       updated[teeIndex] = {
         ...tee,
-        ratingWomen: String(row.rating),
-        slopeWomen: String(row.slope),
+        ratingWomen: String(fullRating),
+        slopeWomen: String(fullSlope),
         ratingFrontWomen: setIfPresent(tee.ratingFrontWomen, row.frontRating),
         slopeFrontWomen: setIfPresent(tee.slopeFrontWomen, row.frontSlope),
         ratingBackWomen: setIfPresent(tee.ratingBackWomen, row.backRating),

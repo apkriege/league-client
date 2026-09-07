@@ -53,6 +53,10 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
     methods.setValue("scoringConfig", createDefaultScoringConfiguration(nextMode), {
       shouldDirty: true,
     });
+    if (nextMode === "stableford") {
+      methods.setValue("strokePoints", "", { shouldDirty: true });
+      return;
+    }
     if (
       nextMode !== "match-play" &&
       nextMode !== "four-ball-match" &&
@@ -132,6 +136,22 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
         </div>
       )}
 
+      {(mode === "scramble" || mode === "alternate-shot") && (
+        <Select
+          label="Shared team scorecard"
+          value={methods.watch("scoringConfig.sharedTeamScorecard") || "male"}
+          onChange={(event) =>
+            methods.setValue("scoringConfig.sharedTeamScorecard", event.target.value, {
+              shouldDirty: true,
+            })
+          }
+          options={[
+            { value: "male", label: "Men's tee values" },
+            { value: "female", label: "Women's tee values" },
+          ]}
+        />
+      )}
+
       {mode === "stableford" && (
         <details className="rounded-xl border border-slate-200 p-4">
           <summary className="cursor-pointer text-xs font-bold text-slate-700">
@@ -142,7 +162,8 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3">
             {[
-              ["albatrossOrBetter", "Albatross or better"],
+              ["condorOrBetter", "Four under or better"],
+              ["albatrossOrBetter", "Albatross"],
               ["eagle", "Eagle"],
               ["birdie", "Birdie"],
               ["par", "Par"],
@@ -163,7 +184,7 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
         </details>
       )}
 
-      {mode === "four-ball-match" && (
+      {(mode === "best-ball" || mode === "four-ball-match") && (
         <div>
           <Input
             label="Handicap allowance"
@@ -173,7 +194,11 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
             step={0.05}
             {...methods.register("scoringConfig.handicapAllowance", { valueAsNumber: true })}
           />
-          <p className="mt-1 text-[11px] text-slate-500">Use 1.00 for 100% or 0.90 for 90%.</p>
+          <p className="mt-1 text-[11px] text-slate-500">
+            {mode === "best-ball"
+              ? "Use the allowance in your competition terms; 0.85 is common for two-player four-ball."
+              : "0.90 is the standard four-ball match-play allowance."}
+          </p>
         </div>
       )}
 
@@ -217,6 +242,7 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
             label="Points per hole"
             type="number"
             min={0}
+            step={1}
             {...methods.register("ptsPerHole", { valueAsNumber: true })}
           />
           {mode === "match-play" && (
@@ -224,6 +250,7 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
               label="Points per player match"
               type="number"
               min={0}
+              step={1}
               {...methods.register("ptsPerMatch", { valueAsNumber: true })}
             />
           )}
@@ -232,6 +259,7 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
               label="Points per team win"
               type="number"
               min={0}
+              step={1}
               {...methods.register("ptsPerTeamWin", { valueAsNumber: true })}
             />
           )}

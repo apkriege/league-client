@@ -9,6 +9,7 @@ export type PlayerRound = {
   id?: number | string;
   eventId: number | string;
   eventName?: string;
+  routeName?: string | null;
   date?: string | null;
   startsAt?: string | null;
   timeZone?: string | null;

@@ -1,3 +1,4 @@
+import { invalidateResults } from "@/lib/invalidateResults";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTeam, deleteTeam, updateTeam } from ".";
 
@@ -9,6 +10,7 @@ export const useCreateTeam = () => {
       return await createTeam(leagueId, data);
     },
     onSuccess: (_, variables) => {
+      void invalidateResults(queryClient);
       queryClient.invalidateQueries({ queryKey: ["league", variables.leagueId] });
       queryClient.invalidateQueries({ queryKey: ["teams", variables.leagueId] });
     },

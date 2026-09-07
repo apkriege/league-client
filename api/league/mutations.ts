@@ -1,3 +1,4 @@
+import { invalidateResults } from "@/lib/invalidateResults";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createLeague,
@@ -209,6 +210,7 @@ export const useCreateEventScores = () => {
       return await createEventScores(leagueId, eventId, data);
     },
     onSuccess: (_, variables) => {
+      void invalidateResults(queryClient, variables.leagueId);
       // Invalidate queries related to the event scores
       queryClient.invalidateQueries({
         queryKey: ["league", variables.leagueId, "events"],
@@ -245,6 +247,7 @@ export const useUpdateEventScores = () => {
       return await updateEventScores(leagueId, eventId, data);
     },
     onSuccess: (_, variables) => {
+      void invalidateResults(queryClient, variables.leagueId);
       queryClient.invalidateQueries({
         queryKey: ["league", variables.leagueId, "events"],
       });

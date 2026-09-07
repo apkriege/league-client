@@ -70,3 +70,15 @@ describe("buildEventLeaderboard", () => {
     expect(buildEventLeaderboard(withMissingScore, "lowNet").at(-1)?.playerId).toBe(4);
   });
 });
+
+
+it("gives tied scores shared ranks without treating secondary sorting as a tiebreaker", () => {
+  const leaderboard = buildEventLeaderboard([
+    { playerId: 1, pointsEarned: 8, net: 31 },
+    { playerId: 2, pointsEarned: 8, net: 32 },
+    { playerId: 3, pointsEarned: 6, net: 33 },
+  ], "points");
+  expect(leaderboard.map(({ rank, tied }) => ({ rank, tied }))).toEqual([
+    { rank: 1, tied: true }, { rank: 1, tied: true }, { rank: 3, tied: false },
+  ]);
+});

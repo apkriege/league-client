@@ -27,4 +27,20 @@ describe("event scoring summary", () => {
       pointsEnabled: false,
     }).points).toBe("Season points disabled");
   });
+
+  it.each(["scramble", "alternate-shot"])("describes %s placement across the event", (scoringMode) => {
+    expect(getEventScoringSummary({
+      format: "team",
+      scoringMode,
+      strokePoints: [10, 8, 6, 4],
+    }).points).toBe("Event-wide placement points · 10 / 8 / 6 / 4");
+  });
+
+  it("does not mistake a blank placement configuration for a zero-point place", () => {
+    expect(getEventScoringSummary({
+      format: "individual",
+      scoringMode: "stroke-play",
+      strokePoints: "",
+    }).points).toBe("Hole-performance points");
+  });
 });

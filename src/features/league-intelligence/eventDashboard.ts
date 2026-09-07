@@ -7,6 +7,7 @@ import type {
 
 export type EventPlayerImpact = {
   playerId: number;
+  teamId?: number;
   name: string;
   points: number;
   gross: number;
@@ -41,6 +42,7 @@ export type EventAward = {
   detail: string;
   stat: string;
   playerId: number;
+  teamId?: number;
   tone: InsightTone;
 };
 
@@ -115,6 +117,7 @@ function buildPlayerImpact(rounds: EventInsightRound[]): EventPlayerImpact[] {
     const closingToPar = closing.length ? scoreToPar(closing, "net") : null;
     return {
       playerId: round.playerId,
+      teamId: round.teamId,
       name: playerName(round),
       points: points(round),
       gross: Number(round.gross),
@@ -282,12 +285,12 @@ function buildAwards(event: EventInsightInput, players: EventPlayerImpact[]): Ev
   const skinLeader = [...skinCounts.entries()].sort((a, b) => b[1] - a[1])[0];
   const skinPlayer = skinLeader ? players.find((player) => player.playerId === skinLeader[0]) : null;
 
-  if (hot.redNumbers > 0) push({ id: "hot", label: "Hot hand", title: hot.name, detail: "Created the most gross red numbers in the field.", stat: `${hot.redNumbers} red`, playerId: hot.playerId, tone: "attention" });
-  if (closer) push({ id: "closer", label: "Closer", title: closer.name, detail: "Owned the best net closing-three stretch.", stat: `${signed(Number(closer.closingToPar))} closing`, playerId: closer.playerId, tone: "positive" });
-  if (bounceback.bounceBacks > 0) push({ id: "bounceback", label: "Bounce-back artist", title: bounceback.name, detail: "Answered the most over-par holes with par or better.", stat: `${bounceback.bounceBacks} responses`, playerId: bounceback.playerId, tone: "positive" });
-  if (control.longestControlStreak > 0) push({ id: "control", label: "Steady hand", title: control.name, detail: "Put together the longest gross par-or-better run.", stat: `${control.longestControlStreak} holes`, playerId: control.playerId, tone: "neutral" });
-  if (skinPlayer && skinLeader) push({ id: "skins", label: "Skin collector", title: skinPlayer.name, detail: "Claimed the event's largest combined gross and net haul.", stat: `${skinLeader[1]} skins`, playerId: skinPlayer.playerId, tone: "attention" });
-  if (surge) push({ id: "surge", label: "Biggest surge", title: surge.name, detail: "Improved the most from the opening three to the closing three.", stat: `${surge.finishSwing} strokes`, playerId: surge.playerId, tone: "positive" });
+  if (hot.redNumbers > 0) push({ id: "hot", label: "Hot hand", title: hot.name, detail: "Created the most gross red numbers in the field.", stat: `${hot.redNumbers} red`, playerId: hot.playerId, teamId: hot.teamId, tone: "attention" });
+  if (closer) push({ id: "closer", label: "Closer", title: closer.name, detail: "Owned the best net closing-three stretch.", stat: `${signed(Number(closer.closingToPar))} closing`, playerId: closer.playerId, teamId: closer.teamId, tone: "positive" });
+  if (bounceback.bounceBacks > 0) push({ id: "bounceback", label: "Bounce-back artist", title: bounceback.name, detail: "Answered the most over-par holes with par or better.", stat: `${bounceback.bounceBacks} responses`, playerId: bounceback.playerId, teamId: bounceback.teamId, tone: "positive" });
+  if (control.longestControlStreak > 0) push({ id: "control", label: "Steady hand", title: control.name, detail: "Put together the longest gross par-or-better run.", stat: `${control.longestControlStreak} holes`, playerId: control.playerId, teamId: control.teamId, tone: "neutral" });
+  if (skinPlayer && skinLeader) push({ id: "skins", label: "Skin collector", title: skinPlayer.name, detail: "Claimed the event's largest combined gross and net haul.", stat: `${skinLeader[1]} skins`, playerId: skinPlayer.playerId, teamId: skinPlayer.teamId, tone: "attention" });
+  if (surge) push({ id: "surge", label: "Biggest surge", title: surge.name, detail: "Improved the most from the opening three to the closing three.", stat: `${surge.finishSwing} strokes`, playerId: surge.playerId, teamId: surge.teamId, tone: "positive" });
   return awards.slice(0, 6);
 }
 

@@ -3,19 +3,22 @@ import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import Table from "@/components/Table";
 import { useToast } from "@/context/useToast";
-import { deriveScoringMode, SCORING_MODES } from "@/features/scoring/scoringModes";
 import {
-  calculateAlternateShotHandicap,
-  calculateScrambleHandicap,
-} from "@/features/scoring/teamHandicap";
+  deriveScoringMode,
+  SCORING_MODES,
+} from "@/features/scoring/scoringModes";
 import { useCreateEventScores, useUpdateEventScores } from "@api/league/mutations";
 import { Flag } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
 import { ScoreDraftStatus } from "./ScoreDraftStatus";
 import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
-import { getPlayerCourseHandicap, getPlayerScoringHoles } from "./scoringSetup";
+import HandicapStrokeIndicator from "./components/HandicapStrokeIndicator";
+import {
+  getEventScoringHoles,
+} from "./scoringSetup";
 import { calculateStrokeplayPops } from "./util";
+import { buildSharedTeamHandicapSetups } from "./sharedTeamSetup";
 import { useScoreDraft } from "./useScoreDraft";
 import { formatTime } from "@/utils/format";
 
@@ -66,12 +69,7 @@ export function CreateFlightScoresSharedTeam({
 }: SharedTeamScoreProps) {
   const { leagueId, eventId } = useParams();
   const { show } = useToast();
-  const competitionGender = (flight.players ?? []).every(
-    (entry) => String(entry.player?.gender || '').toLowerCase() === 'female',
-  )
-    ? 'female'
-    : 'male';
-  const holes = getPlayerScoringHoles(event, { player: { gender: competitionGender } });
+  const holes = getEventScoringHoles(event);
   const mode = deriveScoringMode(event);
   const teamAssignments = flight.teams ?? [];
   const savedRounds = event.teamRounds ?? [];
@@ -101,24 +99,24 @@ export function CreateFlightScoresSharedTeam({
     leagueId,
     eventId,
     flightId: flight.id,
-    enabled: !isEditMode,
+    enabled: true,
+    scope: JSON.stringify([event.scoringMode, event.scoringConfig, isEditMode, flight.players, flight.teams]),
   });
 
-  const getTeamPlayers = (teamId: number) =>
-    (flight.players ?? []).filter((player) => Number(player.teamId) === Number(teamId));
-  const getTeamHandicap = (teamId: number) => {
-    const handicaps = getTeamPlayers(teamId).map((player) => getPlayerCourseHandicap(player));
-    const base =
-      mode === "scramble"
-        ? calculateScrambleHandicap(handicaps)
-        : calculateAlternateShotHandicap(handicaps);
-    const config = event.scoringConfig as { handicapAllowance?: number } | undefined;
-    return Math.round(base * Number(config?.handicapAllowance ?? 1));
-  };
+  const teamSetupById = new Map(
+    buildSharedTeamHandicapSetups(event, flight).map((setup) => [setup.teamId, setup]),
+  );
+  const getTeamPlayers = (teamId: number) => teamSetupById.get(teamId)?.players ?? [];
+  const getTeamHoles = (teamId: number) => teamSetupById.get(teamId)?.holes ?? [];
+  const getTeamHandicap = (teamId: number) =>
+    teamSetupById.get(teamId)?.playingHandicap ?? 0;
   const popsByTeamId = new Map(
     teamAssignments.map((team) => [
       Number(team.teamId),
-      calculateStrokeplayPops(getTeamHandicap(Number(team.teamId)), holes),
+      calculateStrokeplayPops(
+        getTeamHandicap(Number(team.teamId)),
+        getTeamHoles(Number(team.teamId)),
+      ),
     ]),
   );
   const getFormTeam = (teamId: number) =>
@@ -181,7 +179,7 @@ export function CreateFlightScoresSharedTeam({
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={onCancel}>Cancel</Button>
-          <Button variant="primary" size="sm" onClick={submit}>
+          <Button variant="primary" size="sm" onClick={submit} disabled={createMutation.isPending || updateMutation.isPending}>
             {isEditMode ? "Save Changes" : "Submit Scores"}
           </Button>
         </div>
@@ -189,8 +187,9 @@ export function CreateFlightScoresSharedTeam({
       <div className="p-4 sm:p-5">
         <ScoreDraftStatus
           hasDraft={scoreDraft.hasDraft}
+          storageError={scoreDraft.storageError}
           savedAt={scoreDraft.savedAt}
-          onClear={scoreDraft.clearDraft}
+          onClear={scoreDraft.discardDraft}
         />
         <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
           <Table
@@ -222,7 +221,7 @@ export function CreateFlightScoresSharedTeam({
                           <p className="font-bold text-slate-900">{team.team?.name || `Team ${teamId}`}</p>
                           <p className="mt-0.5 text-[10px] leading-4 text-slate-500">
                             {players.map((player) => `${player.player?.firstName ?? ""} ${player.player?.lastName ?? ""}`.trim()).join(" · ")}
-                            {` · ${getTeamHandicap(teamId)} hcp`}
+                            {` · PH ${getTeamHandicap(teamId)}`}
                           </p>
                         </td>
                         {holes.map((hole: { num: number }, index: number) => {
@@ -240,13 +239,7 @@ export function CreateFlightScoresSharedTeam({
                                     setValueAs: (value) => value === "" ? "" : Number(value),
                                   })}
                                 />
-                                {pops > 0 && (
-                                  <span className="score-medals" aria-label={`${pops} handicap strokes`}>
-                                    {Array.from({ length: pops }).map((_, popIndex) => (
-                                      <span key={popIndex} className="h-1 w-1 rounded-full bg-slate-900" />
-                                    ))}
-                                  </span>
-                                )}
+                                <HandicapStrokeIndicator strokes={pops} />
                               </div>
                             </td>
                           );

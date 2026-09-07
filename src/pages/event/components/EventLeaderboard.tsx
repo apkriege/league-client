@@ -2,6 +2,7 @@ import { TrendingDown, TrendingUp, User } from "lucide-react";
 import Table from "@/components/Table";
 import type { EventLeaderboardEntry, EventLeaderboardSort } from "../eventLeaderboard";
 import PlayerNameLink from "./PlayerNameLink";
+import { Link, useParams } from "react-router";
 import { memo } from "react";
 import { formatHandicap } from "@/utils/handicap";
 
@@ -12,6 +13,8 @@ export const ScoreLeaderboard = memo(function ScoreLeaderboard({
   leaderboard: EventLeaderboardEntry[];
   sortBy: EventLeaderboardSort;
 }) {
+  const { leagueId } = useParams();
+  const isTeam = leaderboard.some((entry) => entry.teamId != null);
   return (
     <Table
       data={leaderboard}
@@ -34,7 +37,7 @@ export const ScoreLeaderboard = memo(function ScoreLeaderboard({
             <tr className="section-kicker border-b border-gray-100">
               <th className="w-8 px-3 py-2">#</th>
               <th className="px-2.5 py-2">
-                <span className="flex items-center gap-1"><User size={10} /> Player</span>
+                <span className="flex items-center gap-1"><User size={10} /> {isTeam ? "Team" : "Player"}</span>
               </th>
               <SortHeading label="PTS" column="points" active={sortBy} descending />
               <SortHeading label="GROSS" column="lowGross" active={sortBy} />
@@ -43,7 +46,7 @@ export const ScoreLeaderboard = memo(function ScoreLeaderboard({
           </thead>
           <tbody className="divide-y divide-gray-50">
             {visibleLeaderboard.map((entry) => {
-              const index = leaderboard.indexOf(entry);
+              const index = entry.rank - 1;
               return (
                 <tr
                   key={entry.playerId}
@@ -51,7 +54,7 @@ export const ScoreLeaderboard = memo(function ScoreLeaderboard({
                 >
                   <td className="px-3 py-2">
                     <span className={`text-xs font-bold ${rankColor(index)}`}>
-                      {index < 9 ? `0${index + 1}` : index + 1}
+                      {entry.tied ? `T${entry.rank}` : String(entry.rank).padStart(2, "0")}
                     </span>
                   </td>
                   <td className="px-2.5 py-2">
@@ -60,15 +63,14 @@ export const ScoreLeaderboard = memo(function ScoreLeaderboard({
                         {initials(entry.name)}
                       </div>
                       <div>
-                        <PlayerNameLink
-                          playerId={entry.playerId}
-                          className="text-xs font-semibold leading-tight text-gray-800 hover:text-slate-900 hover:underline"
-                        >
-                          {entry.name}
-                        </PlayerNameLink>
-                        <p className="text-[10px] text-gray-400">
-                          Index {formatHandicap(entry.handicap)}
-                        </p>
+                        {entry.teamId != null ? (
+                          <Link to={`/league/${leagueId}/team/${entry.teamId}`} className="text-xs font-semibold text-gray-800 hover:underline">{entry.name}</Link>
+                        ) : (
+                          <>
+                            <PlayerNameLink playerId={entry.playerId}>{entry.name}</PlayerNameLink>
+                            <p className="text-[10px] text-gray-400">Index {formatHandicap(entry.handicap)}</p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </td>

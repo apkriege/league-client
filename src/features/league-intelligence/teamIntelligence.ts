@@ -7,10 +7,7 @@ const resultFor = (left: number, right: number) => {
 
 export function buildTeamIntelligence(team: TeamIntelligenceInput) {
   const scoredEvents = team.eventResults.filter(
-    (event) => event.isAssigned && event.totalPoints != null,
-  );
-  const completed = team.eventResults.filter(
-    (event) => event.isAssigned && event.totalPoints != null && event.opponents.length > 0,
+    (event) => event.isAssigned && event.totalPoints != null && event.status === "completed",
   );
   const rivalries = new Map<
     number,
@@ -28,27 +25,25 @@ export function buildTeamIntelligence(team: TeamIntelligenceInput) {
   let losses = 0;
   let ties = 0;
 
-  for (const event of completed) {
-    const strongestOpponent = [...event.opponents]
+  for (const event of scoredEvents) {
+    const isMatch = ["match-play", "four-ball-match"].includes(event.scoringMode);
+    const strongestOpponent = isMatch ? [...event.opponents]
       .filter((opponent) => opponent.totalPoints != null)
-      .sort((left, right) => Number(right.totalPoints) - Number(left.totalPoints))[0];
-    if (!strongestOpponent || event.totalPoints == null || strongestOpponent.totalPoints == null) continue;
-    const result = resultFor(event.totalPoints, strongestOpponent.totalPoints);
-    if (result === "win") wins += 1;
-    else if (result === "loss") losses += 1;
-    else ties += 1;
-
-    const rivalry = rivalries.get(strongestOpponent.id) ?? {
-      id: strongestOpponent.id,
-      name: strongestOpponent.name,
-      wins: 0,
-      losses: 0,
-      ties: 0,
-      meetings: 0,
-    };
-    rivalry[result === "win" ? "wins" : result === "loss" ? "losses" : "ties"] += 1;
-    rivalry.meetings += 1;
-    rivalries.set(rivalry.id, rivalry);
+      .sort((left, right) => Number(right.totalPoints) - Number(left.totalPoints))[0] : undefined;
+    const result = strongestOpponent && event.totalPoints != null && strongestOpponent.totalPoints != null
+      ? resultFor(event.totalPoints, strongestOpponent.totalPoints) : null;
+    if (result && strongestOpponent) {
+      if (result === "win") wins += 1;
+      else if (result === "loss") losses += 1;
+      else ties += 1;
+      const rivalry = rivalries.get(strongestOpponent.id) ?? {
+        id: strongestOpponent.id, name: strongestOpponent.name,
+        wins: 0, losses: 0, ties: 0, meetings: 0,
+      };
+      rivalry[result === "win" ? "wins" : result === "loss" ? "losses" : "ties"] += 1;
+      rivalry.meetings += 1;
+      rivalries.set(rivalry.id, rivalry);
+    }
 
     for (const round of event.playerRounds) {
       const contribution = contributions.get(round.playerId) ?? {
@@ -70,7 +65,8 @@ export function buildTeamIntelligence(team: TeamIntelligenceInput) {
       contributions.set(round.playerId, contribution);
     }
 
-    const eventPlayers = [...event.playerRounds].sort((left, right) => left.playerId - right.playerId);
+    const hasOutcome = isMatch ? result != null : event.fieldRank != null;
+    const eventPlayers = hasOutcome ? [...event.playerRounds].sort((left, right) => left.playerId - right.playerId) : [];
     for (let leftIndex = 0; leftIndex < eventPlayers.length; leftIndex += 1) {
       for (let rightIndex = leftIndex + 1; rightIndex < eventPlayers.length; rightIndex += 1) {
         const left = eventPlayers[leftIndex];
@@ -84,7 +80,7 @@ export function buildTeamIntelligence(team: TeamIntelligenceInput) {
           points: 0,
         };
         pairing.events += 1;
-        pairing.wins += result === "win" ? 1 : 0;
+        pairing.wins += result === "win" || (!isMatch && event.fieldRank === 1) ? 1 : 0;
         pairing.points += left.points + right.points;
         pairings.set(key, pairing);
       }
@@ -109,6 +105,11 @@ export function buildTeamIntelligence(team: TeamIntelligenceInput) {
 
   return {
     record: { wins, losses, ties, matches: wins + losses + ties },
+    field: {
+      events: scoredEvents.filter((event) => !["match-play", "four-ball-match"].includes(event.scoringMode)).length,
+      wins: scoredEvents.filter((event) => event.fieldRank === 1).length,
+      podiums: scoredEvents.filter((event) => event.fieldRank != null && event.fieldRank <= 3).length,
+    },
     overview: {
       teamPoints: Number(team.seasonPoints || 0),
       playerPoints: Math.round(
@@ -145,7 +146,14 @@ export function buildTeamIntelligence(team: TeamIntelligenceInput) {
         pars: totals.pars + row.pars,
         bogeys: totals.bogeys + row.bogeys,
       }),
-      { birdies: 0, pars: 0, bogeys: 0 },
+      scoredEvents.flatMap((event) => event.sharedRound?.scores ?? []).reduce(
+        (totals, score) => ({
+          birdies: totals.birdies + Number(score.gross === score.par - 1),
+          pars: totals.pars + Number(score.gross === score.par),
+          bogeys: totals.bogeys + Number(score.gross === score.par + 1),
+        }),
+        { birdies: 0, pars: 0, bogeys: 0 },
+      ),
     ),
   };
 }

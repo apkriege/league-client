@@ -21,9 +21,11 @@ import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
 import {
   getEventScoringHoles,
-  getPlayerCourseHandicap,
+  getPlayerHandicapIndex,
+  getPlayerScoringHoles,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
+import HandicapStrokeIndicator from "./components/HandicapStrokeIndicator";
 
 export const CreateFlightScoresIndividualMatch = ({
   flight,
@@ -44,7 +46,7 @@ export const CreateFlightScoresIndividualMatch = ({
   const allPlayersById = new Map(allPlayers.map((p: any) => [Number(p.playerId), p]));
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    return getPlayerCourseHandicap(playerEntry);
+    return getPlayerHandicapIndex(playerEntry);
   };
 
   // Prefer the persisted flight pairing, then pair any unassigned players by position.
@@ -85,7 +87,11 @@ export const CreateFlightScoresIndividualMatch = ({
   for (const [p1, p2] of pairs) {
     const left = { ...p1.player, handicap: getEffectiveHandicap(p1) };
     const right = { ...p2.player, handicap: getEffectiveHandicap(p2) };
-    const [leftPops, rightPops] = calculateMatchplayPops(left, right, holes);
+    const [leftPops, rightPops] = calculateMatchplayPops(left, right, holes, {
+      p1Holes: getPlayerScoringHoles(event, p1),
+      p2Holes: getPlayerScoringHoles(event, p2),
+      allowance: Number(event?.scoringConfig?.handicapAllowance ?? 1),
+    });
     popsByPlayerId.set(Number(p1.playerId), leftPops);
     popsByPlayerId.set(Number(p2.playerId), rightPops);
   }
@@ -121,7 +127,8 @@ export const CreateFlightScoresIndividualMatch = ({
     leagueId,
     eventId,
     flightId: flight.id,
-    enabled: !isEditMode,
+    enabled: true,
+    scope: JSON.stringify([event.scoringMode, event.scoringConfig, isEditMode, flight.players, flight.teams]),
   });
 
   const handleHoleChange = (e: any, holeIndex: number, playerId: number) => {
@@ -149,8 +156,12 @@ export const CreateFlightScoresIndividualMatch = ({
 
   const getPlayerNetScore = (playerId: number) => {
     const playerEntry = allPlayersById.get(playerId);
-    const hcp = Math.round(getEffectiveHandicap(playerEntry));
-    return getPlayerTotalScore(playerId) - hcp;
+    const scores = watchedPlayers?.[playerId]?.scores ?? [];
+    return getPlayerScoringHoles(event, playerEntry).reduce(
+      (total: number, hole: any, index: number) =>
+        total + (Number(scores[index]) || 0) - popsForHole(playerId, hole.num),
+      0,
+    );
   };
 
   const getMatchupPoints = (playerId: number) => {
@@ -362,18 +373,12 @@ export const CreateFlightScoresIndividualMatch = ({
                 <input
                   type="number"
                   min="1"
-                  max="10"
+                  max="30"
                   className="score-input"
                   value={watchedPlayers?.[player.playerId]?.scores?.[holeIdx] ?? ""}
                   onChange={(e) => handleHoleChange(e, holeIdx, player.playerId)}
                 />
-                {popsForHole(player.playerId, hole.num) > 0 && (
-                  <span className="score-medals">
-                    {Array.from({ length: popsForHole(player.playerId, hole.num) }).map((_, idx) => (
-                      <span key={idx} className="h-1 w-1 rounded-full bg-black" />
-                    ))}
-                  </span>
-                )}
+                <HandicapStrokeIndicator strokes={popsForHole(player.playerId, hole.num)} />
               </div>
             </td>
           ))}
@@ -433,8 +438,9 @@ export const CreateFlightScoresIndividualMatch = ({
         <div className="mb-3">
           <ScoreDraftStatus
             hasDraft={scoreDraft.hasDraft}
+            storageError={scoreDraft.storageError}
             savedAt={scoreDraft.savedAt}
-            onClear={scoreDraft.clearDraft}
+            onClear={scoreDraft.discardDraft}
           />
         </div>
         <div className="border rounded-lg">

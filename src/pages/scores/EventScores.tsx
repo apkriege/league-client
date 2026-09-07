@@ -1,7 +1,7 @@
 import LoadingState from "@/components/layout/LoadingState";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLeagueEvent, useLeaguePlayers } from "@api/league/queries";
@@ -26,6 +26,9 @@ import { CreateFlightScoresTeamStroke } from "./CreateFlightScoresTeamStroke";
 import { CreateFlightScoresSharedTeam } from "./CreateFlightScoresSharedTeam";
 import ViewFlightScores from "./ViewFlightScores";
 import { deriveScoringMode, isSharedTeamScoringMode } from "@/features/scoring/scoringModes";
+import { getEventRouteLabel } from "@/features/courses/eventRoute";
+
+const ScoreHistory = lazy(() => import("./components/ScoreHistory"));
 
 export default function EventScores() {
   const { leagueId, eventId } = useParams();
@@ -158,8 +161,10 @@ export default function EventScores() {
     <div>
       <PageHeader
         title={event.name || "Event Scores"}
-        subTitle={event.course?.name}
+        subTitle={getEventRouteLabel(event)}
       />
+
+      {canEditScores && <Suspense fallback={null}><ScoreHistory leagueId={Number(leagueId)} eventId={Number(eventId)} /></Suspense>}
 
       {/* Metrics bar */}
       <div className="mt-4 mb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -189,7 +194,7 @@ export default function EventScores() {
           },
           {
             label: "Course",
-            value: event.course?.name ?? "—",
+            value: getEventRouteLabel(event) || "—",
             icon: <MapPin size={14} className="text-emerald-400" />,
             bg: "bg-emerald-50 border-emerald-100",
           },

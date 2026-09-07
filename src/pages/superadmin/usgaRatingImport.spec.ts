@@ -85,4 +85,17 @@ describe("USGA rating import", () => {
     const red = { ...buildEmptyTee(18), name: "Red", color: "red" };
     expect(suggestUsgaTeeMatches(parseUsgaRatingTable(pastedTable), [red])).toEqual([-1, -1]);
   });
+
+  it("uses the selected half as the full rating for a standalone nine", () => {
+    const green = { ...buildEmptyTee(9), name: "GREEN", color: "green" };
+    const rows = parseUsgaRatingTable(currentUsgaClipboardTable);
+    const [updated] = applyUsgaRatingRows([green], [rows[1]], [0], { nineSide: "back" });
+
+    expect(updated).toMatchObject({
+      ratingWomen: "37.4",
+      slopeWomen: "135",
+      ratingBackWomen: "37.4",
+      slopeBackWomen: "135",
+    });
+  });
 });

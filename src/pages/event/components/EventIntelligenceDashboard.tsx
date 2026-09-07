@@ -2,19 +2,17 @@ import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Activity, BookOpen, Swords, Trophy } from "lucide-react";
 import EventRecap from "@/features/league-intelligence/components/EventRecap";
 import { buildEventDashboard } from "@/features/league-intelligence/eventDashboard";
-import type { EventInsightInput } from "@/features/league-intelligence/types";
 import type { SkinsDrawerContent } from "./EventSkins";
 import EventMatchupsPanel from "./EventMatchupsPanel";
 import EventPerformancePanel from "./EventPerformancePanel";
 import EventResultsPanel from "./EventResultsPanel";
 import EventStoryPanel from "./EventStoryPanel";
+import {
+  withSharedTeamScores,
+  type SharedTeamIntelligenceEvent,
+} from "../sharedTeamIntelligence";
 
 type EventInsightView = "results" | "story" | "performance" | "matchups";
-
-type EventDashboardInput = EventInsightInput & {
-  holes: number;
-  startSide?: string;
-};
 
 const views: Array<{
   id: EventInsightView;
@@ -58,14 +56,15 @@ export default function EventIntelligenceDashboard({
   leagueId,
   onOpenSkins,
 }: {
-  event: EventDashboardInput;
+  event: SharedTeamIntelligenceEvent;
   leagueId: number;
   onOpenSkins: (content: SkinsDrawerContent) => void;
 }) {
   const [view, setView] = useState<EventInsightView>("results");
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const dashboard = useMemo(() => buildEventDashboard(event), [event]);
-  const scores = event.metrics?.scores ?? [];
+  const intelligenceEvent = useMemo(() => withSharedTeamScores(event), [event]);
+  const dashboard = useMemo(() => buildEventDashboard(intelligenceEvent), [intelligenceEvent]);
+  const scores = intelligenceEvent.metrics?.scores ?? [];
   const handleTabKeyDown = (keyboardEvent: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(keyboardEvent.key)) return;
     keyboardEvent.preventDefault();
@@ -81,7 +80,7 @@ export default function EventIntelligenceDashboard({
   return (
     <section aria-label="Event intelligence" className="space-y-5">
       <EventRecap
-        event={event}
+        event={intelligenceEvent}
         overview={{
           players: scores.length,
           grossSkins: event.metrics?.skins?.playerSkins?.length ?? 0,
@@ -134,12 +133,12 @@ export default function EventIntelligenceDashboard({
           aria-labelledby={`event-intelligence-tab-${item.id}`}
           hidden={view !== item.id}
         >
-          {item.id === "results" ? <EventResultsPanel event={event} /> : null}
-          {item.id === "story" ? <EventStoryPanel event={event} dashboard={dashboard} /> : null}
+          {item.id === "results" ? <EventResultsPanel event={intelligenceEvent} leagueId={leagueId} /> : null}
+          {item.id === "story" ? <EventStoryPanel event={intelligenceEvent} dashboard={dashboard} /> : null}
           {item.id === "performance" ? <EventPerformancePanel dashboard={dashboard} leagueId={leagueId} /> : null}
           {item.id === "matchups" ? (
             <EventMatchupsPanel
-              event={event}
+              event={intelligenceEvent}
               dashboard={dashboard}
               leagueId={leagueId}
               onOpenSkins={onOpenSkins}

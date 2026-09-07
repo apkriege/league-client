@@ -40,6 +40,7 @@ import {
   type SkinsDrawerContent,
 } from "./components/EventSkins";
 import { getEventStatusConfig, normalizeEventStatus } from "./eventStatus";
+import { getEventRouteLabel, getEventRouteTeeLabel } from "@/features/courses/eventRoute";
 import useAnimatedDrawer from "@/hooks/useAnimatedDrawer";
 import {
   deriveScoringMode,
@@ -190,8 +191,8 @@ export default function Event() {
             {formatTime(event.startsAt, event.timeZone)}
           </SummaryPill>
           <SummaryPill icon={<MapPin size={12} />}>
-            {event.course.name}
-            {event.tee?.name ? ` · ${event.tee.name}` : ""}
+            {getEventRouteLabel(event)}
+            {getEventRouteTeeLabel(event) ? ` · ${getEventRouteTeeLabel(event)}` : ""}
           </SummaryPill>
           <SummaryPill icon={<ShieldHalf size={12} />} className="capitalize">
             {event.format}
@@ -224,7 +225,7 @@ export default function Event() {
         <EventScoringSetup event={event} />
       </div>
 
-      {hasRounds && !isSharedTeamMode && (
+      {(hasRounds || hasSharedTeamRounds) && (
         <div className="mb-8 mt-6">
           <EventIntelligenceDashboard
             event={event}
@@ -235,31 +236,12 @@ export default function Event() {
       )}
 
       <div className="mt-8 flex flex-col gap-10">
-        {hasSharedTeamRounds ? (
-          <section className="space-y-5 [content-visibility:auto] [contain-intrinsic-size:auto_480px]">
-            <EventSectionHeading
-              icon={<ListOrdered size={16} strokeWidth={2.5} />}
-              title="Team Scores"
-              description="One shared scorecard per team with gross, net, and event points"
-            />
-            <SurfaceCard>
-              <div className="border-b border-slate-200 px-4 py-3 sm:px-5">
-                <div className="flex items-center gap-2">
-                  <Flag size={13} className="text-emerald-600" strokeWidth={2.5} />
-                  <h3 className="text-xs font-bold text-slate-900">Event Score Breakdown</h3>
-                </div>
-              </div>
-              <div className="p-4 sm:p-5">
-                <FlightScorecardsDrawer event={event} emptyMessage="No team scorecards available." />
-              </div>
-            </SurfaceCard>
-          </section>
-        ) : hasRounds ? (
+        {(hasSharedTeamRounds || hasRounds) ? (
           <section className="space-y-5 [content-visibility:auto] [contain-intrinsic-size:auto_560px]">
               <EventSectionHeading
                 icon={<ListOrdered size={16} strokeWidth={2.5} />}
-                title="Round Scores"
-                description="Hole-by-hole scoring and round totals for every player"
+                title={isSharedTeamMode ? "Team Scores" : "Round Scores"}
+                description={`Hole-by-hole scoring and round totals for every ${isSharedTeamMode ? "team" : "player"}`}
               />
               <SurfaceCard>
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
@@ -300,7 +282,8 @@ export default function Event() {
                   </div>
                 </div>
                 <EventRoundsTable
-                  rounds={event.metrics.scores}
+                  rounds={isSharedTeamMode ? event.teamRounds ?? [] : event.metrics.scores}
+                  participantLabel={isSharedTeamMode ? "Team" : "Player"}
                   holeScoreKey={roundScoreMode}
                   showRoundStats
                 />
