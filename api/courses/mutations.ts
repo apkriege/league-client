@@ -52,7 +52,8 @@ export const useDeleteCourse = () => {
 
 export const useRequestCourse = () =>
   useMutation({
-    mutationFn: (externalId: string) => requestCourse(externalId),
+    mutationFn: ({ externalId, scorecardImage }: { externalId: string; scorecardImage?: File | null }) =>
+      requestCourse(externalId, scorecardImage),
   });
 
 export const useRequestManualCourse = () =>

@@ -161,10 +161,18 @@ export const loadCourseImport = async (externalId: string) => {
   return response.data;
 };
 
-export const requestCourse = async (externalId: string) => {
-  const response = await apiClient.post<{ message: string }>("/courses/requests", {
-    externalId,
-  });
+const buildCourseRequestForm = (fields: Record<string, string>, scorecardImage?: File | null) => {
+  const form = new FormData();
+  Object.entries(fields).forEach(([key, value]) => form.append(key, value));
+  if (scorecardImage) form.append("scorecardImage", scorecardImage);
+  return form;
+};
+
+export const requestCourse = async (externalId: string, scorecardImage?: File | null) => {
+  const response = await apiClient.upload<{ message: string }>(
+    "/courses/requests",
+    buildCourseRequestForm({ externalId }, scorecardImage)
+  );
   return response.data;
 };
 
@@ -172,9 +180,14 @@ export type ManualCourseRequest = {
   courseName: string;
   city: string;
   state: string;
+  scorecardImage?: File | null;
 };
 
 export const requestManualCourse = async (request: ManualCourseRequest) => {
-  const response = await apiClient.post<{ message: string }>("/courses/requests/manual", request);
+  const { scorecardImage, ...fields } = request;
+  const response = await apiClient.upload<{ message: string }>(
+    "/courses/requests/manual",
+    buildCourseRequestForm(fields, scorecardImage)
+  );
   return response.data;
 };

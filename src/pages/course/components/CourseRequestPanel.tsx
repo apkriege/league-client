@@ -8,6 +8,7 @@ import { useCourseDirectorySelection } from "@/hooks/useCourseDirectorySelection
 import type { ManualCourseRequest } from "@api/courses";
 import { useRequestCourse, useRequestManualCourse } from "@api/courses/mutations";
 import ManualCourseRequestForm from "./ManualCourseRequestForm";
+import ScorecardImageInput from "./ScorecardImageInput";
 
 export default function CourseRequestPanel() {
   const { show } = useToast();
@@ -19,11 +20,13 @@ export default function CourseRequestPanel() {
     city: "",
     state: "",
   });
+  const [scorecardImage, setScorecardImage] = useState<File | null>(null);
 
   const handleConfirm = async () => {
     await directory.confirm(async ({ result }) => {
-      await requestCourse.mutateAsync(result.externalId);
+      await requestCourse.mutateAsync({ externalId: result.externalId, scorecardImage });
       show("Course request sent.", "success");
+      setScorecardImage(null);
     }, "Unable to send that course request.");
   };
 
@@ -36,7 +39,7 @@ export default function CourseRequestPanel() {
     await directory.search({ openWhenEmpty: true });
   };
 
-  const handleManualChange = (field: keyof ManualCourseRequest, value: string) => {
+  const handleManualChange = (field: "courseName" | "city" | "state", value: string) => {
     setManualRequest((current) => ({ ...current, [field]: value }));
   };
 
@@ -52,10 +55,11 @@ export default function CourseRequestPanel() {
     }
 
     try {
-      await requestManualCourse.mutateAsync(request);
+      await requestManualCourse.mutateAsync({ ...request, scorecardImage });
       show("Manual course request sent.", "success");
       directory.reset();
       setManualRequest({ courseName: "", city: "", state: "" });
+      setScorecardImage(null);
     } catch (error) {
       const message =
         error && typeof error === "object" && "message" in error
@@ -119,6 +123,14 @@ export default function CourseRequestPanel() {
         confirmLabel="Verify & Send Request"
         confirmingLabel="Sending Request..."
         showWarnings={false}
+        confirmationContent={
+          <ScorecardImageInput
+            file={scorecardImage}
+            disabled={requestCourse.isPending}
+            onChange={setScorecardImage}
+            onError={(message) => show(message, "error")}
+          />
+        }
         emptyTitle="Request a Course Manually"
         emptyContent={
           <ManualCourseRequestForm
@@ -126,6 +138,9 @@ export default function CourseRequestPanel() {
             isSubmitting={requestManualCourse.isPending}
             onChange={handleManualChange}
             onSubmit={handleManualSubmit}
+            scorecardImage={scorecardImage}
+            onScorecardChange={setScorecardImage}
+            onScorecardError={(message) => show(message, "error")}
           />
         }
         resultsFooter={
@@ -135,6 +150,9 @@ export default function CourseRequestPanel() {
               isSubmitting={requestManualCourse.isPending}
               onChange={handleManualChange}
               onSubmit={handleManualSubmit}
+              scorecardImage={scorecardImage}
+              onScorecardChange={setScorecardImage}
+              onScorecardError={(message) => show(message, "error")}
             />
           </div>
         }

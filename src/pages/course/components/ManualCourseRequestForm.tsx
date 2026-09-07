@@ -1,12 +1,16 @@
 import { Input } from "@/components/form";
 import Button from "@/components/layout/Button";
 import type { ManualCourseRequest } from "@api/courses";
+import ScorecardImageInput from "./ScorecardImageInput";
 
 type ManualCourseRequestFormProps = {
   value: ManualCourseRequest;
   isSubmitting: boolean;
-  onChange: (field: keyof ManualCourseRequest, value: string) => void;
+  onChange: (field: "courseName" | "city" | "state", value: string) => void;
   onSubmit: () => Promise<void>;
+  scorecardImage: File | null;
+  onScorecardChange: (file: File | null) => void;
+  onScorecardError: (message: string) => void;
 };
 
 export default function ManualCourseRequestForm({
@@ -14,6 +18,9 @@ export default function ManualCourseRequestForm({
   isSubmitting,
   onChange,
   onSubmit,
+  scorecardImage,
+  onScorecardChange,
+  onScorecardError,
 }: ManualCourseRequestFormProps) {
   return (
     <div>
@@ -45,6 +52,12 @@ export default function ManualCourseRequestForm({
           onChange={(event) => onChange("state", event.target.value)}
         />
       </div>
+      <ScorecardImageInput
+        file={scorecardImage}
+        disabled={isSubmitting}
+        onChange={onScorecardChange}
+        onError={onScorecardError}
+      />
       <div className="mt-5">
         <Button
           type="button"

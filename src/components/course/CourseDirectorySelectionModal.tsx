@@ -18,6 +18,7 @@ type CourseDirectorySelectionModalProps = {
   emptyContent?: ReactNode;
   emptyTitle?: string;
   resultsFooter?: ReactNode;
+  confirmationContent?: ReactNode;
   onClose: () => void;
   onReview: (result: CourseImportSearchResult) => Promise<void>;
   onConfirm: () => Promise<void>;
@@ -38,6 +39,7 @@ export default function CourseDirectorySelectionModal({
   emptyContent,
   emptyTitle = "Course not found",
   resultsFooter,
+  confirmationContent,
   onClose,
   onReview,
   onConfirm,
@@ -90,6 +92,8 @@ export default function CourseDirectorySelectionModal({
               )}
             </div>
           )}
+
+          {confirmationContent}
 
           <div className="mt-5 flex flex-wrap gap-2">
             <Button
