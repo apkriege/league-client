@@ -29,6 +29,39 @@ const publicPages: Record<string, Omit<SeoMetadata, "canonicalUrl" | "indexable"
   },
 };
 
+const appPageTitles: Array<{ pattern: RegExp; title: string }> = [
+  { pattern: /^\/login$/, title: "Sign In" },
+  { pattern: /^\/invite\/[^/]+$/, title: "Accept Invitation" },
+  { pattern: /^\/forgot-password$/, title: "Forgot Password" },
+  { pattern: /^\/reset-password$/, title: "Reset Password" },
+  { pattern: /^\/verify-email$/, title: "Verify Email" },
+  { pattern: /^\/leagues\/create$/, title: "Create League" },
+  { pattern: /^\/leagues$/, title: "Leagues" },
+  { pattern: /^\/courses\/[^/]+$/, title: "Course Details" },
+  { pattern: /^\/courses$/, title: "Courses" },
+  { pattern: /^\/support$/, title: "Contact Support" },
+  { pattern: /^\/league\/[^/]+\/events\/create$/, title: "Create Event" },
+  { pattern: /^\/league\/[^/]+\/events\/[^/]+\/edit$/, title: "Edit Event" },
+  { pattern: /^\/league\/[^/]+\/events\/[^/]+\/scores$/, title: "Event Scoring" },
+  {
+    pattern: /^\/league\/[^/]+\/events\/[^/]+\/print-scorecards$/,
+    title: "Print Scorecards",
+  },
+  { pattern: /^\/league\/[^/]+\/events\/[^/]+$/, title: "Event Details" },
+  { pattern: /^\/league\/[^/]+\/player\/[^/]+$/, title: "Player Details" },
+  { pattern: /^\/league\/[^/]+\/players$/, title: "Players" },
+  { pattern: /^\/league\/[^/]+\/team\/[^/]+$/, title: "Team Details" },
+  { pattern: /^\/league\/[^/]+\/teams$/, title: "Teams" },
+  { pattern: /^\/league\/[^/]+\/schedule$/, title: "Schedule" },
+  { pattern: /^\/league\/[^/]+\/edit$/, title: "Edit League" },
+  { pattern: /^\/league\/[^/]+\/admin$/, title: "League Administration" },
+  { pattern: /^\/league\/[^/]+$/, title: "League Overview" },
+  { pattern: /^\/superadmin\/courses$/, title: "Course Administration" },
+  { pattern: /^\/superadmin\/leagues$/, title: "League Administration" },
+  { pattern: /^\/superadmin\/billing$/, title: "Billing Administration" },
+  { pattern: /^\/superadmin\/users$/, title: "User Administration" },
+];
+
 export const resolveSeoMetadata = (pathname: string): SeoMetadata => {
   const normalizedPath = pathname !== "/" ? pathname.replace(/\/+$/, "") : "/";
   const publicPage = publicPages[normalizedPath];
@@ -40,8 +73,10 @@ export const resolveSeoMetadata = (pathname: string): SeoMetadata => {
     };
   }
 
+  const appPage = appPageTitles.find(({ pattern }) => pattern.test(normalizedPath));
+
   return {
-    title: `Account | ${SITE_NAME}`,
+    title: `${appPage?.title || "Page Not Found"} | ${SITE_NAME}`,
     description: "Secure League Night Pro account and golf league management area.",
     canonicalUrl: null,
     indexable: false,
