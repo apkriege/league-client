@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { lazy, Suspense, type ReactNode } from "react";
 import Landing from "./pages/landing/Landing.tsx";
+import marketingPages from "./pages/marketing/marketing-pages.json";
 
 // auth pages
 import AppErrorBoundary from "@/components/route/AppErrorBoundary";
@@ -38,6 +39,7 @@ const AppThemeProvider = lazy(() => import("./components/route/AppThemeProvider.
 const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy.tsx"));
 const TermsOfService = lazy(() => import("./pages/legal/TermsOfService.tsx"));
 const RefundPolicy = lazy(() => import("./pages/legal/RefundPolicy.tsx"));
+const MarketingPage = lazy(() => import("./pages/marketing/MarketingPage.tsx"));
 
 const withSuspense = (element: ReactNode) => (
   <Suspense fallback={<div className="p-6 text-sm text-slate-400">Loading...</div>}>
@@ -94,6 +96,11 @@ export const router = createBrowserRouter([
     element: withAppTheme(<RefundPolicy />),
     errorElement: <AppErrorBoundary />,
   },
+  ...marketingPages.map((page) => ({
+    path: `/${page.slug}`,
+    element: withAppTheme(<MarketingPage />),
+    errorElement: <AppErrorBoundary />,
+  })),
   {
     path: "",
     element: withAppTheme(<BaseLayout />),

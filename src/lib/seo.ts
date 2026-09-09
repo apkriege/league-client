@@ -1,3 +1,5 @@
+import marketingPages from "@/pages/marketing/marketing-pages.json";
+
 const SITE_URL = "https://leaguenightpro.com";
 const SITE_NAME = "League Night Pro";
 const SOCIAL_IMAGE = `${SITE_URL}/league-night-logo.png`;
@@ -28,6 +30,10 @@ const publicPages: Record<string, Omit<SeoMetadata, "canonicalUrl" | "indexable"
     description: "Review refund eligibility for League Night Pro league-season golfer access purchases.",
   },
 };
+
+marketingPages.forEach((page) => {
+  publicPages[`/${page.slug}`] = { title: page.title, description: page.description };
+});
 
 const appPageTitles: Array<{ pattern: RegExp; title: string }> = [
   { pattern: /^\/login$/, title: "Sign In" },
@@ -105,58 +111,97 @@ const setCanonical = (url: string | null) => {
   if (!existing) document.head.appendChild(canonical);
 };
 
-const setHomeStructuredData = (enabled: boolean) => {
+const setPublicStructuredData = (pathname: string, metadata: SeoMetadata) => {
   const id = "league-night-structured-data";
   document.getElementById(id)?.remove();
-  if (!enabled) return;
+  if (!metadata.indexable || !metadata.canonicalUrl) return;
+
+  const marketingPage = marketingPages.find((page) => `/${page.slug}` === pathname);
+  const graph: Record<string, unknown>[] = [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "League Night LLC",
+      url: `${SITE_URL}/`,
+      logo: SOCIAL_IMAGE,
+      email: "support@leaguenightpro.com",
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: `${SITE_URL}/`,
+      name: SITE_NAME,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+    {
+      "@type": "WebPage",
+      "@id": `${metadata.canonicalUrl}#webpage`,
+      url: metadata.canonicalUrl,
+      name: metadata.title,
+      description: metadata.description,
+      isPartOf: { "@id": `${SITE_URL}/#website` },
+      about: { "@id": `${SITE_URL}/#software` },
+    },
+  ];
+
+  if (pathname === "/" || marketingPage) {
+    graph.push({
+      "@type": "SoftwareApplication",
+      "@id": `${SITE_URL}/#software`,
+      name: SITE_NAME,
+      url: `${SITE_URL}/`,
+      applicationCategory: "BusinessApplication",
+      applicationSubCategory: "Golf league management software",
+      operatingSystem: "Web",
+      description: metadata.description,
+      featureList: [
+        "Golf league and tournament setup",
+        "Player, substitute, and team management",
+        "Event scheduling, flights, and printable scorecards",
+        "Eight individual and team scoring formats",
+        "Gross, net, points, standings, and skins calculations",
+        "League, player, team, event, and matchup intelligence",
+        "Annual season renewal with historical rounds preserved",
+      ],
+      offers: {
+        "@type": "Offer",
+        price: "10.00",
+        priceCurrency: "USD",
+        description: "Per regular golfer for one league season; eight-golfer minimum",
+        url: `${SITE_URL}/#pricing`,
+      },
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    });
+  }
+
+  if (marketingPage) {
+    graph.push(
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${metadata.canonicalUrl}#breadcrumb`,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+          { "@type": "ListItem", position: 2, name: marketingPage.eyebrow, item: metadata.canonicalUrl },
+        ],
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${metadata.canonicalUrl}#faq`,
+        mainEntity: marketingPage.faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: { "@type": "Answer", text: faq.answer },
+        })),
+      },
+    );
+  }
 
   const script = document.createElement("script");
   script.id = id;
   script.type = "application/ld+json";
   script.text = JSON.stringify({
     "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "@id": `${SITE_URL}/#organization`,
-        name: "League Night LLC",
-        url: `${SITE_URL}/`,
-        logo: SOCIAL_IMAGE,
-        email: "support@leaguenightpro.com",
-      },
-      {
-        "@type": "WebSite",
-        "@id": `${SITE_URL}/#website`,
-        url: `${SITE_URL}/`,
-        name: SITE_NAME,
-        publisher: { "@id": `${SITE_URL}/#organization` },
-      },
-      {
-        "@type": "SoftwareApplication",
-        name: SITE_NAME,
-        url: `${SITE_URL}/`,
-        applicationCategory: "BusinessApplication",
-        operatingSystem: "Web",
-        description: publicPages["/"].description,
-        featureList: [
-          "Golf league and tournament setup",
-          "Player, substitute, and team management",
-          "Event scheduling, flights, and printable scorecards",
-          "Stroke play, match play, Stableford, maximum score, best ball, four-ball, scramble, and alternate-shot scoring",
-          "Configurable gross, net, handicap, placement-point, match-point, and skins calculations",
-          "League, player, team, event, matchup, and commissioner intelligence",
-          "Annual season renewal with historical rounds preserved",
-        ],
-        offers: {
-          "@type": "Offer",
-          price: "10.00",
-          priceCurrency: "USD",
-          description: "Per golfer for one league season",
-          url: `${SITE_URL}/#pricing`,
-        },
-        publisher: { "@id": `${SITE_URL}/#organization` },
-      },
-    ],
+    "@graph": graph,
   });
   document.head.appendChild(script);
 };
@@ -180,5 +225,5 @@ export const applySeoForPath = (pathname: string) => {
   setMeta('meta[name="twitter:title"]', "name", "twitter:title", metadata.title);
   setMeta('meta[name="twitter:description"]', "name", "twitter:description", metadata.description);
   setCanonical(metadata.canonicalUrl);
-  setHomeStructuredData(pathname === "/");
+  setPublicStructuredData(pathname, metadata);
 };

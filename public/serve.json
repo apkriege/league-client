@@ -1,11 +1,6 @@
 {
   "directoryListing": false,
-  "rewrites": [
-    {
-      "source": "**",
-      "destination": "/index.html"
-    }
-  ],
+  "cleanUrls": true,
   "headers": [
     {
       "source": "**/*",

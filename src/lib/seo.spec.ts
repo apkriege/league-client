@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveSeoMetadata } from "./seo";
+import marketingPages from "@/pages/marketing/marketing-pages.json";
 
 describe("resolveSeoMetadata", () => {
   it("makes the public marketing page indexable and canonical", () => {
@@ -59,5 +60,14 @@ describe("resolveSeoMetadata", () => {
 
   it("uses a clear title for unknown routes", () => {
     expect(resolveSeoMetadata("/missing").title).toBe("Page Not Found | League Night Pro");
+  });
+
+  it.each(marketingPages)("makes /$slug indexable with unique metadata", (page) => {
+    expect(resolveSeoMetadata(`/${page.slug}`)).toMatchObject({
+      title: page.title,
+      description: page.description,
+      canonicalUrl: `https://leaguenightpro.com/${page.slug}`,
+      indexable: true,
+    });
   });
 });

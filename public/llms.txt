@@ -9,6 +9,11 @@ Support: support@leaguenightpro.com
 
 - [League Night Pro](https://leaguenightpro.com/): Product overview, capabilities, workflow, pricing, and account registration.
 - [Detailed product information](https://leaguenightpro.com/llms-full.txt): Machine-readable product facts, features, audiences, and pricing details.
+- [Golf league scoring software](https://leaguenightpro.com/golf-league-scoring-software): Supported formats, score entry, results, points, skins, and score history.
+- [Golf league scheduling software](https://leaguenightpro.com/golf-league-scheduling-software): Season planning, events, flights, matchups, and scorecards.
+- [Golf league handicap tracking](https://leaguenightpro.com/golf-league-handicap-tracking): Stored handicaps, allowances, historical movement, and net scoring.
+- [Software for golf league commissioners](https://leaguenightpro.com/golf-league-software-for-commissioners): Weekly operations, administration, member engagement, and renewal.
+- [Golf league standings and statistics](https://leaguenightpro.com/golf-league-standings-and-statistics): Standings, player statistics, team performance, records, skins, and event recaps.
 
 ## Policies
 

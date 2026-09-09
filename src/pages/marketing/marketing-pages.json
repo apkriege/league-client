@@ -1,0 +1,97 @@
+[
+  {
+    "slug": "golf-league-scoring-software",
+    "title": "Golf League Scoring Software | League Night Pro",
+    "description": "Enter golf scores once and automatically calculate gross and net results, points, skins, standings, team scores, and player history across eight league formats.",
+    "eyebrow": "Golf league scoring software",
+    "heading": "Score every kind of league night without rebuilding the spreadsheet.",
+    "intro": "League Night Pro connects hole-by-hole score entry to results, standings, skins, player records, team performance, and event recaps. Commissioners enter the scorecard once and the rest of the league updates together.",
+    "highlights": ["8 individual and team formats", "9-hole and 18-hole events", "Gross, net, points, and skins", "Printable flight scorecards"],
+    "sections": [
+      { "title": "Individual and team formats", "body": "Run stroke play, match play, Stableford, maximum score, best ball, four-ball match play, scramble, and alternate shot within the same season. Each event keeps the scoring rules and leaderboard appropriate to its format." },
+      { "title": "One score becomes every result", "body": "Hole scores drive gross and net totals, placement or match points, skins, league standings, player history, team results, and event intelligence. Corrections recalculate the connected season record." },
+      { "title": "A scorecard golfers can understand", "body": "Use printable cards before the round, enter scores from a phone or desktop, review hole-by-hole results, and publish a clear leaderboard after play." }
+    ],
+    "faqs": [
+      { "question": "Which golf league formats are supported?", "answer": "League Night Pro supports stroke play, match play, Stableford, maximum score, best ball, four-ball match play, scramble, and alternate shot." },
+      { "question": "Can a league use both individual and team events?", "answer": "Yes. A season can contain individual and team events, with the correct scoring and leaderboard used for each event." },
+      { "question": "Can commissioners correct a score after an event?", "answer": "Yes. Authorized administrators can edit scores, review score revisions, and restore a previous version while recalculating affected results." }
+    ]
+  },
+  {
+    "slug": "golf-league-scheduling-software",
+    "title": "Golf League Scheduling Software | League Night Pro",
+    "description": "Plan golf league seasons, schedule 9-hole or 18-hole events, select courses and tees, create flights and matchups, and print weekly scorecards.",
+    "eyebrow": "Golf league scheduling software",
+    "heading": "Turn a season calendar into ready-to-play league nights.",
+    "intro": "Build the season, choose each course and tee, organize golfers into flights or teams, set matchups, and print scorecards from one connected schedule. Every event stays tied to the standings and history it creates.",
+    "highlights": ["Season and event planning", "Courses, tees, and starting holes", "Flights, teams, and matchups", "Substitute and roster management"],
+    "sections": [
+      { "title": "Plan recurring league play", "body": "Create a complete league season with dated events, 9-hole or 18-hole layouts, scoring formats, course selections, and tee assignments." },
+      { "title": "Organize the field", "body": "Build flights, assign golfers or teams, set match-play opponents, handle substitutes, and keep participation connected to the event record." },
+      { "title": "Carry the schedule into game day", "body": "Print flight scorecards, enter results against the scheduled event, and give members one place to see what is next and what has already happened." }
+    ],
+    "faqs": [
+      { "question": "Can I schedule both 9-hole and 18-hole league events?", "answer": "Yes. Events can use 9-hole or 18-hole scorecards and the course tees configured for that event." },
+      { "question": "Does the schedule support teams and individual golfers?", "answer": "Yes. League Night Pro supports individual flights, teams, and event-specific matchups across the available scoring formats." },
+      { "question": "Can I keep previous seasons?", "answer": "Yes. Commissioners can renew a league into a new season while preserving previous rounds and historical records." }
+    ]
+  },
+  {
+    "slug": "golf-league-handicap-tracking",
+    "title": "Golf League Handicap Tracking Software | League Night Pro",
+    "description": "Track player handicaps, allocate league scoring strokes, record handicap movement, and connect every completed round to long-term golfer performance.",
+    "eyebrow": "Golf league handicap tracking",
+    "heading": "Keep league handicaps connected to every score and season.",
+    "intro": "League Night Pro stores each golfer’s league handicap, applies the configured format allowance when allocating scoring strokes, and records how completed rounds affect the golfer’s history. Commissioners retain control without losing the audit trail.",
+    "highlights": ["Stored player handicaps", "Format-specific allowances", "Historical handicap movement", "Gross and net performance"],
+    "sections": [
+      { "title": "Transparent stroke allocation", "body": "Scoring strokes come from the player handicap stored by the league, with any allowance required by the selected format. Match play uses relative strokes between competitors." },
+      { "title": "Handicap history that survives corrections", "body": "Dated adjustments and completed-round history preserve when a handicap changed, allowing season recalculation without rewriting what was known before earlier events." },
+      { "title": "More context than one number", "body": "Connect handicap movement to gross and net scoring, recent form, course performance, personal records, league rank, and head-to-head results." }
+    ],
+    "faqs": [
+      { "question": "Does League Night Pro track player handicaps?", "answer": "Yes. Each golfer has a stored league handicap used for scoring-stroke allocation and historical performance tracking." },
+      { "question": "Can handicap allowances vary by scoring format?", "answer": "Yes. A configured allowance can be applied when the selected scoring format requires one." },
+      { "question": "Are tee rating and slope used in event stroke allocation?", "answer": "No. The player’s stored handicap drives scoring strokes. Tee rating and slope are reserved for round differentials and handicap updates." }
+    ]
+  },
+  {
+    "slug": "golf-league-software-for-commissioners",
+    "title": "Golf League Software for Commissioners | League Night Pro",
+    "description": "Run rosters, schedules, flights, scorecards, scoring, standings, announcements, operations checks, and season renewal from one golf league system.",
+    "eyebrow": "Built for golf league commissioners",
+    "heading": "Run the league without becoming its full-time accountant.",
+    "intro": "League Night Pro gives commissioners one operating view for the work before, during, and after league night. Set the season up, find what needs attention, publish results, and carry the complete record forward.",
+    "highlights": ["Players, substitutes, and teams", "Commissioner operations checks", "Invitations and announcements", "Season renewal with history"],
+    "sections": [
+      { "title": "Control the weekly workflow", "body": "Manage the roster, schedule the event, build flights, print scorecards, enter scores, and publish standings without moving data between disconnected tools." },
+      { "title": "See problems before league night", "body": "Operations checks flag missing scores, incomplete assignments, participation gaps, schedule breaks, capacity issues, and renewal deadlines that need commissioner attention." },
+      { "title": "Give golfers a reason to return", "body": "Members can follow standings, event recaps, performance trends, team identity, rivalries, records, skins, and upcoming matchups from the same league history." }
+    ],
+    "faqs": [
+      { "question": "What can a golf league commissioner manage?", "answer": "Commissioners can manage golfers, substitutes, teams, invitations, announcements, events, flights, matchups, scoring rules, score entry, standings, and season renewal." },
+      { "question": "Do golfers need a separate mobile app?", "answer": "No. League Night Pro is web-based and works from modern phone and desktop browsers." },
+      { "question": "How much does a league season cost?", "answer": "Pricing starts at $80 per league season for eight regular golfers. Additional regular golfers are $10 each per season, and substitutes do not increase the price." }
+    ]
+  },
+  {
+    "slug": "golf-league-standings-and-statistics",
+    "title": "Golf League Standings and Statistics Software | League Night Pro",
+    "description": "Automatically update golf league standings, player statistics, team performance, skins, records, rivalries, and event recaps from every completed scorecard.",
+    "eyebrow": "Golf league standings and statistics",
+    "heading": "Turn weekly scores into a season golfers want to follow.",
+    "intro": "League Night Pro turns completed events into more than a results table. Golfers can follow the standings race, recent form, personal records, course performance, team identity, rivalries, skins, and the story of each league night.",
+    "highlights": ["Automatic season standings", "Player and team intelligence", "Event recaps and records", "Skins and matchup history"],
+    "sections": [
+      { "title": "Standings that update with scoring", "body": "Placement points and match points flow from event results into the league table, keeping the season race connected to the underlying scorecards." },
+      { "title": "Useful statistics for every golfer", "body": "Player pages connect scoring averages, recent form, par performance, course splits, personal records, handicap movement, league position, and head-to-head history." },
+      { "title": "Stories that bring golfers back", "body": "Event recaps surface leaders, decisive holes, strong finishes, bounce-backs, skins, and matchup outcomes. Team views reveal contributions, scoring identity, records, and rivalries." }
+    ],
+    "faqs": [
+      { "question": "Do standings update automatically?", "answer": "Yes. Saving event scores recalculates the applicable event results and connected league standings." },
+      { "question": "What golf statistics can players see?", "answer": "Players can review round history, scoring averages, recent performance, course splits, par results, records, handicap movement, league rank, and head-to-head results when data is available." },
+      { "question": "Are team statistics included?", "answer": "Yes. Team pages include event results, form, player contribution, scoring identity, pairing performance, records, and rivalries for the formats the team played." }
+    ]
+  }
+]
