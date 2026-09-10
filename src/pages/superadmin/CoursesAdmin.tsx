@@ -4,14 +4,15 @@ import { useAppStore } from "@/stores/appStore";
 import { Input, Select } from "@/components/form";
 import Card from "@/components/layout/Card";
 import LoadingState from "@/components/layout/LoadingState";
+import Modal from "@/components/layout/Modal";
 import PageHeader from "@/components/layout/PageHeader";
 import { useToast } from "@/context/useToast";
-import { useClubs } from "@api/clubs";
+import { useClubs, type ClubRecord } from "@api/clubs";
 import { useCreateClub } from "@api/clubs/mutations";
 import { useCoursesWithTees } from "@api/courses";
 import { useCreateCourse, useDeleteCourse, useUpdateCourse } from "@api/courses/mutations";
 import type { ImportedCourse } from "@api/courses";
-import { AlertTriangle, Flag, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Building2, Flag, Plus, Trash2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import {
   buildEmptyTee,
@@ -30,6 +31,7 @@ import {
 import ScorecardInputTable from "./components/ScorecardInputTable";
 import CourseImportSearch from "./components/CourseImportSearch";
 import UsgaRatingImport from "./components/UsgaRatingImport";
+import { findImportedClubMatches } from "./importedClubMatch";
 
 export default function CoursesAdmin() {
   const [searchParams] = useSearchParams();
@@ -47,16 +49,28 @@ export default function CoursesAdmin() {
     <CoursesAdminEditor
       key={editCourseId || "new-course"}
       initialCourse={initialCourse}
+      courses={courses as CourseRecord[]}
     />
   );
 }
 
-function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord }) {
+type CoursesAdminEditorProps = {
+  initialCourse?: CourseRecord;
+  courses: CourseRecord[];
+};
+
+type PendingClubReuse = {
+  imported: ImportedCourse;
+  clubs: ClubRecord[];
+  clubId: number;
+};
+
+function CoursesAdminEditor({ initialCourse, courses }: CoursesAdminEditorProps) {
   const navigate = useNavigate();
   const { show } = useToast();
   const { user } = useAppStore();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: clubs = [], isLoading: clubsLoading } = useClubs();
+  const { data: clubs = [], isLoading: clubsLoading, isError: clubsError } = useClubs();
 
   const createCourse = useCreateCourse();
   const updateCourse = useUpdateCourse();
@@ -73,13 +87,14 @@ function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord })
   const [tees, setTees] = useState<TeeFormData[]>(initialEditorState?.tees ?? []);
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const [importAttribution, setImportAttribution] = useState("");
+  const [pendingClubReuse, setPendingClubReuse] = useState<PendingClubReuse | null>(null);
 
   const isSuperAdmin = String(user?.role || "").toUpperCase() === "SUPER";
   const holeCount = Number(form.numHoles) || 18;
 
   const clubOptions = useMemo(
     () =>
-      clubs.map((club: any) => ({
+      clubs.map((club) => ({
         value: String(club.id),
         label: club.name,
       })),
@@ -145,6 +160,7 @@ function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord })
     setTees([]);
     setImportWarnings([]);
     setImportAttribution("");
+    setPendingClubReuse(null);
 
     if (searchParams.get("edit")) {
       const nextParams = new URLSearchParams(searchParams);
@@ -182,7 +198,7 @@ function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord })
         accessType: clubForm.accessType,
       },
       {
-        onSuccess: (club: any) => {
+        onSuccess: (club) => {
           setForm((prev) => ({ ...prev, clubId: String(club.id) }));
           setClubForm(emptyClubForm);
           setShowClubForm(false);
@@ -193,29 +209,10 @@ function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord })
     );
   };
 
-  const handleCourseImport = async (imported: ImportedCourse) => {
-    const normalizedClubName = imported.club.name.trim().toLowerCase();
-    const importedCity = imported.course.location.split(",")[0]?.trim().toLowerCase();
-    const existingClub = clubs.find(
-      (club: any) => {
-        const sameName = String(club.name || "").trim().toLowerCase() === normalizedClubName;
-        const clubLocation = String(club.location || "").trim().toLowerCase();
-        return sameName && (!clubLocation || !importedCity || clubLocation.includes(importedCity));
-      }
-    );
-    const club =
-      existingClub ??
-      (await createClub.mutateAsync({
-        name: imported.club.name,
-        description: imported.club.description,
-        location: imported.club.location,
-        phone: imported.club.phone,
-        link: imported.club.link,
-        accessType: imported.club.accessType,
-      }));
+  const loadImportedCourse = (imported: ImportedCourse, clubId: number) => {
     const editorState = courseToEditorState({
       id: 0,
-      clubId: Number(club.id),
+      clubId,
       ...imported.course,
     });
 
@@ -239,6 +236,34 @@ function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord })
       show("Club confirmed and course data loaded for review.", "success");
     }
   };
+
+  const handleCourseImport = async (imported: ImportedCourse) => {
+    const existingClubs = findImportedClubMatches(clubs, courses, imported);
+    if (existingClubs.length > 0) {
+      setPendingClubReuse({ imported, clubs: existingClubs, clubId: existingClubs[0].id });
+      return;
+    }
+
+    const club = await createClub.mutateAsync({
+      name: imported.club.name,
+      description: imported.club.description,
+      location: imported.club.location,
+      phone: imported.club.phone,
+      link: imported.club.link,
+      accessType: imported.club.accessType,
+    });
+    loadImportedCourse(imported, club.id);
+  };
+
+  const confirmClubReuse = () => {
+    if (!pendingClubReuse) return;
+    loadImportedCourse(pendingClubReuse.imported, pendingClubReuse.clubId);
+    setPendingClubReuse(null);
+  };
+
+  const matchedClub = pendingClubReuse?.clubs.find(
+    (club) => club.id === pendingClubReuse.clubId,
+  );
 
   const handleSubmit = () => {
     const validationError = getCourseValidationError(form, tees);
@@ -284,7 +309,8 @@ function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord })
   }
 
   return (
-    <div>
+    <>
+      <div>
       <PageHeader
         title="Course Management"
         subTitle="Create courses, attach multiple tees, and manage hole-by-hole rating data."
@@ -372,9 +398,16 @@ function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord })
 
           {!editingId && (
             <CourseImportSearch
-              disabled={createClub.isPending}
+              disabled={clubsLoading || clubsError || createClub.isPending}
               onImport={handleCourseImport}
             />
+          )}
+
+          {clubsError && !editingId && (
+            <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              The club list could not be loaded, so course importing is paused to prevent duplicate
+              clubs. Refresh the page and try again.
+            </div>
           )}
 
           {importWarnings.length > 0 && (
@@ -854,6 +887,60 @@ function CoursesAdminEditor({ initialCourse }: { initialCourse?: CourseRecord })
           )}
         </div>
       </Card>
-    </div>
+      </div>
+
+      <Modal
+        isOpen={Boolean(pendingClubReuse)}
+        title="Use existing club?"
+        onClose={() => setPendingClubReuse(null)}
+      >
+        {pendingClubReuse && matchedClub && (
+          <div className="space-y-5 py-1">
+            <p className="text-sm leading-6 text-slate-600">
+              This imported course matches a club already in your database. Confirm the club below
+              to attach the new course without creating a duplicate club.
+            </p>
+            {pendingClubReuse.clubs.length > 1 && (
+              <Select
+                dense
+                label="Matching Club"
+                value={String(pendingClubReuse.clubId)}
+                options={pendingClubReuse.clubs.map((club) => ({
+                  value: String(club.id),
+                  label: `${club.name} · ${club.location || "No location stored"}`,
+                }))}
+                onChange={(event) =>
+                  setPendingClubReuse((current) =>
+                    current ? { ...current, clubId: Number(event.target.value) } : null,
+                  )
+                }
+              />
+            )}
+            <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="rounded-xl border border-emerald-200 bg-white p-2.5 text-emerald-700">
+                <Building2 size={17} />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-slate-900">{matchedClub.name}</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {matchedClub.location || "No club location stored"}
+                </p>
+                <p className="mt-2 text-xs text-slate-500">
+                  Imported course location: {pendingClubReuse.imported.course.location}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setPendingClubReuse(null)}>
+                Cancel Import
+              </Button>
+              <Button type="button" variant="primary" onClick={confirmClubReuse}>
+                Use Existing Club
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </>
   );
 }

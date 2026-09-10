@@ -11,12 +11,16 @@ export type ClubPayload = {
   accessType?: string;
 };
 
+export type ClubRecord = ClubPayload & {
+  id: number;
+};
+
 export const getClubs = async () => {
-  const response = await apiClient.get("/clubs");
+  const response = await apiClient.get<ClubRecord[]>("/clubs");
   return response.data;
 };
 
 export const createClub = async (data: ClubPayload) => {
-  const response = await apiClient.post("/clubs", data);
+  const response = await apiClient.post<ClubRecord>("/clubs", data);
   return response.data;
 };

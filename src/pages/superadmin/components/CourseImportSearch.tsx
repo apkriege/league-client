@@ -88,7 +88,7 @@ export default function CourseImportSearch({
         attribution={directory.attribution}
         preview={directory.preview}
         loadingId={directory.loadingId}
-        confirmationDescription="Confirm both records before the club is created and the course form is populated."
+        confirmationDescription="Confirm the course data. Existing clubs are checked before anything is created."
         confirmLabel="Confirm & Load Into Form"
         confirmingLabel="Preparing..."
         warningDescription="The data will remain editable in the form before you create the course."
