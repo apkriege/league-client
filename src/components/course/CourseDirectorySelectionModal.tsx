@@ -135,9 +135,16 @@ export default function CourseDirectorySelectionModal({
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                          Directory Match
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                            Directory Match
+                          </p>
+                          {result.alreadyImported && (
+                            <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-amber-800">
+                              Already in database
+                            </span>
+                          )}
+                        </div>
                         <p className="mt-1 font-semibold text-slate-900">{result.courseName}</p>
                         <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
                           <MapPin size={13} />
@@ -157,7 +164,7 @@ export default function CourseDirectorySelectionModal({
                         disabled={Boolean(loadingId) || result.alreadyImported}
                       >
                         {result.alreadyImported
-                          ? "Already Imported"
+                          ? "Already Exists"
                           : loadingId === result.externalId
                             ? "Loading..."
                             : result.availabilityUnchecked
