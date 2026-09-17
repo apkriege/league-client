@@ -7,6 +7,8 @@ import {
   createTeamBestBallScoringHelpers,
   calculateMatchplayPops,
   calculateStrokeplayPops,
+  getPopulatedFlightTeamSlots,
+  getSharedTeamPlayingHandicap,
   sortFlightTeamsByHandicap,
 } from "./util";
 import {
@@ -203,7 +205,7 @@ function ViewFlightScores({ event, flight }: any) {
       const round = player?.player?.rounds?.[0];
       return total + Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0);
     }, 0);
-  const showHolePoints = scoringMode === "four-ball-match" || scoringMode === "match-play";
+  const showHolePoints = true;
   const showPlayerMatchDetails = scoringMode === "match-play";
   const getTeamMedalPoints = (team: 1 | 2) => {
     if (scoringMode === "match-play") {
@@ -219,13 +221,16 @@ function ViewFlightScores({ event, flight }: any) {
         total + Number(getTeamPointsForHole(team, hole, holeIndex) || 0),
       0,
     );
+    if (["best-ball", "stableford", "stroke-play", "maximum-score"].includes(scoringMode)) {
+      return Math.round(holePoints * 10) / 10;
+    }
     return Math.round((getTeamTotalPoints(team) - holePoints) * 10) / 10;
   };
 
   return (
     <div className="border rounded-lg">
       <Table
-        data={[1 as const, 2 as const]}
+        data={getPopulatedFlightTeamSlots(team1, team2)}
         search={false}
         pagination={false}
         variant="clean"
@@ -259,22 +264,32 @@ function ViewFlightScores({ event, flight }: any) {
                       player={player}
                       holes={holes}
                       popsForHole={popsForHole}
-                      showMatchDetails={showPlayerMatchDetails}
                     />
                   ))}
-                  {team1.length > 0 && team2.length > 0 && (
-                    <TeamPointsRow
-                      label={`Team ${team} Points`}
-                      team={team}
-                      holes={holes}
-                      getTeamPointsForHole={getTeamPointsForHole}
-                      getTeamMedalPoints={getTeamMedalPoints}
-                      getTeamTotalPoints={getTeamTotalPoints}
-                      getTeamPlayerPoints={getTeamPlayerPoints}
-                      showHolePoints={showHolePoints}
-                      showPlayerPointBreakdown={showPlayerMatchDetails}
-                    />
-                  )}
+                  <TeamPointsRow
+                    label={`${team === 1
+                      ? flight.teams?.[0]?.team?.name || "Team 1"
+                      : flight.teams?.[1]?.team?.name || "Team 2"} ${
+                        scoringMode === "stroke-play" || scoringMode === "maximum-score"
+                          ? "aggregate"
+                          : "points"
+                      }`}
+                    team={team}
+                    holes={holes}
+                    getTeamPointsForHole={getTeamPointsForHole}
+                    getTeamMedalPoints={getTeamMedalPoints}
+                    getTeamTotalPoints={getTeamTotalPoints}
+                    getTeamPlayerPoints={getTeamPlayerPoints}
+                    showHolePoints={showHolePoints}
+                    holePointTotalLabel={
+                      scoringMode === "stroke-play" || scoringMode === "maximum-score"
+                        ? "Net"
+                        : scoringMode === "best-ball" || scoringMode === "stableford"
+                          ? "Hole pts"
+                          : "Match"
+                    }
+                    showPlayerPointBreakdown={showPlayerMatchDetails}
+                  />
                 </Fragment>
               ))}
             </tbody>
@@ -292,6 +307,9 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
     (round: any) => Number(round.flightId) === Number(flight.id),
   );
   const roundByTeamId = new Map(rounds.map((round: any) => [Number(round.teamId), round]));
+  const eventPointsByTeamId = new Map<number, number>(
+    (event.teamEventPoints ?? []).map((row: any) => [Number(row.teamId), Number(row.points)]),
+  );
   const teams = flight.teams ?? [];
 
   if (rounds.length === 0) {
@@ -323,6 +341,8 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
             <tbody>
               {visibleTeams.map((team: any) => {
                 const round: any = roundByTeamId.get(Number(team.teamId));
+                const playingHandicap = getSharedTeamPlayingHandicap(round);
+                const popsByHole = calculateStrokeplayPops(playingHandicap, holes);
                 const scoreByHole = new Map(
                   (round?.scores ?? []).map((score: any) => [Number(score.hole), score]),
                 );
@@ -331,15 +351,20 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
                     <td className="p-3">
                       <p className="font-bold text-slate-900">{team.team?.name || `Team ${team.teamId}`}</p>
                       <p className="mt-0.5 text-[10px] text-slate-500">
-                        {round ? `PH ${round.playingHandicap ?? 0}` : "No score"}
+                        {round ? `PH ${playingHandicap}` : "No score"}
                       </p>
                     </td>
                     {holes.map((hole: any) => {
                       const score: any = scoreByHole.get(Number(hole.num));
                       return (
                         <td key={hole.num} className="p-2">
-                          <div className="flex h-8 items-center justify-center rounded border bg-white text-xs font-bold">
+                          <div className="relative flex h-8 items-center justify-center rounded border bg-white text-xs font-bold">
                             {score?.gross ?? "—"}
+                            {score ? (
+                              <HandicapStrokeIndicator
+                                strokes={popsByHole.get(Number(hole.num)) ?? 0}
+                              />
+                            ) : null}
                           </div>
                         </td>
                       );
@@ -347,7 +372,10 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
                     <ScoreValueCell>{round?.gross ?? "—"}</ScoreValueCell>
                     <ScoreValueCell>{round?.net ?? "—"}</ScoreValueCell>
                     <ScoreValueCell>
-                      {round ? Number(round.pointsEarned ?? 0) + Number(round.matchPoints ?? 0) : "—"}
+                      {round
+                        ? eventPointsByTeamId.get(Number(team.teamId)) ??
+                          Number(round.pointsEarned ?? 0) + Number(round.matchPoints ?? 0)
+                        : "—"}
                     </ScoreValueCell>
                   </tr>
                 );
@@ -364,7 +392,6 @@ const PlayerRow = ({
   player,
   holes,
   popsForHole,
-  showMatchDetails,
 }: any) => {
   const p = player.player;
   const round = p.rounds[0];
@@ -384,7 +411,7 @@ const PlayerRow = ({
           <td key={hole.num} className="p-2">
             <div className="relative h-8 border rounded flex items-center justify-center text-xs font-semibold bg-white">
               {score ?? "-"}
-              {showMatchDetails ? (
+              {score != null ? (
                 <HandicapStrokeIndicator
                   strokes={popsForHole(Number(player.playerId), Number(hole.num))}
                 />
@@ -625,10 +652,11 @@ const TeamPointsRow = ({
   getTeamTotalPoints,
   getTeamPlayerPoints,
   showHolePoints,
+  holePointTotalLabel,
   showPlayerPointBreakdown,
 }: any) => {
   return (
-    <tr aria-hidden="true" className="bg-gray-200">
+    <tr className="bg-gray-200">
       <td>{label}</td>
       {holes.map((hole: any, holeIdx: number) => (
         <ScoreValueCell key={hole.num} className="p-2">
@@ -657,7 +685,7 @@ const TeamPointsRow = ({
           {showHolePoints ? (
           <div className="flex flex-col items-center leading-tight">
             <span className="text-sm">{getTeamMedalPoints(team)}</span>
-            <span className="text-[10px]">Match</span>
+            <span className="text-[10px]">{holePointTotalLabel}</span>
           </div>
         ) : (
           <span className="text-gray-400">—</span>

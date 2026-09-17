@@ -19,6 +19,13 @@ export type UsgaRatingRow = {
 const normalizeHeader = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]/g, "");
 
+export const parseUsgaCourseId = (value: string) => {
+  const trimmed = value.trim();
+  const urlMatch = trimmed.match(/[?&]CourseID=(\d+)/i);
+  const parsed = Number(urlMatch?.[1] ?? trimmed);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 const splitLine = (line: string) => {
   if (line.includes("\t")) return line.split("\t").map((value) => value.trim());
   if (line.includes("|")) {

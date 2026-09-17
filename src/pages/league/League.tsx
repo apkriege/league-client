@@ -584,7 +584,7 @@ export default function League() {
                     <LeagueEventRow
                       event={event}
                       isAdmin={isAdmin}
-                      onView={() => navigate(`/league/${leagueId}/events/${event.id}`)}
+                      eventHref={`/league/${leagueId}/events/${event.id}`}
                       onEdit={() => navigate(`/league/${leagueId}/events/${event.id}/edit`)}
                     />
                   </Fragment>

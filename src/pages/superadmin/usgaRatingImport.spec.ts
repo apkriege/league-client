@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildEmptyTee } from "./courseAdminForm";
 import {
   applyUsgaRatingRows,
+  parseUsgaCourseId,
   parseUsgaRatingTable,
   suggestUsgaTeeMatches,
 } from "./usgaRatingImport";
@@ -19,6 +20,14 @@ const currentUsgaClipboardTable = [
 ].join("\n");
 
 describe("USGA rating import", () => {
+  it("extracts a course ID from either the ID or the USGA course page URL", () => {
+    expect(parseUsgaCourseId("9788")).toBe(9788);
+    expect(
+      parseUsgaCourseId("https://ncrdb.usga.org/courseTeeInfo?CourseID=9788"),
+    ).toBe(9788);
+    expect(parseUsgaCourseId("not a USGA page")).toBeNull();
+  });
+
   it("parses copied USGA rows including gender-specific nine-hole values", () => {
     expect(parseUsgaRatingTable(pastedTable)).toEqual([
       expect.objectContaining({

@@ -1,17 +1,20 @@
 import Button from "@/components/layout/Button";
 import { Input, Select } from "@/components/form";
-import { ExternalLink, FileCheck2 } from "lucide-react";
+import { ClipboardPaste, ExternalLink, FileCheck2, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { TeeFormData } from "../courseAdminForm";
 import {
   applyUsgaRatingRows,
   parseUsgaRatingTable,
+  parseUsgaCourseId,
   suggestUsgaTeeMatches,
   type UsgaRatingRow,
 } from "../usgaRatingImport";
 
 type UsgaRatingImportProps = {
   courseId: string;
+  courseName: string;
+  courseLocation: string;
   holeCount: number;
   tees: TeeFormData[];
   onCourseIdChange: (value: string) => void;
@@ -23,6 +26,8 @@ const formatNine = (rating: number | null, slope: number | null) =>
 
 export default function UsgaRatingImport({
   courseId,
+  courseName,
+  courseLocation,
   holeCount,
   tees,
   onCourseIdChange,
@@ -34,10 +39,12 @@ export default function UsgaRatingImport({
   const [error, setError] = useState("");
   const [nineSide, setNineSide] = useState<"front" | "back">("front");
 
-  const numericCourseId = Number(courseId);
-  const courseUrl = Number.isInteger(numericCourseId) && numericCourseId > 0
+  const [lookupMessage, setLookupMessage] = useState("");
+  const numericCourseId = parseUsgaCourseId(courseId);
+  const courseUrl = numericCourseId
     ? `https://ncrdb.usga.org/courseTeeInfo?CourseID=${numericCourseId}`
     : "";
+  const state = courseLocation.split(",").at(-1)?.trim().slice(0, 2).toUpperCase() || "";
   const assignedCount = teeIndexes.filter((index) => index >= 0).length;
   const teeOptions = useMemo(
     () => [
@@ -50,14 +57,14 @@ export default function UsgaRatingImport({
     [tees],
   );
 
-  const preview = () => {
-    if (!courseUrl) {
-      setError("Enter a valid USGA Course ID first.");
+  const previewTable = (table: string) => {
+    if (!numericCourseId) {
+      setError("Paste the USGA course page URL or enter its Course ID first.");
       return;
     }
 
     try {
-      const parsedRows = parseUsgaRatingTable(pastedTable);
+      const parsedRows = parseUsgaRatingTable(table);
       setRows(parsedRows);
       setTeeIndexes(suggestUsgaTeeMatches(parsedRows, tees));
       setError("");
@@ -66,6 +73,25 @@ export default function UsgaRatingImport({
       setTeeIndexes([]);
       setError(parseError instanceof Error ? parseError.message : "Unable to read the pasted table.");
     }
+  };
+
+  const preview = () => previewTable(pastedTable);
+
+  const pasteAndPreview = async () => {
+    try {
+      const table = await navigator.clipboard.readText();
+      setPastedTable(table);
+      previewTable(table);
+    } catch {
+      setError("Clipboard access was blocked. Paste the copied USGA table into the box instead.");
+    }
+  };
+
+  const copyLookupName = () => {
+    void navigator.clipboard.writeText(courseName).then(
+      () => setLookupMessage(`${courseName} copied. Search in ${state || "the course state"}.`),
+      () => setLookupMessage(`Search for ${courseName} in ${state || "the course state"}.`),
+    );
   };
 
   const apply = () => {
@@ -109,15 +135,45 @@ export default function UsgaRatingImport({
       </div>
 
       <div className="space-y-4 p-5">
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-bold text-slate-900">Find the USGA course</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {courseName} · {courseLocation || "Location unavailable"}
+            </p>
+            {lookupMessage ? <p className="mt-2 text-xs text-emerald-700">{lookupMessage}</p> : null}
+          </div>
+          <a
+            className="inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 text-xs font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            href="https://ncrdb.usga.org/countries/topic-overview"
+            target="_blank"
+            rel="noreferrer"
+            onClick={copyLookupName}
+          >
+            <Search size={13} /> Open lookup & copy name
+          </a>
+        </div>
+
         <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
           <Input
             dense
-            label="USGA Course ID"
-            type="number"
-            min="1"
-            placeholder="26697"
+            label="USGA Course ID or page URL"
+            type="text"
+            inputMode="url"
+            placeholder="9788 or paste the course page URL"
             value={courseId}
             onChange={(event) => onCourseIdChange(event.target.value)}
+            onBlur={() => {
+              const parsed = parseUsgaCourseId(courseId);
+              if (parsed) onCourseIdChange(String(parsed));
+            }}
+            onPaste={(event) => {
+              const parsed = parseUsgaCourseId(event.clipboardData.getData("text"));
+              if (!parsed) return;
+              event.preventDefault();
+              onCourseIdChange(String(parsed));
+              setError("");
+            }}
           />
           <div>
             <label
@@ -131,6 +187,13 @@ export default function UsgaRatingImport({
               className="min-h-28 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
               value={pastedTable}
               onChange={(event) => setPastedTable(event.target.value)}
+              onPaste={(event) => {
+                const table = event.clipboardData.getData("text");
+                if (!table) return;
+                event.preventDefault();
+                setPastedTable(table);
+                previewTable(table);
+              }}
               placeholder="On the USGA page, copy the full tee table including the header row, then paste it here."
             />
           </div>
@@ -152,6 +215,9 @@ export default function UsgaRatingImport({
         <div className="flex flex-wrap items-center gap-3">
           <Button type="button" variant="primary" outline onClick={preview}>
             Preview matches
+          </Button>
+          <Button type="button" variant="primary" onClick={() => void pasteAndPreview()}>
+            <ClipboardPaste size={14} /> Paste & preview
           </Button>
           <p className="text-xs text-slate-500">
             Nothing changes until you review the matches and apply them.

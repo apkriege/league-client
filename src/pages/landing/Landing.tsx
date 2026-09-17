@@ -14,6 +14,13 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
+import {
+  LazyMotion,
+  MotionConfig,
+  domAnimation,
+  m,
+  type Variants,
+} from "framer-motion";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import lnLogo from "@/assets/league-night-logo.png";
@@ -52,39 +59,51 @@ const workflow = [
   },
 ];
 
+const revealViewport = { once: true, amount: 0.16 } as const;
+const revealVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.36, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
 export default function Landing() {
   return (
-    <div className="min-h-screen overflow-hidden bg-[#f4f7fb] text-[#101828]">
-      <style>{`
-        @keyframes landing-fade-up {
-          from { opacity: 0; transform: translateY(22px); }
-          to { opacity: 1; transform: translateY(0); }
+    <LazyMotion features={domAnimation} strict>
+      <MotionConfig reducedMotion="user">
+        <div className="min-h-screen overflow-hidden bg-[#f4f7fb] text-[#101828]">
+          <style>{`
+        .landing-primary-cta { position: relative; overflow: hidden; isolation: isolate; }
+        .landing-primary-cta::after {
+          position: absolute;
+          inset: -40% auto -40% -35%;
+          width: 18%;
+          content: "";
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,.58), transparent);
+          transform: translateX(-180%) skewX(-18deg);
+          transition: transform 650ms ease;
+          pointer-events: none;
         }
-        .landing-reveal { animation: landing-fade-up 780ms cubic-bezier(.2,.8,.2,1) both; }
-        .landing-delay-1 { animation-delay: 120ms; }
-        .landing-delay-2 { animation-delay: 240ms; }
-        .landing-delay-3 { animation-delay: 360ms; }
-        .landing-deferred-section {
-          content-visibility: auto;
-          contain-intrinsic-size: auto 800px;
-        }
+        .landing-primary-cta:hover::after { transform: translateX(420%) skewX(-18deg); }
         @media (prefers-reduced-motion: reduce) {
-          .landing-reveal {
-            animation: none;
-          }
+          .landing-primary-cta::after { display: none; }
         }
       `}</style>
 
-      <Hero />
-      <main>
-        <ProductSection />
-        <IntelligenceSection />
-        <WorkflowSection />
-        <PricingSection />
-        <RegistrationSection />
-        <LandingFooter />
-      </main>
-    </div>
+          <Hero />
+          <main>
+            <ProductSection />
+            <IntelligenceSection />
+            <WorkflowSection />
+            <PricingSection />
+            <RegistrationSection />
+            <LandingFooter />
+          </main>
+        </div>
+      </MotionConfig>
+    </LazyMotion>
   );
 }
 
@@ -147,25 +166,25 @@ function Hero() {
       </header>
 
       <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-14 md:px-8 lg:grid-cols-[minmax(0,1fr)_520px] lg:pb-28 lg:pt-20">
-        <div>
-          <div className="landing-reveal inline-flex items-center gap-2 rounded-full border border-sky-200/20 bg-slate-950/40 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-sky-100">
+        <m.div variants={revealVariants} initial="hidden" animate="visible">
+          <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/20 bg-slate-950/40 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-sky-100">
             <Trophy size={13} />
             One system for the entire golf league season
           </div>
 
-          <h1 className="landing-reveal landing-delay-1 mt-6 max-w-5xl text-6xl font-black leading-[0.88] tracking-[-0.065em] text-white md:text-7xl">
+          <h1 className="mt-6 max-w-5xl text-6xl font-black leading-[0.88] tracking-[-0.065em] text-white md:text-7xl">
             Run your golf league without spreadsheet chaos.
           </h1>
 
-          <p className="landing-reveal landing-delay-2 mt-7 max-w-2xl text-base leading-8 text-white/72 md:text-lg">
+          <p className="mt-7 max-w-2xl text-base leading-8 text-white/72 md:text-lg">
             Manage players, schedules, flights, scorecards, formats, standings, and season renewals—then
             turn every score into useful player, team, and league insight.
           </p>
 
-          <div className="landing-reveal landing-delay-3 mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap gap-3">
             <a
               href="#register"
-              className="group inline-flex items-center gap-2 rounded-full bg-sky-300 px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-sky-950/25 transition hover:bg-sky-200"
+              className="landing-primary-cta group inline-flex items-center gap-2 rounded-full bg-sky-300 px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-sky-950/25 transition hover:-translate-y-0.5 hover:bg-sky-200"
             >
               Start your league
               <ArrowRight size={16} className="transition group-hover:translate-x-0.5" />
@@ -179,7 +198,7 @@ function Hero() {
             </a>
           </div>
 
-          <div className="landing-reveal landing-delay-3 mt-10 hidden max-w-2xl grid-cols-3 gap-3 md:grid">
+          <div className="mt-10 hidden max-w-2xl grid-cols-3 gap-3 md:grid">
             {stats.map((stat) => (
               <div
                 key={stat.label}
@@ -192,7 +211,7 @@ function Hero() {
               </div>
             ))}
           </div>
-        </div>
+        </m.div>
 
         <HeroProductCard />
       </div>
@@ -202,9 +221,16 @@ function Hero() {
 
 function HeroProductCard() {
   return (
-    <div className="landing-reveal landing-delay-2 relative hidden lg:block">
-      <div className="absolute -inset-5 rounded-[2.5rem] bg-[radial-gradient(circle,rgba(125,211,252,.22),transparent_70%)]" />
-      <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-slate-900/75 p-3 shadow-2xl shadow-black/30">
+    <m.div
+      className="relative hidden lg:block"
+      variants={revealVariants}
+      initial="hidden"
+      animate="visible"
+      transition={{ delay: 0.18 }}
+    >
+      <div className="relative">
+        <div className="absolute -inset-5 rounded-[2.5rem] bg-[radial-gradient(circle,rgba(125,211,252,.22),transparent_70%)]" />
+        <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-slate-900/75 p-3 shadow-2xl shadow-black/30">
         <div className="rounded-[1.5rem] bg-[#f8fafc] text-slate-950 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <div>
@@ -274,8 +300,9 @@ function HeroProductCard() {
             </div>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </m.div>
   );
 }
 
@@ -283,25 +310,31 @@ function ProductSection() {
   const scoringModes = Object.values(SCORING_MODES);
 
   return (
-    <section id="product" className="landing-deferred-section relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
+    <section id="product" className="relative overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
       <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
-        <div className="landing-reveal">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
-            Everything the commissioner runs
-          </p>
-          <h2 className="mt-4 max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
-            Everything a commissioner needs to run the season.
-          </h2>
-          <p className="mt-5 max-w-xl text-base leading-8 text-slate-600">
-            Set up the league, run each event, enter scores once, and keep every result and standing connected.
-          </p>
+        <div>
+          <m.div
+            variants={revealVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={revealViewport}
+          >
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
+              Everything the commissioner runs
+            </p>
+            <h2 className="mt-4 max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
+              Everything a commissioner needs to run the season.
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-8 text-slate-600">
+              Set up the league, run each event, enter scores once, and keep every result and standing connected.
+            </p>
+          </m.div>
 
           <div className="mt-8 grid gap-3">
-            {workflow.map((item, index) => (
+            {workflow.map((item) => (
               <div
                 key={item.title}
                 className="group rounded-3xl border border-black/5 bg-white/75 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-950/10"
-                style={{ animationDelay: `${index * 120}ms` }}
               >
                 <div className="flex gap-4">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-sky-200 transition group-hover:rotate-3">
@@ -318,7 +351,7 @@ function ProductSection() {
         </div>
 
         <div className="relative">
-          <div className="absolute -inset-6 rounded-[3rem] bg-blue-900/10 blur-2xl" />
+          <div className="absolute -inset-6 rounded-[3rem] bg-blue-900/8" />
           <div className="relative grid gap-4 lg:grid-cols-[1fr_0.74fr]">
             <div className="hidden overflow-hidden rounded-[2rem] bg-slate-950 p-3 shadow-2xl shadow-blue-950/18 lg:block">
               <img
@@ -413,7 +446,7 @@ function ScoreToInsightCards() {
       {steps.map((step, index) => (
         <article
           key={step.label}
-          className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-lg shadow-blue-950/6"
+          className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-lg shadow-blue-950/6 transition hover:-translate-y-1"
         >
           <div className="flex items-center justify-between gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-emerald-200">
@@ -475,10 +508,15 @@ function IntelligenceSection() {
   ];
 
   return (
-    <section id="intelligence" className="landing-deferred-section relative overflow-hidden bg-white px-5 py-24 md:px-8">
+    <section id="intelligence" className="relative overflow-hidden bg-white px-5 py-24 md:px-8">
       <div className="absolute inset-x-0 top-0 h-px bg-slate-200" />
       <div className="mx-auto max-w-7xl">
-        <div>
+        <m.div
+          variants={revealVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={revealViewport}
+        >
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-800">
             <BrainCircuit size={13} />
             League Night Intelligence
@@ -486,7 +524,7 @@ function IntelligenceSection() {
           <h2 className="mt-5 max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
             Your scores should explain the league—not just fill a table.
           </h2>
-        </div>
+        </m.div>
 
         <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {views.map((view, index) => (
@@ -524,9 +562,15 @@ function IntelligenceSection() {
 
 function WorkflowSection() {
   return (
-    <section id="workflow" className="landing-deferred-section hidden bg-[#101828] px-5 py-24 text-white md:block md:px-8">
+    <section id="workflow" className="hidden bg-[#101828] px-5 py-24 text-white md:block md:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+        <m.div
+          className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end"
+          variants={revealVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={revealViewport}
+        >
           <div>
             <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-300">
               One continuous season record
@@ -535,13 +579,13 @@ function WorkflowSection() {
               Set it up once. Run each week. Carry the league into next season.
             </h2>
           </div>
-        </div>
+        </m.div>
 
         <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           {[
             ["01", "Create", "Set season dates, golfers, substitutes, teams, formats, and scoring rules."],
             ["02", "Schedule", "Create recurring events, select courses and tees, then assign flights and matchups."],
-            ["03", "Run", "Print scorecards, handle swaps, enter gross scores, and calculate net, points, and skins."],
+            ["03", "Run", "Print scorecards, manage subs, enter gross scores, and calculate net, points, and skins."],
             ["04", "Publish", "Release event stories, standings, league pulse, player and team intelligence, and member announcements."],
             ["05", "Renew", "Create the next season from the prior league while preserving players and legacy rounds."],
           ].map(([step, title, body]) => (
@@ -563,10 +607,16 @@ function WorkflowSection() {
 
 function RegistrationSection() {
   return (
-    <section id="register" className="landing-deferred-section relative scroll-mt-6 overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
+    <section id="register" className="relative scroll-mt-6 overflow-hidden bg-[#f4f7fb] px-5 py-24 md:px-8">
       <div className="absolute inset-x-0 top-0 h-px bg-black/5" />
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
-        <div className="hidden rounded-[2.25rem] bg-slate-950 p-7 text-white shadow-2xl shadow-blue-950/15 lg:block lg:p-9">
+        <m.div
+          className="hidden rounded-[2.25rem] bg-slate-950 p-7 text-white shadow-2xl shadow-blue-950/15 lg:block lg:p-9"
+          variants={revealVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={revealViewport}
+        >
           <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-300">
             Start the league
           </p>
@@ -591,7 +641,7 @@ function RegistrationSection() {
               </div>
             ))}
           </div>
-        </div>
+        </m.div>
 
         <DeferredRegisterPanel />
       </div>
@@ -603,9 +653,15 @@ function PricingSection() {
   const includedTotal = formatBillingPrice(BILLING_PRICE_PER_GOLFER * BILLING_MIN_GOLFERS);
 
   return (
-    <section id="pricing" className="landing-deferred-section bg-white px-5 py-24 md:px-8">
+    <section id="pricing" className="bg-white px-5 py-24 md:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mx-auto max-w-3xl text-center">
+        <m.div
+          className="mx-auto max-w-3xl text-center"
+          variants={revealVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={revealViewport}
+        >
           <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
             Per-season pricing
           </p>
@@ -616,7 +672,7 @@ function PricingSection() {
             Start with {BILLING_MIN_GOLFERS} regular golfers for {includedTotal}. Additional regular golfers
             are {formatBillingPrice(BILLING_PRICE_PER_GOLFER)} each per season, and substitutes are free.
           </p>
-        </div>
+        </m.div>
 
         <div className="mx-auto mt-12 grid max-w-5xl gap-4 lg:grid-cols-[0.82fr_1.18fr]">
           <div className="rounded-[2rem] border border-slate-200 bg-[#f8fafc] p-6">

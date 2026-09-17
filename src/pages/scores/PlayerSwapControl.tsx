@@ -34,7 +34,7 @@ export function PlayerSwapControl({
           }}
         >
           <ArrowLeftRight size={10} />
-          Swap
+          Sub
         </button>
       ) : (
         <div className="flex flex-col gap-1.5">

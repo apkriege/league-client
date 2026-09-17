@@ -282,7 +282,7 @@ export function AuditLogPanel({ leagueId }: { leagueId: number }) {
                 {log.user
                   ? `${log.user.firstName} ${log.user.lastName}`.trim() || log.user.email
                   : "System"}{" "}
-                · {log.action}
+                · {log.action === "swap_players" ? "sub_players" : log.action}
               </p>
             </div>
           ))

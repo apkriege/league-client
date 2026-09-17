@@ -434,6 +434,8 @@ function CoursesAdminEditor({ initialCourse, courses }: CoursesAdminEditorProps)
           {form.externalProvider === "GolfCourseAPI" && tees.length > 0 ? (
             <UsgaRatingImport
               courseId={form.usgaCourseId}
+              courseName={form.name}
+              courseLocation={form.location}
               holeCount={holeCount}
               tees={tees}
               onCourseIdChange={(value) => handleChange("usgaCourseId", value)}

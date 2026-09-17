@@ -1,6 +1,5 @@
 import { createBrowserRouter } from "react-router";
 import { lazy, Suspense, type ReactNode } from "react";
-import Landing from "./pages/landing/Landing.tsx";
 import marketingPages from "./pages/marketing/marketing-pages.json";
 
 // auth pages
@@ -8,6 +7,7 @@ import AppErrorBoundary from "@/components/route/AppErrorBoundary";
 import LeagueRouteGuard from "@/components/route/LeagueRouteGuard";
 
 const Login = lazy(() => import("./pages/auth/Login.tsx"));
+const Landing = lazy(() => import("./pages/landing/Landing.tsx"));
 const BaseLayout = lazy(() => import("./layouts/BaseLayout.tsx"));
 const League = lazy(() => import("./pages/league/League.tsx"));
 const Leagues = lazy(() => import("./pages/league/Leagues.tsx"));
@@ -53,7 +53,7 @@ const withAppTheme = (element: ReactNode) =>
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Landing />,
+    element: withSuspense(<Landing />),
     errorElement: <AppErrorBoundary />,
   },
   {

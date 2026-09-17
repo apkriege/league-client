@@ -13,6 +13,7 @@ import {
   Timer,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { Link } from "react-router";
 import { getScoringModeLabel } from "@/features/scoring/scoringModes";
 import { getEventRouteLabel, getEventRouteTeeLabel } from "@/features/courses/eventRoute";
 
@@ -42,14 +43,14 @@ const statuses: Record<string, { label: string; icon: ReactNode; className: stri
 type LeagueEventRowProps = {
   event: any;
   isAdmin: boolean;
-  onView: () => void;
+  eventHref: string;
   onEdit: () => void;
 };
 
 export default function LeagueEventRow({
   event,
   isAdmin,
-  onView,
+  eventHref,
   onEdit,
 }: LeagueEventRowProps) {
   const status = statuses[event.status] ?? statuses.upcoming;
@@ -59,10 +60,14 @@ export default function LeagueEventRow({
 
   return (
     <SurfaceCard
-      onClick={onView}
-      className="group cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-900/30 hover:bg-slate-900/2 hover:shadow-lg"
+      className="group relative transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-900/30 hover:bg-slate-900/2 hover:shadow-lg"
     >
-      <div className="flex items-stretch">
+      <Link
+        to={eventHref}
+        aria-label={`View ${event.name}`}
+        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+      />
+      <div className="pointer-events-none relative z-20 flex items-stretch">
         <div className="flex min-w-14 flex-col items-center justify-center border-r border-slate-900/10 bg-slate-900/5 px-3 py-3">
           <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400">
             {date.toLocaleDateString("en-US", { month: "short" })}
@@ -107,7 +112,7 @@ export default function LeagueEventRow({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 py-1 pl-1 pr-3">
+        <div className="pointer-events-auto flex items-center gap-1.5 py-1 pl-1 pr-3">
           {isAdmin && canEditEvent && (
             <button
               onClick={(clickEvent) => {

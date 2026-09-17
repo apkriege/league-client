@@ -3,6 +3,9 @@ import {
   calculateMatchPlayHolePoints,
   calculateMatchplayPops,
   calculateStrokeplayPops,
+  createTeamBestBallScoringHelpers,
+  getPopulatedFlightTeamSlots,
+  getSharedTeamPlayingHandicap,
   sortFlightTeamsByHandicap,
 } from "./util";
 
@@ -66,5 +69,41 @@ describe("scorecard handicap helpers", () => {
 
     expect(result.team1.map((player: any) => player.playerId)).toEqual([2, 1]);
     expect(result.team2.map((player: any) => player.playerId)).toEqual([4, 3]);
+  });
+
+  it("keeps a one-team flight visible for its score summary", () => {
+    expect(getPopulatedFlightTeamSlots([{ playerId: 1 }], [])).toEqual([1]);
+  });
+
+  it("reads a shared team's playing handicap from its saved snapshot", () => {
+    expect(getSharedTeamPlayingHandicap({
+      handicapSnapshot: { playingTeamHandicap: 7 },
+    })).toBe(7);
+  });
+
+  it("shows best-ball Stableford points for each hole", () => {
+    const helpers = createTeamBestBallScoringHelpers({
+      event: { scoringMode: "best-ball" },
+      holes: [{ num: 1, par: 4 }],
+      team1: [{ playerId: 1 }],
+      team2: [],
+      popsForHole: () => 0,
+      getScoreAtHole: () => 3,
+    });
+
+    expect(helpers.getTeamPointsForHole(1, { num: 1, par: 4 }, 0)).toBe(3);
+  });
+
+  it("shows the team aggregate net score for each stroke-play hole", () => {
+    const helpers = createTeamBestBallScoringHelpers({
+      event: { scoringMode: "stroke-play" },
+      holes: [{ num: 1, par: 4 }],
+      team1: [{ playerId: 1 }, { playerId: 2 }],
+      team2: [],
+      popsForHole: (playerId: number) => playerId === 1 ? 1 : 0,
+      getScoreAtHole: (player: { playerId: number }) => player.playerId === 1 ? 5 : 4,
+    });
+
+    expect(helpers.getTeamPointsForHole(1, { num: 1, par: 4 }, 0)).toBe(8);
   });
 });

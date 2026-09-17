@@ -1,3 +1,8 @@
+import {
+  DEFAULT_STABLEFORD_SCALE,
+  type StablefordPointScale,
+} from "@/features/scoring/scoringModes";
+
 export const calculateMatchplayPops = (
   p1: any,
   p2: any,
@@ -95,6 +100,18 @@ export const sortFlightTeamsByHandicap = (flight: any) => {
   return { t1Id, t2Id, team1, team2, matchupCount: Math.min(team1.length, team2.length) };
 };
 
+export const getPopulatedFlightTeamSlots = (team1: unknown[], team2: unknown[]) =>
+  ([team1.length > 0 ? 1 : null, team2.length > 0 ? 2 : null].filter(
+    (team): team is 1 | 2 => team !== null,
+  ));
+
+export const getSharedTeamPlayingHandicap = (round: any) => {
+  const value = Number(
+    round?.playingHandicap ?? round?.handicapSnapshot?.playingTeamHandicap,
+  );
+  return Number.isFinite(value) ? value : 0;
+};
+
 export const createTeamScoringHelpers = ({
   event,
   holes,
@@ -143,6 +160,19 @@ export const createTeamBestBallScoringHelpers = ({
   getScoreAtHole,
 }: any) => {
   const pointsPerHole = Number(event?.ptsPerHole) || 0;
+  const scoringMode = String(event?.scoringMode || "best-ball");
+  const stablefordPoints = (net: number, par: number) => {
+    const scale = (event?.scoringConfig?.stablefordPointScale ??
+      DEFAULT_STABLEFORD_SCALE) as StablefordPointScale;
+    const difference = net - par;
+    if (difference <= -4) return scale.condorOrBetter;
+    if (difference === -3) return scale.albatrossOrBetter;
+    if (difference === -2) return scale.eagle;
+    if (difference === -1) return scale.birdie;
+    if (difference === 0) return scale.par;
+    if (difference === 1) return scale.bogey;
+    return scale.doubleBogeyOrWorse;
+  };
 
   const getBestBallAtHole = (players: any[], hole: any, holeIdx: number) => {
     let best: number | null = null;
@@ -161,8 +191,45 @@ export const createTeamBestBallScoringHelpers = ({
   };
 
   const getTeamPointsForHole = (team: 1 | 2, hole: any, holeIdx: number) => {
+    const teamPlayers = team === 1 ? team1 : team2;
+    if (scoringMode === "stableford") {
+      return teamPlayers.reduce((total: number, player: any) => {
+        const gross = getScoreAtHole(player, holeIdx);
+        if (!gross) return total;
+        const net = gross - popsForHole(Number(player.playerId), Number(hole.num));
+        return total + stablefordPoints(net, Number(hole.par ?? 4));
+      }, 0);
+    }
+
+    if (scoringMode === "stroke-play" || scoringMode === "maximum-score") {
+      return teamPlayers.reduce((total: number, player: any) => {
+        const gross = getScoreAtHole(player, holeIdx);
+        if (!gross) return total;
+        const pops = popsForHole(Number(player.playerId), Number(hole.num));
+        if (scoringMode === "stroke-play") return total + Math.max(0, gross - pops);
+
+        const rule = event?.scoringConfig?.maximumScore ?? {
+          type: "relative-to-par",
+          strokesOverPar: 2,
+        };
+        const par = Number(hole.par ?? 4);
+        const cappedGross = rule.type === "fixed"
+          ? Math.min(gross, Number(rule.strokes ?? gross))
+          : rule.type === "net-double-bogey"
+            ? Math.min(gross, par + 2 + Math.max(0, pops))
+            : Math.min(gross, par + Number(rule.strokesOverPar ?? 2));
+        return total + Math.max(0, cappedGross - pops);
+      }, 0);
+    }
+
     const left = getBestBallAtHole(team1, hole, holeIdx);
     const right = getBestBallAtHole(team2, hole, holeIdx);
+
+    if (scoringMode === "best-ball") {
+      const net = team === 1 ? left : right;
+      if (net == null) return 0;
+      return stablefordPoints(net, Number(hole.par ?? 4));
+    }
 
     if (left == null || right == null || pointsPerHole <= 0) return 0;
     if (left === right) return pointsPerHole / 2;

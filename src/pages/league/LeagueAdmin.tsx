@@ -550,8 +550,8 @@ export default function LeagueAdmin() {
                   <ScoreEntryRow
                     key={event.id}
                     event={event}
-                    onScores={() => navigate(`/league/${leagueId}/events/${event.id}/scores`)}
-                    onView={() => navigate(`/league/${leagueId}/events/${event.id}`)}
+                    scoresHref={`/league/${leagueId}/events/${event.id}/scores`}
+                    eventHref={`/league/${leagueId}/events/${event.id}`}
                   />
                 ))}
               </div>
@@ -598,7 +598,12 @@ export default function LeagueAdmin() {
                     </span>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800">{nextEvent.name}</p>
+                    <Link
+                      to={`/league/${leagueId}/events/${nextEvent.id}`}
+                      className="font-semibold text-gray-800 hover:underline"
+                    >
+                      {nextEvent.name}
+                    </Link>
                     <div className="flex items-center gap-1 mt-0.5">
                       <MapPin size={11} className="text-gray-400" strokeWidth={2} />
                       <span className="text-xs text-gray-400">{getEventRouteLabel(nextEvent)}</span>
@@ -655,7 +660,7 @@ export default function LeagueAdmin() {
                 <AdminEventRow
                   key={event.id}
                   event={event}
-                  onView={() => navigate(`/league/${leagueId}/events/${event.id}`)}
+                  eventHref={`/league/${leagueId}/events/${event.id}`}
                   onEdit={() => navigate(`/league/${leagueId}/events/${event.id}/edit`)}
                   onScores={() => navigate(`/league/${leagueId}/events/${event.id}/scores`)}
                   onCancel={() => handleCancelEvent(event)}
@@ -703,12 +708,12 @@ function SectionHeader({ title, description }: { title: string; description: str
 
 function ScoreEntryRow({
   event,
-  onScores,
-  onView,
+  scoresHref,
+  eventHref,
 }: {
   event: any;
-  onScores: () => void;
-  onView: () => void;
+  scoresHref: string;
+  eventHref: string;
 }) {
   const date = getEventLocalDate(event.startsAt, event.timeZone);
   const canEnterScores = Boolean(event.canEnterScores);
@@ -729,15 +734,15 @@ function ScoreEntryRow({
         </div>
       </div>
       <div className="flex gap-2 shrink-0">
-        <button
-          onClick={onView}
+        <Link
+          to={eventHref}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors"
         >
           <ChevronRight size={12} strokeWidth={2.5} />
           View
-        </button>
-        <button
-          onClick={onScores}
+        </Link>
+        <Link
+          to={scoresHref}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
             canEnterScores
               ? "bg-blue-600 text-white hover:bg-blue-700"
@@ -748,7 +753,7 @@ function ScoreEntryRow({
         >
           <ClipboardList size={12} strokeWidth={2.5} />
           {canEnterScores ? "Enter Scores" : canOpenScores ? "Edit Scores" : "View Scores"}
-        </button>
+        </Link>
       </div>
     </div>
   );
@@ -756,7 +761,7 @@ function ScoreEntryRow({
 
 function AdminEventRow({
   event,
-  onView,
+  eventHref,
   onEdit,
   onScores,
   onCancel,
@@ -765,7 +770,7 @@ function AdminEventRow({
   isDeleting = false,
 }: {
   event: any;
-  onView: () => void;
+  eventHref: string;
   onEdit: () => void;
   onScores: () => void;
   onCancel: () => void;
@@ -782,10 +787,14 @@ function AdminEventRow({
 
   return (
     <SurfaceCard
-      onClick={onView}
-      className="group cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-slate-900/30 hover:bg-slate-900/2"
+      className="group relative transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-slate-900/30 hover:bg-slate-900/2"
     >
-      <div className="flex items-stretch">
+      <Link
+        to={eventHref}
+        aria-label={`View ${event.name}`}
+        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+      />
+      <div className="pointer-events-none relative z-20 flex items-stretch">
         {/* Date block */}
         <div className="flex flex-col items-center justify-center px-3 py-3 min-w-14 border-r bg-slate-900/5 border-slate-900/10">
           <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
@@ -842,7 +851,7 @@ function AdminEventRow({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center pr-3 pl-1 gap-1.5">
+        <div className="pointer-events-auto flex items-center pr-3 pl-1 gap-1.5">
           {canEditEvent && (
             <Tooltip title="Edit event" placement="top" arrow>
               <button
