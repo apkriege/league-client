@@ -48,6 +48,20 @@ export const calculateMatchPlayHolePoints = ({
   return playerNet < opponentNet ? pointsPerHole : 0;
 };
 
+export const calculatePlayerMatchBonus = ({
+  playerNet,
+  opponentNet,
+  pointsPerMatch = 0,
+}: {
+  playerNet: number;
+  opponentNet: number;
+  pointsPerMatch?: number;
+}) => {
+  if (pointsPerMatch <= 0) return 0;
+  if (playerNet === opponentNet) return pointsPerMatch / 2;
+  return playerNet < opponentNet ? pointsPerMatch : 0;
+};
+
 export const calculateStrokeplayPops = (hcp: number, holes: any) => {
   hcp = Math.round(Number(hcp));
   const direction = hcp < 0 ? -1 : 1;

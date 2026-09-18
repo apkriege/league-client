@@ -12,6 +12,7 @@ import { useParams } from "react-router";
 import { buildSwappedPlayerEntry, isSubPlayer } from "./playerSwapUtils";
 import {
   calculateMatchPlayHolePoints,
+  calculatePlayerMatchBonus,
   calculateMatchplayPops,
   calculateStrokeplayPops,
   createTeamScoringHelpers,
@@ -469,12 +470,7 @@ export const CreateFlightScores = ({
 
   const matchupSummaryByPlayerId = new Map<
     number,
-    {
-      holePoints: number;
-      playerHolesWon: number;
-      opponentHolesWon: number;
-      playedHoles: number;
-    }
+    { holePoints: number }
   >();
 
   const getPlayerHolePointValue = (playerId: number, holeIdx: number) => {
@@ -496,7 +492,7 @@ export const CreateFlightScores = ({
 
     const matchup = getPlayerMatchup(playerId);
     if (!matchup) {
-      const empty = { holePoints: 0, playerHolesWon: 0, opponentHolesWon: 0, playedHoles: 0 };
+      const empty = { holePoints: 0 };
       matchupSummaryByPlayerId.set(playerId, empty);
       return empty;
     }
@@ -505,9 +501,6 @@ export const CreateFlightScores = ({
     const pointsPerMatchup = Number(event?.ptsPerHole) || 0;
 
     let holePoints = 0;
-    let playerHolesWon = 0;
-    let opponentHolesWon = 0;
-    let playedHoles = 0;
 
     holes.forEach((hole: any, holeIdx: number) => {
       const playerScore = watchedPlayers?.[playerId]?.scores?.[holeIdx] ?? 0;
@@ -517,24 +510,15 @@ export const CreateFlightScores = ({
 
       const playerNet = playerScore - popsForHole(playerId, hole.num);
       const opponentNet = opponentScore - popsForHole(opponent.playerId, hole.num);
-      playedHoles++;
 
       if (playerNet === opponentNet) {
         if (pointsPerMatchup > 0) holePoints += pointsPerMatchup / 2;
       } else if (playerNet < opponentNet) {
-        playerHolesWon++;
         if (pointsPerMatchup > 0) holePoints += pointsPerMatchup;
-      } else {
-        opponentHolesWon++;
       }
     });
 
-    const summary = {
-      holePoints,
-      playerHolesWon,
-      opponentHolesWon,
-      playedHoles,
-    };
+    const summary = { holePoints };
 
     matchupSummaryByPlayerId.set(playerId, summary);
     return summary;
@@ -545,26 +529,26 @@ export const CreateFlightScores = ({
     return getMatchupSummaryForPlayer(Number(player.playerId)).holePoints;
   };
 
-  // Get match points for a player based on their net score compared to their opponent
+  const isPlayerScoreComplete = (playerId: number) => {
+    const scores = watchedPlayers?.[playerId]?.scores ?? [];
+    return scores.length === holes.length && scores.every((score: unknown) => Number(score) > 0);
+  };
+
   const getPlayerMatchPoints = (player: any) => {
     const pointsPerMatch = Number(event?.ptsPerMatch) || 0;
     if (pointsPerMatch <= 0) return 0;
 
-    const { playerHolesWon, opponentHolesWon, playedHoles } = getMatchupSummaryForPlayer(
-      Number(player.playerId)
-    );
+    const playerId = Number(player.playerId);
+    const matchup = getPlayerMatchup(playerId);
+    if (!matchup) return 0;
+    const opponentId = Number(matchup.opponent.playerId);
+    if (!isPlayerScoreComplete(playerId) || !isPlayerScoreComplete(opponentId)) return 0;
 
-    if (playedHoles === 0) return 0;
-
-    if (playerHolesWon > opponentHolesWon) {
-      return pointsPerMatch;
-    }
-
-    if (playerHolesWon === opponentHolesWon) {
-      return pointsPerMatch / 2;
-    }
-
-    return 0;
+    return calculatePlayerMatchBonus({
+      playerNet: getPlayerNetScore(playerId),
+      opponentNet: getPlayerNetScore(opponentId),
+      pointsPerMatch,
+    });
   };
 
   const { getTeamWinBonus } = createTeamScoringHelpers({
@@ -572,10 +556,7 @@ export const CreateFlightScores = ({
     team1: activeTeam1,
     team2: activeTeam2,
     getPlayerNetScore,
-    isPlayerScoreComplete: (playerId: number) => {
-      const scores = watchedPlayers?.[playerId]?.scores ?? [];
-      return scores.length === holes.length && scores.every((score: unknown) => Number(score) > 0);
-    },
+    isPlayerScoreComplete,
   });
 
   const renderPlayerRow = (player: any, team: 1 | 2, idx: number) => {
@@ -672,22 +653,22 @@ export const CreateFlightScores = ({
             ) || "—"}
         </td>
       ))}
-      <td className="p-2 text-center font-bold">
-        {(team === 1 ? activeTeam1 : activeTeam2).reduce(
-          (total: number, player: any) => total + getPlayerTotalScore(Number(player.playerId)),
-          0,
-        )}
-      </td>
-      <td className="p-2 text-center font-bold">
-        {(team === 1 ? activeTeam1 : activeTeam2).reduce(
-          (total: number, player: any) => total + getPlayerNetScore(Number(player.playerId)),
-          0,
-        )}
-      </td>
-      <td className="p-2 font-bold text-center">
+      <td colSpan={2} className="p-2 text-center font-bold">
         <div className="flex flex-col items-center leading-tight">
           <span className="text-sm">{getTeamWinBonus(team)}</span>
           <span className="text-[10px]">Medal</span>
+        </div>
+      </td>
+      <td className="p-2 font-bold text-center">
+        <div className="flex flex-col items-center leading-tight">
+          <span className="text-sm">
+            {(team === 1 ? activeTeam1 : activeTeam2).reduce(
+              (total: number, player: any) =>
+                total + getPlayerPoints(player) + getPlayerMatchPoints(player),
+              0,
+            )}
+          </span>
+          <span className="text-[10px]">Player</span>
         </div>
       </td>
     </tr>

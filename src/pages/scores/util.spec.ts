@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calculateMatchPlayHolePoints,
+  calculatePlayerMatchBonus,
   calculateMatchplayPops,
   calculateStrokeplayPops,
   createTeamScoringHelpers,
@@ -54,6 +55,19 @@ describe("scorecard handicap helpers", () => {
       playerGross: 5,
       opponentGross: 4,
       pointsPerHole: 2,
+    })).toBe(0);
+  });
+
+  it("awards the player match bonus to the lower full-round net", () => {
+    expect(calculatePlayerMatchBonus({
+      playerNet: 34,
+      opponentNet: 36,
+      pointsPerMatch: 2,
+    })).toBe(2);
+    expect(calculatePlayerMatchBonus({
+      playerNet: 36,
+      opponentNet: 34,
+      pointsPerMatch: 2,
     })).toBe(0);
   });
 

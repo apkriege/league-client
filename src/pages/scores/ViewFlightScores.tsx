@@ -200,15 +200,10 @@ function ViewFlightScores({ event, flight }: any) {
       (event.teamEventPoints ?? []).find((row: any) => Number(row.teamId) === teamId)?.points ?? 0,
     );
   };
-  const getTeamGross = (team: 1 | 2) =>
+  const getTeamPlayerPoints = (team: 1 | 2) =>
     (team === 1 ? team1 : team2).reduce((total: number, player: any) => {
       const round = player?.player?.rounds?.[0];
-      return total + Number(round?.competitionGross ?? round?.gross ?? 0);
-    }, 0);
-  const getTeamNet = (team: 1 | 2) =>
-    (team === 1 ? team1 : team2).reduce((total: number, player: any) => {
-      const round = player?.player?.rounds?.[0];
-      return total + Number(round?.net ?? 0);
+      return total + Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0);
     }, 0);
   const showHolePoints = true;
   const showPlayerMatchDetails = scoringMode === "match-play";
@@ -273,8 +268,7 @@ function ViewFlightScores({ event, flight }: any) {
                     getTeamPointsForHole={getTeamPointsForHole}
                     getTeamMedalPoints={getTeamMedalPoints}
                     getTeamTotalPoints={getTeamTotalPoints}
-                    getTeamGross={getTeamGross}
-                    getTeamNet={getTeamNet}
+                    getTeamPlayerPoints={getTeamPlayerPoints}
                     showHolePoints={showHolePoints}
                     holePointTotalLabel={
                       scoringMode === "stroke-play" || scoringMode === "maximum-score"
@@ -639,8 +633,7 @@ const TeamPointsRow = ({
   getTeamPointsForHole,
   getTeamMedalPoints,
   getTeamTotalPoints,
-  getTeamGross,
-  getTeamNet,
+  getTeamPlayerPoints,
   showHolePoints,
   holePointTotalLabel,
   showPlayerPointBreakdown,
@@ -655,16 +648,16 @@ const TeamPointsRow = ({
       ))}
       {showPlayerPointBreakdown ? (
         <>
-          <td className="p-2 text-center font-bold">
-            {getTeamGross(team)}
-          </td>
-          <td className="p-2 text-center font-bold">
-            {getTeamNet(team)}
-          </td>
-          <td className="p-2 text-center font-bold">
+          <td colSpan={2} className="p-2 text-center font-bold">
             <div className="flex flex-col items-center leading-tight">
               <span className="text-sm">{getTeamTotalPoints(team)}</span>
               <span className="text-[10px]">Medal</span>
+            </div>
+          </td>
+          <td className="p-2 text-center font-bold">
+            <div className="flex flex-col items-center leading-tight">
+              <span className="text-sm">{getTeamPlayerPoints(team)}</span>
+              <span className="text-[10px]">Player</span>
             </div>
           </td>
         </>
