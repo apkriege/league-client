@@ -1,4 +1,4 @@
-import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import { HoleScoreHeader, ScoreValueCell } from "./components/ScoreTableCell";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import Table from "@/components/Table";
@@ -729,11 +729,7 @@ export const CreateFlightScores = ({
                 <thead>
                   <tr className="text-xs text-gray-700">
                     <th className="pl-4">Player</th>
-                    {holes.map((hole: any) => (
-                      <ScoreHeaderCell key={hole.num}>
-                        {hole.num}
-                      </ScoreHeaderCell>
-                    ))}
+                    {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
                     <th>Total</th>
                     <th>Net</th>
                     <th>Pts</th>

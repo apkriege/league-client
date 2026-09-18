@@ -1,4 +1,4 @@
-import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import { HoleScoreHeader, ScoreValueCell } from "./components/ScoreTableCell";
 import Table from "@/components/Table";
 import { Fragment, memo } from "react";
 import { Link, useParams } from "react-router";
@@ -241,11 +241,7 @@ function ViewFlightScores({ event, flight }: any) {
             <thead>
               <tr className="text-xs text-gray-700">
                 <th>Player</th>
-                {holes.map((hole: any) => (
-                  <ScoreHeaderCell key={hole.num}>
-                    {hole.num}
-                  </ScoreHeaderCell>
-                ))}
+                {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
                 <th className="text-center">Total</th>
                 <th className="text-center">Net</th>
                 {showPlayerMatchDetails ? (
@@ -330,9 +326,7 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
             <thead>
               <tr className="text-xs text-slate-700">
                 <th className="min-w-40 pl-4">Team</th>
-                {holes.map((hole: any) => (
-                  <ScoreHeaderCell key={hole.num}>{hole.num}</ScoreHeaderCell>
-                ))}
+                {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
                 <th className="text-center">Gross</th>
                 <th className="text-center">Net</th>
                 <th className="text-center">Event points</th>
@@ -595,11 +589,7 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
             <thead>
               <tr className="text-xs text-gray-700">
                 <th className="p-2">Player</th>
-                {holes.map((hole: any) => (
-                  <ScoreHeaderCell key={hole.num}>
-                    {hole.num}
-                  </ScoreHeaderCell>
-                ))}
+                {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
                 <th className="w-px whitespace-nowrap text-center">Total</th>
                 <th className="w-px whitespace-nowrap text-center">Net</th>
                 <th className="w-px whitespace-nowrap text-center">Hole Pts</th>

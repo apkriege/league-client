@@ -12,7 +12,7 @@ import { Flag } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
 import { ScoreDraftStatus } from "./ScoreDraftStatus";
-import { ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import { HoleScoreHeader, ScoreValueCell } from "./components/ScoreTableCell";
 import HandicapStrokeIndicator from "./components/HandicapStrokeIndicator";
 import {
   getEventScoringHoles,
@@ -204,9 +204,7 @@ export function CreateFlightScoresSharedTeam({
                 <thead>
                   <tr className="text-xs text-slate-700">
                     <th className="min-w-44 pl-4">Team</th>
-                    {holes.map((hole: { num: number }) => (
-                      <ScoreHeaderCell key={hole.num}>{hole.num}</ScoreHeaderCell>
-                    ))}
+                    {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
                     <th className="text-center">Gross</th>
                     <th className="text-center">Net</th>
                   </tr>

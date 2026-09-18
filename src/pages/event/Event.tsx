@@ -48,6 +48,7 @@ import {
   getScoringModeLabel,
   isSharedTeamScoringMode,
 } from "@/features/scoring/scoringModes";
+import { getEventScoringHoles } from "@/pages/scores/scoringSetup";
 
 function EventSectionHeading({
   icon,
@@ -349,7 +350,10 @@ export default function Event() {
               ) : getScoringFamilyForEvent(event) === "match" ? (
                 <FlightScorecardsDrawer event={event} />
               ) : (
-                <IndividualStrokeScorecardsDrawer rounds={event.metrics.scores || []} />
+                <IndividualStrokeScorecardsDrawer
+                  rounds={event.metrics.scores || []}
+                  holes={getEventScoringHoles(event)}
+                />
               )}
             </div>
           </aside>

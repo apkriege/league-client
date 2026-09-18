@@ -22,6 +22,7 @@ import {
 } from "@/features/scoring/scoringModes";
 import { getEventRouteLabel, getEventRouteTeeLabel } from "@/features/courses/eventRoute";
 import { buildSharedTeamHandicapSetups } from "./sharedTeamSetup";
+import { getEventScoringHoles } from "./scoringSetup";
 
 type PrintScorecardRow = {
   id: string;
@@ -139,7 +140,6 @@ export default function PrintFlightScorecards() {
     );
   }
 
-  const holeCount = Number(event?.holes || 18);
   const eventPlayerIds = event.flights
     .flatMap((flight: any) => flight.players || [])
     .map((entry: any) => Number(entry?.playerId))
@@ -238,7 +238,6 @@ export default function PrintFlightScorecards() {
               event={event}
               flight={flight}
               flightNumber={index + 1}
-              holeCount={holeCount}
               leaguePlayers={leaguePlayers}
               eventPlayerIds={eventPlayerIds}
               onSaveFlightPlayers={saveFlightPlayers}
@@ -255,7 +254,6 @@ function FlightCard({
   event,
   flight,
   flightNumber,
-  holeCount,
   leaguePlayers,
   eventPlayerIds,
   onSaveFlightPlayers,
@@ -264,13 +262,13 @@ function FlightCard({
   event: any;
   flight: any;
   flightNumber: number;
-  holeCount: number;
   leaguePlayers: any[];
   eventPlayerIds: number[];
   onSaveFlightPlayers: (flightId: number, players: any[]) => Promise<void>;
   isSaving: boolean;
 }) {
   const usesSharedTeamScore = isSharedTeamScoringMode(deriveScoringMode(event));
+  const scoringHoles = getEventScoringHoles(event);
   const rows = getFlightRows(event, flight);
   const getRowSwapCandidates = (row: any) =>
     getSwapCandidates({
@@ -348,8 +346,7 @@ function FlightCard({
         <div className="overflow-hidden border border-slate-300">
           <ScorecardGrid
             players={rows}
-            startHole={event.startSide === "back" && holeCount === 9 ? 10 : 1}
-            holeCount={holeCount}
+            holes={scoringHoles}
             renderPlayerActions={usesSharedTeamScore ? undefined : (row) => (
                 <PlayerSwapControl
                   currentPlayerId={Number(row.entry?.playerId)}
@@ -371,17 +368,13 @@ function FlightCard({
 
 function ScorecardGrid({
   players,
-  startHole,
-  holeCount,
+  holes,
   renderPlayerActions,
 }: {
   players: PrintScorecardRow[];
-  startHole: number;
-  holeCount: number;
+  holes: Array<{ num: number; par?: number | null; hcp?: number | null }>;
   renderPlayerActions?: (player: any) => ReactNode;
 }) {
-  const holes = Array.from({ length: holeCount }, (_, idx) => startHole + idx);
-
   return (
     <Table
       data={players}
@@ -399,8 +392,10 @@ function ScorecardGrid({
                 Player
               </th>
               {holes.map((hole) => (
-                <th key={hole} className="border border-slate-300 py-1 text-center">
-                  {hole}
+                <th key={hole.num} className="border border-slate-300 py-1 text-center">
+                  <span className="block font-black">{hole.num}</span>
+                  <span className="block text-[7px] font-medium text-slate-500">P{hole.par ?? "—"}</span>
+                  <span className="block text-[7px] font-medium text-slate-400">H{hole.hcp ?? "—"}</span>
                 </th>
               ))}
               <th className="scorecard-total-cell w-8 border border-slate-300 py-1 text-center">
@@ -424,7 +419,7 @@ function ScorecardGrid({
                   ) : null}
                 </td>
                 {holes.map((hole) => (
-                  <td key={`${player.id}-${hole}`} className="border border-slate-300 h-7" />
+                  <td key={`${player.id}-${hole.num}`} className="border border-slate-300 h-7" />
                 ))}
                 <td className="scorecard-total-cell border border-slate-300" />
               </tr>

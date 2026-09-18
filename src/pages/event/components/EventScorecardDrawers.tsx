@@ -5,6 +5,7 @@ import { compareTimes, formatTime } from "@/utils/format";
 import { formatHandicap } from "@/utils/handicap";
 import PlayerNameLink from "./PlayerNameLink";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { HoleScoreHeader } from "@/pages/scores/components/ScoreTableCell";
 
 export const FlightScorecardsDrawer = memo(function FlightScorecardsDrawer({
   event,
@@ -90,18 +91,13 @@ function DeferredFlightScorecard({
   );
 }
 
-export const IndividualStrokeScorecardsDrawer = memo(function IndividualStrokeScorecardsDrawer({ rounds }: { rounds: any[] }) {
-  const holes = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          rounds.flatMap((round) =>
-            (round.scores ?? []).map((score: any) => Number(score.hole)),
-          ),
-        ),
-      ).sort((left, right) => left - right),
-    [rounds],
-  );
+export const IndividualStrokeScorecardsDrawer = memo(function IndividualStrokeScorecardsDrawer({
+  rounds,
+  holes,
+}: {
+  rounds: any[];
+  holes: Array<{ num: number; par?: number | null; hcp?: number | null }>;
+}) {
   const preparedRounds = useMemo(
     () =>
       rounds
@@ -134,7 +130,7 @@ export const IndividualStrokeScorecardsDrawer = memo(function IndividualStrokeSc
             <thead>
               <tr className="text-xs text-gray-700">
                 <th className="p-2">Player</th>
-                {holes.map((hole) => <th key={hole} className="p-2 text-center">{hole}</th>)}
+                {holes.map((hole) => <HoleScoreHeader key={hole.num} hole={hole} />)}
                 <th className="p-2 text-center">Total</th>
                 <th className="p-2 text-center">Net</th>
                 <th className="p-2 text-center">Pts</th>
@@ -152,9 +148,9 @@ export const IndividualStrokeScorecardsDrawer = memo(function IndividualStrokeSc
                     </div>
                   </td>
                   {holes.map((hole) => {
-                    const score = scoresByHole.get(hole);
+                    const score = scoresByHole.get(hole.num);
                     return (
-                      <td key={hole} className="p-2">
+                      <td key={hole.num} className="p-2">
                         <div className="relative flex h-8 min-w-10 items-center justify-center rounded border bg-white text-xs font-semibold">
                           {score?.gross ?? "-"}
                         </div>
