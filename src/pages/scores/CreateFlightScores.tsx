@@ -13,6 +13,7 @@ import { buildSwappedPlayerEntry, isSubPlayer } from "./playerSwapUtils";
 import {
   calculateMatchPlayHolePoints,
   calculateMatchplayPops,
+  calculateStrokeplayPops,
   createTeamScoringHelpers,
   sortFlightTeamsByHandicap,
 } from "./util";
@@ -240,12 +241,23 @@ export const CreateFlightScores = ({
 
   const matchupCount = Math.min(activeTeam1.length, activeTeam2.length);
   const popsByPlayerId = new Map<number, Map<number, number>>();
+  const netPopsByPlayerId = new Map<number, Map<number, number>>();
   const allPlayers = [...activeTeam1, ...activeTeam2];
   const allPlayersById = new Map(
     allPlayers.map((player: any) => [Number(player.playerId), player])
   );
 
   const getPlayerEntry = (playerId: number) => allPlayersById.get(Number(playerId));
+
+  for (const player of allPlayers) {
+    netPopsByPlayerId.set(
+      Number(player.playerId),
+      calculateStrokeplayPops(
+        getEffectiveHandicap(player),
+        getPlayerScoringHoles(event, player),
+      ),
+    );
+  }
 
   for (let i = 0; i < matchupCount; i++) {
     const left = activeTeam1[i];
@@ -330,7 +342,9 @@ export const CreateFlightScores = ({
     const scores = watchedPlayers?.[playerId]?.scores ?? [];
     return getPlayerScoringHoles(event, playerEntry).reduce(
       (total: number, hole: any, index: number) =>
-        total + (Number(scores[index]) || 0) - popsForHole(playerId, hole.num),
+        total +
+        (Number(scores[index]) || 0) -
+        (netPopsByPlayerId.get(Number(playerId))?.get(Number(hole.num)) || 0),
       0,
     );
   };

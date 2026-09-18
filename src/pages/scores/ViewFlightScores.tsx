@@ -415,7 +415,7 @@ const PlayerRow = ({
         );
       })}
       <ScoreValueCell>{round?.competitionGross ?? round?.gross ?? 0}</ScoreValueCell>
-      <ScoreValueCell>{round?.competitionNet ?? round?.net ?? 0}</ScoreValueCell>
+      <ScoreValueCell>{round?.net ?? 0}</ScoreValueCell>
       <ScoreValueCell>
         {Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0)}
       </ScoreValueCell>
@@ -496,7 +496,7 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
       matchPoints: Number(round?.matchPoints ?? 0),
       totalPoints: Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0),
       gross: Number(round?.gross ?? 0),
-      net: Number(round?.competitionNet ?? round?.net ?? 0),
+      net: Number(round?.net ?? 0),
     };
   };
 

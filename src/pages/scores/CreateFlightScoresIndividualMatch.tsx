@@ -13,7 +13,7 @@ import {
   PlayerSwapControl,
 } from "./PlayerSwapControl";
 import { buildSwappedPlayerEntry, getSwapCandidates } from "./playerSwapUtils";
-import { calculateMatchplayPops } from "./util";
+import { calculateMatchplayPops, calculateStrokeplayPops } from "./util";
 import { ScoreDraftStatus } from "./ScoreDraftStatus";
 import { useScoreDraft } from "./useScoreDraft";
 import { useToast } from "@/context/useToast";
@@ -84,6 +84,16 @@ export const CreateFlightScoresIndividualMatch = ({
 
   // Pops between each matched pair
   const popsByPlayerId = new Map<number, Map<number, number>>();
+  const netPopsByPlayerId = new Map<number, Map<number, number>>();
+  for (const player of allPlayers) {
+    netPopsByPlayerId.set(
+      Number(player.playerId),
+      calculateStrokeplayPops(
+        getEffectiveHandicap(player),
+        getPlayerScoringHoles(event, player),
+      ),
+    );
+  }
   for (const [p1, p2] of pairs) {
     const left = { ...p1.player, handicap: getEffectiveHandicap(p1) };
     const right = { ...p2.player, handicap: getEffectiveHandicap(p2) };
@@ -159,7 +169,9 @@ export const CreateFlightScoresIndividualMatch = ({
     const scores = watchedPlayers?.[playerId]?.scores ?? [];
     return getPlayerScoringHoles(event, playerEntry).reduce(
       (total: number, hole: any, index: number) =>
-        total + (Number(scores[index]) || 0) - popsForHole(playerId, hole.num),
+        total +
+        (Number(scores[index]) || 0) -
+        (netPopsByPlayerId.get(Number(playerId))?.get(Number(hole.num)) || 0),
       0,
     );
   };
