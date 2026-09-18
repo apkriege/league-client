@@ -68,6 +68,7 @@ export const CreateFlightScoresTeamStroke = ({
   };
 
   const popsByPlayerId = new Map<number, Map<number, number>>();
+  const netPopsByPlayerId = new Map<number, Map<number, number>>();
   const allowance =
     scoringMode === "best-ball" || scoringMode === "four-ball-match"
       ? Number(event?.scoringConfig?.handicapAllowance ?? (scoringMode === "four-ball-match" ? 0.9 : 1))
@@ -83,10 +84,19 @@ export const CreateFlightScoresTeamStroke = ({
       ? Math.min(...playingHandicaps.values())
       : 0;
   for (const player of players) {
-    const hcp = Number(playingHandicaps.get(Number(player.playerId))) - relativeBaseline;
+    const playerId = Number(player.playerId);
+    const playingHandicap = Number(playingHandicaps.get(playerId));
+    const hcp = playingHandicap - relativeBaseline;
     popsByPlayerId.set(
-      Number(player.playerId),
+      playerId,
       calculateStrokeplayPops(hcp, getPlayerScoringHoles(event, player)),
+    );
+    netPopsByPlayerId.set(
+      playerId,
+      calculateStrokeplayPops(
+        scoringMode === "four-ball-match" ? getPlayerHandicapIndex(player) : playingHandicap,
+        getPlayerScoringHoles(event, player),
+      ),
     );
   }
 
@@ -161,7 +171,7 @@ export const CreateFlightScoresTeamStroke = ({
     if (!gross) return null;
     const playerHole = getHolesForPlayer(playerId)[holeIdx];
     const holeNum = playerHole?.num;
-    const pops = popsForHole(playerId, holeNum);
+    const pops = netPopsByPlayerId.get(Number(playerId))?.get(Number(holeNum)) || 0;
     const rule = event?.scoringConfig?.maximumScore as MaximumScoreRule | undefined;
     const par = Number(playerHole?.par ?? 4);
     const cappedGross =
@@ -187,6 +197,13 @@ export const CreateFlightScoresTeamStroke = ({
     return best;
   };
 
+  const getFourBallMatchNetForHole = (playerId: number, holeIdx: number) => {
+    const gross = Number(watchedPlayers?.[playerId]?.scores?.[holeIdx] ?? 0);
+    if (!gross) return null;
+    const holeNum = getHolesForPlayer(playerId)[holeIdx]?.num;
+    return gross - popsForHole(playerId, holeNum);
+  };
+
   const stablefordPoints = (net: number, par: number) => {
     const scale = (event?.scoringConfig?.stablefordPointScale ??
       DEFAULT_STABLEFORD_SCALE) as StablefordPointScale;
@@ -201,7 +218,15 @@ export const CreateFlightScoresTeamStroke = ({
   };
   const getTeamMetricAtHole = (team: 1 | 2, holeIdx: number) => {
     const teamPlayers = team === 1 ? team1Players : team2Players;
-    if (scoringMode === "best-ball" || scoringMode === "four-ball-match") {
+    if (scoringMode === "four-ball-match") {
+      let best: number | null = null;
+      for (const player of teamPlayers) {
+        const net = getFourBallMatchNetForHole(Number(player.playerId), holeIdx);
+        if (net != null && (best == null || net < best)) best = net;
+      }
+      return best ?? 0;
+    }
+    if (scoringMode === "best-ball") {
       return getBestBallForHole(teamPlayers, holeIdx) ?? 0;
     }
     if (scoringMode === "stableford") {
