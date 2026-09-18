@@ -200,21 +200,19 @@ function ViewFlightScores({ event, flight }: any) {
       (event.teamEventPoints ?? []).find((row: any) => Number(row.teamId) === teamId)?.points ?? 0,
     );
   };
-  const getTeamPlayerPoints = (team: 1 | 2) =>
+  const getTeamGross = (team: 1 | 2) =>
     (team === 1 ? team1 : team2).reduce((total: number, player: any) => {
       const round = player?.player?.rounds?.[0];
-      return total + Number(round?.pointsEarned ?? 0) + Number(round?.matchPoints ?? 0);
+      return total + Number(round?.competitionGross ?? round?.gross ?? 0);
+    }, 0);
+  const getTeamNet = (team: 1 | 2) =>
+    (team === 1 ? team1 : team2).reduce((total: number, player: any) => {
+      const round = player?.player?.rounds?.[0];
+      return total + Number(round?.net ?? 0);
     }, 0);
   const showHolePoints = true;
   const showPlayerMatchDetails = scoringMode === "match-play";
   const getTeamMedalPoints = (team: 1 | 2) => {
-    if (scoringMode === "match-play") {
-      return (team === 1 ? team1 : team2).reduce(
-        (total: number, player: any) =>
-          total + Number(player?.player?.rounds?.[0]?.matchPoints ?? 0),
-        0,
-      );
-    }
     if (!showHolePoints) return 0;
     const holePoints = holes.reduce(
       (total: number, hole: any, holeIndex: number) =>
@@ -275,7 +273,8 @@ function ViewFlightScores({ event, flight }: any) {
                     getTeamPointsForHole={getTeamPointsForHole}
                     getTeamMedalPoints={getTeamMedalPoints}
                     getTeamTotalPoints={getTeamTotalPoints}
-                    getTeamPlayerPoints={getTeamPlayerPoints}
+                    getTeamGross={getTeamGross}
+                    getTeamNet={getTeamNet}
                     showHolePoints={showHolePoints}
                     holePointTotalLabel={
                       scoringMode === "stroke-play" || scoringMode === "maximum-score"
@@ -640,7 +639,8 @@ const TeamPointsRow = ({
   getTeamPointsForHole,
   getTeamMedalPoints,
   getTeamTotalPoints,
-  getTeamPlayerPoints,
+  getTeamGross,
+  getTeamNet,
   showHolePoints,
   holePointTotalLabel,
   showPlayerPointBreakdown,
@@ -655,16 +655,16 @@ const TeamPointsRow = ({
       ))}
       {showPlayerPointBreakdown ? (
         <>
-          <td colSpan={2} className="p-2 text-center font-bold">
-            <div className="flex flex-col items-center leading-tight">
-              <span className="text-sm">{getTeamTotalPoints(team)}</span>
-              <span className="text-[10px]">Match</span>
-            </div>
+          <td className="p-2 text-center font-bold">
+            {getTeamGross(team)}
+          </td>
+          <td className="p-2 text-center font-bold">
+            {getTeamNet(team)}
           </td>
           <td className="p-2 text-center font-bold">
             <div className="flex flex-col items-center leading-tight">
-              <span className="text-sm">{getTeamPlayerPoints(team)}</span>
-              <span className="text-[10px]">Player</span>
+              <span className="text-sm">{getTeamTotalPoints(team)}</span>
+              <span className="text-[10px]">Medal</span>
             </div>
           </td>
         </>

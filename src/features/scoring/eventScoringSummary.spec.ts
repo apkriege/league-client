@@ -11,7 +11,7 @@ describe("event scoring summary", () => {
       ptsPerTeamWin: 3,
     })).toEqual({
       format: "Team · Match Play",
-      points: "1 per hole · 2 per player match · 3 per team win",
+      points: "1 per hole · 2 per player match · 3 team medal points",
     });
   });
 

@@ -114,37 +114,30 @@ export const getSharedTeamPlayingHandicap = (round: any) => {
 
 export const createTeamScoringHelpers = ({
   event,
-  holes,
   team1,
   team2,
-  matchupCount,
-  popsForHole,
-  getScoreAtHole,
+  getPlayerNetScore,
+  isPlayerScoreComplete,
 }: any) => {
   const getTeamWinBonus = (team: 1 | 2) => {
     const bonus = Number(event?.ptsPerTeamWin) || 0;
     if (bonus <= 0) return 0;
 
-    let team1HolesWon = 0;
-    let team2HolesWon = 0;
-    let playedHoles = 0;
-    for (let i = 0; i < matchupCount; i++) {
-      holes.forEach((hole: any, holeIdx: number) => {
-        const p1Score = getScoreAtHole(team1[i], holeIdx);
-        const p2Score = getScoreAtHole(team2[i], holeIdx);
-        if (!p1Score || !p2Score) return;
-        const p1Net = p1Score - popsForHole(team1[i].playerId, hole.num);
-        const p2Net = p2Score - popsForHole(team2[i].playerId, hole.num);
-        playedHoles++;
-        if (p1Net < p2Net) team1HolesWon++;
-        else if (p2Net < p1Net) team2HolesWon++;
-      });
+    if (team1.length === 0 || team2.length === 0) return 0;
+    if (![...team1, ...team2].every((player) => isPlayerScoreComplete(Number(player.playerId)))) {
+      return 0;
     }
+    const team1Net = team1.reduce(
+      (total: number, player: any) => total + getPlayerNetScore(Number(player.playerId)),
+      0,
+    );
+    const team2Net = team2.reduce(
+      (total: number, player: any) => total + getPlayerNetScore(Number(player.playerId)),
+      0,
+    );
+    if (team1Net === team2Net) return bonus / 2;
 
-    if (playedHoles === 0) return 0;
-    if (team1HolesWon === team2HolesWon) return bonus / 2;
-
-    const winner = team1HolesWon > team2HolesWon ? 1 : 2;
+    const winner = team1Net < team2Net ? 1 : 2;
     return team === winner ? bonus : 0;
   };
 

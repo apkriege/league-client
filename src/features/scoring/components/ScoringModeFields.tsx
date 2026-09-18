@@ -256,7 +256,7 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
           )}
           {format === "team" && (
             <Input
-              label="Points per team win"
+              label={mode === "match-play" ? "Team medal points" : "Points per team win"}
               type="number"
               min={0}
               step={1}

@@ -567,19 +567,16 @@ export const CreateFlightScores = ({
     return 0;
   };
 
-  const getScoreAtHole = (player: any, holeIdx: number) => {
-    return Number(watchedPlayers?.[player.playerId]?.scores?.[holeIdx] ?? 0);
-  };
-
   const { getTeamWinBonus } = createTeamScoringHelpers({
-      event,
-      holes,
-      team1: activeTeam1,
-      team2: activeTeam2,
-      matchupCount,
-      popsForHole,
-      getScoreAtHole,
-    });
+    event,
+    team1: activeTeam1,
+    team2: activeTeam2,
+    getPlayerNetScore,
+    isPlayerScoreComplete: (playerId: number) => {
+      const scores = watchedPlayers?.[playerId]?.scores ?? [];
+      return scores.length === holes.length && scores.every((score: unknown) => Number(score) > 0);
+    },
+  });
 
   const renderPlayerRow = (player: any, team: 1 | 2, idx: number) => {
     const p = player.player;
@@ -663,7 +660,7 @@ export const CreateFlightScores = ({
   };
 
   const renderTeamPointsRow = (label: string, team: 1 | 2) => (
-    <tr aria-hidden="true" className="bg-gray-200">
+    <tr className="bg-gray-200">
       <td>{label}</td>
       {holes.map((hole: any, holeIdx: number) => (
         <td key={hole.num} className="p-2 font-bold text-center">
@@ -675,22 +672,22 @@ export const CreateFlightScores = ({
             ) || "—"}
         </td>
       ))}
-      <td colSpan={2} className="p-2 text-center font-bold">
-        <div className="flex flex-col items-center leading-tight">
-          <span className="text-sm">{getTeamWinBonus(team)}</span>
-          <span className="text-[10px]">Match</span>
-        </div>
+      <td className="p-2 text-center font-bold">
+        {(team === 1 ? activeTeam1 : activeTeam2).reduce(
+          (total: number, player: any) => total + getPlayerTotalScore(Number(player.playerId)),
+          0,
+        )}
+      </td>
+      <td className="p-2 text-center font-bold">
+        {(team === 1 ? activeTeam1 : activeTeam2).reduce(
+          (total: number, player: any) => total + getPlayerNetScore(Number(player.playerId)),
+          0,
+        )}
       </td>
       <td className="p-2 font-bold text-center">
         <div className="flex flex-col items-center leading-tight">
-          <span className="text-sm">
-            {(team === 1 ? activeTeam1 : activeTeam2).reduce(
-              (total: number, player: any) =>
-                total + getPlayerPoints(player) + getPlayerMatchPoints(player),
-              0,
-            )}
-          </span>
-          <span className="text-[10px]">Player</span>
+          <span className="text-sm">{getTeamWinBonus(team)}</span>
+          <span className="text-[10px]">Medal</span>
         </div>
       </td>
     </tr>
@@ -759,7 +756,10 @@ export const CreateFlightScores = ({
                         )}
                         {activeTeam1.length > 0 &&
                           activeTeam2.length > 0 &&
-                          renderTeamPointsRow(`Team ${team} Points`, team)}
+                          renderTeamPointsRow(
+                            `${flight.teams?.[team - 1]?.team?.name || `Team ${team}`} medal`,
+                            team,
+                          )}
                       </Fragment>
                     );
                   })}

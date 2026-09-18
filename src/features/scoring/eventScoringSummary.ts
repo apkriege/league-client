@@ -64,7 +64,9 @@ export function getEventScoringSummary(event: EventScoringInput) {
         ? `${formatPoints(event.ptsPerMatch)} per player match`
         : null,
       model === "Team" && Number(event.ptsPerTeamWin || 0) > 0
-        ? `${formatPoints(event.ptsPerTeamWin)} per team win`
+        ? mode === "match-play"
+          ? `${formatPoints(event.ptsPerTeamWin)} team medal points`
+          : `${formatPoints(event.ptsPerTeamWin)} per team win`
         : null,
     ].filter(Boolean);
     return {

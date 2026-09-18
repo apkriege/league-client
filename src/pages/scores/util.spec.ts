@@ -3,6 +3,7 @@ import {
   calculateMatchPlayHolePoints,
   calculateMatchplayPops,
   calculateStrokeplayPops,
+  createTeamScoringHelpers,
   createTeamBestBallScoringHelpers,
   getPopulatedFlightTeamSlots,
   getSharedTeamPlayingHandicap,
@@ -73,6 +74,20 @@ describe("scorecard handicap helpers", () => {
 
   it("keeps a one-team flight visible for its score summary", () => {
     expect(getPopulatedFlightTeamSlots([{ playerId: 1 }], [])).toEqual([1]);
+  });
+
+  it("awards the team medal bonus to the lowest combined player net", () => {
+    const netByPlayerId = new Map([[1, 35], [2, 38], [3, 36], [4, 39]]);
+    const helpers = createTeamScoringHelpers({
+      event: { ptsPerTeamWin: 4 },
+      team1: [{ playerId: 1 }, { playerId: 2 }],
+      team2: [{ playerId: 3 }, { playerId: 4 }],
+      getPlayerNetScore: (playerId: number) => netByPlayerId.get(playerId) ?? 0,
+      isPlayerScoreComplete: () => true,
+    });
+
+    expect(helpers.getTeamWinBonus(1)).toBe(4);
+    expect(helpers.getTeamWinBonus(2)).toBe(0);
   });
 
   it("reads a shared team's playing handicap from its saved snapshot", () => {
