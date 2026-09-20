@@ -22,7 +22,7 @@ const software = {
   "@id": `${siteUrl}/#software`,
   name: "League Night Pro",
   url: `${siteUrl}/`,
-  applicationCategory: "BusinessApplication",
+  applicationCategory: "SportsApplication",
   applicationSubCategory: "Golf league management software",
   operatingSystem: "Web",
   offers: {
@@ -94,8 +94,8 @@ for (const page of pages) {
 
 const homeSnapshot = `
   <main style="max-width:72rem;margin:auto;padding:3rem 1.25rem;font-family:Manrope,sans-serif;color:#0f172a">
-    <h1>Golf league management software built for the entire season.</h1>
-    <p>Run players, teams, schedules, flights, scorecards, eight scoring formats, standings, skins, player history, league intelligence, and season renewal in one web-based system.</p>
+    <h1>A golf league app built for the entire season.</h1>
+    <p>Run players, teams, schedules, flights, scorecards, eight scoring formats, standings, skins, player history, league intelligence, and season renewal in one web-based golf league app.</p>
     <h2>One place for commissioners and golfers</h2>
     <p>Enter each score once to update event results, points, standings, records, team performance, and player insights. Plan 9-hole or 18-hole events and preserve every completed season.</p>
     <nav>${pages.map((page) => `<a href="/${page.slug}">${escapeHtml(page.eyebrow)}</a>`).join(" · ")}</nav>

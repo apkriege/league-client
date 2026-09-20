@@ -72,6 +72,7 @@ League Night Pro provides a single operating system for running recurring golf l
 ## Public sources
 
 - Product and pricing: https://leaguenightpro.com/
+- Golf league app: https://leaguenightpro.com/golf-league-app
 - Scoring: https://leaguenightpro.com/golf-league-scoring-software
 - Scheduling: https://leaguenightpro.com/golf-league-scheduling-software
 - Handicap tracking: https://leaguenightpro.com/golf-league-handicap-tracking

@@ -28,7 +28,7 @@ async function findScoredPlayerId(page: Page) {
 
 test('public landing and login pages expose the primary entry points', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveTitle('Golf League Management Software | League Night Pro');
+  await expect(page).toHaveTitle('Golf League App & Management Software | League Night Pro');
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
     'https://leaguenightpro.com/',

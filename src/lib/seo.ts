@@ -13,9 +13,9 @@ export type SeoMetadata = {
 
 const publicPages: Record<string, Omit<SeoMetadata, "canonicalUrl" | "indexable">> = {
   "/": {
-    title: "Golf League Management Software | League Night Pro",
+    title: "Golf League App & Management Software | League Night Pro",
     description:
-      "Run golf leagues with scheduling, flights, scorecards, score entry, standings, player and team insights, season history, and yearly renewal.",
+      "A web-based golf league app for scheduling, score entry, handicaps, standings, teams, flights, statistics, and season history.",
   },
   "/privacy": {
     title: "Privacy Policy | League Night Pro",
@@ -150,7 +150,7 @@ const setPublicStructuredData = (pathname: string, metadata: SeoMetadata) => {
       "@id": `${SITE_URL}/#software`,
       name: SITE_NAME,
       url: `${SITE_URL}/`,
-      applicationCategory: "BusinessApplication",
+      applicationCategory: "SportsApplication",
       applicationSubCategory: "Golf league management software",
       operatingSystem: "Web",
       description: metadata.description,

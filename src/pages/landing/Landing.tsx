@@ -785,6 +785,9 @@ function LandingFooter() {
           <p>© {year} League Night LLC. All rights reserved.</p>
         </div>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 font-bold text-sky-200">
+          <Link to="/golf-league-app" className="transition hover:text-white">
+            Golf league app
+          </Link>
           <Link to="/golf-league-software-for-commissioners" className="transition hover:text-white">
             Product guide
           </Link>

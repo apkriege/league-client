@@ -1,5 +1,26 @@
 [
   {
+    "slug": "golf-league-app",
+    "title": "Golf League App for Scoring, Schedules and Standings | League Night Pro",
+    "description": "Run your golf league from any phone or computer with scheduling, score entry, handicaps, standings, teams, flights, skins, statistics, and season history.",
+    "eyebrow": "Golf league app",
+    "heading": "One golf league app for every week of the season.",
+    "intro": "League Night Pro is a web-based golf league app for commissioners and golfers. Set up the season, organize players and teams, schedule events, enter scores, publish standings, and preserve league history from any modern phone or computer.",
+    "highlights": ["Works on phones and computers", "League scheduling and score entry", "Automatic standings and statistics", "Individual and team formats"],
+    "sections": [
+      { "title": "Run league night from one app", "body": "Replace disconnected spreadsheets, scorecards, and result files with one shared league record. Commissioners manage the roster, schedule, flights, teams, matchups, scores, standings, announcements, and season renewal in the same browser-based app." },
+      { "title": "Give golfers a clear mobile experience", "body": "Golfers can open League Night Pro in their phone browser to check the schedule, review event results, follow standings, and explore their scoring history. There is no separate app-store download required." },
+      { "title": "Support the formats your league plays", "body": "Run 9-hole or 18-hole events using stroke play, match play, Stableford, maximum score, best ball, four-ball match play, scramble, or alternate shot, with gross and net results connected to season standings." },
+      { "title": "Keep every season connected", "body": "Create the next season from the previous league setup while retaining completed events, score history, player records, team results, and past standings in the finished season." }
+    ],
+    "faqs": [
+      { "question": "Is League Night Pro a mobile golf league app?", "answer": "League Night Pro is a responsive web app that works in modern phone, tablet, and desktop browsers, so golfers do not need an app-store download." },
+      { "question": "What can a commissioner manage in the golf league app?", "answer": "Commissioners can manage players, substitutes, teams, schedules, flights, matchups, score entry, standings, announcements, scoring formats, and season renewal." },
+      { "question": "Does the app support individual and team golf leagues?", "answer": "Yes. League Night Pro supports individual and team seasons with event-specific scoring formats and the appropriate results and standings." },
+      { "question": "Can golfers see scores and standings?", "answer": "Yes. Golfers can review schedules, completed-event results, league standings, round history, statistics, records, skins, and available player or team insights." }
+    ]
+  },
+  {
     "slug": "golf-league-scoring-software",
     "title": "Golf League Scoring Software | League Night Pro",
     "description": "Enter golf scores once and automatically calculate gross and net results, points, skins, standings, team scores, and player history across eight league formats.",
