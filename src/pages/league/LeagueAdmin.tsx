@@ -50,7 +50,6 @@ import Tooltip from "@mui/material/Tooltip";
 import { useAppStore } from "@/stores/appStore";
 import {
   useCorrectLeagueRenewalLink,
-  useUpdateLeagueLifecycle,
 } from "@api/admin/mutations";
 import { useCreateCheckoutSession } from "@api/payments/mutations";
 import { confirmCheckoutSession } from "@api/payments";
@@ -59,6 +58,10 @@ import PaymentReturnNotice from "@/features/payments/components/PaymentReturnNot
 import CommissionerInsights from "@/features/league-intelligence/components/CommissionerInsights";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  canCreateNextSeason,
+  NEXT_SEASON_DISABLED_MESSAGE,
+} from "@/features/leagues/seasonRenewal";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   upcoming: {
@@ -119,7 +122,6 @@ export default function LeagueAdmin() {
     show("Event canceled.", "success");
   });
   const rotateViewerCode = useRotateLeagueViewerAccessCode(Number(leagueId));
-  const updateLifecycle = useUpdateLeagueLifecycle();
   const correctRenewalLink = useCorrectLeagueRenewalLink();
 
   useEffect(() => {
@@ -214,6 +216,10 @@ export default function LeagueAdmin() {
   const leagueBillingStatus = getLeagueBillingStatus(league);
   const isReadOnly =
     league?.seasonStatus === "archived" || leagueBillingStatus === "payment_due";
+  const nextSeasonAvailable = canCreateNextSeason({
+    endDate: league?.endDate,
+    events: events ?? [],
+  });
 
   const leader = metrics?.standings?.[0] ?? null;
   const handleDeleteEvent = (event: any) => {
@@ -339,7 +345,7 @@ export default function LeagueAdmin() {
           >
             Next Season
           </Link>
-        ) : String(league?.type).toLowerCase() === "season" && ownsLeague ? (
+        ) : String(league?.type).toLowerCase() === "season" && ownsLeague && nextSeasonAvailable ? (
           <Link
             to={`/leagues/create?renewFrom=${league.id}`}
             className="flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 transition-colors hover:bg-sky-100"
@@ -347,6 +353,17 @@ export default function LeagueAdmin() {
             <RefreshCw size={12} strokeWidth={2.5} />
             Renew for Next Season
           </Link>
+        ) : String(league?.type).toLowerCase() === "season" && ownsLeague ? (
+          <button
+            type="button"
+            disabled
+            aria-label={`Renew for Next Season. ${NEXT_SEASON_DISABLED_MESSAGE}`}
+            title={NEXT_SEASON_DISABLED_MESSAGE}
+            className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400"
+          >
+            <RefreshCw size={12} strokeWidth={2.5} />
+            Renew for Next Season
+          </button>
         ) : null}
         {!isReadOnly && <button
           onClick={() => navigate(`/league/${leagueId}/edit`)}
@@ -355,26 +372,6 @@ export default function LeagueAdmin() {
           <Edit size={12} strokeWidth={2.5} />
           Edit League
         </button>}
-        {isSuperAdmin && (
-          <button
-            type="button"
-            disabled={updateLifecycle.isPending}
-            onClick={() => {
-              const nextStatus = league?.seasonStatus === "reopened" ? "archived" : "reopened";
-              if (!window.confirm(`${nextStatus === "reopened" ? "Reopen" : "Archive"} this season? This action is audited.`)) return;
-              updateLifecycle.mutate(
-                { leagueId: Number(leagueId), status: nextStatus },
-                {
-                  onSuccess: () => show(`Season ${nextStatus}.`, "success"),
-                  onError: (error: any) => show(error?.message || "Unable to update season status.", "error"),
-                }
-              );
-            }}
-            className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800"
-          >
-            {league?.seasonStatus === "reopened" ? "Lock Historical Season" : "Temporarily Unlock"}
-          </button>
-        )}
         {isSuperAdmin && league?.renewedFromLeagueId && (
           <button
             type="button"

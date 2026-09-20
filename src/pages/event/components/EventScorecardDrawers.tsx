@@ -5,7 +5,12 @@ import { compareTimes, formatTime } from "@/utils/format";
 import { formatHandicap } from "@/utils/handicap";
 import PlayerNameLink from "./PlayerNameLink";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { HoleScoreHeader } from "@/pages/scores/components/ScoreTableCell";
+import {
+  HoleScoreHeader,
+  ScorecardIdentityCell,
+  ScoreHeaderCell,
+  ScoreValueCell,
+} from "@/pages/scores/components/ScoreTableCell";
 
 export const FlightScorecardsDrawer = memo(function FlightScorecardsDrawer({
   event,
@@ -128,25 +133,25 @@ export const IndividualStrokeScorecardsDrawer = memo(function IndividualStrokeSc
         renderTable={(visibleRounds) => (
           <>
             <thead>
-              <tr className="text-xs text-gray-700">
-                <th className="p-2">Player</th>
+              <tr className="text-xs text-slate-700">
+                <th className="min-w-44 pl-4">Player</th>
                 {holes.map((hole) => <HoleScoreHeader key={hole.num} hole={hole} />)}
-                <th className="p-2 text-center">Total</th>
-                <th className="p-2 text-center">Net</th>
-                <th className="p-2 text-center">Pts</th>
+                <ScoreHeaderCell>Total</ScoreHeaderCell>
+                <ScoreHeaderCell>Net</ScoreHeaderCell>
+                <ScoreHeaderCell>Pts</ScoreHeaderCell>
               </tr>
             </thead>
             <tbody>
               {visibleRounds.map(({ round, scoresByHole }) => (
                 <tr key={round.id ?? round.playerId} className="bg-slate-50/50 text-sm">
-                  <td className="p-2 text-xs">
-                    <PlayerNameLink playerId={round.playerId}>
-                      {round.player.firstName} {round.player.lastName}
-                    </PlayerNameLink>
-                    <div className="mt-0.5 text-[10px] leading-tight text-gray-500">
-                      Index: {formatHandicap(round.preHandicap)}
-                    </div>
-                  </td>
+                  <ScorecardIdentityCell
+                    primary={
+                      <PlayerNameLink playerId={round.playerId}>
+                        {round.player.firstName} {round.player.lastName}
+                      </PlayerNameLink>
+                    }
+                    secondary={`Handicap ${formatHandicap(round.preHandicap)}`}
+                  />
                   {holes.map((hole) => {
                     const score = scoresByHole.get(hole.num);
                     return (
@@ -157,9 +162,9 @@ export const IndividualStrokeScorecardsDrawer = memo(function IndividualStrokeSc
                       </td>
                     );
                   })}
-                  <td className="text-center text-xs font-bold">{round.gross ?? 0}</td>
-                  <td className="text-center text-xs font-bold">{round.net ?? 0}</td>
-                  <td className="text-center text-xs font-bold">{getRoundPoints(round)}</td>
+                  <ScoreValueCell>{round.gross ?? 0}</ScoreValueCell>
+                  <ScoreValueCell>{round.net ?? 0}</ScoreValueCell>
+                  <ScoreValueCell>{getRoundPoints(round)}</ScoreValueCell>
                 </tr>
               ))}
             </tbody>

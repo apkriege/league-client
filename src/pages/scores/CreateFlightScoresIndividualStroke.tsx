@@ -1,4 +1,10 @@
-import { HoleScoreHeader, ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import {
+  HoleScoreHeader,
+  ScorecardIdentityCell,
+  ScorecardTableFrame,
+  ScoreHeaderCell,
+  ScoreValueCell,
+} from "./components/ScoreTableCell";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import Table from "@/components/Table";
@@ -303,7 +309,7 @@ export const CreateFlightScoresIndividualStroke = ({
             onClear={scoreDraft.discardDraft}
           />
         </div>
-        <div className="border rounded-lg">
+        <ScorecardTableFrame>
           <Table
             data={players}
             search={false}
@@ -314,8 +320,8 @@ export const CreateFlightScoresIndividualStroke = ({
             renderTable={(visiblePlayers) => (
               <>
                 <thead>
-                  <tr className="text-xs text-gray-700">
-                    <th className="pl-4">Player</th>
+                  <tr className="text-xs text-slate-700">
+                    <th className="min-w-44 pl-4">Player</th>
                     {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
                     <ScoreHeaderCell>Total</ScoreHeaderCell>
                     <ScoreHeaderCell>Net</ScoreHeaderCell>
@@ -324,65 +330,63 @@ export const CreateFlightScoresIndividualStroke = ({
                 </thead>
                 <tbody>
                   {visiblePlayers.map((player: any) => {
-                  const playerIndex = players.indexOf(player);
-                  const p = player.player;
-                  const swapCandidates = getSwapCandidates({
-                    currentEntry: player,
-                    leaguePlayers,
-                    eventPlayerIds,
-                    activePlayerIds: players.map((entry: any) => Number(entry.playerId)),
-                    teamOnly: false,
-                  });
-                  return (
-                    <tr key={player.playerId} className="text-sm">
-                      <td className="p-2 text-xs">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-semibold">
-                            {p.firstName} {p.lastName}
-                          </span>
-                          <PlayerSwapControl
-                            currentPlayerId={Number(player.playerId)}
-                            candidates={swapCandidates}
-                            isSaving={updateFlightPlayersMutation.isPending}
-                            onSwap={(replacementId) => savePlayerSwap(playerIndex, replacementId)}
-                          />
-                        </div>
-                        <PlayerHandicapSummary entry={player} />
-                      </td>
-                      {holes.map((hole: any, holeIdx: number) => (
-                        <td key={hole.num} className="p-2">
-                          <div className="relative">
-                            <input
-                              type="number"
-                              min="1"
-                              max="30"
-                              className="score-input"
-                              value={watchedPlayers?.[player.playerId]?.scores?.[holeIdx] ?? ""}
-                              onChange={(e) => handleHoleChange(e, holeIdx, player.playerId)}
+                    const playerIndex = players.indexOf(player);
+                    const p = player.player;
+                    const swapCandidates = getSwapCandidates({
+                      currentEntry: player,
+                      leaguePlayers,
+                      eventPlayerIds,
+                      activePlayerIds: players.map((entry: any) => Number(entry.playerId)),
+                      teamOnly: false,
+                    });
+                    return (
+                      <tr key={player.playerId} className="text-sm">
+                        <ScorecardIdentityCell
+                          primary={`${p.firstName} ${p.lastName}`}
+                          secondary={<PlayerHandicapSummary entry={player} />}
+                          action={
+                            <PlayerSwapControl
+                              currentPlayerId={Number(player.playerId)}
+                              candidates={swapCandidates}
+                              isSaving={updateFlightPlayersMutation.isPending}
+                              onSwap={(replacementId) => savePlayerSwap(playerIndex, replacementId)}
                             />
-                            <HandicapStrokeIndicator
-                              strokes={popsForHole(player.playerId, hole.num)}
-                            />
-                          </div>
-                        </td>
-                      ))}
-                      <ScoreValueCell>
-                        {getPlayerTotalScore(Number(player.playerId))}
-                      </ScoreValueCell>
-                      <ScoreValueCell>
-                        {getPlayerNetScore(Number(player.playerId))}
-                      </ScoreValueCell>
-                      <ScoreValueCell>
-                        {getPlayerStablefordPoints(Number(player.playerId))}
-                      </ScoreValueCell>
-                    </tr>
-                  );
+                          }
+                        />
+                        {holes.map((hole: any, holeIdx: number) => (
+                          <td key={hole.num} className="p-2">
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min="1"
+                                max="30"
+                                className="score-input"
+                                value={watchedPlayers?.[player.playerId]?.scores?.[holeIdx] ?? ""}
+                                onChange={(e) => handleHoleChange(e, holeIdx, player.playerId)}
+                              />
+                              <HandicapStrokeIndicator
+                                strokes={popsForHole(player.playerId, hole.num)}
+                              />
+                            </div>
+                          </td>
+                        ))}
+                        <ScoreValueCell>
+                          {getPlayerTotalScore(Number(player.playerId))}
+                        </ScoreValueCell>
+                        <ScoreValueCell>
+                          {getPlayerNetScore(Number(player.playerId))}
+                        </ScoreValueCell>
+                        <ScoreValueCell>
+                          {getPlayerStablefordPoints(Number(player.playerId))}
+                        </ScoreValueCell>
+                      </tr>
+                    );
                   })}
                 </tbody>
               </>
             )}
           />
-        </div>
+        </ScorecardTableFrame>
       </div>
     </SurfaceCard>
   );

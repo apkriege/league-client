@@ -1,4 +1,11 @@
-import { HoleScoreHeader, ScoreValueCell } from "./components/ScoreTableCell";
+import {
+  HoleScoreHeader,
+  ScorecardIdentityCell,
+  ScorecardTableFrame,
+  ScoreHeaderCell,
+  ScoreSummaryCell,
+  ScoreValueCell,
+} from "./components/ScoreTableCell";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import Table from "@/components/Table";
@@ -362,23 +369,18 @@ export const CreateFlightScoresIndividualMatch = ({
     return (
       <Fragment key={player.playerId}>
         <tr className="text-sm">
-          <td className="p-2 text-xs">
-            <div className="flex items-start justify-between gap-2">
-              <span className="font-semibold">
-                {p.firstName} {p.lastName}
-              </span>
+          <ScorecardIdentityCell
+            primary={`${p.firstName} ${p.lastName}`}
+            secondary={<PlayerHandicapSummary entry={player} />}
+            action={
               <PlayerSwapControl
                 currentPlayerId={Number(player.playerId)}
                 candidates={swapCandidates}
                 isSaving={updateFlightPlayersMutation.isPending}
                 onSwap={(replacementId) => savePlayerSwap(playerIndex, replacementId)}
               />
-            </div>
-            <PlayerHandicapSummary
-              entry={player}
-              className="block text-[10px] text-gray-500"
-            />
-          </td>
+            }
+          />
           {holes.map((hole: any, holeIdx: number) => (
             <td key={hole.num} className="p-2">
               <div className="relative">
@@ -400,22 +402,17 @@ export const CreateFlightScoresIndividualMatch = ({
           <ScoreValueCell>
             {getPlayerNetScore(Number(player.playerId))}
           </ScoreValueCell>
-          <ScoreValueCell>{holePoints}</ScoreValueCell>
-          <ScoreValueCell>{matchPoints}</ScoreValueCell>
           <ScoreValueCell>{holePoints + matchPoints}</ScoreValueCell>
         </tr>
-        <tr className="bg-slate-50 text-[11px] text-gray-600">
-          <td className="p-2 font-semibold">Hole Pts</td>
+        <tr className="bg-slate-100 text-[11px] text-slate-600">
+          <td className="p-3 font-bold">Hole points</td>
           {holePointValues.map((value: number, idx: number) => (
             <td key={holes[idx]?.num ?? idx} className="p-2 text-center font-semibold">
-              {value || "-"}
+              {value || "—"}
             </td>
           ))}
-          <td className="w-px whitespace-nowrap" />
-          <td className="w-px whitespace-nowrap" />
-          <td className="w-px whitespace-nowrap text-center font-bold">{holePoints}</td>
-          <td className="w-px whitespace-nowrap" />
-          <td className="w-px whitespace-nowrap" />
+          <ScoreSummaryCell value={matchPoints} label="Match" colSpan={2} />
+          <ScoreSummaryCell value={holePoints} label="Hole" />
         </tr>
       </Fragment>
     );
@@ -455,7 +452,7 @@ export const CreateFlightScoresIndividualMatch = ({
             onClear={scoreDraft.discardDraft}
           />
         </div>
-        <div className="border rounded-lg">
+        <ScorecardTableFrame>
           <Table
             data={pairs}
             search={false}
@@ -466,14 +463,12 @@ export const CreateFlightScoresIndividualMatch = ({
             renderTable={(visiblePairs) => (
               <>
                 <thead>
-                  <tr className="text-xs text-gray-700">
-                    <th className="py-2 pr-2 pl-4">Player</th>
+                  <tr className="text-xs text-slate-700">
+                    <th className="min-w-44 pl-4">Player</th>
                     {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
-                    <th className="w-px whitespace-nowrap p-2 text-center">Total</th>
-                    <th className="w-px whitespace-nowrap p-2 text-center">Net</th>
-                    <th className="w-px whitespace-nowrap p-2 text-center">Hole Pts</th>
-                    <th className="w-px whitespace-nowrap p-2 text-center">Match Pts</th>
-                    <th className="w-px whitespace-nowrap p-2 text-center">Pts</th>
+                    <ScoreHeaderCell>Total</ScoreHeaderCell>
+                    <ScoreHeaderCell>Net</ScoreHeaderCell>
+                    <ScoreHeaderCell>Pts</ScoreHeaderCell>
                   </tr>
                 </thead>
                 <tbody>
@@ -484,11 +479,11 @@ export const CreateFlightScoresIndividualMatch = ({
                       <Fragment key={pairIdx}>
                         {pairIdx > 0 && (
                           <tr aria-hidden="true">
-                            <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
+                            <td colSpan={holes.length + 4} className="h-2 bg-slate-50" />
                           </tr>
                         )}
                         <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
-                          <td className="p-2" colSpan={holes.length + 6}>
+                          <td className="p-2" colSpan={holes.length + 4}>
                             Matchup {pairIdx + 1}: {p1.player.firstName} {p1.player.lastName} vs{" "}
                             {p2.player.firstName} {p2.player.lastName}
                           </td>
@@ -502,7 +497,7 @@ export const CreateFlightScoresIndividualMatch = ({
               </>
             )}
           />
-        </div>
+        </ScorecardTableFrame>
       </div>
     </SurfaceCard>
   );

@@ -50,16 +50,6 @@ export async function revokePaymentBypassCode(id: number) {
   await apiClient.delete(`/admin/payment-bypass-codes/${id}`);
 }
 
-export async function updateLeagueLifecycle(input: {
-  leagueId: number;
-  status: "archived" | "reopened";
-}) {
-  const response = await apiClient.patch(`/admin/leagues/${input.leagueId}/lifecycle`, {
-    status: input.status,
-  });
-  return response.data;
-}
-
 export async function correctLeagueRenewalLink(leagueId: number) {
   const response = await apiClient.delete(`/admin/leagues/${leagueId}/renewal-link`);
   return response.data;

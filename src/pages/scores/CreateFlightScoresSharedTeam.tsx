@@ -12,7 +12,13 @@ import { Flag } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
 import { ScoreDraftStatus } from "./ScoreDraftStatus";
-import { HoleScoreHeader, ScoreValueCell } from "./components/ScoreTableCell";
+import {
+  HoleScoreHeader,
+  ScorecardIdentityCell,
+  ScorecardTableFrame,
+  ScoreHeaderCell,
+  ScoreValueCell,
+} from "./components/ScoreTableCell";
 import HandicapStrokeIndicator from "./components/HandicapStrokeIndicator";
 import {
   getEventScoringHoles,
@@ -191,7 +197,7 @@ export function CreateFlightScoresSharedTeam({
           savedAt={scoreDraft.savedAt}
           onClear={scoreDraft.discardDraft}
         />
-        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+        <ScorecardTableFrame className="mt-4">
           <Table
             data={teamAssignments}
             search={false}
@@ -205,8 +211,8 @@ export function CreateFlightScoresSharedTeam({
                   <tr className="text-xs text-slate-700">
                     <th className="min-w-44 pl-4">Team</th>
                     {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
-                    <th className="text-center">Gross</th>
-                    <th className="text-center">Net</th>
+                    <ScoreHeaderCell>Gross</ScoreHeaderCell>
+                    <ScoreHeaderCell>Net</ScoreHeaderCell>
                   </tr>
                 </thead>
                 <tbody>
@@ -215,13 +221,10 @@ export function CreateFlightScoresSharedTeam({
                     const players = getTeamPlayers(teamId);
                     return (
                       <tr key={teamId} className="text-sm">
-                        <td className="p-3">
-                          <p className="font-bold text-slate-900">{team.team?.name || `Team ${teamId}`}</p>
-                          <p className="mt-0.5 text-[10px] leading-4 text-slate-500">
-                            {players.map((player) => `${player.player?.firstName ?? ""} ${player.player?.lastName ?? ""}`.trim()).join(" · ")}
-                            {` · PH ${getTeamHandicap(teamId)}`}
-                          </p>
-                        </td>
+                        <ScorecardIdentityCell
+                          primary={team.team?.name || `Team ${teamId}`}
+                          secondary={`${players.map((player) => `${player.player?.firstName ?? ""} ${player.player?.lastName ?? ""}`.trim()).join(" · ")} · PH ${getTeamHandicap(teamId)}`}
+                        />
                         {holes.map((hole: { num: number }, index: number) => {
                           const pops = popsByTeamId.get(teamId)?.get(hole.num) || 0;
                           return (
@@ -251,7 +254,7 @@ export function CreateFlightScoresSharedTeam({
               </>
             )}
           />
-        </div>
+        </ScorecardTableFrame>
       </div>
     </SurfaceCard>
   );

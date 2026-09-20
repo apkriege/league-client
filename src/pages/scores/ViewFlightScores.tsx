@@ -1,4 +1,11 @@
-import { HoleScoreHeader, ScoreValueCell } from "./components/ScoreTableCell";
+import {
+  HoleScoreHeader,
+  ScorecardIdentityCell,
+  ScorecardTableFrame,
+  ScoreHeaderCell,
+  ScoreSummaryCell,
+  ScoreValueCell,
+} from "./components/ScoreTableCell";
 import Table from "@/components/Table";
 import { Fragment, memo } from "react";
 import { Link, useParams } from "react-router";
@@ -221,7 +228,7 @@ function ViewFlightScores({ event, flight }: any) {
   };
 
   return (
-    <div className="border rounded-lg">
+    <ScorecardTableFrame>
       <Table
         data={getPopulatedFlightTeamSlots(team1, team2)}
         search={false}
@@ -232,16 +239,12 @@ function ViewFlightScores({ event, flight }: any) {
         renderTable={(visibleTeams) => (
           <>
             <thead>
-              <tr className="text-xs text-gray-700">
-                <th>Player</th>
+              <tr className="text-xs text-slate-700">
+                <th className="min-w-44 pl-4">Player</th>
                 {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
-                <th className="text-center">Total</th>
-                <th className="text-center">Net</th>
-                {showPlayerMatchDetails ? (
-                  <th className="text-center">Pts</th>
-                ) : (
-                  <th className="text-center">Points</th>
-                )}
+                <ScoreHeaderCell>Total</ScoreHeaderCell>
+                <ScoreHeaderCell>Net</ScoreHeaderCell>
+                <ScoreHeaderCell>Pts</ScoreHeaderCell>
               </tr>
             </thead>
             <tbody>
@@ -285,7 +288,7 @@ function ViewFlightScores({ event, flight }: any) {
           </>
         )}
       />
-    </div>
+    </ScorecardTableFrame>
   );
 }
 
@@ -306,7 +309,7 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200">
+    <ScorecardTableFrame>
       <Table
         data={teams}
         search={false}
@@ -320,9 +323,9 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
               <tr className="text-xs text-slate-700">
                 <th className="min-w-40 pl-4">Team</th>
                 {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
-                <th className="text-center">Gross</th>
-                <th className="text-center">Net</th>
-                <th className="text-center">Event points</th>
+                <ScoreHeaderCell>Gross</ScoreHeaderCell>
+                <ScoreHeaderCell>Net</ScoreHeaderCell>
+                <ScoreHeaderCell>Pts</ScoreHeaderCell>
               </tr>
             </thead>
             <tbody>
@@ -335,12 +338,10 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
                 );
                 return (
                   <tr key={team.teamId} className="text-sm">
-                    <td className="p-3">
-                      <p className="font-bold text-slate-900">{team.team?.name || `Team ${team.teamId}`}</p>
-                      <p className="mt-0.5 text-[10px] text-slate-500">
-                        {round ? `PH ${playingHandicap}` : "No score"}
-                      </p>
-                    </td>
+                    <ScorecardIdentityCell
+                      primary={team.team?.name || `Team ${team.teamId}`}
+                      secondary={round ? `PH ${playingHandicap}` : "No score"}
+                    />
                     {holes.map((hole: any) => {
                       const score: any = scoreByHole.get(Number(hole.num));
                       return (
@@ -371,7 +372,7 @@ function SharedTeamScoreView({ event, flight, holes }: { event: any; flight: any
           </>
         )}
       />
-    </div>
+    </ScorecardTableFrame>
   );
 }
 
@@ -386,12 +387,14 @@ const PlayerRow = ({
 
   return (
     <tr className="text-sm bg-slate-50/50">
-      <td className="p-2 text-xs">
-        <PlayerNameLink playerId={player.playerId}>
-          {p.firstName} {p.lastName}
-        </PlayerNameLink>
-        <PlayerHandicapSummary entry={player} className="mt-0.5 block text-[10px] leading-tight text-gray-500" />
-      </td>
+      <ScorecardIdentityCell
+        primary={
+          <PlayerNameLink playerId={player.playerId} className="hover:text-slate-700 hover:underline">
+            {p.firstName} {p.lastName}
+          </PlayerNameLink>
+        }
+        secondary={<PlayerHandicapSummary entry={player} />}
+      />
       {holes.map((hole: any) => {
         const score = scores.find((entry: any) => Number(entry?.hole) === Number(hole.num))?.gross;
         return (
@@ -523,15 +526,14 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
     return (
       <Fragment key={playerEntry.playerId}>
         <tr className="text-sm bg-slate-50/50">
-          <td className="p-2 text-xs">
-            <PlayerNameLink playerId={playerEntry.playerId} className="block font-semibold text-gray-800 hover:text-slate-900 hover:underline">
-              {player.firstName} {player.lastName}
-            </PlayerNameLink>
-            <PlayerHandicapSummary
-              entry={playerEntry}
-              className="block text-[10px] text-gray-500"
-            />
-          </td>
+          <ScorecardIdentityCell
+            primary={
+              <PlayerNameLink playerId={playerEntry.playerId} className="hover:text-slate-700 hover:underline">
+                {player.firstName} {player.lastName}
+              </PlayerNameLink>
+            }
+            secondary={<PlayerHandicapSummary entry={playerEntry} />}
+          />
           {holes.map((hole: any) => {
             const score = getScoreByHole(playerEntry, hole.num);
             return (
@@ -547,29 +549,24 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
           })}
           <ScoreValueCell>{matchup.gross}</ScoreValueCell>
           <ScoreValueCell>{matchup.net}</ScoreValueCell>
-          <ScoreValueCell>{matchup.holePoints}</ScoreValueCell>
-          <ScoreValueCell>{matchup.matchPoints}</ScoreValueCell>
           <ScoreValueCell>{matchup.totalPoints}</ScoreValueCell>
         </tr>
-        <tr className="bg-slate-50 text-[11px] text-gray-600">
-          <td className="p-2 font-semibold">Hole Pts</td>
+        <tr className="bg-slate-100 text-[11px] text-slate-600">
+          <td className="p-3 font-bold">Hole points</td>
           {holePointValues.map((value: number, idx: number) => (
             <td key={holes[idx]?.num ?? idx} className="p-2 text-center font-semibold">
-              {value || "-"}
+              {value || "—"}
             </td>
           ))}
-          <td className="w-px whitespace-nowrap" />
-          <td className="w-px whitespace-nowrap" />
-          <td className="w-px whitespace-nowrap text-center font-bold">{matchup.holePoints}</td>
-          <td className="w-px whitespace-nowrap" />
-          <td className="w-px whitespace-nowrap" />
+          <ScoreSummaryCell value={matchup.matchPoints} label="Match" colSpan={2} />
+          <ScoreSummaryCell value={matchup.holePoints} label="Hole" />
         </tr>
       </Fragment>
     );
   };
 
   return (
-    <div className="border rounded-lg">
+    <ScorecardTableFrame>
       <Table
         data={pairs}
         search={false}
@@ -580,14 +577,12 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
         renderTable={(visiblePairs) => (
           <>
             <thead>
-              <tr className="text-xs text-gray-700">
-                <th className="p-2">Player</th>
+              <tr className="text-xs text-slate-700">
+                <th className="min-w-44 pl-4">Player</th>
                 {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
-                <th className="w-px whitespace-nowrap text-center">Total</th>
-                <th className="w-px whitespace-nowrap text-center">Net</th>
-                <th className="w-px whitespace-nowrap text-center">Hole Pts</th>
-                <th className="w-px whitespace-nowrap text-center">Match Pts</th>
-                <th className="w-px whitespace-nowrap text-center">Pts</th>
+                <ScoreHeaderCell>Total</ScoreHeaderCell>
+                <ScoreHeaderCell>Net</ScoreHeaderCell>
+                <ScoreHeaderCell>Pts</ScoreHeaderCell>
               </tr>
             </thead>
             <tbody>
@@ -598,11 +593,11 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
                   <Fragment key={pairIdx}>
                     {pairIdx > 0 && (
                       <tr aria-hidden="true">
-                        <td colSpan={holes.length + 6} className="h-2 bg-gray-50" />
+                        <td colSpan={holes.length + 4} className="h-2 bg-slate-50" />
                       </tr>
                     )}
                     <tr className="bg-gray-50 text-[11px] font-semibold text-gray-500">
-                      <td className="p-2" colSpan={holes.length + 6}>
+                      <td className="p-2" colSpan={holes.length + 4}>
                         Matchup {pairIdx + 1}:{" "}
                         <PlayerNameLink playerId={p1.playerId} className="font-semibold text-gray-600 hover:text-slate-900 hover:underline">
                           {p1.player.firstName} {p1.player.lastName}
@@ -622,7 +617,7 @@ function IndividualMatchView({ flight, event, holes }: { flight: any; event: any
           </>
         )}
       />
-    </div>
+    </ScorecardTableFrame>
   );
 }
 
@@ -639,37 +634,27 @@ const TeamPointsRow = ({
   showPlayerPointBreakdown,
 }: any) => {
   return (
-    <tr className="bg-gray-200">
-      <td>{label}</td>
+    <tr className="bg-slate-100 text-slate-600">
+      <td className="p-3 text-xs font-bold">{label}</td>
       {holes.map((hole: any, holeIdx: number) => (
         <ScoreValueCell key={hole.num} className="p-2">
-          {showHolePoints ? getTeamPointsForHole(team, hole, holeIdx) : "—"}
+          {showHolePoints ? getTeamPointsForHole(team, hole, holeIdx) || "—" : "—"}
         </ScoreValueCell>
       ))}
       {showPlayerPointBreakdown ? (
         <>
-          <td colSpan={2} className="p-2 text-center font-bold">
-            <div className="flex flex-col items-center leading-tight">
-              <span className="text-sm">{getTeamTotalPoints(team)}</span>
-              <span className="text-[10px]">Medal</span>
-            </div>
-          </td>
-          <td className="p-2 text-center font-bold">
-            <div className="flex flex-col items-center leading-tight">
-              <span className="text-sm">{getTeamPlayerPoints(team)}</span>
-              <span className="text-[10px]">Player</span>
-            </div>
-          </td>
+          <ScoreSummaryCell value={getTeamTotalPoints(team)} label="Medal" colSpan={2} />
+          <ScoreSummaryCell value={getTeamPlayerPoints(team)} label="Player" />
         </>
       ) : (
         <>
         <td />
-        <td className="p-2 font-bold text-center">
+        <td className="p-2 text-center font-bold">
           {showHolePoints ? (
-          <div className="flex flex-col items-center leading-tight">
-            <span className="text-sm">{getTeamMedalPoints(team)}</span>
-            <span className="text-[10px]">{holePointTotalLabel}</span>
-          </div>
+          <span className="flex flex-col items-center leading-tight">
+            <span className="text-sm tabular-nums">{getTeamMedalPoints(team)}</span>
+            <span className="text-[10px] text-slate-500">{holePointTotalLabel}</span>
+          </span>
         ) : (
           <span className="text-gray-400">—</span>
           )}

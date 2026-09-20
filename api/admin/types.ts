@@ -103,7 +103,7 @@ export type AdminLeagueListItem = {
   contactEmail?: string | null;
   startDate: string;
   endDate: string;
-  seasonStatus?: "active" | "archived" | "reopened" | string;
+  seasonStatus?: "active" | "archived" | string;
   entitlement: {
     requiredGolfers: number;
     paidGolfers: number;

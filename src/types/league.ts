@@ -22,7 +22,7 @@ export type League = {
   renewedFromLeague?: LeagueSeasonLink | null;
   renewedLeague?: LeagueSeasonLink | null;
   billingDraftKey?: string;
-  seasonStatus?: "active" | "archived" | "reopened" | string;
+  seasonStatus?: "active" | "archived" | string;
   entitlement?: SeasonEntitlement | null;
   archivedAt?: string | Date | null;
 };

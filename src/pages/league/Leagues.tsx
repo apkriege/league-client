@@ -32,7 +32,11 @@ import {
 } from "@/features/payments/PaymentPipelineError";
 import dayjs from "dayjs";
 import { getLeagueDateInputValue } from "./leagueDates";
-import { getLeagueBillingStatus } from "@/lib/billing";
+import {
+  canCreateNextSeason,
+  getLeagueScheduleStatus,
+  NEXT_SEASON_DISABLED_MESSAGE,
+} from "@/features/leagues/seasonRenewal";
 
 export default function Leagues() {
   const { user } = useAppStore();
@@ -237,31 +241,9 @@ const LeagueCard = ({ league, canManageLeague, canRenewLeague }: any) => {
   const completedRoundCount = Number.isFinite(rawCompletedRoundCount)
     ? Math.min(roundCount, Math.max(0, rawCompletedRoundCount))
     : 0;
-  const today = dayjs().startOf("day");
   const startDateKey = getLeagueDateInputValue(league?.startDate);
   const endDateKey = getLeagueDateInputValue(league?.endDate);
-  const seasonEnded = Boolean(endDateKey) && dayjs(endDateKey).endOf("day").isBefore(today);
-  const seasonUpcoming =
-    Boolean(startDateKey) && dayjs(startDateKey).startOf("day").isAfter(today);
-  const daysUntilEnd = endDateKey ? dayjs(endDateKey).startOf("day").diff(today, "day") : null;
-  const renewalDue =
-    daysUntilEnd !== null &&
-    daysUntilEnd >= 0 &&
-    daysUntilEnd <= 30 &&
-    !league?.renewedLeague?.id;
-  const seasonStatus = getLeagueBillingStatus(league) === "payment_due"
-    ? "Payment Due"
-    : league?.seasonStatus === "reopened"
-      ? "Reopened"
-    : seasonEnded || league?.seasonStatus === "archived"
-    ? "Past Season"
-    : renewalDue
-      ? "Renewal Due"
-    : seasonUpcoming
-      ? "Upcoming"
-      : roundCount > 0
-        ? "Live"
-        : "Not Started";
+  const seasonStatus = getLeagueScheduleStatus(league);
   const leaguePath = canManageLeague
     ? `/league/${league.id}/admin`
     : `/league/${league.id}`;
@@ -271,6 +253,7 @@ const LeagueCard = ({ league, canManageLeague, canRenewLeague }: any) => {
           "MMM D, YYYY"
         )}`
       : null;
+  const nextSeasonAvailable = canCreateNextSeason(league);
 
   return (
     <Card className="group flex h-full flex-col border-slate-200 bg-white p-4! transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg">
@@ -282,7 +265,7 @@ const LeagueCard = ({ league, canManageLeague, canRenewLeague }: any) => {
           icon={
             seasonStatus === "Live" ? (
               <Globe size={12} />
-            ) : seasonStatus === "Not Started" ? (
+            ) : seasonStatus === "Upcoming" ? (
               <Lock size={12} />
             ) : (
               <CalendarDays size={12} />
@@ -359,22 +342,36 @@ const LeagueCard = ({ league, canManageLeague, canRenewLeague }: any) => {
           </div>
         </div>
       </Link>
-      {canRenewLeague && String(league?.type).toLowerCase() === "season" && (
-        <Link
-          to={
-            league?.renewedLeague?.id
-              ? `/league/${league.renewedLeague.id}/admin`
-              : `/leagues/create?renewFrom=${league.id}`
-          }
-          onClick={() => {
-            if (!league?.renewedLeague?.id) clearCreateLeagueDraft(Number(league.adminId));
-          }}
-          className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-800 transition hover:bg-sky-100"
-        >
-          <RefreshCw size={13} />
-          {league?.renewedLeague?.id ? "Open Next Season" : "Create Next Season"}
-        </Link>
-      )}
+      {canRenewLeague && String(league?.type).toLowerCase() === "season" &&
+        (league?.renewedLeague?.id ? (
+          <Link
+            to={`/league/${league.renewedLeague.id}/admin`}
+            className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-800 transition hover:bg-sky-100"
+          >
+            <RefreshCw size={13} />
+            Open Next Season
+          </Link>
+        ) : nextSeasonAvailable ? (
+          <Link
+            to={`/leagues/create?renewFrom=${league.id}`}
+            onClick={() => clearCreateLeagueDraft(Number(league.adminId))}
+            className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-800 transition hover:bg-sky-100"
+          >
+            <RefreshCw size={13} />
+            Create Next Season
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled
+            aria-label={`Create Next Season. ${NEXT_SEASON_DISABLED_MESSAGE}`}
+            title={NEXT_SEASON_DISABLED_MESSAGE}
+            className="mt-3 inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-black text-slate-400"
+          >
+            <RefreshCw size={13} />
+            Create Next Season
+          </button>
+        ))}
     </Card>
   );
 };

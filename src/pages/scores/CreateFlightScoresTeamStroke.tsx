@@ -1,4 +1,11 @@
-import { HoleScoreHeader, ScoreHeaderCell, ScoreValueCell } from "./components/ScoreTableCell";
+import {
+  HoleScoreHeader,
+  ScorecardIdentityCell,
+  ScorecardTableFrame,
+  ScoreHeaderCell,
+  ScoreSummaryCell,
+  ScoreValueCell,
+} from "./components/ScoreTableCell";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import Table from "@/components/Table";
@@ -379,20 +386,18 @@ export const CreateFlightScoresTeamStroke = ({
 
     return (
       <tr key={player.playerId} className="text-sm">
-        <td className="p-2 text-xs">
-          <div className="flex items-start justify-between gap-2">
-            <span className="font-semibold">
-              {p.firstName} {p.lastName}
-            </span>
+        <ScorecardIdentityCell
+          primary={`${p.firstName} ${p.lastName}`}
+          secondary={<PlayerHandicapSummary entry={player} />}
+          action={
             <PlayerSwapControl
               currentPlayerId={Number(player.playerId)}
               candidates={swapCandidates}
               isSaving={updateFlightPlayersMutation.isPending}
               onSwap={(replacementId) => savePlayerSwap(team, playerIndex, replacementId)}
             />
-          </div>
-          <PlayerHandicapSummary entry={player} />
-        </td>
+          }
+        />
         {holes.map((hole: any, holeIdx: number) => (
           <td key={hole.num} className="p-2">
             <div className="relative">
@@ -426,8 +431,8 @@ export const CreateFlightScoresTeamStroke = ({
         ? "Best Net"
         : "Team Net";
   const renderTeamPointsRow = (teamName: string, team: 1 | 2) => (
-    <tr aria-hidden="true" className="bg-gray-100">
-      <td className="font-semibold text-xs">{teamName} {teamMetricLabel}</td>
+    <tr className="bg-slate-100 text-slate-600">
+      <td className="p-3 text-xs font-bold">{teamName} {teamMetricLabel}</td>
       {holes.map((hole: any, holeIdx: number) => (
         <ScoreValueCell key={hole.num} className="p-2">
           {getTeamMetricAtHole(team, holeIdx)}
@@ -435,7 +440,7 @@ export const CreateFlightScoresTeamStroke = ({
       ))}
       <td />
       <td />
-      <ScoreValueCell className="p-2">{getTeamFormatTotal(team)}</ScoreValueCell>
+      <ScoreSummaryCell value={getTeamFormatTotal(team)} label={teamMetricLabel} />
     </tr>
   );
 
@@ -473,7 +478,7 @@ export const CreateFlightScoresTeamStroke = ({
             onClear={scoreDraft.discardDraft}
           />
         </div>
-        <div className="border rounded-lg">
+        <ScorecardTableFrame>
           <Table
             data={[1 as const, 2 as const]}
             search={false}
@@ -484,8 +489,8 @@ export const CreateFlightScoresTeamStroke = ({
             renderTable={(visibleTeams) => (
               <>
                 <thead>
-                  <tr className="text-xs text-gray-700">
-                    <th className="pl-4">Player</th>
+                  <tr className="text-xs text-slate-700">
+                    <th className="min-w-44 pl-4">Player</th>
                     {holes.map((hole: any) => <HoleScoreHeader key={hole.num} hole={hole} />)}
                     <ScoreHeaderCell>Total</ScoreHeaderCell>
                     <ScoreHeaderCell>Net</ScoreHeaderCell>
@@ -511,7 +516,7 @@ export const CreateFlightScoresTeamStroke = ({
               </>
             )}
           />
-        </div>
+        </ScorecardTableFrame>
       </div>
     </SurfaceCard>
   );
