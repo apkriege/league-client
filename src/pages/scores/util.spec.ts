@@ -58,17 +58,22 @@ describe("scorecard handicap helpers", () => {
     })).toBe(0);
   });
 
-  it("awards the player match bonus to the lower full-round net", () => {
+  it("awards the player match bonus by holes won", () => {
     expect(calculatePlayerMatchBonus({
-      playerNet: 34,
-      opponentNet: 36,
+      playerHolesWon: 2,
+      opponentHolesWon: 1,
       pointsPerMatch: 2,
     })).toBe(2);
     expect(calculatePlayerMatchBonus({
-      playerNet: 36,
-      opponentNet: 34,
+      playerHolesWon: 1,
+      opponentHolesWon: 2,
       pointsPerMatch: 2,
     })).toBe(0);
+    expect(calculatePlayerMatchBonus({
+      playerHolesWon: 1,
+      opponentHolesWon: 1,
+      pointsPerMatch: 2,
+    })).toBe(1);
   });
 
   it("orders both team match-play sides from low to high handicap", () => {

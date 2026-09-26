@@ -41,6 +41,7 @@ export default function TeamsForm() {
   const { show } = useToast();
   const { control, setValue } = useFormContext();
   const players = useWatch({ control, name: "players", defaultValue: [] });
+  const teamRosterSize = Number(useWatch({ control, name: "teamRosterSize", defaultValue: 4 }));
 
   const rawTeams = useWatch({ control, name: "teams", defaultValue: [] });
   const teams: Team[] = useMemo(() => rawTeams.map(normalizeTeam), [rawTeams]);
@@ -83,11 +84,6 @@ export default function TeamsForm() {
     [availablePlayers]
   );
 
-  const remainingCount = useMemo(() => {
-    const assignedIds = new Set<number>(teams.flatMap((team) => team.players.map(Number)));
-    return players.filter((p: any) => !assignedIds.has(Number(p.id))).length;
-  }, [teams, players]);
-
   const resetDraft = () => {
     setDraft(emptyDraft);
     setTeamNameError("");
@@ -111,6 +107,10 @@ export default function TeamsForm() {
 
     if (draft.players.length === 0) {
       show("Please select at least one player.", "error");
+      return false;
+    }
+    if (draft.players.length > teamRosterSize) {
+      show(`Teams may have at most ${teamRosterSize} players.`, "error");
       return false;
     }
 
@@ -199,7 +199,7 @@ export default function TeamsForm() {
 
           <div className="w-full min-w-0">
             <MultiSelect
-              label={`Players (${remainingCount} remaining)`}
+              label={`Players (${draft.players.length}/${teamRosterSize})`}
               options={playerOptions}
               value={draft.players}
               variant="dropdown"
@@ -207,6 +207,10 @@ export default function TeamsForm() {
                 playerOptions.length ? "Select available players" : "No players available"
               }
               onChange={(selected) => {
+                if (selected.length > teamRosterSize) {
+                  show(`Teams may have at most ${teamRosterSize} players.`, "warning");
+                  return;
+                }
                 setDraft((prev) => ({
                   ...prev,
                   players: selected.map(Number),

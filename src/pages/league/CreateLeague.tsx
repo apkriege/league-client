@@ -42,6 +42,8 @@ type CreateLeagueFormData = {
   type: string;
   holeFormat: "9" | "18" | "mixed";
   format: string | null;
+  teamRosterSize: number;
+  teamPlayersPerEvent: number;
   contactFirstName: string;
   contactLastName: string;
   contactEmail: string;
@@ -72,6 +74,8 @@ const createDefaultLeagueData = (): CreateLeagueFormData => ({
   type: "season",
   holeFormat: "18",
   format: "individual",
+  teamRosterSize: 4,
+  teamPlayersPerEvent: 2,
   contactFirstName: "",
   contactLastName: "",
   contactEmail: "",

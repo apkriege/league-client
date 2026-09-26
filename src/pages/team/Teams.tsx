@@ -81,7 +81,10 @@ export default function Teams() {
       }));
   }, [allPlayers, editingTeamId, form.players, teams]);
   const submitting = createTeam.isPending || updateTeam.isPending;
-  const validateForm = form.name.trim().length > 0;
+  const teamRosterSize = Number(league?.teamRosterSize || 4);
+  const validateForm =
+    form.name.trim().length > 0 &&
+    form.players.length <= teamRosterSize;
 
   const resetAndCloseModal = () => {
     setIsModalOpen(false);
@@ -114,6 +117,10 @@ export default function Teams() {
   };
 
   const onPlayersChange = (values: (string | number)[]) => {
+    if (values.length > teamRosterSize) {
+      show(`Teams may have at most ${teamRosterSize} players.`, "warning");
+      return;
+    }
     setForm((prev) => ({
       ...prev,
       players: values.map(Number),
@@ -132,7 +139,10 @@ export default function Teams() {
     }
 
     if (!validateForm) {
-      show("Please enter a team name.", "warning");
+      show(
+        `Enter a team name and select no more than ${teamRosterSize} players.`,
+        "warning",
+      );
       return;
     }
 
@@ -310,7 +320,7 @@ export default function Teams() {
           />
 
           <MultiSelect
-            label="Players"
+            label={`Players (${form.players.length}/${teamRosterSize})`}
             options={availablePlayerOptions}
             value={form.players}
             onChange={onPlayersChange}

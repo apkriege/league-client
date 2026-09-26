@@ -477,7 +477,7 @@ export const CreateFlightScores = ({
 
   const matchupSummaryByPlayerId = new Map<
     number,
-    { holePoints: number }
+    { holePoints: number; playerHolesWon: number; opponentHolesWon: number }
   >();
 
   const getPlayerHolePointValue = (playerId: number, holeIdx: number) => {
@@ -499,7 +499,7 @@ export const CreateFlightScores = ({
 
     const matchup = getPlayerMatchup(playerId);
     if (!matchup) {
-      const empty = { holePoints: 0 };
+      const empty = { holePoints: 0, playerHolesWon: 0, opponentHolesWon: 0 };
       matchupSummaryByPlayerId.set(playerId, empty);
       return empty;
     }
@@ -508,6 +508,8 @@ export const CreateFlightScores = ({
     const pointsPerMatchup = Number(event?.ptsPerHole) || 0;
 
     let holePoints = 0;
+    let playerHolesWon = 0;
+    let opponentHolesWon = 0;
 
     holes.forEach((hole: any, holeIdx: number) => {
       const playerScore = watchedPlayers?.[playerId]?.scores?.[holeIdx] ?? 0;
@@ -521,11 +523,14 @@ export const CreateFlightScores = ({
       if (playerNet === opponentNet) {
         if (pointsPerMatchup > 0) holePoints += pointsPerMatchup / 2;
       } else if (playerNet < opponentNet) {
+        playerHolesWon += 1;
         if (pointsPerMatchup > 0) holePoints += pointsPerMatchup;
+      } else {
+        opponentHolesWon += 1;
       }
     });
 
-    const summary = { holePoints };
+    const summary = { holePoints, playerHolesWon, opponentHolesWon };
 
     matchupSummaryByPlayerId.set(playerId, summary);
     return summary;
@@ -551,9 +556,10 @@ export const CreateFlightScores = ({
     const opponentId = Number(matchup.opponent.playerId);
     if (!isPlayerScoreComplete(playerId) || !isPlayerScoreComplete(opponentId)) return 0;
 
+    const { playerHolesWon, opponentHolesWon } = getMatchupSummaryForPlayer(playerId);
     return calculatePlayerMatchBonus({
-      playerNet: getPlayerNetScore(playerId),
-      opponentNet: getPlayerNetScore(opponentId),
+      playerHolesWon,
+      opponentHolesWon,
       pointsPerMatch,
     });
   };

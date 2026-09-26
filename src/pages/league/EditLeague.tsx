@@ -27,6 +27,8 @@ type LeagueFormData = {
   type: string;
   holeFormat: LeagueHoleFormat;
   format: string | null;
+  teamRosterSize: number;
+  teamPlayersPerEvent: number;
   contactFirstName: string;
   contactLastName: string;
   contactEmail: string;
@@ -43,6 +45,8 @@ const defaultLeagueData: LeagueFormData = {
   type: "season",
   holeFormat: "18",
   format: "team",
+  teamRosterSize: 4,
+  teamPlayersPerEvent: 2,
   contactFirstName: "",
   contactLastName: "",
   contactEmail: "",
@@ -61,6 +65,8 @@ const mapLeagueToForm = (league: any): LeagueFormData => {
     type: String(league.type || "season").toLowerCase(),
     holeFormat: normalizeLeagueHoleFormat(league.holeFormat),
     format: league.format ? String(league.format).toLowerCase() : null,
+    teamRosterSize: Number(league.teamRosterSize || 4),
+    teamPlayersPerEvent: Number(league.teamPlayersPerEvent || 2),
     contactFirstName: league.contactFirstName || "",
     contactLastName: league.contactLastName || "",
     contactEmail: league.contactEmail || "",

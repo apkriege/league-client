@@ -4,6 +4,7 @@ import {
   deleteCourse,
   requestCourse,
   requestManualCourse,
+  resolveCourseRequest,
   updateCourse,
 } from ".";
 import type { CoursePayload, ManualCourseRequest } from ".";
@@ -60,3 +61,11 @@ export const useRequestManualCourse = () =>
   useMutation({
     mutationFn: (request: ManualCourseRequest) => requestManualCourse(request),
   });
+
+export const useResolveCourseRequest = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: resolveCourseRequest,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["course-requests", "pending"] }),
+  });
+};

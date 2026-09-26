@@ -49,17 +49,17 @@ export const calculateMatchPlayHolePoints = ({
 };
 
 export const calculatePlayerMatchBonus = ({
-  playerNet,
-  opponentNet,
+  playerHolesWon,
+  opponentHolesWon,
   pointsPerMatch = 0,
 }: {
-  playerNet: number;
-  opponentNet: number;
+  playerHolesWon: number;
+  opponentHolesWon: number;
   pointsPerMatch?: number;
 }) => {
   if (pointsPerMatch <= 0) return 0;
-  if (playerNet === opponentNet) return pointsPerMatch / 2;
-  return playerNet < opponentNet ? pointsPerMatch : 0;
+  if (playerHolesWon === opponentHolesWon) return pointsPerMatch / 2;
+  return playerHolesWon > opponentHolesWon ? pointsPerMatch : 0;
 };
 
 export const calculateStrokeplayPops = (hcp: number, holes: any) => {
@@ -213,7 +213,7 @@ export const createTeamBestBallScoringHelpers = ({
         const gross = getScoreAtHole(player, holeIdx);
         if (!gross) return total;
         const pops = popsForHole(Number(player.playerId), Number(hole.num));
-        if (scoringMode === "stroke-play") return total + Math.max(0, gross - pops);
+        if (scoringMode === "stroke-play") return total + gross - pops;
 
         const rule = event?.scoringConfig?.maximumScore ?? {
           type: "relative-to-par",
@@ -223,9 +223,9 @@ export const createTeamBestBallScoringHelpers = ({
         const cappedGross = rule.type === "fixed"
           ? Math.min(gross, Number(rule.strokes ?? gross))
           : rule.type === "net-double-bogey"
-            ? Math.min(gross, par + 2 + Math.max(0, pops))
+            ? Math.min(gross, par + 2 + pops)
             : Math.min(gross, par + Number(rule.strokesOverPar ?? 2));
-        return total + Math.max(0, cappedGross - pops);
+        return total + cappedGross - pops;
       }, 0);
     }
 

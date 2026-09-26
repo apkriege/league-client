@@ -188,8 +188,8 @@ export const CreateFlightScoresTeamStroke = ({
           ? Math.min(gross, rule.strokes)
           : rule.type === "relative-to-par"
             ? Math.min(gross, par + rule.strokesOverPar)
-            : Math.min(gross, par + 2 + Math.max(0, pops));
-    return Math.max(0, cappedGross - pops);
+            : Math.min(gross, par + 2 + pops);
+    return cappedGross - pops;
   };
 
   const getBestBallForHole = (teamPlayers: any[], holeIdx: number) => {

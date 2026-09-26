@@ -121,11 +121,11 @@ test('admins can navigate league operations and use scorecard player controls', 
   await page.goto(`/league/1/events/${activeEvent.id}/print-scorecards`);
   await expect(page.getByRole('heading', { name: 'Flight Scorecards' })).toBeVisible();
   const firstPlayerCell = page.locator('.scorecard-player-cell').nth(1);
-  await expect(firstPlayerCell.getByRole('button', { name: 'Swap' })).toBeVisible();
-  await firstPlayerCell.getByRole('button', { name: 'Swap' }).click();
+  await expect(firstPlayerCell.getByRole('button', { name: 'Sub' })).toBeVisible();
+  await firstPlayerCell.getByRole('button', { name: 'Sub' }).click();
   await expect(firstPlayerCell.getByRole('combobox')).toBeVisible();
   await firstPlayerCell.getByRole('button', { name: 'Cancel' }).click();
-  await expect(firstPlayerCell.getByRole('button', { name: 'Swap' })).toBeVisible();
+  await expect(firstPlayerCell.getByRole('button', { name: 'Sub' })).toBeVisible();
 });
 
 test('completed events expose sortable points, low-gross, and low-net leaderboards', async ({

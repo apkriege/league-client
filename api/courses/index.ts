@@ -191,3 +191,24 @@ export const requestManualCourse = async (request: ManualCourseRequest) => {
   );
   return response.data;
 };
+
+export type CourseRequest = {
+  id: number;
+  requestType: "directory" | "manual";
+  courseName: string;
+  location: string;
+  externalId: string | null;
+  status: "pending" | "resolved";
+  createdAt: string;
+  requester: { id: number; firstName: string; lastName: string; email: string };
+};
+
+export const getPendingCourseRequests = async () => {
+  const response = await apiClient.get<CourseRequest[]>("/courses/requests/pending");
+  return response.data;
+};
+
+export const resolveCourseRequest = async (id: number) => {
+  const response = await apiClient.patch<CourseRequest>(`/courses/requests/${id}/resolve`);
+  return response.data;
+};

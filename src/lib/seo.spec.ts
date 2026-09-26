@@ -51,6 +51,7 @@ describe("resolveSeoMetadata", () => {
     ["/league/4/events/7/scores", "Event Scoring"],
     ["/league/4/events/7/print-scorecards", "Print Scorecards"],
     ["/superadmin/courses", "Course Administration"],
+    ["/superadmin/course-requests", "Course Requests"],
     ["/superadmin/leagues", "League Administration"],
     ["/superadmin/billing", "Billing Administration"],
     ["/superadmin/users", "User Administration"],

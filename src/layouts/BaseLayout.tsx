@@ -10,6 +10,7 @@ import {
   LandPlot,
   LayoutDashboard,
   LifeBuoy,
+  ListTodo,
   LogOut,
   Menu,
   PanelsTopLeft,
@@ -263,6 +264,13 @@ export default function BaseLayout() {
                 text="Users"
                 icon={<Users size={19} />}
                 isActive={location.pathname.startsWith("/superadmin/users")}
+                collapsed={!isOpen}
+              />
+              <NavLink
+                to="/superadmin/course-requests"
+                text="Course Requests"
+                icon={<ListTodo size={19} />}
+                isActive={location.pathname.startsWith("/superadmin/course-requests")}
                 collapsed={!isOpen}
               />
               <NavLink

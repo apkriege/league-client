@@ -40,6 +40,11 @@ import {
   shuffleArray,
   type ScheduleRound,
 } from "../multiSeriesSchedule";
+import {
+  initialRoundLineups,
+  roundLineupError,
+  type TeamLineup,
+} from "../seriesLineups";
 import { createCourseAutocompleteOptions } from "../courseAutocompleteOptions";
 import MuiCheckbox from "@mui/material/Checkbox";
 import {
@@ -54,8 +59,12 @@ import ScoringModeFields from "@/features/scoring/components/ScoringModeFields";
 import {
   deriveScoringMode,
   getScoringFamily,
+  getRequiredTeamPlayers,
   getTeamSizeError,
 } from "@/features/scoring/scoringModes";
+import SeriesRoundLineups from "./SeriesRoundLineups";
+
+type SeriesRound = ScheduleRound & { teamLineups: TeamLineup[] };
 
 // ---------------------------------------------------------------------------
 // Component
@@ -99,9 +108,10 @@ export default function MultiSeriesBuilder() {
 
   // Shared settings from the parent form context
   const format: string = methods.watch("format") || "team";
-  const scoringFamily = getScoringFamily(
-    deriveScoringMode({ scoringMode: methods.watch("scoringMode") })
-  );
+  const scoringMode = deriveScoringMode({ scoringMode: methods.watch("scoringMode") });
+  const scoringFamily = getScoringFamily(scoringMode);
+  const requestedPlayers = methods.watch("teamPlayersPerEvent");
+  const requiredPlayers = getRequiredTeamPlayers(scoringMode, requestedPlayers, league?.teamPlayersPerEvent);
   const isTeamFormat = format === "team";
   const teams: any[] = methods.watch("teams") || [];
   const players: any[] = league?.players || [];
@@ -129,7 +139,7 @@ export default function MultiSeriesBuilder() {
   );
   const [frequency, setFrequency] = useState<"weekly" | "biweekly">("weekly");
   const [selectedDays, setSelectedDays] = useState<number[]>([dayjs(defaultStartDate).day()]);
-  const [schedule, setSchedule] = useState<ScheduleRound[]>([]);
+  const [schedule, setSchedule] = useState<SeriesRound[]>([]);
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const [alternateStartSides, setAlternateStartSides] = useState(false);
   const existingScoringPeriods = useMemo(
@@ -194,6 +204,12 @@ export default function MultiSeriesBuilder() {
     scoringPeriodsLocked,
     statsPeriodMode,
   ]);
+
+  useEffect(() => {
+    if (format === "team" && Number(requestedPlayers) !== requiredPlayers) {
+      methods.setValue("teamPlayersPerEvent", requiredPlayers, { shouldDirty: false });
+    }
+  }, [format, methods, requestedPlayers, requiredPlayers]);
 
   useEffect(() => {
     if (fixedEventHoleCount === 18 || (fixedEventHoleCount === 9 && !isNineHoleCourse)) {
@@ -298,12 +314,17 @@ export default function MultiSeriesBuilder() {
       setFirstHalfEndDate(suggestFirstHalfEndDate(dates, resolvedStartDate));
     }
 
-    setSchedule(
-      dates.map((date, i) => ({
+    const shared = methods.getValues();
+    setSchedule(dates.map((date, i) => {
+      const flights = buildFlights(rrData[i % rrData.length] ?? [], format, scoringFamily);
+      return {
         date,
-        flights: buildFlights(rrData[i % rrData.length] ?? [], format, scoringFamily),
-      }))
-    );
+        flights,
+        teamLineups: format === "team"
+          ? initialRoundLineups(flights, teams, shared.teamLineups ?? [], requiredPlayers)
+          : [],
+      };
+    }));
   };
 
   const updateDate = (i: number, date: string) =>
@@ -312,7 +333,18 @@ export default function MultiSeriesBuilder() {
     );
 
   const updateFlights = (i: number, flights: any[]) =>
-    setSchedule((prev) => prev.map((r, idx) => (idx === i ? { ...r, flights } : r)));
+    setSchedule((prev) => prev.map((round, index) => index === i
+      ? {
+          ...round,
+          flights,
+          teamLineups: format === "team"
+            ? initialRoundLineups(flights, teams, round.teamLineups, requiredPlayers)
+            : [],
+        }
+      : round));
+
+  const updateRoundLineups = (i: number, teamLineups: TeamLineup[]) =>
+    setSchedule((prev) => prev.map((round, index) => index === i ? { ...round, teamLineups } : round));
 
   // ---------------------------------------------------------------------------
   // Submit
@@ -333,12 +365,16 @@ export default function MultiSeriesBuilder() {
       return;
     }
     const shared = methods.getValues();
-    const scoringMode = deriveScoringMode(shared);
     if (shared.format === "team") {
-      for (const team of shared.teams ?? []) {
-        const sizeError = getTeamSizeError(scoringMode, team.players?.length ?? 0);
-        if (sizeError) {
-          show(sizeError, "error");
+      const sizeError = getTeamSizeError(scoringMode, requiredPlayers);
+      if (sizeError) {
+        show(sizeError, "error");
+        return;
+      }
+      for (const [index, round] of resolvedSchedule.entries()) {
+        const lineupError = roundLineupError(round.flights, teams, players, round.teamLineups, requiredPlayers);
+        if (lineupError) {
+          show(`Round ${index + 1}: ${lineupError}`, "error");
           return;
         }
       }
@@ -383,6 +419,8 @@ export default function MultiSeriesBuilder() {
           ptsPerTeamWin: shared.ptsPerTeamWin,
           strokePoints: shared.strokePoints,
           teams: shared.teams,
+          teamLineups: r.teamLineups,
+          teamPlayersPerEvent: shared.format === "team" ? requiredPlayers : shared.teamPlayersPerEvent,
           flights: r.flights,
         })),
       },
@@ -646,6 +684,39 @@ export default function MultiSeriesBuilder() {
         </div>
       )}
 
+      {isTeamFormat ? (
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-black text-slate-900">Players playing</h3>
+              <p className="mt-1 text-xs text-slate-500">Set the team size for this series, then choose players separately in each round.</p>
+            </div>
+            <div className="w-52">
+              <Select
+                label="Golfers playing per team"
+                value={requiredPlayers}
+                options={(scoringMode === "four-ball-match" || scoringMode === "alternate-shot"
+                  ? [2]
+                  : ["match-play", "scramble", "best-ball"].includes(scoringMode)
+                    ? [2, 3, 4]
+                    : [1, 2, 3, 4]
+                ).map((value) => ({ value, label: String(value) }))}
+                onChange={(event) => {
+                  methods.setValue("teamPlayersPerEvent", Number(event.target.value), { shouldDirty: true });
+                  setSchedule((current) => current.map((round) => ({
+                    ...round,
+                    teamLineups: round.teamLineups.map((lineup) => ({
+                      ...lineup,
+                      playerIds: lineup.playerIds.slice(0, Number(event.target.value)),
+                    })),
+                  })));
+                }}
+              />
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
       {/* ── Schedule Builder ── */}
       <Card>
         <h3 className="text-base font-semibold mb-1">Schedule Builder</h3>
@@ -889,6 +960,7 @@ export default function MultiSeriesBuilder() {
                 ...methods.getValues(),
                 date: round.date,
                 startSide: eventStartSide,
+                teamLineups: round.teamLineups,
               };
               return (
                 <Fragment key={i}>
@@ -939,6 +1011,16 @@ export default function MultiSeriesBuilder() {
                         highlightId={highlightId}
                       />
                     </div>
+                    {isTeamFormat ? (
+                      <SeriesRoundLineups
+                        flights={round.flights}
+                        teams={teams}
+                        players={players}
+                        lineups={round.teamLineups}
+                        requiredPlayers={requiredPlayers}
+                        onChange={(lineups) => updateRoundLineups(i, lineups)}
+                      />
+                    ) : null}
                   </div>
                 </Fragment>
               );

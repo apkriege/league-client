@@ -3,6 +3,7 @@ import {
   SCORING_MODES,
   deriveScoringMode,
   getScoringFamily,
+  getRequiredTeamPlayers,
   getTeamSizeError,
   type CompetitionModel,
 } from "@/features/scoring/scoringModes";
@@ -160,9 +161,38 @@ export function validateEventForm(
       );
       if (invalidTeam) return "Each team needs a name and at least one player.";
     }
-    for (const team of teams) {
-      const sizeError = getTeamSizeError(scoringMode, team.players.length);
-      if (sizeError) return sizeError;
+    const requiredPlayers = getRequiredTeamPlayers(
+      scoringMode,
+      data.teamPlayersPerEvent,
+      data.leagueTeamPlayersPerEvent,
+    );
+    const sizeError = getTeamSizeError(scoringMode, requiredPlayers);
+    if (sizeError) return sizeError;
+
+    const teamsById = new Map(teams.map((team: any) => [Number(team.id), team]));
+    const lineupsByTeamId = new Map(
+      (Array.isArray(data.teamLineups) ? data.teamLineups : []).map((lineup: any) => [
+        Number(lineup?.teamId),
+        Array.isArray(lineup?.playerIds) ? lineup.playerIds.map(Number) : [],
+      ]),
+    );
+    const selectedAcrossTeams = new Set<number>();
+    const scheduledTeamIds = new Set(
+      (Array.isArray(data.flights) ? data.flights : [])
+        .flatMap((flight: any) => Array.isArray(flight) ? flight : [])
+        .map(Number),
+    );
+    for (const teamId of scheduledTeamIds) {
+      const team: any = teamsById.get(teamId);
+      const rosterIds = Array.isArray(team?.players) ? team.players.map(Number) : [];
+      const selected = lineupsByTeamId.get(teamId) ?? (rosterIds.length === requiredPlayers ? rosterIds : []);
+      if (selected.length !== requiredPlayers || new Set(selected).size !== selected.length) {
+        return `${team?.name || `Team ${teamId}`} must have exactly ${requiredPlayers} selected players.`;
+      }
+      for (const playerId of selected) {
+        if (selectedAcrossTeams.has(playerId)) return "A golfer cannot play for more than one team in the same event.";
+        selectedAcrossTeams.add(playerId);
+      }
     }
   }
 
@@ -170,24 +200,5 @@ export function validateEventForm(
   if (flights.length === 0) return "Please add at least one flight.";
   const flightError = validateFlights(flights, format, scoringFamily);
   if (flightError) return flightError;
-  if (
-    format === "team" &&
-    ["stroke-play", "stableford", "maximum-score", "best-ball", "match-play", "four-ball-match"]
-      .includes(scoringMode)
-  ) {
-    const teamsById = new Map(
-      (Array.isArray(data.teams) ? data.teams : []).map((team: any) => [
-        Number(team?.id),
-        Array.isArray(team?.players) ? team.players.length : 0,
-      ]),
-    );
-    for (const [flightIndex, flight] of flights.entries()) {
-      const rosterSizes = (flight as unknown[]).map((teamId) => teamsById.get(Number(teamId)) ?? 0);
-      if (new Set(rosterSizes).size !== 1) {
-        return `Team flight ${flightIndex + 1} requires equal roster sizes.`;
-      }
-    }
-  }
-
   return null;
 }

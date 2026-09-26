@@ -169,6 +169,9 @@ export const hasPlacementPoints = (value: unknown) => {
 };
 
 export const getTeamSizeError = (mode: ScoringMode, playerCount: number) => {
+  if (mode === "best-ball" && playerCount < 2) {
+    return "Best ball requires at least two players on every team.";
+  }
   if (mode === "match-play" && playerCount < 2) {
     return "Team match play requires at least two players on every team.";
   }
@@ -182,4 +185,22 @@ export const getTeamSizeError = (mode: ScoringMode, playerCount: number) => {
     return "Scramble teams require two to four players.";
   }
   return null;
+};
+
+export const getRequiredTeamPlayers = (
+  mode: ScoringMode,
+  requested: unknown,
+  leagueDefault: unknown = 2,
+) => {
+  if (mode === "four-ball-match" || mode === "alternate-shot") return 2;
+  const fallback = Number(leagueDefault);
+  const count = Number(requested ?? fallback);
+  const normalized = Number.isInteger(count) && count >= 1 && count <= 4
+    ? count
+    : Number.isInteger(fallback) && fallback >= 1 && fallback <= 4
+      ? fallback
+      : 2;
+  return mode === "match-play" || mode === "scramble" || mode === "best-ball"
+    ? Math.max(2, normalized)
+    : normalized;
 };

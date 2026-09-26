@@ -92,7 +92,7 @@ describe("event form validation", () => {
         },
         { showTeamsSection: true },
       ),
-    ).toMatch(/exactly two players/i);
+    ).toMatch(/exactly 2 selected players/i);
 
     expect(
       validateEventForm(
@@ -108,7 +108,59 @@ describe("event form validation", () => {
         },
         { showTeamsSection: true },
       ),
-    ).toMatch(/equal roster sizes/i);
+    ).toMatch(/exactly 2 selected players/i);
+  });
+
+  it("allows a weekly lineup smaller than the permanent team roster", () => {
+    const teamEvent = {
+      ...validEvent,
+      format: "team",
+      scoringMode: "stroke-play",
+      teamPlayersPerEvent: 2,
+      teams: [
+        { id: 10, name: "A", players: [1, 2, 3] },
+        { id: 20, name: "B", players: [4, 5, 6] },
+      ],
+      teamLineups: [
+        { teamId: 10, playerIds: [1, 3] },
+        { teamId: 20, playerIds: [4, 6] },
+      ],
+      flights: [[10, 20]],
+    };
+    expect(validateEventForm(teamEvent, { showTeamsSection: false })).toBeNull();
+    expect(validateEventForm(
+      { ...teamEvent, teamPlayersPerEvent: 3 },
+      { showTeamsSection: false },
+    )).toMatch(/exactly 3 selected players/i);
+    expect(validateEventForm(
+      {
+        ...teamEvent,
+        teamPlayersPerEvent: 3,
+        teamLineups: [
+          { teamId: 10, playerIds: [1, 2, 3] },
+          { teamId: 20, playerIds: [4, 5, 6] },
+        ],
+      },
+      { showTeamsSection: false },
+    )).toBeNull();
+  });
+
+  it("accepts equal playing lineups when permanent roster sizes differ", () => {
+    expect(validateEventForm({
+      ...validEvent,
+      format: "team",
+      scoringMode: "best-ball",
+      teamPlayersPerEvent: 2,
+      teams: [
+        { id: 10, name: "A", players: [1, 2, 3] },
+        { id: 20, name: "B", players: [4, 5] },
+      ],
+      teamLineups: [
+        { teamId: 10, playerIds: [1, 3] },
+        { teamId: 20, playerIds: [4, 5] },
+      ],
+      flights: [[10, 20]],
+    }, { showTeamsSection: false })).toBeNull();
   });
 
   it("requires a valid maximum-score rule", () => {

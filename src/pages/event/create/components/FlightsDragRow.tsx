@@ -441,7 +441,12 @@ export const FlightsDragRow = ({
                 {editingFlightIndex !== fIdx &&
                   event.format === "team" &&
                   (scoringFamily === "match" || scoringFamily === "stroke") && (
-                    <FlightTeamOutput players={players} teams={event.teams} matchups={flight} />
+                    <FlightTeamOutput
+                      players={players}
+                      teams={event.teams}
+                      matchups={flight}
+                      teamLineups={event.teamLineups}
+                    />
                   )}
               </div>
             </div>

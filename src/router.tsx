@@ -27,6 +27,7 @@ const LeagueAdmin = lazy(() => import("./pages/league/LeagueAdmin.tsx"));
 const Course = lazy(() => import("./pages/course/Course.tsx"));
 const Courses = lazy(() => import("./pages/course/Courses.tsx"));
 const CoursesAdmin = lazy(() => import("@/pages/superadmin/CoursesAdmin"));
+const CourseRequestsAdmin = lazy(() => import("@/pages/superadmin/CourseRequestsAdmin"));
 const LeaguesAdmin = lazy(() => import("@/pages/superadmin/LeaguesAdmin"));
 const BillingAdmin = lazy(() => import("@/pages/superadmin/BillingAdmin"));
 const UsersAdmin = lazy(() => import("@/pages/superadmin/UsersAdmin"));
@@ -143,6 +144,7 @@ export const router = createBrowserRouter([
         errorElement: <AppErrorBoundary />,
         children: [
           { path: "superadmin/courses", element: withSuspense(<CoursesAdmin />) },
+          { path: "superadmin/course-requests", element: withSuspense(<CourseRequestsAdmin />) },
           { path: "superadmin/leagues", element: withSuspense(<LeaguesAdmin />) },
           { path: "superadmin/billing", element: withSuspense(<BillingAdmin />) },
           { path: "superadmin/users", element: withSuspense(<UsersAdmin />) },

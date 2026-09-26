@@ -63,6 +63,7 @@ const appPageTitles: Array<{ pattern: RegExp; title: string }> = [
   { pattern: /^\/league\/[^/]+\/admin$/, title: "League Administration" },
   { pattern: /^\/league\/[^/]+$/, title: "League Overview" },
   { pattern: /^\/superadmin\/courses$/, title: "Course Administration" },
+  { pattern: /^\/superadmin\/course-requests$/, title: "Course Requests" },
   { pattern: /^\/superadmin\/leagues$/, title: "League Administration" },
   { pattern: /^\/superadmin\/billing$/, title: "Billing Administration" },
   { pattern: /^\/superadmin\/users$/, title: "User Administration" },

@@ -141,14 +141,15 @@ export const CreateFlightScoresIndividualStroke = ({
       return getHolesForPlayer(playerId).reduce((total: number, hole: any, index: number) => {
         const gross = Number(scores[index]) || 0;
         const pops = popsForHole(playerId, hole.num);
-        if (!gross || !rule) return total + Math.max(0, gross - pops);
+        if (!gross) return total;
+        if (!rule) return total + gross - pops;
         const cappedGross =
           rule.type === "fixed"
             ? Math.min(gross, rule.strokes)
             : rule.type === "relative-to-par"
               ? Math.min(gross, Number(hole.par) + rule.strokesOverPar)
-              : Math.min(gross, Number(hole.par) + 2 + Math.max(0, pops));
-        return total + Math.max(0, cappedGross - pops);
+              : Math.min(gross, Number(hole.par) + 2 + pops);
+        return total + cappedGross - pops;
       }, 0);
     }
     const scores = watchedPlayers?.[playerId]?.scores ?? [];

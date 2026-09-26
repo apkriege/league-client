@@ -1,5 +1,9 @@
 export type EventFlight = number[] | number[][];
-type FlightTransformResult = { flights: EventFlight[]; teams: EventTeam[] };
+type FlightTransformResult = {
+  flights: EventFlight[];
+  teams: EventTeam[];
+  teamLineups: Array<{ teamId: number; playerIds: number[] }>;
+};
 
 type EventTeam = {
   id: number;
@@ -11,7 +15,7 @@ const playerIdFor = (entry: any) => Number(entry?.playerId ?? entry?.player?.id)
 
 export function transformEventFlights(event: any): FlightTransformResult {
   const apiFlights: any[] = Array.isArray(event?.flights) ? event.flights : [];
-  if (apiFlights.length === 0) return { flights: [], teams: [] };
+  if (apiFlights.length === 0) return { flights: [], teams: [], teamLineups: [] };
 
   const format = String(event?.format || "team");
   const scoringFamily = getScoringFamily(deriveScoringMode(event));
@@ -37,6 +41,14 @@ export function transformEventFlights(event: any): FlightTransformResult {
         ),
       ),
       teams: [...teamMap.values()],
+      teamLineups: [...teamMap.keys()].map((teamId) => ({
+        teamId,
+        playerIds: [...new Set(apiFlights.flatMap((flight) =>
+          (flight.players ?? [])
+            .filter((entry: any) => Number(entry.teamId) === teamId)
+            .map(playerIdFor),
+        ))],
+      })),
     };
   }
 
@@ -44,6 +56,7 @@ export function transformEventFlights(event: any): FlightTransformResult {
     return {
       flights: apiFlights.map((flight) => (flight.players ?? []).map(playerIdFor)),
       teams: [],
+      teamLineups: [],
     };
   }
 
@@ -81,9 +94,10 @@ export function transformEventFlights(event: any): FlightTransformResult {
         return pairs;
       }),
       teams: [],
+      teamLineups: [],
     };
   }
 
-  return { flights: [], teams: [] };
+  return { flights: [], teams: [], teamLineups: [] };
 }
 import { deriveScoringMode, getScoringFamily } from "@/features/scoring/scoringModes";

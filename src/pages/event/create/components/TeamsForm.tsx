@@ -127,6 +127,10 @@ export default function TeamsForm() {
       show("Please select at least one player.", "error");
       return false;
     }
+    if (draft.players.length > 4) {
+      show("Teams may have at most 4 players.", "error");
+      return false;
+    }
 
     const duplicateName = teams.some(
       (team) => team.id !== draft.id && team.name.trim().toLowerCase() === name.toLowerCase()
@@ -208,13 +212,17 @@ export default function TeamsForm() {
 
             <div className="w-full min-w-0">
               <MultiSelect
-                label={`Players (${remainingCount} remaining)`}
+                label={`Players (${draft.players.length}/4 · ${remainingCount} remaining)`}
                 options={playerOptions}
                 value={draft.players}
                 placeholder={
                   playerOptions.length ? "Select available players" : "No players available"
                 }
                 onChange={(selected) => {
+                  if (selected.length > 4) {
+                    show("Teams may have at most 4 players.", "warning");
+                    return;
+                  }
                   setDraft((prev) => ({
                     ...prev,
                     players: selected.map(Number),

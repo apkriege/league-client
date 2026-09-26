@@ -20,6 +20,8 @@ type LeagueFormInput = {
   type?: unknown;
   holeFormat?: unknown;
   format?: unknown;
+  teamRosterSize?: unknown;
+  teamPlayersPerEvent?: unknown;
   numPlayers?: unknown;
   contactFirstName?: unknown;
   contactLastName?: unknown;
@@ -47,6 +49,16 @@ export function validateLeagueInfo(data: LeagueFormInput) {
   }
   if (String(data.type).toLowerCase() === "season" && isBlank(data.format)) {
     return "Season leagues require a format.";
+  }
+  if (String(data.type).toLowerCase() === "season" && String(data.format).toLowerCase() === "team") {
+    const rosterSize = Number(data.teamRosterSize ?? 4);
+    const playersPerEvent = Number(data.teamPlayersPerEvent ?? 2);
+    if (!Number.isInteger(rosterSize) || rosterSize < 1 || rosterSize > 4) {
+      return "Team roster size must be a whole number from 1 to 4.";
+    }
+    if (!Number.isInteger(playersPerEvent) || playersPerEvent < 1 || playersPerEvent > rosterSize) {
+      return "Players per team event must be between 1 and the team roster size.";
+    }
   }
   if (isBlank(data.contactFirstName)) return "Contact first name is required.";
   if (isBlank(data.contactLastName)) return "Contact last name is required.";
@@ -98,6 +110,9 @@ export function validateLeagueTeams(data: LeagueFormInput, requireTeams = true) 
     (team) => isBlank(team?.name) || !Array.isArray(team?.players) || team.players.length === 0
   );
   if (requireTeams && invalidTeam) return "Each team needs a name and at least one player.";
+  const rosterSize = Number(data.teamRosterSize ?? 4);
+  const oversizedTeam = teams.find((team) => Array.isArray(team.players) && team.players.length > rosterSize);
+  if (oversizedTeam) return `Teams may have at most ${rosterSize} players.`;
 
   return null;
 }

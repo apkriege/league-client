@@ -22,6 +22,7 @@ import {
   normalizeLeagueHoleFormat,
 } from "@/features/leagues/leagueHoleFormat";
 import { createDefaultScoringConfiguration } from "@/features/scoring/scoringModes";
+import TeamLineupsForm from "./components/TeamLineupsForm";
 
 const defaultValues = {
   name: "",
@@ -45,6 +46,8 @@ const defaultValues = {
   strokePoints: DEFAULT_STROKE_POINTS,
   pointsEnabled: true,
   teams: [],
+  teamLineups: [],
+  teamPlayersPerEvent: 2,
   flights: [],
 };
 
@@ -99,6 +102,7 @@ export default function CreateEvent() {
         }));
 
         eventForm.setValue("teams", mappedTeams, { shouldDirty: true });
+        eventForm.setValue("teamPlayersPerEvent", Number(league.teamPlayersPerEvent || 2));
       }
     }
   }, [league, eventForm]);
@@ -207,6 +211,8 @@ export default function CreateEvent() {
                 <TeamsForm />
               </div>
             )}
+
+            {format === "team" ? <TeamLineupsForm /> : null}
 
             {/* Flights */}
             <div>

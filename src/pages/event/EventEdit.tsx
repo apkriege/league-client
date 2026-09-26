@@ -17,6 +17,7 @@ import { validateEventForm } from "./create/validation";
 import { getEventDateInputValue } from "@/utils/eventDate";
 import { toTimeInputValue } from "@/utils/format";
 import { transformEventFlights, type EventFlight } from "./eventEditModel";
+import TeamLineupsForm from "./create/components/TeamLineupsForm";
 import {
   createDefaultScoringConfiguration,
   deriveScoringMode,
@@ -52,6 +53,8 @@ type EventEditFormValues = {
   strokePoints: string;
   pointsEnabled: boolean;
   teams: EventEditTeam[];
+  teamLineups: Array<{ teamId: number; playerIds: number[] }>;
+  teamPlayersPerEvent: number;
   flights: EventFlight[];
 };
 
@@ -102,6 +105,8 @@ export default function EventEdit() {
       strokePoints: "",
       pointsEnabled: true,
       teams: [],
+      teamLineups: [],
+      teamPlayersPerEvent: 2,
       flights: [],
     },
   });
@@ -111,7 +116,7 @@ export default function EventEdit() {
   // are always populated (season team leagues store teams on the league, not the event).
   useEffect(() => {
     if (!event || !league) return;
-    const { flights, teams: eventTeams } = transformEventFlights(event);
+    const { flights, teams: eventTeams, teamLineups } = transformEventFlights(event);
     const isSeasonTeamLeague =
       String(league.type || "").toLowerCase() === "season" &&
       String(league.format || "").toLowerCase() === "team";
@@ -162,6 +167,8 @@ export default function EventEdit() {
           ? event.strokePoints
           : "",
       teams,
+      teamLineups,
+      teamPlayersPerEvent: Number(event.teamPlayersPerEvent || league.teamPlayersPerEvent || 2),
       flights,
     });
   }, [event, eventForm, league]);
@@ -272,6 +279,8 @@ export default function EventEdit() {
             <TeamsForm />
           </div>
         )}
+
+        {format === "team" ? <TeamLineupsForm /> : null}
 
         <div>
           <div className="flex items-center gap-2 mb-3">

@@ -1,4 +1,4 @@
-import { Input, SelectableInfoCard } from "@/components/form";
+import { Input, Select, SelectableInfoCard } from "@/components/form";
 import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
@@ -30,6 +30,7 @@ export default function InfoForm({
   const isSeason = leagueForm.watch("type") === "season";
   const startDateInput = getLeagueDateInputValue(startDate);
   const maxEndDate = getMaximumLeagueEndDate(startDate);
+  const isTeamSeason = isSeason && leagueForm.watch("format") === "team";
 
   return (
     <>
@@ -175,6 +176,50 @@ export default function InfoForm({
             </div>
           </Card>
         )}
+
+        {isTeamSeason ? (
+          <Card>
+            <SectionLabel>Team Rosters & Weekly Lineups</SectionLabel>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Controller
+                name="teamRosterSize"
+                control={leagueForm.control}
+                render={({ field }) => (
+                  <Select
+                    label="Maximum golfers per team"
+                    value={Number(field.value || 4)}
+                    options={[1, 2, 3, 4].map((value) => ({ value, label: String(value) }))}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      field.onChange(next);
+                      if (Number(leagueForm.getValues("teamPlayersPerEvent")) > next) {
+                        leagueForm.setValue("teamPlayersPerEvent", next, { shouldDirty: true });
+                      }
+                    }}
+                  />
+                )}
+              />
+              <Controller
+                name="teamPlayersPerEvent"
+                control={leagueForm.control}
+                render={({ field }) => (
+                  <Select
+                    label="Default golfers playing per team"
+                    value={Number(field.value || 2)}
+                    options={Array.from(
+                      { length: Number(leagueForm.watch("teamRosterSize") || 4) },
+                      (_, index) => ({ value: index + 1, label: String(index + 1) }),
+                    )}
+                    onChange={(event) => field.onChange(Number(event.target.value))}
+                  />
+                )}
+              />
+            </div>
+            <p className="mt-3 text-xs text-slate-500">
+              Commissioners select the required golfers for every team event. Team members not selected remain on the roster.
+            </p>
+          </Card>
+        ) : null}
 
         <Card>
           <SectionLabel>League Holes & Handicap</SectionLabel>

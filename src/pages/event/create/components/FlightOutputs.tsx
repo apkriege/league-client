@@ -35,18 +35,22 @@ export const FlightMatchOutput = ({ players, matchups }: any) => {
   return <div>{matchupElements}</div>;
 };
 
-export const FlightTeamOutput = ({ players, teams, matchups }: any) => {
+export const FlightTeamOutput = ({ players, teams, matchups, teamLineups = [] }: any) => {
   const team1 = teams.find((t: any) => t.id === matchups[0]?.id || t.id == matchups[0]);
   const team2 = teams.find((t: any) => t.id === matchups[1]?.id || t.id == matchups[1]);
 
   const playersLayout = (team: any) => {
     if (!team) return null;
 
-    const rosterIds = (team.players || []).map((p: any) => (typeof p === "object" ? p.id : p));
-    const player1 = players.find((p: any) => p.id === rosterIds[0]);
-    const player2 = players.find((p: any) => p.id === rosterIds[1]);
+    const lineup = teamLineups.find((entry: any) => Number(entry.teamId) === Number(team.id));
+    const rosterIds = (lineup?.playerIds || team.players || []).map((p: any) =>
+      Number(typeof p === "object" ? p.id : p),
+    );
+    const selectedPlayers = rosterIds
+      .map((id: number) => players.find((player: any) => Number(player.id) === id))
+      .filter(Boolean);
 
-    if (!player1 || !player2) {
+    if (selectedPlayers.length === 0) {
       return (
         <div className="text-xs italic text-red-500">
           {`Missing player data for team ${team.name}`}
@@ -54,7 +58,7 @@ export const FlightTeamOutput = ({ players, teams, matchups }: any) => {
       );
     }
 
-    return [player1, player2].map((p: any) => (
+    return selectedPlayers.map((p: any) => (
       <div key={p.id} className="flex items-center">
         <div className="font-medium text-[11px] italic">
           {p.firstName[0]}. {p.lastName} ({p.handicap})
