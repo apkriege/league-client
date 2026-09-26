@@ -110,6 +110,20 @@ export const getCourseById = async (courseId: string) => {
   return response.data;
 };
 
+export type UsgaRatingLookup = {
+  courseId: number;
+  sourceUrl: string;
+  tableText: string;
+};
+
+export const getUsgaRatingTable = async (courseId: number): Promise<UsgaRatingLookup> => {
+  const response = await apiClient.get<UsgaRatingLookup>(
+    `/courses/usga/${courseId}/ratings`,
+    { timeout: 15_000 },
+  );
+  return response.data;
+};
+
 export const createCourse = async (data: CoursePayload) => {
   const response = await apiClient.post("/courses", data);
   return response.data;

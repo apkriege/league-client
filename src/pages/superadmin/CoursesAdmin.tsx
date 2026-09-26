@@ -431,20 +431,18 @@ function CoursesAdminEditor({ initialCourse, courses }: CoursesAdminEditorProps)
             </div>
           )}
 
-          {form.externalProvider === "GolfCourseAPI" && tees.length > 0 ? (
-            <UsgaRatingImport
-              courseId={form.usgaCourseId}
-              courseName={form.name}
-              courseLocation={form.location}
-              holeCount={holeCount}
-              tees={tees}
-              onCourseIdChange={(value) => handleChange("usgaCourseId", value)}
-              onApply={(updatedTees) => {
-                setTees(updatedTees);
-                show("USGA ratings applied. Review the tee fields, then save the course.", "success");
-              }}
-            />
-          ) : null}
+          <UsgaRatingImport
+            courseId={form.usgaCourseId}
+            courseName={form.name}
+            courseLocation={form.location}
+            holeCount={holeCount}
+            tees={tees}
+            onCourseIdChange={(value) => handleChange("usgaCourseId", value)}
+            onApply={(updatedTees) => {
+              setTees(updatedTees);
+              show("USGA ratings applied. Review the tee fields, then save the course.", "success");
+            }}
+          />
 
           <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

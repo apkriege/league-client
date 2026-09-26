@@ -62,6 +62,28 @@ test('super admins can search the protected user directory', async ({ page }) =>
   await expect(page.getByText('admin@test.com')).toHaveCount(0);
 });
 
+test('super admins can load a USGA rating table from a Course ID', async ({ page }) => {
+  await page.route(`${apiUrl}/courses/usga/9970/ratings`, (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      courseId: 9970,
+      sourceUrl: 'https://ncrdb.usga.org/courseTeeInfo?CourseID=9970',
+      tableText: [
+        'Tee Name\tGender\tPar\tCourse Rating™\tSlope Rating®\tFront (9)\tBack (9)',
+        'Blue\tM\t72\t71.6\t126\t35.8 / 130\t35.8 / 121',
+      ].join('\n'),
+    }),
+  }));
+  await signIn(page, 'super@test.com');
+  await page.goto('/superadmin/courses');
+  await page.getByLabel('USGA Course ID or page URL').fill('9970');
+  await page.getByRole('button', { name: 'Load ratings' }).click();
+
+  await expect(page.getByRole('row', { name: /Blue.*male.*71\.6 \/ 126/i })).toBeVisible();
+  await expect(page.getByText('Add local tees before applying these ratings.')).toBeVisible();
+});
+
 test('invalid credentials show the API error without leaving the login page', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Email').fill('admin@test.com');

@@ -90,6 +90,24 @@ describe("USGA rating import", () => {
     ]);
   });
 
+  it("parses the compact table returned by CourseID lookup", () => {
+    const table = [
+      "Tee Name\tGender\tPar\tCourse Rating™\tSlope Rating®\tFront (9)\tBack (9)",
+      "Blue\tM\t72\t71.6\t126\t35.8 / 130\t35.8 / 121",
+    ].join("\n");
+
+    expect(parseUsgaRatingTable(table)).toEqual([
+      expect.objectContaining({
+        teeName: "Blue",
+        gender: "male",
+        rating: 71.6,
+        slope: 126,
+        frontRating: 35.8,
+        frontSlope: 130,
+      }),
+    ]);
+  });
+
   it("leaves rows with no safe name match unassigned", () => {
     const red = { ...buildEmptyTee(18), name: "Red", color: "red" };
     expect(suggestUsgaTeeMatches(parseUsgaRatingTable(pastedTable), [red])).toEqual([-1, -1]);
