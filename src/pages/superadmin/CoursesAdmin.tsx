@@ -316,8 +316,8 @@ function CoursesAdminEditor({ initialCourse, courses }: CoursesAdminEditorProps)
         subTitle="Create courses, attach multiple tees, and manage hole-by-hole rating data."
       />
 
-      <Card className="mt-6 border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
-        <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(255,255,255,0.98))] px-5 py-5">
+      <Card className="mt-6 min-w-0 border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+        <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(255,255,255,0.98))] px-4 py-5 sm:px-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
@@ -364,8 +364,8 @@ function CoursesAdminEditor({ initialCourse, courses }: CoursesAdminEditorProps)
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
                 Course Details
@@ -374,7 +374,7 @@ function CoursesAdminEditor({ initialCourse, courses }: CoursesAdminEditorProps)
                 Primary information used across the public and admin views.
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="primary"
@@ -604,7 +604,7 @@ function CoursesAdminEditor({ initialCourse, courses }: CoursesAdminEditorProps)
         </div>
 
         <div className="mt-6 space-y-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
                 Tee Configuration
@@ -631,7 +631,7 @@ function CoursesAdminEditor({ initialCourse, courses }: CoursesAdminEditorProps)
                 key={tee.id ?? `new-tee-${teeIndex}`}
                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
               >
-                <div className="border-b border-slate-200 bg-slate-50/80 px-5 py-4">
+                <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-4 sm:px-5">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-3">
                       <div className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-600">
@@ -659,7 +659,7 @@ function CoursesAdminEditor({ initialCourse, courses }: CoursesAdminEditorProps)
                   </div>
                 </div>
 
-                <div className="space-y-4 px-5 py-5">
+                <div className="space-y-4 px-4 py-5 sm:px-5">
                   <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-6">
                     <Input
                       dense

@@ -109,7 +109,7 @@ export default function PaymentBypassCodes() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="grid grid-cols-[minmax(120px,1fr)_110px_140px_180px_70px] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <div className="hidden grid-cols-[minmax(120px,1fr)_110px_140px_180px_70px] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-500 md:grid">
           <span>Code / Label</span><span>Status</span><span>Expires</span><span>Redeemed By</span><span />
         </div>
         {isLoading ? (
@@ -121,9 +121,9 @@ export default function PaymentBypassCodes() {
             {codes.map((code) => (
               <div
                 key={code.id}
-                className="grid grid-cols-[minmax(120px,1fr)_110px_140px_180px_70px] items-center gap-3 px-4 py-3 text-xs"
+                className="flex flex-wrap items-center gap-3 px-4 py-4 text-xs md:grid md:grid-cols-[minmax(120px,1fr)_110px_140px_180px_70px] md:py-3"
               >
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1 md:block">
                   <p className="font-mono font-bold text-slate-800">{code.codeHint}</p>
                   <p className="truncate text-[10px] text-slate-400">{code.label || "No label"}</p>
                 </div>
@@ -133,7 +133,7 @@ export default function PaymentBypassCodes() {
                 <span className="text-slate-500">
                   {code.expiresAt ? dayjs(code.expiresAt).format("MMM D, YYYY") : "Never"}
                 </span>
-                <div className="min-w-0 text-slate-500">
+                <div className="min-w-0 flex-1 text-slate-500 md:block">
                   {code.redeemedBy ? (
                     <><p className="truncate font-semibold text-slate-700">{code.redeemedBy.firstName} {code.redeemedBy.lastName}</p><p className="truncate text-[10px]">{code.redeemedBy.email}</p></>
                   ) : "—"}
@@ -142,11 +142,11 @@ export default function PaymentBypassCodes() {
                   <button
                     type="button"
                     aria-label="Revoke code"
-                    className="justify-self-end text-red-500 hover:text-red-700"
+                    className="inline-flex min-h-10 items-center gap-1 rounded-xl px-2 text-red-600 hover:bg-red-50 md:justify-self-end"
                     disabled={revokeCode.isPending}
                     onClick={() => void revoke(code.id)}
                   >
-                    <ShieldX size={16} />
+                    <ShieldX size={16} /><span className="md:hidden">Revoke</span>
                   </button>
                 )}
               </div>

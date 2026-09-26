@@ -236,6 +236,27 @@ test('@mobile login remains usable on a phone viewport', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'My Leagues' })).toBeVisible();
 });
 
+test('@mobile super admin screens use the slide-out navigation and readable cards', async ({ page }) => {
+  await signIn(page, 'super@test.com');
+  await page.goto('/superadmin/leagues');
+  for (const [label, title] of [
+    ['View Leagues', 'All Leagues'],
+    ['Users', 'Users'],
+    ['Course Requests', 'Course Requests'],
+    ['Manage Courses', 'Course Management'],
+    ['Billing', 'Billing'],
+  ]) {
+    await page.getByRole('button', { name: 'Expand navigation' }).click();
+    await page.getByRole('link', { name: label, exact: true }).click();
+    await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Expand navigation' })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+  await page.getByRole('button', { name: 'Expand navigation' }).click();
+  await page.getByRole('link', { name: 'Users', exact: true }).click();
+  await expect(page.getByText('admin@test.com').first()).toBeVisible();
+});
+
 test('@mobile player intelligence stays navigable without horizontal page overflow', async ({ page }) => {
   await signIn(page, 'admin@test.com');
   const scoredPlayerId = await findScoredPlayerId(page);

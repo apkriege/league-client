@@ -32,6 +32,28 @@ export default function CourseRequestsAdmin() {
     );
   }
 
+  const renderActions = (row: CourseRequest) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link
+        to="/superadmin/courses"
+        className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
+      >
+        Add course <ExternalLink size={13} aria-hidden="true" />
+      </Link>
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={resolveRequest.isPending}
+        onClick={() => resolveRequest.mutate(row.id, {
+          onSuccess: () => show("Course request completed.", "success"),
+          onError: () => show("Unable to complete course request.", "error"),
+        })}
+      >
+        <Check size={14} /> Done
+      </Button>
+    </div>
+  );
+
   const columns: Column<CourseRequest>[] = [
     {
       key: "courseName",
@@ -80,29 +102,7 @@ export default function CourseRequestsAdmin() {
       label: "Actions",
       width: "240px",
       sortable: false,
-      render: (_value, row) => (
-        <div className="flex items-center justify-end gap-2">
-          <Link
-            to="/superadmin/courses"
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
-          >
-            Add course <ExternalLink size={13} aria-hidden="true" />
-          </Link>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={resolveRequest.isPending}
-            onClick={() =>
-              resolveRequest.mutate(row.id, {
-                onSuccess: () => show("Course request completed.", "success"),
-                onError: () => show("Unable to complete course request.", "error"),
-              })
-            }
-          >
-            <Check size={14} /> Done
-          </Button>
-        </div>
-      ),
+      render: (_value, row) => renderActions(row),
     },
   ];
 
@@ -131,6 +131,20 @@ export default function CourseRequestsAdmin() {
         heading="Requested Courses"
         searchPlaceholder="Search course, location, or requester..."
         pageSize={25}
+        renderMobileCard={(row) => (
+          <div className="space-y-3">
+            <div>
+              <p className="break-words font-black text-slate-900">{row.courseName}</p>
+              <p className="mt-1 flex items-start gap-1 text-sm text-slate-500"><MapPin size={14} className="mt-0.5 shrink-0" aria-hidden="true" />{row.location}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span className="rounded-full bg-slate-100 px-2 py-1 font-bold capitalize text-slate-700">{row.requestType}</span>
+              <span>{formatDate(row.createdAt)}</span>
+            </div>
+            <p className="break-all text-xs text-slate-500">Requested by <span className="font-bold text-slate-800">{row.requester.firstName} {row.requester.lastName}</span> · {row.requester.email}</p>
+            {renderActions(row)}
+          </div>
+        )}
       />
     </div>
   );

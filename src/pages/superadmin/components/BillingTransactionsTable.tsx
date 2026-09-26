@@ -97,6 +97,22 @@ export default function BillingTransactionsTable({
       heading={`Latest Transactions (up to ${limit})`}
       searchPlaceholder="Search transactions..."
       variant="clean"
+      renderMobileCard={(transaction) => (
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="break-words font-black text-slate-950">{transaction.userName}</p>
+              <p className="break-all text-xs text-slate-500">{transaction.userEmail || "Account removed"}</p>
+            </div>
+            <p className="shrink-0 text-sm font-black tabular-nums text-slate-900">{formatBillingCurrency(transaction.netAmountCents, transaction.currency)}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <Chip label={STATUS_LABELS[transaction.status]} size="small" color={transaction.status === "paid" ? "success" : transaction.status === "refunded" ? "default" : "warning"} variant="outlined" />
+            <span>{formatBillingDate(transaction.createdAt)}</span>
+          </div>
+          <p className="text-xs text-slate-600">{formatCheckoutPurpose(transaction.purpose)} · {transaction.leagueName || "Account-wide"} · {transaction.quantity} spots{transaction.refundedQuantity > 0 ? ` (${transaction.refundedQuantity} refunded)` : ""}</p>
+        </div>
+      )}
     />
   );
 }

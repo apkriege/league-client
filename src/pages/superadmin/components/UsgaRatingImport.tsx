@@ -284,7 +284,30 @@ export default function UsgaRatingImport({
 
         {rows.length > 0 ? (
           <div className="space-y-4">
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <div className="space-y-3 md:hidden">
+              {rows.map((row, index) => (
+                <div key={`${row.teeName}-${row.gender}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-black text-slate-900">{row.teeName}</p>
+                      <p className="text-xs capitalize text-slate-500">{row.gender}{row.teeId != null ? ` · Tee ID ${row.teeId}` : ""}</p>
+                    </div>
+                    <p className="font-bold tabular-nums text-slate-900">{row.rating} / {row.slope}</p>
+                  </div>
+                  <p className="mt-3 text-xs tabular-nums text-slate-500">Front {formatNine(row.frontRating, row.frontSlope)} · Back {formatNine(row.backRating, row.backSlope)}</p>
+                  <div className="mt-3">
+                    <Select
+                      dense
+                      ariaLabel={`Local tee for ${row.teeName} ${row.gender}`}
+                      value={teeIndexes[index] ?? -1}
+                      options={teeOptions}
+                      onChange={(event) => setTeeIndexes((current) => current.map((value, currentIndex) => currentIndex === index ? Number(event.target.value) : value))}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 md:block">
               <table className="min-w-[850px] w-full text-left text-xs">
                 <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
                   <tr>

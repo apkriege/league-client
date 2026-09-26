@@ -66,6 +66,25 @@ export default function BillingAccountsTable({ accounts }: BillingAccountsTableP
       heading="Administrator Capacity"
       searchPlaceholder="Search administrators..."
       variant="clean"
+      renderMobileCard={(account) => (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="break-words font-black text-slate-950">{account.name}</p>
+              <p className="break-all text-xs text-slate-500">{account.email}</p>
+            </div>
+            <Chip label={STATUS_LABELS[account.capacityStatus]} size="small" color={account.capacityStatus === "active" || account.capacityStatus === "exempt" ? "success" : account.capacityStatus === "over_allocated" ? "error" : "default"} variant="outlined" />
+          </div>
+          <div className="grid grid-cols-4 gap-2 border-t border-slate-100 pt-3 text-xs">
+            {[
+              ["Leagues", account.leagueCount],
+              ["Paid", account.includedGolfers],
+              ["Used", account.allocatedGolfers],
+              ["Open", account.availableGolfers],
+            ].map(([label, value]) => <p key={label}><span className="block text-slate-500">{label}</span><span className="font-bold tabular-nums text-slate-900">{value}</span></p>)}
+          </div>
+        </div>
+      )}
     />
   );
 }

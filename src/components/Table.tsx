@@ -36,6 +36,7 @@ interface TableProps<T> {
   tableClassName?: string;
   contentClassName?: string;
   renderTable?: (rows: T[]) => React.ReactNode;
+  renderMobileCard?: (row: T) => React.ReactNode;
 }
 
 export default function Table<T>({
@@ -55,6 +56,7 @@ export default function Table<T>({
   tableClassName = "w-full border-collapse",
   contentClassName = "",
   renderTable,
+  renderMobileCard,
 }: TableProps<T>) {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof T | null;
@@ -172,7 +174,7 @@ export default function Table<T>({
     <div className={`${className} ${containerClass} w-full`}>
       {hasHeaderContent && (
         <div
-          className={`flex items-center gap-3 ${hasHeading ? "justify-between" : "justify-end"} ${currentVariant.header}`}
+          className={`flex flex-wrap items-center gap-3 ${hasHeading ? "justify-between" : "justify-end"} ${currentVariant.header}`}
         >
           {hasHeading && (
             <p
@@ -181,7 +183,7 @@ export default function Table<T>({
               {heading}
             </p>
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
             {search && (
               <Input
                 dense
@@ -191,14 +193,23 @@ export default function Table<T>({
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-                className="w-56"
+                className="w-full sm:w-56"
               />
             )}
             {headerActions}
           </div>
         </div>
       )}
-      <div className={`overflow-x-auto ${contentClassName}`}>
+      {renderMobileCard && (
+        <div className="space-y-3 p-3 md:hidden">
+          {visibleData.map((row, index) => (
+            <div key={index} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              {renderMobileCard(row)}
+            </div>
+          ))}
+        </div>
+      )}
+      <div className={`${renderMobileCard ? "hidden md:block" : ""} overflow-x-auto ${contentClassName}`}>
         <table className={tableClassName}>
           {renderTable ? (
             renderTable(visibleData)
@@ -253,7 +264,7 @@ export default function Table<T>({
         </div>
       )}
       {pagination && (
-        <div className="no-print grid min-w-max grid-cols-[auto_1fr_auto] items-center gap-4 overflow-x-auto border-t border-gray-100 px-4 py-3">
+        <div className="no-print flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 sm:grid sm:grid-cols-[auto_1fr_auto]">
           <div className="justify-self-start">
             <Select
               dense

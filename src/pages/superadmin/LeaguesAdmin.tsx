@@ -34,6 +34,26 @@ export default function LeaguesAdmin() {
     });
   };
 
+  const renderActions = (row: AdminLeagueListItem) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() => handleSeasonSync(row)}
+        disabled={syncSeason.isPending}
+        className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-700 disabled:opacity-50"
+      >
+        <RefreshCw size={14} className={syncSeason.isPending && syncSeason.variables === row.id ? "animate-spin" : ""} />
+        {syncSeason.isPending && syncSeason.variables === row.id ? "Syncing..." : "Season Sync"}
+      </button>
+      <Link to={`/league/${row.id}`} className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700">
+        <Eye size={14} /> Member
+      </Link>
+      <Link to={`/league/${row.id}/admin`} className="inline-flex min-h-10 items-center gap-1 rounded-xl bg-slate-900 px-3 text-xs font-bold text-white">
+        <ShieldCheck size={14} /> Admin
+      </Link>
+    </div>
+  );
+
   if (isLoading) {
     return <LoadingState>Loading leagues...</LoadingState>;
   }
@@ -103,39 +123,7 @@ export default function LeaguesAdmin() {
       label: "",
       width: "350px",
       sortable: false,
-      render: (_value, row) => (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => handleSeasonSync(row)}
-            disabled={syncSeason.isPending}
-            title="Recalculate season"
-            className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <RefreshCw
-              size={12}
-              className={
-                syncSeason.isPending && syncSeason.variables === row.id ? "animate-spin" : ""
-              }
-            />
-            {syncSeason.isPending && syncSeason.variables === row.id ? "Syncing..." : "Season Sync"}
-          </button>
-          <Link
-            to={`/league/${row.id}`}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-900/70 hover:bg-slate-100"
-          >
-            <Eye size={12} />
-            View User
-          </Link>
-          <Link
-            to={`/league/${row.id}/admin`}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-900/20 bg-slate-900/10 px-2.5 py-1.5 text-[11px] font-semibold text-slate-900 hover:bg-slate-900/15"
-          >
-            <ShieldCheck size={12} />
-            View Admin
-          </Link>
-        </div>
-      ),
+      render: (_value, row) => renderActions(row),
     },
   ];
 
@@ -146,7 +134,7 @@ export default function LeaguesAdmin() {
         subTitle="Browse every league and open the member or admin view."
       />
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm mt-6">
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-900">League Directory</p>
@@ -154,7 +142,24 @@ export default function LeaguesAdmin() {
           </div>
         </div>
 
-        <Table data={leagues} columns={columns} />
+        <Table
+          data={leagues}
+          columns={columns}
+          renderMobileCard={(league) => (
+            <div className="space-y-4">
+              <div>
+                <p className="break-words text-base font-black text-slate-900">{league.name}</p>
+                <p className="mt-1 text-xs capitalize text-slate-500">{league.type} {league.format ? `· ${league.format}` : ""}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <p><span className="block text-xs text-slate-500">Players</span><span className="font-bold tabular-nums">{league._count?.players ?? 0}</span></p>
+                <p><span className="block text-xs text-slate-500">Events</span><span className="font-bold tabular-nums">{league._count?.events ?? 0}</span></p>
+              </div>
+              <p className="break-all text-xs text-slate-500">Admin: {[league.contactFirstName, league.contactLastName].filter(Boolean).join(" ") || league.contactEmail || "Unknown"}</p>
+              {renderActions(league)}
+            </div>
+          )}
+        />
       </div>
     </div>
   );

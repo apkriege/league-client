@@ -37,7 +37,31 @@ export default function ScorecardInputTable({
   ];
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200">
+    <div className="rounded-2xl border border-slate-200">
+      <div className="space-y-3 p-3 md:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-600">{title}</p>
+          <p className="text-xs font-bold tabular-nums text-slate-500">{totalDistance} yd · Par {totalPar}</p>
+        </div>
+        {holes.map((hole, offset) => (
+          <div key={hole.num} className="rounded-xl border border-slate-200 bg-white p-3">
+            <p className="mb-2 text-sm font-black text-slate-900">Hole {hole.num}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {(["dis", "par", "hcp"] as const).map((field) => (
+                <Input
+                  key={field}
+                  dense
+                  label={field === "dis" ? "Yards" : field === "par" ? "Par" : "HCP"}
+                  type="number"
+                  value={String(hole[field] ?? "")}
+                  onChange={(event) => onHoleChange(teeIndex, startIndex + offset, field, event.target.value)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
       <Table
         data={scoreRows}
         search={false}
@@ -74,6 +98,7 @@ export default function ScorecardInputTable({
           </>
         )}
       />
+      </div>
     </div>
   );
 }

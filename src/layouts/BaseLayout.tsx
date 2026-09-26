@@ -57,6 +57,8 @@ const NavLink = ({
         if (disabled) e.preventDefault();
       }}
       aria-disabled={disabled}
+      aria-label={collapsed ? text : undefined}
+      title={collapsed ? text : undefined}
       tabIndex={disabled ? -1 : undefined}
       className={`app-nav-link px-2 py-2.5 flex items-center ${
         disabled ? "opacity-40 cursor-not-allowed pointer-events-none" : ""
@@ -164,6 +166,7 @@ export default function BaseLayout() {
   const playerId = user?.leagues?.find((ul: any) => Number(ul.id) === Number(leagueId))?.playerId;
   const role = String(user?.role || "").toUpperCase();
   const isSuperAdmin = role === "SUPER";
+  const isSuperAdminPage = isSuperAdmin && location.pathname.startsWith("/superadmin");
   const isAdmin = role === "ADMIN" || isSuperAdmin;
   const numericLeagueId = Number(leagueId);
   const isLeagueRoute = Boolean(
@@ -223,11 +226,19 @@ export default function BaseLayout() {
   const subDisabled = !leagueId || leagueId === "undefined";
 
   return (
-    <div className="app-shell flex h-screen overflow-hidden">
+    <div className="app-shell relative flex h-screen overflow-hidden">
+      {isOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setIsOpen(false)}
+          className="absolute inset-0 z-20 bg-slate-950/45 md:hidden"
+        />
+      )}
       <div
         className={`app-sidebar text-gray-300 border-r transition-all duration-300 ${
-          isOpen ? "w-52 md:w-64" : "w-16 md:w-20"
-        } flex flex-col`}
+          isOpen ? "absolute inset-y-0 left-0 z-30 w-64 md:relative md:inset-auto md:w-64" : "w-16 md:w-20"
+        } flex shrink-0 flex-col`}
       >
         {/* Header */}
         <div className="p-3 md:p-4 border-b border-white/10 flex items-center justify-between">
@@ -248,7 +259,12 @@ export default function BaseLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-2 md:px-3 space-y-1 overflow-y-auto">
+        <nav
+          className="flex-1 space-y-1 overflow-y-auto px-2 md:px-3"
+          onClick={(event) => {
+            if (window.innerWidth < 768 && (event.target as HTMLElement).closest("a")) setIsOpen(false);
+          }}
+        >
           {isSuperAdmin && (
             <>
               <Section section="Super Admin" collapsed={!isOpen} />
@@ -392,13 +408,13 @@ export default function BaseLayout() {
 
       {/* Main Content */}
       <div className="app-main flex flex-col flex-1 overflow-hidden">
-        <div className="app-topbar sticky top-0 z-10 border-b px-4 md:px-6 py-4 flex justify-between">
-          <div className="hidden md:block">
+        <div className="app-topbar sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3 md:px-6 md:py-4">
+          <div className={isSuperAdminPage ? "block" : "hidden md:block"}>
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
-              Command center
+              {isSuperAdminPage ? "League Night Pro" : "Command center"}
             </p>
             <p className="mt-0.5 text-sm font-black text-slate-900">
-              {league?.name || "Golf operations"}
+              {isSuperAdminPage ? "Super Admin" : league?.name || "Golf operations"}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -418,7 +434,7 @@ export default function BaseLayout() {
             </div>
           </div>
         </div>
-        <div className="app-content px-5 py-6 md:px-8 md:py-8 overflow-y-auto flex-1">
+        <div className="app-content min-w-0 flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-8">
           <Outlet />
         </div>
       </div>
