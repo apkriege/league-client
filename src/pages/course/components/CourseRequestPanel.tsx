@@ -7,6 +7,8 @@ import { useToast } from "@/context/useToast";
 import { useCourseDirectorySelection } from "@/hooks/useCourseDirectorySelection";
 import type { ManualCourseRequest } from "@api/courses";
 import { useRequestCourse, useRequestManualCourse } from "@api/courses/mutations";
+import { useMyCourseRequests } from "@api/courses/queries";
+import { Link } from "react-router";
 import ManualCourseRequestForm from "./ManualCourseRequestForm";
 import ScorecardImageInput from "./ScorecardImageInput";
 
@@ -15,6 +17,7 @@ export default function CourseRequestPanel() {
   const directory = useCourseDirectorySelection();
   const requestCourse = useRequestCourse();
   const requestManualCourse = useRequestManualCourse();
+  const myRequests = useMyCourseRequests();
   const [manualRequest, setManualRequest] = useState<ManualCourseRequest>({
     courseName: "",
     city: "",
@@ -24,8 +27,8 @@ export default function CourseRequestPanel() {
 
   const handleConfirm = async () => {
     await directory.confirm(async ({ result }) => {
-      await requestCourse.mutateAsync({ externalId: result.externalId, scorecardImage });
-      show("Course request sent.", "success");
+      const response = await requestCourse.mutateAsync({ externalId: result.externalId, scorecardImage });
+      show(response.message, "success");
       setScorecardImage(null);
     }, "Unable to send that course request.");
   };
@@ -55,8 +58,8 @@ export default function CourseRequestPanel() {
     }
 
     try {
-      await requestManualCourse.mutateAsync({ ...request, scorecardImage });
-      show("Manual course request sent.", "success");
+      const response = await requestManualCourse.mutateAsync({ ...request, scorecardImage });
+      show(response.message, "success");
       directory.reset();
       setManualRequest({ courseName: "", city: "", state: "" });
       setScorecardImage(null);
@@ -112,6 +115,26 @@ export default function CourseRequestPanel() {
           </Button>
         </div>
       </div>
+
+      {myRequests.data && myRequests.data.length > 0 && (
+        <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="font-black text-slate-900">Your course requests</h2>
+          <div className="mt-3 divide-y divide-slate-100">
+            {myRequests.data.map((request) => (
+              <div key={request.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+                <div>
+                  <p className="font-bold text-slate-900">{request.courseName}</p>
+                  <p className="text-slate-500">{request.location} · {request.status === "fulfilled" ? "Available" : request.status === "unavailable" ? "Could not add" : "Under review"}</p>
+                  {request.resolutionNote && <p className="text-slate-600">{request.resolutionNote}</p>}
+                </div>
+                {request.status === "fulfilled" && request.fulfilledCourse && (
+                  <Link to={`/courses/${request.fulfilledCourse.id}`} className="font-bold text-emerald-700 underline">View course</Link>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <CourseDirectorySelectionModal
         isOpen={directory.isOpen}

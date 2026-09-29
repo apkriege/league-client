@@ -24,9 +24,11 @@ export const useCreateLeague = () => {
     mutationFn: async (data: any) => {
       return await createLeague(data);
     },
-    onSuccess: () => {
-      // Invalidate the leagues list query to refetch
-      queryClient.invalidateQueries({ queryKey: ["leagues"] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-leagues"] }),
+        queryClient.invalidateQueries({ queryKey: ["leagues"] }),
+      ]);
     },
     onError: (error) => {
       console.error("Failed to create league:", error);

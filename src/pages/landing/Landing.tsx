@@ -1,4 +1,4 @@
-import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice } from "@/lib/billing";
+import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, TRIAL_EVENT_LIMIT, formatBillingPrice } from "@/lib/billing";
 import {
   ArrowRight,
   Activity,
@@ -160,7 +160,7 @@ function Hero() {
             href="#register"
             className="rounded-full bg-sky-300 px-4 py-2 text-xs font-black text-slate-950 shadow-lg shadow-sky-950/20 transition hover:bg-sky-200"
           >
-            Start
+            Start free
           </a>
         </div>
       </header>
@@ -169,7 +169,7 @@ function Hero() {
         <m.div variants={revealVariants} initial="hidden" animate="visible">
           <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/20 bg-slate-950/40 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-sky-100">
             <Trophy size={13} />
-            One system for the entire golf league season
+            First {TRIAL_EVENT_LIMIT} scored events free
           </div>
 
           <h1 className="mt-6 max-w-5xl text-6xl font-black leading-[0.88] tracking-[-0.065em] text-white md:text-7xl">
@@ -181,12 +181,16 @@ function Hero() {
             turn every score into useful player, team, and league insight.
           </p>
 
+          <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-sky-100/85">
+            Build and schedule your league without paying. Your trial counts scored events, not days.
+          </p>
+
           <div className="mt-8 flex flex-wrap gap-3">
             <a
               href="#register"
               className="landing-primary-cta group inline-flex items-center gap-2 rounded-full bg-sky-300 px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-sky-950/25 transition hover:-translate-y-0.5 hover:bg-sky-200"
             >
-              Start your league
+              Start your free trial
               <ArrowRight size={16} className="transition group-hover:translate-x-0.5" />
             </a>
             <a
@@ -621,17 +625,17 @@ function RegistrationSection() {
             Start the league
           </p>
           <h2 className="mt-4 max-w-2xl text-5xl font-black leading-[0.95] tracking-[-0.05em]">
-            Create the admin account, verify the email, and build the first season.
+            Create the admin account, verify your email, and start the league free.
           </h2>
           <p className="mt-5 max-w-2xl text-sm leading-7 text-white/60">
-            Account creation is free. Payment is based on the regular-golfer roster when the league
-            is created; substitutes do not add to the price.
+            Every new league starts with its first {TRIAL_EVENT_LIMIT} scored events free. Schedule ahead and
+            correct trial scores as needed. Activate the same league before scoring another event.
           </p>
           <div className="mt-8 grid gap-3">
             {[
               ["1", "Create and verify the admin account"],
               ["2", "Set the league dates, format, players, teams, and scoring rules"],
-              ["3", "Purchase the season and begin scheduling events"],
+              ["3", `Score ${TRIAL_EVENT_LIMIT} events free; activate before the next scored event`],
             ].map(([step, text]) => (
               <div key={step} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-sky-300 text-xs font-black text-slate-950">
@@ -663,18 +667,34 @@ function PricingSection() {
           viewport={revealViewport}
         >
           <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-800">
-            Per-season pricing
+            Free trial + per-season pricing
           </p>
           <h2 className="mt-4 text-5xl font-black leading-[0.95] tracking-[-0.055em] text-slate-950">
-            One clear price for one complete league season.
+            Try the league first. Pay when you&apos;re ready to keep scoring.
           </h2>
           <p className="mt-5 text-base leading-8 text-slate-600">
-            Start with {BILLING_MIN_GOLFERS} regular golfers for {includedTotal}. Additional regular golfers
-            are {formatBillingPrice(BILLING_PRICE_PER_GOLFER)} each per season, and substitutes are free.
+            The first {TRIAL_EVENT_LIMIT} scored events are free for each new league after email verification.
+            When you activate it, season pricing starts at {includedTotal} for {BILLING_MIN_GOLFERS} regular
+            golfers. Additional regular golfers are {formatBillingPrice(BILLING_PRICE_PER_GOLFER)} each;
+            substitutes are free.
           </p>
         </m.div>
 
-        <div className="mx-auto mt-12 grid max-w-5xl gap-4 lg:grid-cols-[0.82fr_1.18fr]">
+        <div className="mx-auto mt-10 max-w-5xl rounded-[2rem] border border-sky-200 bg-sky-50 p-6 md:flex md:items-center md:justify-between md:gap-8">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-800">Free trial for every new league</p>
+            <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-950">Score {TRIAL_EVENT_LIMIT} events free. No trial clock.</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              An event counts when its first valid score is saved—not when it is scheduled. Nine- and
+              18-hole events each count once. Keep your league and scores when you pay before event {TRIAL_EVENT_LIMIT + 1}.
+            </p>
+          </div>
+          <a href="#register" className="mt-5 inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 md:mt-0">
+            Start free <ArrowRight size={16} />
+          </a>
+        </div>
+
+        <div className="mx-auto mt-4 grid max-w-5xl gap-4 lg:grid-cols-[0.82fr_1.18fr]">
           <div className="rounded-[2rem] border border-slate-200 bg-[#f8fafc] p-6">
             <p className="text-sm font-black text-slate-950">League season minimum</p>
             <div className="mt-6 flex items-end gap-2">
@@ -719,7 +739,7 @@ function PricingSection() {
               href="#register"
               className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-100"
             >
-              Create your admin account
+              Start your free trial
               <ArrowRight size={16} />
             </a>
           </div>

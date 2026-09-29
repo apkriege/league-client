@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getCourses, getCourseById, getPendingCourseRequests } from ".";
+import { getCourses, getCourseById, getPendingCourseRequests, getMyCourseRequests } from ".";
 
 export const useCoursesWithTees = () => {
   return useQuery({
@@ -20,3 +20,6 @@ export const usePendingCourseRequests = () =>
     queryKey: ["course-requests", "pending"],
     queryFn: getPendingCourseRequests,
   });
+
+export const useMyCourseRequests = () =>
+  useQuery({ queryKey: ["course-requests", "mine"], queryFn: getMyCourseRequests });

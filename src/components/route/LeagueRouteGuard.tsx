@@ -27,7 +27,11 @@ export default function LeagueRouteGuard({
     ? user.leagues.map((league: any) => Number(league?.id)).filter(Boolean)
     : [];
 
-  const { data: adminLeagues = [], isLoading: adminLeaguesLoading } = useAdminLeagues(isAdminRole);
+  const {
+    data: adminLeagues = [],
+    isLoading: adminLeaguesLoading,
+    isError: adminLeaguesError,
+  } = useAdminLeagues(isAdminRole);
   const adminLeagueIds = Array.isArray(adminLeagues)
     ? adminLeagues.map((league: any) => Number(league?.id)).filter(Boolean)
     : [];
@@ -81,6 +85,18 @@ export default function LeagueRouteGuard({
       <LoadingState>
         Checking access...
       </LoadingState>
+    );
+  }
+
+  if (isAdminRole && adminLeaguesError) {
+    return (
+      <PageState
+        title="Unable to check league access"
+        message="We couldn't load your admin leagues. Please try again."
+        variant="error"
+        actionTo="/leagues"
+        actionLabel="Back to Leagues"
+      />
     );
   }
 

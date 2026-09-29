@@ -28,5 +28,6 @@ Support: support@leaguenightpro.com
 - Supports individual and team formats, stroke play and match play, 9-hole and 18-hole scoring, flights, printable scorecards, skins, standings, and player statistics.
 - Provides league, player, team, event, matchup, and commissioner insights from recorded league results.
 - League administrators can create a new season from a previous season while preserving legacy rounds and reusing player data.
-- Pricing is $10 USD per regular golfer for each league season, with an eight-golfer minimum. Substitutes do not increase the price.
+- A verified commissioner can start every new league with a free trial. Each league's first three scored events are free; a scheduled event does not count until its first valid score is saved. There is no trial-day deadline. Payment is required before scoring a fourth event on that league.
+- After the trial, pricing is $10 USD per regular golfer for each league season, with an eight-golfer minimum. Substitutes do not increase the price.
 - League-season purchases are one-time payments and do not automatically renew.

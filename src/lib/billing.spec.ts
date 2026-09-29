@@ -46,5 +46,15 @@ describe("league billing", () => {
         status: "bypassed",
       },
     })).toBe("exempt");
+    expect(getLeagueBillingStatus({
+      entitlement: {
+        requiredGolfers: 10,
+        paidGolfers: 0,
+        refundedGolfers: 0,
+        status: "trialing",
+        trialEventLimit: 3,
+        trialEventCount: 3,
+      },
+    })).toBe("trial");
   });
 });

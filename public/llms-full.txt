@@ -61,11 +61,14 @@ League Night Pro provides a single operating system for running recurring golf l
 
 ## Pricing
 
+- A verified commissioner may start every new league, including a renewed season, with its own free trial.
+- The first three distinct scored events on each trial league are free. Events count when a first valid score is saved, not when scheduled; 9-hole and 18-hole events each count once.
+- The trial has no time-based deadline. Existing trial scores can be corrected. The commissioner pays to activate the same league before scoring a fourth event.
 - Price: $10 USD per regular golfer for one league season.
 - Minimum purchase: Eight regular golfers, or $80 USD per league season at the standard price.
 - Regular golfers above the minimum cost $10 USD each per season.
 - Substitute golfers do not increase the league-season price.
-- Each renewed season requires a new one-time purchase based on that season's regular-golfer roster.
+- Each renewed season can start with its own free trial, then requires a new one-time purchase to keep scoring after its trial.
 - Purchases do not automatically renew.
 - Checkout payments are processed by Stripe.
 

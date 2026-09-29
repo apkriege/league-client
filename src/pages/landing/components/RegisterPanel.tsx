@@ -1,9 +1,10 @@
 import { register, resendEmailVerification } from "@api/auth";
 import { useToast } from "@/context/useToast";
 import { getApiErrorMessage } from "@/lib/apiError";
-import { ArrowRight, LockKeyhole } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { ArrowRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { useId, useState, type FormEvent, type HTMLInputTypeAttribute } from "react";
 import { Link, useLocation } from "react-router";
+import { TRIAL_EVENT_LIMIT } from "@/lib/billing";
 
 type RegistrationForm = {
   firstName: string;
@@ -111,7 +112,7 @@ export default function RegisterPanel() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-300">
-              {isInvitationRegistration ? "Player invitation" : "Register"}
+              {isInvitationRegistration ? "Player invitation" : "Start free"}
             </p>
             <h2 className="mt-2 text-3xl font-black tracking-tight">
               {isInvitationRegistration ? "Create your player account." : "Start League Night Pro."}
@@ -124,7 +125,7 @@ export default function RegisterPanel() {
         <p className="mt-4 text-sm leading-7 text-white/62">
           {isInvitationRegistration
             ? "Use the email address that received the invitation, then return to the league to finish joining."
-            : "Create your admin account free. Each league is billed separately based on its regular-player roster."}
+            : `Verify your email, then start a league and score its first ${TRIAL_EVENT_LIMIT} events free. Every new league gets its own trial.`}
         </p>
       </div>
 
@@ -249,22 +250,40 @@ function TextField({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  type?: string;
+  type?: HTMLInputTypeAttribute;
   minLength?: number;
   autoComplete?: string;
 }) {
+  const inputId = useId();
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const isPassword = type === "password";
+
   return (
-    <label className="grid min-w-0 gap-1.5">
-      <span className="text-xs font-black text-slate-600">{label}</span>
-      <input
-        required
-        type={type}
-        minLength={minLength}
-        value={value}
-        autoComplete={autoComplete}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 min-w-0 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-800/10"
-      />
-    </label>
+    <div className="grid min-w-0 gap-1.5">
+      <label htmlFor={inputId} className="text-xs font-black text-slate-600">{label}</label>
+      <div className="relative min-w-0">
+        <input
+          id={inputId}
+          required
+          type={isPassword && passwordVisible ? "text" : type}
+          minLength={minLength}
+          value={value}
+          autoComplete={autoComplete}
+          onChange={(event) => onChange(event.target.value)}
+          className={`h-11 min-w-0 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:ring-4 focus:ring-blue-800/10 ${isPassword ? "pr-12" : ""}`}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            aria-label={`${passwordVisible ? "Hide" : "Show"} ${label.toLowerCase()}`}
+            aria-pressed={passwordVisible}
+            onClick={() => setPasswordVisible((visible) => !visible)}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-2xl text-slate-500 transition hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+          >
+            {passwordVisible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

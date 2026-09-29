@@ -56,10 +56,11 @@ test('super admins can search the protected user directory', async ({ page }) =>
 
   await expect(page).toHaveURL(/\/superadmin\/users$/);
   await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible();
-  await expect(page.getByText('admin@test.com')).toBeVisible();
+  const directory = page.getByRole('table');
+  await expect(directory.getByText('admin@test.com')).toBeVisible();
   await page.getByPlaceholder('Search by name, email, role, or status...').fill('super@test.com');
-  await expect(page.getByText('super@test.com')).toBeVisible();
-  await expect(page.getByText('admin@test.com')).toHaveCount(0);
+  await expect(directory.getByText('super@test.com')).toBeVisible();
+  await expect(directory.getByText('admin@test.com')).toHaveCount(0);
 });
 
 test('super admins can load a USGA rating table from a Course ID', async ({ page }) => {
@@ -255,6 +256,9 @@ test('@mobile super admin screens use the slide-out navigation and readable card
   await page.getByRole('button', { name: 'Expand navigation' }).click();
   await page.getByRole('link', { name: 'Users', exact: true }).click();
   await expect(page.getByText('admin@test.com').first()).toBeVisible();
+  await page.getByPlaceholder('Search by name, email, role, or status...').fill('super@test.com');
+  await expect(page.getByText('admin@test.com')).toHaveCount(0);
+  await expect(page.getByText('super@test.com').first()).toBeVisible();
 });
 
 test('@mobile player intelligence stays navigable without horizontal page overflow', async ({ page }) => {

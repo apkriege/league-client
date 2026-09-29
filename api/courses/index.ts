@@ -212,7 +212,10 @@ export type CourseRequest = {
   courseName: string;
   location: string;
   externalId: string | null;
-  status: "pending" | "resolved";
+  status: "pending" | "fulfilled" | "unavailable";
+  notificationStatus: "pending" | "sent" | "failed" | "skipped";
+  resolutionNote: string | null;
+  fulfilledCourse: { id: number; name: string } | null;
   createdAt: string;
   requester: { id: number; firstName: string; lastName: string; email: string };
 };
@@ -222,7 +225,22 @@ export const getPendingCourseRequests = async () => {
   return response.data;
 };
 
-export const resolveCourseRequest = async (id: number) => {
-  const response = await apiClient.patch<CourseRequest>(`/courses/requests/${id}/resolve`);
+export const resolveCourseRequest = async ({ id, action, courseId, reason }: {
+  id: number;
+  action: "fulfill" | "unavailable";
+  courseId?: number;
+  reason?: string;
+}) => {
+  const response = await apiClient.patch<CourseRequest>(`/courses/requests/${id}/resolve`, { action, courseId, reason });
+  return response.data;
+};
+
+export const retryCourseRequestNotification = async (id: number) => {
+  const response = await apiClient.post<CourseRequest>(`/courses/requests/${id}/retry-notification`);
+  return response.data;
+};
+
+export const getMyCourseRequests = async () => {
+  const response = await apiClient.get<CourseRequest[]>("/courses/requests/mine");
   return response.data;
 };

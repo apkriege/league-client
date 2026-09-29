@@ -1,8 +1,9 @@
 import { Link } from "react-router";
+import { useState } from "react";
 import { Check, Clock3, ExternalLink, MapPin } from "lucide-react";
 import type { CourseRequest } from "@api/courses";
-import { usePendingCourseRequests } from "@api/courses/queries";
-import { useResolveCourseRequest } from "@api/courses/mutations";
+import { useCoursesWithTees, usePendingCourseRequests } from "@api/courses/queries";
+import { useResolveCourseRequest, useRetryCourseRequestNotification } from "@api/courses/mutations";
 import Button from "@/components/layout/Button";
 import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
@@ -19,6 +20,10 @@ const formatDate = (value: string) =>
 export default function CourseRequestsAdmin() {
   const { data: requests = [], isLoading, isError, error } = usePendingCourseRequests();
   const resolveRequest = useResolveCourseRequest();
+  const retryNotification = useRetryCourseRequestNotification();
+  const { data: courses = [] } = useCoursesWithTees();
+  const [selectedCourseId, setSelectedCourseId] = useState<Record<number, string>>({});
+  const [unavailableReason, setUnavailableReason] = useState<Record<number, string>>({});
   const { show } = useToast();
 
   if (isLoading) return <LoadingState>Loading course requests...</LoadingState>;
@@ -33,24 +38,54 @@ export default function CourseRequestsAdmin() {
   }
 
   const renderActions = (row: CourseRequest) => (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-2">
+      {row.status !== "pending" ? (
+        <>
+          <p className="text-xs font-bold text-amber-700">{row.status} · requester email {row.notificationStatus}</p>
+          <Button type="button" variant="secondary" disabled={retryNotification.isPending}
+            onClick={() => retryNotification.mutate(row.id, {
+              onSuccess: (result) => show(result.notificationStatus === "sent" ? "Requester notified." : "Notification still needs attention.", result.notificationStatus === "sent" ? "success" : "warning"),
+              onError: () => show("Unable to retry notification.", "error"),
+            })}>Retry email</Button>
+        </>
+      ) : <>
       <Link
         to="/superadmin/courses"
         className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
       >
         Add course <ExternalLink size={13} aria-hidden="true" />
       </Link>
+      <label className="text-xs font-bold text-slate-700">Link added course</label>
+      <select aria-label={`Course to fulfill ${row.courseName}`} value={selectedCourseId[row.id] || ""}
+        onChange={(event) => setSelectedCourseId((current) => ({ ...current, [row.id]: event.target.value }))}
+        className="min-h-10 max-w-full rounded-xl border border-slate-200 bg-white px-3 text-sm">
+        <option value="">Select course</option>
+        {(courses as Array<{ id: number; name: string; location?: string; externalId?: string | null }>).map((course) => (
+          <option key={course.id} value={course.id} disabled={Boolean(row.externalId && row.externalId !== course.externalId)}>
+            {course.name} · {course.location || "Location unavailable"} (#{course.id})
+          </option>
+        ))}
+      </select>
       <Button
         type="button"
         variant="secondary"
-        disabled={resolveRequest.isPending}
-        onClick={() => resolveRequest.mutate(row.id, {
-          onSuccess: () => show("Course request completed.", "success"),
-          onError: () => show("Unable to complete course request.", "error"),
+        disabled={resolveRequest.isPending || !selectedCourseId[row.id]}
+        onClick={() => resolveRequest.mutate({ id: row.id, action: "fulfill", courseId: Number(selectedCourseId[row.id]) }, {
+          onSuccess: (result) => show(result.notificationStatus === "sent" ? "Course linked and requester notified." : "Course linked; requester email needs attention.", result.notificationStatus === "sent" ? "success" : "warning"),
+          onError: (error) => show(getApiErrorMessage(error, "Unable to fulfill course request."), "error"),
         })}
       >
-        <Check size={14} /> Done
+        <Check size={14} /> Fulfill
       </Button>
+      <input aria-label={`Reason ${row.courseName} cannot be added`} placeholder="Reason if unavailable" value={unavailableReason[row.id] || ""}
+        onChange={(event) => setUnavailableReason((current) => ({ ...current, [row.id]: event.target.value }))}
+        className="min-h-10 rounded-xl border border-slate-200 px-3 text-sm" maxLength={500} />
+      <Button type="button" variant="secondary" disabled={resolveRequest.isPending || (unavailableReason[row.id] || "").trim().length < 5}
+        onClick={() => resolveRequest.mutate({ id: row.id, action: "unavailable", reason: unavailableReason[row.id]?.trim() }, {
+          onSuccess: (result) => show(result.notificationStatus === "sent" ? "Requester notified." : "Request closed; requester email needs attention.", result.notificationStatus === "sent" ? "success" : "warning"),
+          onError: (error) => show(getApiErrorMessage(error, "Unable to close request."), "error"),
+        })}>Cannot add</Button>
+      </>}
     </div>
   );
 
@@ -110,7 +145,7 @@ export default function CourseRequestsAdmin() {
     <div className="flex flex-col gap-6 pb-10">
       <PageHeader
         title="Course Requests"
-        subTitle="Review courses submitted by league admins and clear each request after the course is added."
+        subTitle="Link each request to an existing course or explain why it cannot be added."
       />
       <div className="rounded-2xl bg-slate-950 p-5 text-white shadow-sm">
         <div className="flex items-center gap-3">
@@ -119,7 +154,7 @@ export default function CourseRequestsAdmin() {
           </span>
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-              Pending requests
+              Requests needing attention
             </p>
             <p className="mt-1 text-3xl font-black tabular-nums">{requests.length}</p>
           </div>

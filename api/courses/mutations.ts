@@ -5,6 +5,7 @@ import {
   requestCourse,
   requestManualCourse,
   resolveCourseRequest,
+  retryCourseRequestNotification,
   updateCourse,
 } from ".";
 import type { CoursePayload, ManualCourseRequest } from ".";
@@ -51,21 +52,35 @@ export const useDeleteCourse = () => {
   });
 };
 
-export const useRequestCourse = () =>
-  useMutation({
+export const useRequestCourse = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
     mutationFn: ({ externalId, scorecardImage }: { externalId: string; scorecardImage?: File | null }) =>
       requestCourse(externalId, scorecardImage),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["course-requests", "mine"] }),
   });
+};
 
-export const useRequestManualCourse = () =>
-  useMutation({
+export const useRequestManualCourse = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
     mutationFn: (request: ManualCourseRequest) => requestManualCourse(request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["course-requests", "mine"] }),
   });
+};
 
 export const useResolveCourseRequest = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: resolveCourseRequest,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["course-requests", "pending"] }),
+  });
+};
+
+export const useRetryCourseRequestNotification = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: retryCourseRequestNotification,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["course-requests", "pending"] }),
   });
 };

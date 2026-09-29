@@ -44,7 +44,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { getLeagueBillingStatus, getLeagueCapacity } from "@/lib/billing";
+import { getLeagueBillingStatus, getLeagueCapacity, TRIAL_EVENT_LIMIT } from "@/lib/billing";
 import { Link, useNavigate, useParams } from "react-router";
 import Tooltip from "@mui/material/Tooltip";
 import { useAppStore } from "@/stores/appStore";
@@ -216,6 +216,25 @@ export default function LeagueAdmin() {
   const leagueBillingStatus = getLeagueBillingStatus(league);
   const isReadOnly =
     league?.seasonStatus === "archived" || leagueBillingStatus === "payment_due";
+  const activateLeaguePayment = async () => {
+    try {
+      const checkout = await restorePayment.mutateAsync({
+        purpose: "league_capacity",
+        leagueId: Number(leagueId),
+        requestedGolfers: getLeagueCapacity(league),
+        successUrl: `${window.location.origin}/league/${leagueId}/admin?checkout=season_payment_success`,
+        cancelUrl: `${window.location.origin}/league/${leagueId}/admin?checkout=season_payment_cancel`,
+      });
+      if (checkout.alreadyCovered) {
+        await queryClient.invalidateQueries({ queryKey: ["league", Number(leagueId)] });
+        return;
+      }
+      if (!checkout.url) throw new Error("The payment provider did not return a checkout URL.");
+      window.location.href = checkout.url;
+    } catch (error) {
+      show(error instanceof Error ? error.message : "Unable to start checkout.", "error");
+    }
+  };
   const nextSeasonAvailable = canCreateNextSeason({
     endDate: league?.endDate,
     events: events ?? [],
@@ -300,32 +319,27 @@ export default function LeagueAdmin() {
             <button
               type="button"
               disabled={restorePayment.isPending}
-              onClick={async () => {
-                try {
-                  const checkout = await restorePayment.mutateAsync({
-                    purpose: "league_capacity",
-                    leagueId: Number(leagueId),
-                    requestedGolfers: getLeagueCapacity(league),
-                    successUrl: `${window.location.origin}/league/${leagueId}/admin?checkout=season_payment_success`,
-                    cancelUrl: `${window.location.origin}/league/${leagueId}/admin?checkout=season_payment_cancel`,
-                  });
-                  if (checkout.alreadyCovered) {
-                    await queryClient.invalidateQueries({
-                      queryKey: ["league", Number(leagueId)],
-                    });
-                    return;
-                  }
-                  if (!checkout.url) throw new Error("The payment provider did not return a checkout URL.");
-                  window.location.href = checkout.url;
-                } catch (error) {
-                  show(error instanceof Error ? error.message : "Unable to restore payment.", "error");
-                }
-              }}
+              onClick={activateLeaguePayment}
               className="mt-3 rounded-lg bg-red-700 px-3 py-2 text-xs font-black text-white transition hover:bg-red-800 disabled:opacity-60"
             >
               {restorePayment.isPending ? "Preparing Checkout..." : "Restore Season Payment"}
             </button>
           )}
+        </div>
+      )}
+
+      {leagueBillingStatus === "trial" && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-slate-900">
+          <p className="font-black">Free trial · {Number(league?.entitlement?.trialEventCount || 0)} of {Number(league?.entitlement?.trialEventLimit || TRIAL_EVENT_LIMIT)} scored events used</p>
+          <p className="mt-1 text-sm text-slate-600">
+            {Number(league?.entitlement?.trialEventCount || 0) >= Number(league?.entitlement?.trialEventLimit || TRIAL_EVENT_LIMIT)
+              ? "Activate this league to score another event. Your existing scores and schedule remain available."
+              : "Only an event's first saved score counts. You can continue scheduling and correct scores from trial events."}
+          </p>
+          {ownsLeague && <button type="button" disabled={restorePayment.isPending}
+            onClick={activateLeaguePayment} className="mt-3 min-h-10 rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white disabled:opacity-60">
+            {restorePayment.isPending ? "Preparing Checkout..." : "Activate League"}
+          </button>}
         </div>
       )}
 

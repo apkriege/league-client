@@ -2,7 +2,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
 import { formatPhone } from "@/utils/format";
 import { formatHandicap } from "@/utils/handicap";
-import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, formatBillingPrice, getLeagueBillableGolfers } from "@/lib/billing";
+import { BILLING_MIN_GOLFERS, BILLING_PRICE_PER_GOLFER, TRIAL_EVENT_LIMIT, formatBillingPrice, getLeagueBillableGolfers } from "@/lib/billing";
 import dayjs from "dayjs";
 import { getLeagueDateInputValue } from "../leagueDates";
 import {
@@ -46,6 +46,9 @@ interface ReviewFormProps {
   billing?: any;
   isBillingLoading?: boolean;
   onPaymentAccessGranted?: () => void | Promise<unknown>;
+  trialAvailable?: boolean;
+  preferTrial?: boolean;
+  onTrialChoiceChange?: (selected: boolean) => void;
 }
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
@@ -57,6 +60,9 @@ export default function ReviewForm({
   billing,
   isBillingLoading = false,
   onPaymentAccessGranted,
+  trialAvailable = false,
+  preferTrial = false,
+  onTrialChoiceChange,
 }: ReviewFormProps) {
   const players: LeaguePlayer[] = leagueData?.players || [];
   const teams: LeagueTeam[] = leagueData?.teams || [];
@@ -306,11 +312,27 @@ export default function ReviewForm({
               )}
             </section>
           )}
+          {trialAvailable && (
+            <section className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <p className="text-sm font-black text-slate-900">Choose how to start</p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:gap-6">
+                <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-600">
+                  <input type="radio" name="league-start" checked={preferTrial} onChange={() => onTrialChoiceChange?.(true)} className="mt-1 accent-emerald-600" />
+                  <span><strong className="font-bold text-slate-900">Free trial</strong> · First {TRIAL_EVENT_LIMIT} scored events free</span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-600">
+                  <input type="radio" name="league-start" checked={!preferTrial} onChange={() => onTrialChoiceChange?.(false)} className="mt-1 accent-emerald-600" />
+                  <span><strong className="font-bold text-slate-900">Pay now</strong> · Activate this league immediately</span>
+                </label>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-600">Scheduling events do not count. Each 9- or 18-hole event counts once when scored; scores can be corrected. Activate before scoring event {TRIAL_EVENT_LIMIT + 1}.</p>
+            </section>
+          )}
         </div>
 
-        {/* Sidebar */}
+        {/* Billing */}
         <div className="xl:sticky xl:top-4 space-y-3">
-          {needsPayment && (
+          {needsPayment && (!trialAvailable || !preferTrial) && (
             <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
               <div className="px-4 py-3 bg-slate-900 text-white">
                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-0.5">
@@ -349,8 +371,9 @@ export default function ReviewForm({
 
               <div className="px-4 py-3">
                 <p className="text-[11px] leading-5 text-gray-500">
-                  Each league season requires paid access for its regular-golfer roster. Previous
-                  season payments are not reused.
+                  Every new league season can start with its own free trial. To keep scoring after
+                  the trial, activate that season for its regular-golfer roster. Previous season
+                  payments are not reused.
                 </p>
                 <p className="mt-2 text-[10px] leading-4 text-gray-400">
                   Payment is subject to the{" "}

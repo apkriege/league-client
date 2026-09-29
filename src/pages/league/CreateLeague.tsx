@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import InfoForm from "./forms/InfoForm";
 import { useToast } from "@/context/useToast";
 import Stepper from "@/components/layout/Stepper";
-import { getLeagueBillableGolfers } from "@/lib/billing";
+import { getLeagueBillableGolfers, TRIAL_EVENT_LIMIT } from "@/lib/billing";
 import { useAppStore } from "@/stores/appStore";
 import PageState from "@/components/layout/PageState";
 import {
@@ -152,6 +152,7 @@ export default function CreateLeague() {
   } = useStripeState(Boolean(user));
 
   const [step, setStep] = useState(1);
+  const [preferTrial, setPreferTrial] = useState(true);
   const [checkoutStatus, setCheckoutStatus] = useState(
     () => getCheckoutReturn(window.location.search).checkout,
   );
@@ -373,7 +374,16 @@ export default function CreateLeague() {
       return;
     }
     const bypassesLeaguePayment = Boolean(stripeState?.billing?.hasPendingLeagueBypass);
+    const startTrial = preferTrial && Boolean(stripeState?.billing?.trialEligible);
     const requestedGolfers = getLeagueBillableGolfers(modeledData.players);
+
+    if (startTrial) {
+      void createLeagueAndOpenAdmin({ ...modeledData, startTrial: true }).catch((error: unknown) => {
+        show(error instanceof Error ? error.message : "Unable to start free trial.", "error");
+        void refetchStripeState();
+      });
+      return;
+    }
 
     if (!bypassesLeaguePayment) {
       const renewalQuery = renewalSourceId ? `&renewFrom=${renewalSourceId}` : "";
@@ -432,10 +442,13 @@ export default function CreateLeague() {
       : ["info", "players", "review"];
   const footerRequestedGolfers = getLeagueBillableGolfers(leagueData.players || []);
   const footerBypassesLeaguePayment = Boolean(stripeState?.billing?.hasPendingLeagueBypass);
+  const trialAvailable = Boolean(stripeState?.billing?.trialEligible);
   const footerAdditionalGolfersRequired = footerBypassesLeaguePayment
     ? 0
     : footerRequestedGolfers;
-  const finalActionLabel = footerAdditionalGolfersRequired > 0
+  const finalActionLabel = trialAvailable && preferTrial
+    ? `Start ${TRIAL_EVENT_LIMIT}-Event Trial`
+    : footerAdditionalGolfersRequired > 0
       ? `Pay for ${footerAdditionalGolfersRequired} Golfers`
       : "Create League";
   const hasActiveCheckoutReturn =
@@ -559,6 +572,9 @@ export default function CreateLeague() {
                 billing={stripeState?.billing}
                 isBillingLoading={billingLoading}
                 onPaymentAccessGranted={() => refetchStripeState()}
+                trialAvailable={trialAvailable}
+                preferTrial={preferTrial}
+                onTrialChoiceChange={setPreferTrial}
               />
             )}
           </div>
