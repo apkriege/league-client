@@ -58,3 +58,12 @@ test('mobile roster fields fit and edit/delete have accessible touch targets', a
   await page.getByRole('button', { name: 'Delete Mobile Golfer' }).click();
   await expect(edit).toHaveCount(0);
 });
+
+test('registration sign-in keeps the invitation return path', async ({ page }) => {
+  await page.goto('/?redirect=%2Finvite%2Fsample-token#register');
+  await page.locator('#register').scrollIntoViewIfNeeded();
+  const signIn = page.locator('#register').getByRole('link', { name: 'Sign in', exact: true });
+  await expect(signIn).toHaveAttribute('href', '/login?redirect=%2Finvite%2Fsample-token');
+  await signIn.click();
+  await expect(page.getByRole('link', { name: 'Register', exact: true })).toHaveAttribute('href', '/?redirect=%2Finvite%2Fsample-token#register');
+});

@@ -1,3 +1,4 @@
+import { getSafeReturnPath } from "@/lib/returnPath";
 import { login, loginWithLeagueCode, resendEmailVerification } from "@api/auth";
 import { useToast } from "@/context/useToast";
 import { useAppStore } from "@/stores/appStore";
@@ -28,10 +29,7 @@ export default function Login() {
   const queryReturnTo = new URLSearchParams(location.search).get("redirect");
   const passwordResetComplete = new URLSearchParams(location.search).get("passwordReset") === "success";
   const requestedReturnTo = stateReturnTo || queryReturnTo;
-  const returnTo =
-    requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//")
-      ? requestedReturnTo
-      : "/leagues";
+  const returnTo = getSafeReturnPath(requestedReturnTo);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

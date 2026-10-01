@@ -46,3 +46,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 ### 2. Mobile roster entry — complete
 - Responsive fields and labeled 44px edit/delete controls; table behavior preserved.
 - Verification: desktop draft regression and 390px roster add/edit/delete browser test passed; typecheck, lint, diff check passed.
+
+### 3. Invitation sign-in context — complete
+- Registration/sign-in preserves invitation destinations; shared safe-path validation rejects external/backslash/control-character redirects.
+- Verification: 7 return-path tests, 3 browser regressions, client/server typecheck and client lint passed. Two real-database backend tests passed for password/consent rejection and matching-email invitation registration, player role, verification destination, and unverified login rejection.

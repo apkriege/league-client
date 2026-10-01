@@ -1,3 +1,4 @@
+import { getSafeReturnPath } from "@/lib/returnPath";
 import { register, resendEmailVerification } from "@api/auth";
 import { useToast } from "@/context/useToast";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -29,7 +30,7 @@ const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.
 export default function RegisterPanel() {
   const { show } = useToast();
   const location = useLocation();
-  const requestedReturnTo = new URLSearchParams(location.search).get("redirect");
+  const requestedReturnTo = getSafeReturnPath(new URLSearchParams(location.search).get("redirect"), "");
   const invitationToken = requestedReturnTo?.match(/^\/invite\/([^/?#]+)/)?.[1];
   const isInvitationRegistration = Boolean(invitationToken);
   const [form, setForm] = useState(emptyRegistrationForm);
@@ -231,7 +232,7 @@ export default function RegisterPanel() {
 
       <p className="mt-4 text-center text-xs text-slate-500">
         Already have an account?{" "}
-        <Link to="/login" className="font-black text-slate-950 underline">
+        <Link to={requestedReturnTo ? `/login?redirect=${encodeURIComponent(requestedReturnTo)}` : "/login"} className="font-black text-slate-950 underline">
           Sign in
         </Link>
       </p>
