@@ -68,7 +68,9 @@ const getDefaultEndDate = (startDate = getDefaultStartDate()) => {
   return addCalendarYear(startDate);
 };
 
-const createDefaultLeagueData = (): CreateLeagueFormData => ({
+const createDefaultLeagueData = (): CreateLeagueFormData => {
+  const startDate = getDefaultStartDate();
+  return ({
   name: "",
   description: "",
   numPlayers: 0,
@@ -81,14 +83,15 @@ const createDefaultLeagueData = (): CreateLeagueFormData => ({
   contactLastName: "",
   contactEmail: "",
   contactPhone: "",
-  startDate: getDefaultStartDate(),
-  endDate: getDefaultEndDate(),
+  startDate,
+  endDate: getDefaultEndDate(startDate),
   players: [],
   teams: [],
   renewedFromLeagueId: null as number | null,
   billingDraftKey: crypto.randomUUID(),
   scoringPeriods: [],
-});
+  });
+};
 
 const modelLeagueData = (league: any) => {
   const { players, teams, access: _legacyAccess, ...info } = league;

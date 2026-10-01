@@ -62,3 +62,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 ### 6. Course check during league setup — complete
 - Search course/club/location and request a missing course in a lazy-loaded dialog before roster entry; setup can continue while requests are pending.
 - Verification: 7 browser regressions passed including course selection, opening/closing requests, preserving form details, and continuing setup. Typecheck/lint/diff check passed; 11 backend course-request/upload tests passed after allowing local HTTP test sockets.
+
+### Additional correction: deterministic default season dates
+- Repeated browser checks exposed a pre-existing millisecond mismatch from independent start/end clock reads. The end date now derives from the exact same start Date.
+- Verification: league/date/event unit tests (37), typecheck and lint passed; browser setup and mobile roster regressions passed after correction.
