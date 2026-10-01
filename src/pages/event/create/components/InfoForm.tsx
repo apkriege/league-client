@@ -1,3 +1,4 @@
+import CourseQueryState from "@/features/courses/CourseQueryState";
 import {
   AutocompleteSelect,
   DateInput,
@@ -25,7 +26,8 @@ import MuiCheckbox from "@mui/material/Checkbox";
 
 export default function InfoForm() {
   const { leagueId } = useParams();
-  const { data: courses } = useCoursesWithTees();
+  const coursesQuery = useCoursesWithTees();
+  const courses = coursesQuery.data;
   const { data: league } = useLeague(Number(leagueId));
   const methods = useFormContext();
   const { show } = useToast();
@@ -112,7 +114,7 @@ export default function InfoForm() {
     usesTwoNineRoute,
   ]);
 
-  if (!courses) return null;
+  if (coursesQuery.isLoading || coursesQuery.isError || !courses?.length) return <CourseQueryState {...coursesQuery} count={courses?.length ?? 0} onRetry={() => void coursesQuery.refetch()} />;
 
   const courseOptions = createCourseAutocompleteOptions(availableCourses);
 

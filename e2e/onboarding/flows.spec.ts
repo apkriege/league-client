@@ -93,3 +93,34 @@ test('signup explains the password rule and switches to verification recovery', 
   await panel.getByRole('button', { name: 'Use a different email' }).click();
   await expect(panel.getByLabel('Password', { exact: true })).toHaveValue('');
 });
+
+test('course loading errors offer retry and do not masquerade as an empty directory', async ({ page }) => {
+  await mockAdmin(page);
+  let failed = true;
+  await page.route('http://127.0.0.1:3310/api/courses?*', route => route.fulfill(failed
+    ? { status: 500, json: { message: 'Course service unavailable' } }
+    : { json: [] }));
+  await page.goto('/courses');
+  await expect(page.getByText('Unable to load courses', { exact: true })).toBeVisible();
+  await expect(page.getByText('No courses available yet', { exact: true })).toHaveCount(0);
+  failed = false;
+  await page.getByRole('button', { name: 'Retry loading courses' }).click();
+  await expect(page.getByText('No courses available yet', { exact: true })).toBeVisible();
+});
+
+async function mockLeague(page: Page, type = 'season') {
+  await mockAdmin(page);
+  const league = { id: 1, adminId: 901, name: 'Test League', type, format: 'individual', holeFormat: '18',
+    startDate: '2026-01-01', endDate: '2027-01-01', players: [], teams: [], events: [] };
+  await page.route('http://127.0.0.1:3310/api/admin/leagues', route => route.fulfill({ json: [league] }));
+  await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: league }));
+}
+
+test('both event builders expose course errors and retry', async ({ page }) => {
+  await mockLeague(page);
+  await page.route('http://127.0.0.1:3310/api/courses?*', route => route.fulfill({ status: 500, json: { message: 'Course service unavailable' } }));
+  await page.goto('/league/1/events/create');
+  await expect(page.getByText('Unable to load courses', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /Single Event/ }).click();
+  await expect(page.getByRole('button', { name: 'Retry loading courses' })).toBeVisible();
+});

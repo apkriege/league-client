@@ -1,3 +1,4 @@
+import CourseQueryState from "@/features/courses/CourseQueryState";
 import Button from "@/components/layout/Button";
 import ScoringPeriodDivider from "@/components/league/ScoringPeriodDivider";
 import { useState, useCallback, useEffect, useMemo, Fragment } from "react";
@@ -75,7 +76,8 @@ export default function MultiSeriesBuilder() {
   const navigate = useNavigate();
   const { show } = useToast();
   const { data: league } = useLeague(Number(leagueId));
-  const { data: courses } = useCoursesWithTees();
+  const coursesQuery = useCoursesWithTees();
+  const courses = coursesQuery.data;
   const methods = useFormContext();
   const leagueStartDate = getEventDateInputValue(league?.startDate);
   const leagueEndDate = getEventDateInputValue(league?.endDate);
@@ -438,6 +440,8 @@ export default function MultiSeriesBuilder() {
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+
+  if (coursesQuery.isLoading || coursesQuery.isError || !courses?.length) return <CourseQueryState {...coursesQuery} count={courses?.length ?? 0} onRetry={() => void coursesQuery.refetch()} />;
 
   return (
     <div className="flex flex-col gap-6">

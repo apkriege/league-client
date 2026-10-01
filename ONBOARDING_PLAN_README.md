@@ -54,3 +54,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 ### 4. Signup guidance — complete
 - Visible password-length guidance and a dedicated verification state with resend, sign-in, and different-email recovery; passwords cleared after registration.
 - Verification: 4 browser regressions passed, including signup/resend/recovery; typecheck/lint/diff check passed. Backend password/consent and verification rules covered in step 3.
+
+### 5. Course query states — complete
+- Shared loading/error/empty messaging and retry in course directory and both event builders.
+- Verification: 6 browser regressions passed, including failed request/retry and single/series failure states; typecheck/lint/diff check passed.
