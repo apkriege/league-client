@@ -189,3 +189,23 @@ test('restored flights survive mounting and successful creation clears all event
   await expect(page).toHaveURL(/\/league\/1\/admin$/);
   expect(await page.evaluate(() => ['event-setup:v1:901:1', 'event-setup:v1:901:1:series', 'event-setup:v1:901:1:mode'].map(key => localStorage.getItem(key)))).toEqual([null, null, null]);
 });
+
+test('roster import previews valid rows, rejects duplicates, and appends with distinct IDs', async ({ page }) => {
+  await mockAdmin(page);
+  await page.goto('/leagues/create');
+  await page.getByLabel('League Name', { exact: true }).fill('Imported League');
+  await page.getByRole('button', { name: 'Next →' }).click();
+  await page.getByRole('button', { name: 'Import players', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Import players' });
+  const source = 'First Name\tLast Name\tGender\tHandicap\nPat\tGolfer\tM\t12.4\nJo\tPlayer\tF\t0';
+  await dialog.getByLabel('Spreadsheet rows').fill(source);
+  await expect(dialog.getByRole('row', { name: 'Pat Golfer male 12.4' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Import 2 players' }).click();
+  await expect(page.getByRole('button', { name: 'Edit Pat Golfer' })).toBeVisible();
+  const ids = await page.evaluate(() => JSON.parse(localStorage.getItem('create-league-draft:901')!).players.map((player: { id: number }) => player.id));
+  expect(new Set(ids).size).toBe(2);
+  await page.getByRole('button', { name: 'Import players', exact: true }).click();
+  await dialog.getByLabel('Spreadsheet rows').fill(source);
+  await expect(dialog.getByRole('alert')).toContainText('duplicate');
+  await expect(dialog.getByRole('button', { name: /Import \d+ players/ })).toBeDisabled();
+});

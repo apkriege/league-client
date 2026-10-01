@@ -1,4 +1,5 @@
-import { useState } from "react";
+import type { ImportedPlayer } from "@/features/leagues/rosterImport";
+import { lazy, Suspense, useState } from "react";
 import { Controller, useForm, useFormContext } from "react-hook-form";
 
 import Input from "@/components/form/Input";
@@ -14,6 +15,8 @@ import Chip from "@mui/material/Chip";
 import PageHeader from "@/components/layout/PageHeader";
 import { getHandicapHoleCount } from "@/features/leagues/leagueHoleFormat";
 import { formatHandicap } from "@/utils/handicap";
+
+const RosterImportDialog = lazy(() => import("@/features/leagues/components/RosterImportDialog"));
 
 const defaultPlayer = {
   firstName: "",
@@ -45,6 +48,7 @@ const getMissingRequiredFields = (player: any) => {
 export default function PlayersForm() {
   const { show } = useToast();
   const [isEdit, setIsEdit] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { watch, setValue } = useFormContext();
   const players = watch("players") || [];
@@ -195,6 +199,15 @@ export default function PlayersForm() {
         } Enter each player's ${handicapHoleCount}-hole handicap.`}
       />
 
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+        <p className="text-sm text-slate-500">Start with at least one player. Add more later from Players; team leagues also need at least one team.</p>
+        <Button type="button" onClick={() => setImportOpen(true)}>Import players</Button>
+      </div>
+      {importOpen && <Suspense fallback={<p role="status">Loading import…</p>}><RosterImportDialog players={players} handicapHoleCount={handicapHoleCount} onClose={() => setImportOpen(false)} onImport={(imported: ImportedPlayer[]) => {
+        const firstId = Math.max(0, ...players.map((player: { id: number }) => Number(player.id))) + 1;
+        setValue("players", [...players, ...imported.map((player, index) => ({ ...player, id: firstId + index }))], { shouldDirty: true });
+        show(`${imported.length} players added.`, "success");
+      }} /></Suspense>}
       <Card className="mt-6">
         <SectionKicker className="mb-3">
           {isEdit ? "Edit Player" : "Add Player"}

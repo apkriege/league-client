@@ -71,3 +71,8 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 - Device drafts scoped/remounted by user and league; shared settings, builder choice, recurring schedule and lineups recover. Successful single/series creation clears all related drafts. Format/mode changes clear incompatible flights; mounting preserves restored flights.
 - Course requests stay in a dialog; secondary-nine selections wait for course data before reconciliation.
 - Verification: 9 browser regressions passed, then 2 focused draft/flight browser regressions passed after isolation review; 37 league/date/event tests, 7 draft tests, 13 related backend tests, typecheck/lint/diff check passed.
+
+### 8. Roster import and partial roster guidance — complete
+- Paste spreadsheet cells or upload CSV/TSV with preview; require valid names/gender/stored handicap (-10..54); reject duplicate names/emails and malformed/oversized inputs; append unique IDs. Partial rosters remain supported by existing league rules.
+- Verification: 15 parser tests; browser preview/import/duplicate/ID regression; client typecheck/lint; 3 real database onboarding tests passed including partial-roster trial creation, rejected out-of-range handicap, and preserved negative handicap.
+- Added an explicit backend onboarding-test typecheck because the existing server typecheck excludes test files; it passes. Corrected a new test's entitlement lookup before commit.
