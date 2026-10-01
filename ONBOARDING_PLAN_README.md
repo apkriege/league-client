@@ -66,3 +66,8 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 ### Additional correction: deterministic default season dates
 - Repeated browser checks exposed a pre-existing millisecond mismatch from independent start/end clock reads. The end date now derives from the exact same start Date.
 - Verification: league/date/event unit tests (37), typecheck and lint passed; browser setup and mobile roster regressions passed after correction.
+
+### 7. Event drafts and in-place course requests — complete
+- Device drafts scoped/remounted by user and league; shared settings, builder choice, recurring schedule and lineups recover. Successful single/series creation clears all related drafts. Format/mode changes clear incompatible flights; mounting preserves restored flights.
+- Course requests stay in a dialog; secondary-nine selections wait for course data before reconciliation.
+- Verification: 9 browser regressions passed, then 2 focused draft/flight browser regressions passed after isolation review; 37 league/date/event tests, 7 draft tests, 13 related backend tests, typecheck/lint/diff check passed.

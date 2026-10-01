@@ -1,8 +1,12 @@
+import { useAppStore } from "@/stores/appStore";
+import { writeBrowserStorage } from "@/lib/browserStorage";
+import { clearEventSetupDraft, eventSetupDraftKey, readSetupDraft, isSetupFlights, isSetupLineups, isSetupTeams } from "./setupDraft";
+import CourseRequestDialog from "@/features/courses/CourseRequestDialog";
 import Button from "@/components/layout/Button";
 import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import InfoForm from "./components/InfoForm";
 import TeamsForm from "./components/TeamsForm";
@@ -51,17 +55,20 @@ const defaultValues = {
   flights: [],
 };
 
-export default function CreateEvent() {
+function EventBuilder() {
   const navigate = useNavigate();
   const { leagueId } = useParams();
   const { show } = useToast();
   const { data: league, isLoading, isError, error } = useLeague(Number(leagueId));
-  const [wizardType, setWizardType] = useState<EventWizardType>("multi");
+  const userId = Number(useAppStore(state => state.user?.id));
+  const storageKey = eventSetupDraftKey(userId, Number(leagueId));
+  const [wizardType, setWizardType] = useState<EventWizardType>(() => readSetupDraft<EventWizardType>(`${storageKey}:mode`, "multi") === "single" ? "single" : "multi");
+  const [storageError, setStorageError] = useState(false);
 
   const mutation = useCreateLeagueEvent();
 
   const eventForm = useForm({
-    defaultValues: defaultValues,
+    defaultValues: readSetupDraft(storageKey, defaultValues, draft => isSetupFlights(draft.flights) && isSetupLineups(draft.teamLineups) && isSetupTeams(draft.teams)),
   });
 
   const format = useWatch({ control: eventForm.control, name: "format" });
@@ -71,9 +78,18 @@ export default function CreateEvent() {
   const isMixedHoleLeague = leagueHoleFormat === "mixed";
   const activeWizardType = isMixedHoleLeague ? "single" : wizardType;
 
+  const previousScoring = useRef({ format, scoringMode });
   useEffect(() => {
-    eventForm.setValue("flights", [], { shouldDirty: true });
+    if (previousScoring.current.format !== format || previousScoring.current.scoringMode !== scoringMode) {
+      eventForm.setValue("flights", [], { shouldDirty: true });
+      previousScoring.current = { format, scoringMode };
+    }
   }, [eventForm, format, scoringMode]);
+
+  useEffect(() => eventForm.subscribe({ formState: { values: true }, callback: ({ values }) => {
+    const draft = { ...values, courseId: String(values.courseId ?? ""), teeId: String(values.teeId ?? ""), secondCourseId: String(values.secondCourseId ?? ""), secondTeeId: String(values.secondTeeId ?? "") };
+    setStorageError(!writeBrowserStorage(storageKey, JSON.stringify(draft)));
+  } }), [eventForm, storageKey]);
 
   useEffect(() => {
     if (!fixedEventHoleCount) return;
@@ -128,6 +144,7 @@ export default function CreateEvent() {
       { leagueId: parsedLeagueId, data },
       {
         onSuccess: () => {
+          clearEventSetupDraft(userId, Number(leagueId));
           navigate(`/league/${leagueId}/admin`);
         },
         onError: (error: unknown) => {
@@ -182,11 +199,18 @@ export default function CreateEvent() {
         subTitle="Fill in the event details, configure teams if needed, and set up flights before submitting."
       />
 
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+        <p role="status" className={`text-sm ${storageError ? "text-amber-800" : "text-slate-500"}`}>{storageError ? "Draft saving is unavailable. Keep this page open until your event is created." : "Setup is saved on this device. You can return to finish later."}</p>
+        <CourseRequestDialog />
+      </div>
       <div className="flex flex-col gap-6 pb-6 mt-6">
         <div>
           <WizardType
             wizardType={activeWizardType}
-            setWizardType={setWizardType}
+            setWizardType={(next) => {
+              setWizardType(next);
+              if (!writeBrowserStorage(`${storageKey}:mode`, JSON.stringify(next))) setStorageError(true);
+            }}
             allowMulti={!isMixedHoleLeague}
           />
         </div>
@@ -248,8 +272,14 @@ export default function CreateEvent() {
           </>
         )}
 
-        {activeWizardType === "multi" && <MultiSeriesBuilder />}
+        {activeWizardType === "multi" && <MultiSeriesBuilder onCreated={() => clearEventSetupDraft(userId, Number(leagueId))} storageKey={`${storageKey}:series`} />}
       </div>
     </FormProvider>
   );
+}
+
+export default function CreateEvent() {
+  const { leagueId } = useParams();
+  const userId = useAppStore(state => state.user?.id);
+  return <EventBuilder key={`${userId}:${leagueId}`} />;
 }

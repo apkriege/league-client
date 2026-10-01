@@ -1,9 +1,11 @@
+import { readSetupDraft, isSetupSchedule } from "../setupDraft";
+import { writeBrowserStorage } from "@/lib/browserStorage";
 import CourseQueryState from "@/features/courses/CourseQueryState";
 import Button from "@/components/layout/Button";
 import ScoringPeriodDivider from "@/components/league/ScoringPeriodDivider";
 import { useState, useCallback, useEffect, useMemo, Fragment } from "react";
 import { useFormContext } from "react-hook-form";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import dayjs from "dayjs";
 import {
   CalendarDays,
@@ -71,7 +73,7 @@ type SeriesRound = ScheduleRound & { teamLineups: TeamLineup[] };
 // Component
 // ---------------------------------------------------------------------------
 
-export default function MultiSeriesBuilder() {
+export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageKey: string; onCreated: () => void }) {
   const { leagueId } = useParams();
   const navigate = useNavigate();
   const { show } = useToast();
@@ -130,32 +132,34 @@ export default function MultiSeriesBuilder() {
   // Number of rounds needed for a full round-robin
   const rrRounds = ids.length >= 2 ? (ids.length % 2 === 0 ? ids.length - 1 : ids.length) : 0;
 
-  // Series config state
-  const defaultStartDate = dayjs().add(7, "day").format("YYYY-MM-DD");
-  const [seriesName, setSeriesName] = useState("Weekly Series");
-  const [startDate, setStartDate] = useState(defaultStartDate);
-  const [endDate, setEndDate] = useState(
-    dayjs()
-      .add(7 + 7 * 7, "day")
-      .format("YYYY-MM-DD")
-  );
-  const [frequency, setFrequency] = useState<"weekly" | "biweekly">("weekly");
-  const [selectedDays, setSelectedDays] = useState<number[]>([dayjs(defaultStartDate).day()]);
-  const [schedule, setSchedule] = useState<SeriesRound[]>([]);
-  const [highlightId, setHighlightId] = useState<number | null>(null);
-  const [alternateStartSides, setAlternateStartSides] = useState(false);
   const existingScoringPeriods = useMemo(
     () => (Array.isArray(league?.scoringPeriods) ? league.scoringPeriods : []),
     [league]
   );
-  const [statsPeriodMode, setStatsPeriodMode] = useState<"overall" | "halves">(() =>
-    existingScoringPeriods.length === 2 ? "halves" : "overall"
-  );
-  const [firstHalfEndDate, setFirstHalfEndDate] = useState(() =>
-    existingScoringPeriods.length === 2
-      ? getEventDateInputValue(existingScoringPeriods[0]?.endDate)
-      : ""
-  );
+  // Series config state
+  const defaultStartDate = dayjs().add(7, "day").format("YYYY-MM-DD");
+  const emptySchedule: SeriesRound[] = [];
+  const [saved] = useState(() => readSetupDraft(storageKey, {
+    seriesName: "Weekly Series", startDate: defaultStartDate, endDate: dayjs().add(56, "day").format("YYYY-MM-DD"),
+    frequency: "weekly", selectedDays: [dayjs(defaultStartDate).day()], schedule: emptySchedule, alternateStartSides: false,
+    statsPeriodMode: existingScoringPeriods.length === 2 ? "halves" : "overall",
+    firstHalfEndDate: existingScoringPeriods.length === 2 ? getEventDateInputValue(existingScoringPeriods[0]?.endDate) : "",
+  }, draft => isSetupSchedule(draft.schedule)));
+  const [seriesName, setSeriesName] = useState(saved.seriesName);
+  const [startDate, setStartDate] = useState(saved.startDate);
+  const [endDate, setEndDate] = useState(saved.endDate);
+  const [frequency, setFrequency] = useState<"weekly" | "biweekly">(saved.frequency === "biweekly" ? "biweekly" : "weekly");
+  const [selectedDays, setSelectedDays] = useState<number[]>(saved.selectedDays);
+  const [schedule, setSchedule] = useState<SeriesRound[]>(saved.schedule);
+  const [highlightId, setHighlightId] = useState<number | null>(null);
+  const [alternateStartSides, setAlternateStartSides] = useState(saved.alternateStartSides);
+  const [statsPeriodMode, setStatsPeriodMode] = useState<"overall" | "halves">(saved.statsPeriodMode === "halves" ? "halves" : "overall");
+  const [firstHalfEndDate, setFirstHalfEndDate] = useState(saved.firstHalfEndDate);
+  const [draftError, setDraftError] = useState(false);
+  useEffect(() => {
+    const ok = writeBrowserStorage(storageKey, JSON.stringify({ seriesName, startDate, endDate, frequency, selectedDays, schedule, alternateStartSides, statsPeriodMode, firstHalfEndDate }));
+    if (!ok) queueMicrotask(() => setDraftError(true));
+  }, [storageKey, seriesName, startDate, endDate, frequency, selectedDays, schedule, alternateStartSides, statsPeriodMode, firstHalfEndDate]);
   const hasUnsupportedScoringPeriods =
     existingScoringPeriods.length > 0 && existingScoringPeriods.length !== 2;
   const scoringPeriodsLocked =
@@ -223,6 +227,7 @@ export default function MultiSeriesBuilder() {
   }, [fixedEventHoleCount, isNineHoleCourse, methods]);
 
   useEffect(() => {
+    if (!courses) return;
     if (!usesTwoNineRoute) {
       if (secondCourseId) methods.setValue("secondCourseId", "", { shouldDirty: true });
       if (secondTeeId) methods.setValue("secondTeeId", "", { shouldDirty: true });
@@ -250,6 +255,7 @@ export default function MultiSeriesBuilder() {
     secondTeeId,
     selectedSecondCourse,
     usesTwoNineRoute,
+    courses,
   ]);
 
   const sharedStartSide = methods.watch("startSide") === "back" ? "back" : "front";
@@ -262,6 +268,7 @@ export default function MultiSeriesBuilder() {
   const eventCount = generatedDates.length;
 
   const mutation = useCreateLeagueEvents(() => {
+    onCreated();
     show(`${resolvedSchedule.length} events created!`, "success");
     navigate(`/league/${leagueId}/admin`);
   });
@@ -445,6 +452,7 @@ export default function MultiSeriesBuilder() {
 
   return (
     <div className="flex flex-col gap-6">
+      {draftError && <p role="status" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">Series draft saving is unavailable. Keep this page open until events are created.</p>}
       {/* ── Event Settings + Scoring ── */}
       <div className="flex flex-col gap-6 xl:flex-row">
         <div className="flex w-full flex-col gap-5 xl:w-2/3">
@@ -529,12 +537,7 @@ export default function MultiSeriesBuilder() {
                     Play the first nine twice
                   </label>
                 ) : <span />}
-                <Link
-                  to="/courses"
-                  className="text-[10px] font-medium text-sky-700 hover:text-sky-900 hover:underline"
-                >
-                  Can't find your course?
-                </Link>
+
               </div>
 
               {methods.watch("courseId") && teeOptions.length > 0 && (

@@ -14,7 +14,7 @@ import { getEventDateInputValue } from "@/utils/eventDate";
 import { User, Users } from "lucide-react";
 import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
-import { Link, useParams } from "react-router";
+import { useParams } from "react-router";
 import { useToast } from "@/context/useToast";
 import {
   getFixedEventHoleCount,
@@ -85,6 +85,7 @@ export default function InfoForm() {
   }, [fixedEventHoleCount, isNineHoleCourse, methods]);
 
   useEffect(() => {
+    if (!courses) return;
     if (!usesTwoNineRoute) {
       if (secondCourseId) methods.setValue("secondCourseId", "", { shouldDirty: true });
       if (secondTeeId) methods.setValue("secondTeeId", "", { shouldDirty: true });
@@ -112,6 +113,7 @@ export default function InfoForm() {
     secondTeeId,
     selectedSecondCourse,
     usesTwoNineRoute,
+    courses,
   ]);
 
   if (coursesQuery.isLoading || coursesQuery.isError || !courses?.length) return <CourseQueryState {...coursesQuery} count={courses?.length ?? 0} onRetry={() => void coursesQuery.refetch()} />;
@@ -278,12 +280,7 @@ export default function InfoForm() {
                   Play the first nine twice
                 </label>
               ) : <span />}
-              <Link
-                to="/courses"
-                className="text-[10px] font-medium text-sky-700 hover:text-sky-900 hover:underline"
-              >
-                Can&apos;t find your course?
-              </Link>
+
             </div>
           </div>
           {methods.watch("courseId") && (

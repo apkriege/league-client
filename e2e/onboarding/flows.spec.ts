@@ -40,6 +40,7 @@ test('mobile roster fields fit and edit/delete have accessible touch targets', a
   await page.goto('/leagues/create');
   await page.getByLabel('League Name', { exact: true }).fill('Mobile League');
   await page.getByRole('button', { name: 'Next →' }).click();
+  await expect(page.getByRole('heading', { name: 'Add Players', exact: true })).toBeVisible();
   const firstName = page.getByLabel('First Name', { exact: true });
   await firstName.fill('Mobile');
   const bounds = await firstName.boundingBox();
@@ -141,4 +142,50 @@ test('league setup checks course availability and requests in place without losi
   await expect(page.getByLabel('League Name', { exact: true })).toHaveValue('Course Check League');
   await page.getByRole('button', { name: 'Next →' }).click();
   await expect(page.getByRole('heading', { name: 'Add Players', exact: true })).toBeVisible();
+});
+
+test('single and series drafts survive reload and course requests preserve event data', async ({ page }) => {
+  await mockLeague(page);
+  await page.route('http://127.0.0.1:3310/api/courses?*', route => route.fulfill({ json: [
+    { id: 12, name: 'Local Course', numHoles: 18, tees: [], club: { name: 'Local Club' } },
+  ] }));
+  await page.goto('/league/1/events/create');
+  await page.getByLabel('Series Name', { exact: true }).fill('Restored Series');
+  await page.reload();
+  await expect(page.getByLabel('Series Name', { exact: true })).toHaveValue('Restored Series');
+  await page.getByRole('button', { name: /Single Event/ }).click();
+  await page.getByLabel('Event Name', { exact: true }).fill('Restored Event');
+  await page.getByRole('button', { name: 'Request a missing course' }).click();
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(page.getByLabel('Event Name', { exact: true })).toHaveValue('Restored Event');
+  await page.reload();
+  await expect(page.getByLabel('Event Name', { exact: true })).toHaveValue('Restored Event');
+  await page.getByRole('button', { name: /Multi-Event Series/ }).click();
+  await expect(page.getByLabel('Series Name', { exact: true })).toHaveValue('Restored Series');
+});
+
+test('restored flights survive mounting and successful creation clears all event drafts', async ({ page }) => {
+  await mockLeague(page);
+  await page.route('http://127.0.0.1:3310/api/courses?*', route => route.fulfill({ json: [
+    { id: 12, name: 'Local Course', numHoles: 18, tees: [{ id: 21, name: 'White', distance: 6000, par: 72 }], club: { name: 'Local Club' } },
+  ] }));
+  await page.goto('/league/1/events/create');
+  await page.getByRole('button', { name: /Single Event/ }).click();
+  await page.getByLabel('Event Name', { exact: true }).fill('Draft With Flights');
+  await page.evaluate(() => {
+    const key = 'event-setup:v1:901:1';
+    const draft = JSON.parse(localStorage.getItem(key)!);
+    localStorage.setItem(key, JSON.stringify({ ...draft, courseId: '12', teeId: '21', scoringMode: 'stroke-play', flights: [[101, 102]] }));
+  });
+  await page.reload();
+  await expect(page.getByLabel('Event Name', { exact: true })).toHaveValue('Draft With Flights');
+  const storedFlights = await page.evaluate(() => JSON.parse(localStorage.getItem('event-setup:v1:901:1')!).flights);
+  expect(storedFlights).toEqual([[101, 102]]);
+  await page.route('http://127.0.0.1:3310/api/leagues/1/event', async route => {
+    expect(route.request().postDataJSON().flights).toEqual([[101, 102]]);
+    await route.fulfill({ status: 201, json: { id: 22 } });
+  });
+  await page.getByRole('button', { name: 'Create Event', exact: true }).click();
+  await expect(page).toHaveURL(/\/league\/1\/admin$/);
+  expect(await page.evaluate(() => ['event-setup:v1:901:1', 'event-setup:v1:901:1:series', 'event-setup:v1:901:1:mode'].map(key => localStorage.getItem(key)))).toEqual([null, null, null]);
 });
