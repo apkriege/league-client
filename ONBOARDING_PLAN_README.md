@@ -36,3 +36,9 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 ## Progress
 
 - Plan created; implementation pending.
+
+### 1. League draft preservation — complete
+- My Leagues resumes existing setup; explicit fresh-start confirmation preserves a draft when canceled.
+- Restores wizard progress for the matching user/renewal; catches inaccessible storage.
+- Verification: storage unit tests (2), browser resume/back/cancel regression, typecheck, lint, and diff whitespace check passed.
+- Browser harness uses mocked APIs for deterministic UI coverage; backend integration coverage remains a separate gate.

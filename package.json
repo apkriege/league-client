@@ -15,7 +15,8 @@
     "screenshots:marketing": "playwright test e2e/marketing-screenshots.spec.ts",
     "build": "tsc -b && vite build && node scripts/prerender-seo.mjs && node scripts/verify-seo-build.mjs",
     "lint": "eslint .",
-    "audit:prod": "npm audit --omit=dev --audit-level=high"
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "test:onboarding": "playwright test --config playwright.onboarding.config.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

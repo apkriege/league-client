@@ -1,3 +1,4 @@
+import { readBrowserStorage, writeBrowserStorage, removeBrowserStorage } from "@/lib/browserStorage";
 import Players from "./forms/PlayersForm";
 import TeamsForm from "./forms/TeamsForm";
 import ReviewForm from "./forms/ReviewForm";
@@ -151,7 +152,15 @@ export default function CreateLeague() {
     refetch: refetchStripeState,
   } = useStripeState(Boolean(user));
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(() => {
+    try {
+      const draft = JSON.parse(readBrowserStorage(draftStorageKey) || "null");
+      const savedStep = Number(readBrowserStorage(`${draftStorageKey}:step`));
+      return draft && Number(draft.renewedFromLeagueId || 0) === renewalSourceId &&
+        Number.isInteger(savedStep) && savedStep >= 1 && savedStep <= 4 ? savedStep : 1;
+    } catch { return 1; }
+  });
+  const [draftStorageError, setDraftStorageError] = useState(false);
   const [preferTrial, setPreferTrial] = useState(true);
   const [checkoutStatus, setCheckoutStatus] = useState(
     () => getCheckoutReturn(window.location.search).checkout,
@@ -169,7 +178,7 @@ export default function CreateLeague() {
 
   useEffect(() => {
     const freshDefaultLeagueData = createDefaultLeagueData();
-    const draft = window.localStorage.getItem(draftStorageKey);
+    const draft = readBrowserStorage(draftStorageKey);
     if (!draft) {
       if (renewalSourceId) return;
       if (user) {
@@ -186,13 +195,14 @@ export default function CreateLeague() {
 
     try {
       const parsed = JSON.parse(draft);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Invalid draft");
       const draftRenewalSourceId = Number(parsed?.renewedFromLeagueId || 0);
       if (renewalSourceId && draftRenewalSourceId !== renewalSourceId) {
-        window.localStorage.removeItem(draftStorageKey);
+        removeBrowserStorage(draftStorageKey);
         return;
       }
       if (!renewalSourceId && draftRenewalSourceId) {
-        window.localStorage.removeItem(draftStorageKey);
+        removeBrowserStorage(draftStorageKey);
         return;
       }
       const { access: _legacyAccess, ...parsedDraft } = parsed ?? {};
@@ -227,7 +237,7 @@ export default function CreateLeague() {
       });
       if (renewalSourceId) renewalTemplateAppliedRef.current = true;
     } catch {
-      window.localStorage.removeItem(draftStorageKey);
+      removeBrowserStorage(draftStorageKey);
     }
   }, [draftStorageKey, leagueForm, renewalSourceId, user]);
 
@@ -257,7 +267,7 @@ export default function CreateLeague() {
     const unsubscribe = leagueForm.subscribe({
       formState: { values: true },
       callback: ({ values }) => {
-        window.localStorage.setItem(draftStorageKey, JSON.stringify(values));
+        setDraftStorageError(!writeBrowserStorage(draftStorageKey, JSON.stringify(values)));
       },
     });
 
@@ -267,10 +277,10 @@ export default function CreateLeague() {
   const createLeagueAndOpenAdmin = useCallback(
     async (modeledData: any) => {
       const league = await createLeague.mutateAsync(modeledData);
-      window.localStorage.removeItem(draftStorageKey);
+      clearCreateLeagueDraft(Number(user?.id));
       navigate(`/league/${league.id}/admin`);
     },
-    [createLeague, draftStorageKey, navigate],
+    [createLeague, navigate, user?.id],
   );
 
   useEffect(() => {
@@ -459,7 +469,9 @@ export default function CreateLeague() {
 
   const goToStep = (nextStep: number) => {
     setCheckoutStatus(null);
-    setStep(Math.max(1, Math.min(steps.length, nextStep)));
+    const resolvedStep = Math.max(1, Math.min(steps.length, nextStep));
+    setStep(resolvedStep);
+    if (!writeBrowserStorage(`${draftStorageKey}:step`, String(resolvedStep))) setDraftStorageError(true);
   };
 
   const handleClearPreviousSeason = () => {
@@ -516,6 +528,7 @@ export default function CreateLeague() {
   return (
     <div>
       <div ref={topRef} />
+      {draftStorageError && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Draft saving is unavailable. Keep this page open until your league is created.</p>}
       {renewalSourceId > 0 && renewalTemplateQuery.data?.sourceLeague && (
         <div className="mb-4 gap-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-950 sm:flex sm:items-center sm:justify-between">
           <div>
