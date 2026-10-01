@@ -42,3 +42,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 - Restores wizard progress for the matching user/renewal; catches inaccessible storage.
 - Verification: storage unit tests (2), browser resume/back/cancel regression, typecheck, lint, and diff whitespace check passed.
 - Browser harness uses mocked APIs for deterministic UI coverage; backend integration coverage remains a separate gate.
+
+### 2. Mobile roster entry — complete
+- Responsive fields and labeled 44px edit/delete controls; table behavior preserved.
+- Verification: desktop draft regression and 390px roster add/edit/delete browser test passed; typecheck, lint, diff check passed.

@@ -33,3 +33,28 @@ test('league draft survives returning through My Leagues and restores the step',
   await page.getByRole('button', { name: 'Start a fresh league' }).click();
   await expect(page.getByRole('link', { name: /Resume League Setup/ })).toBeVisible();
 });
+
+test('mobile roster fields fit and edit/delete have accessible touch targets', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockAdmin(page);
+  await page.goto('/leagues/create');
+  await page.getByLabel('League Name', { exact: true }).fill('Mobile League');
+  await page.getByRole('button', { name: 'Next →' }).click();
+  const firstName = page.getByLabel('First Name', { exact: true });
+  await firstName.fill('Mobile');
+  const bounds = await firstName.boundingBox();
+  expect(bounds?.width).toBeGreaterThan(200);
+  expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390);
+  await page.getByLabel('Last Name', { exact: true }).fill('Golfer');
+  await page.getByLabel('18-Hole Handicap', { exact: true }).fill('12.4');
+  await page.getByRole('combobox').filter({ hasText: 'Select gender' }).click();
+  await page.getByRole('option', { name: 'Female', exact: true }).click();
+  await page.getByRole('button', { name: 'Save Player', exact: true }).click();
+  const edit = page.getByRole('button', { name: 'Edit Mobile Golfer' });
+  await expect(edit).toBeVisible();
+  expect((await edit.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  await edit.click();
+  await expect(firstName).toHaveValue('Mobile');
+  await page.getByRole('button', { name: 'Delete Mobile Golfer' }).click();
+  await expect(edit).toHaveCount(0);
+});

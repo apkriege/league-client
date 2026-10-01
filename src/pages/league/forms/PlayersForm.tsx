@@ -173,16 +173,12 @@ export default function PlayersForm() {
       label: "Actions",
       render: (_value: any, row: any) => (
         <div className="flex items-center gap-2">
-          <SquarePen
-            size={16}
-            className="cursor-pointer text-blue-400"
-            onClick={() => editPlayer(row)}
-          />
-          <Trash2
-            size={18}
-            className="cursor-pointer text-red-400"
-            onClick={() => removePlayer(row.id)}
-          />
+          <button type="button" aria-label={`Edit ${row.firstName} ${row.lastName}`} onClick={() => editPlayer(row)} className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-emerald-600">
+            <SquarePen size={18} aria-hidden="true" />
+          </button>
+          <button type="button" aria-label={`Delete ${row.firstName} ${row.lastName}`} onClick={() => removePlayer(row.id)} className="flex h-11 w-11 items-center justify-center rounded-xl text-red-600 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-600">
+            <Trash2 size={18} aria-hidden="true" />
+          </button>
         </div>
       ),
     },
@@ -203,7 +199,7 @@ export default function PlayersForm() {
         <SectionKicker className="mb-3">
           {isEdit ? "Edit Player" : "Add Player"}
         </SectionKicker>
-        <div className="grid grid-cols-3 items-end gap-2">
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-3">
           <Controller
             name="firstName"
             control={playerForm.control}
@@ -226,7 +222,7 @@ export default function PlayersForm() {
             )}
           />
         </div>
-        <div className="grid grid-cols-5 items-end gap-2">
+        <div className="mt-4 grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <Controller
             name="phone"
             control={playerForm.control}
@@ -279,7 +275,7 @@ export default function PlayersForm() {
             type="button"
             variant="primary"
             size="md"
-            className="mb-1"
+            className="mb-1 min-h-11"
             onClick={playerForm.handleSubmit(onSubmit)}
           >
             {isEdit ? "Update Player" : "Save Player"}
