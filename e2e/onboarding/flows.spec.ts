@@ -67,3 +67,29 @@ test('registration sign-in keeps the invitation return path', async ({ page }) =
   await signIn.click();
   await expect(page.getByRole('link', { name: 'Register', exact: true })).toHaveAttribute('href', '/?redirect=%2Finvite%2Fsample-token#register');
 });
+
+test('signup explains the password rule and switches to verification recovery', async ({ page }) => {
+  let resendCount = 0;
+  await page.route('http://127.0.0.1:3310/api/auth/**', async route => {
+    if (route.request().url().endsWith('/resend')) resendCount += 1;
+    await route.fulfill({ json: { message: resendCount ? 'Verification email sent again.' : 'Account created. Verify your email.' } });
+  });
+  await page.goto('/#register');
+  await page.locator('#register').scrollIntoViewIfNeeded();
+  const panel = page.locator('#register');
+  await expect(panel.getByText('Use at least 8 characters for your password.')).toBeVisible();
+  await panel.getByLabel('First name', { exact: true }).fill('New');
+  await panel.getByLabel('Last name', { exact: true }).fill('Admin');
+  await panel.getByLabel('Email', { exact: true }).fill('new@test.com');
+  await panel.getByLabel('Password', { exact: true }).fill('safe-password');
+  await panel.getByLabel('Confirm password', { exact: true }).fill('safe-password');
+  await panel.getByRole('checkbox').check();
+  await panel.getByRole('button', { name: 'Create admin account' }).click();
+  await expect(panel.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+  await expect(panel.getByLabel('Password', { exact: true })).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Resend verification email' }).click();
+  await expect(panel.getByRole('status')).toHaveText('Verification email sent again.');
+  expect(resendCount).toBe(1);
+  await panel.getByRole('button', { name: 'Use a different email' }).click();
+  await expect(panel.getByLabel('Password', { exact: true })).toHaveValue('');
+});

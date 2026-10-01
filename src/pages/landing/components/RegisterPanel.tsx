@@ -105,6 +105,22 @@ export default function RegisterPanel() {
     }
   };
 
+  if (registeredEmail) {
+    return (
+      <aside className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-3xl font-black tracking-tight text-slate-950">Check your email</h2>
+        <p className="mt-3 text-sm text-slate-600">Open the verification link sent to <strong>{registeredEmail}</strong> to {isInvitationRegistration ? "continue joining your league" : "start your league"}.</p>
+        <p className="mt-3 text-sm text-slate-500">Check your spam folder if it hasn’t arrived.</p>
+        <p role="status" className={`mt-4 rounded-xl p-4 text-sm ${status === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>{message}</p>
+        <button type="button" disabled={status === "resending"} onClick={() => void resend()} className="mt-4 min-h-11 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">{status === "resending" ? "Sending…" : "Resend verification email"}</button>
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+          <Link to={requestedReturnTo ? `/login?redirect=${encodeURIComponent(requestedReturnTo)}` : "/login"} className="font-bold underline">Sign in</Link>
+          <button type="button" className="font-bold underline" onClick={() => { setRegisteredEmail(""); setStatus("idle"); setMessage(""); }}>Use a different email</button>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside
       className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-950/10"
@@ -160,6 +176,7 @@ export default function RegisterPanel() {
           onChange={(value) => update("password", value)}
           autoComplete="new-password"
         />
+        <p className="text-xs text-slate-500">Use at least 8 characters for your password.</p>
         <TextField
           label="Confirm password"
           type="password"
@@ -205,20 +222,11 @@ export default function RegisterPanel() {
           </p>
         )}
 
-        {registeredEmail && (
-          <button
-            type="button"
-            disabled={status === "resending"}
-            onClick={() => void resend()}
-            className="text-xs font-black text-slate-700 underline disabled:opacity-60"
-          >
-            {status === "resending" ? "Sending…" : "Resend verification email"}
-          </button>
-        )}
+
 
         <button
           type="submit"
-          disabled={!formIsComplete || status === "submitting" || Boolean(registeredEmail)}
+          disabled={!formIsComplete || status === "submitting"}
           className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-sky-300 px-5 text-sm font-black text-slate-950 transition hover:bg-sky-200 disabled:opacity-60"
         >
           {status === "submitting"

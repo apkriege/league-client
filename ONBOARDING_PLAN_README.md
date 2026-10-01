@@ -50,3 +50,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 ### 3. Invitation sign-in context — complete
 - Registration/sign-in preserves invitation destinations; shared safe-path validation rejects external/backslash/control-character redirects.
 - Verification: 7 return-path tests, 3 browser regressions, client/server typecheck and client lint passed. Two real-database backend tests passed for password/consent rejection and matching-email invitation registration, player role, verification destination, and unverified login rejection.
+
+### 4. Signup guidance — complete
+- Visible password-length guidance and a dedicated verification state with resend, sign-in, and different-email recovery; passwords cleared after registration.
+- Verification: 4 browser regressions passed, including signup/resend/recovery; typecheck/lint/diff check passed. Backend password/consent and verification rules covered in step 3.
