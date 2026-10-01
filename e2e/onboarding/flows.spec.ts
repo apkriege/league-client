@@ -124,3 +124,21 @@ test('both event builders expose course errors and retry', async ({ page }) => {
   await page.getByRole('button', { name: /Single Event/ }).click();
   await expect(page.getByRole('button', { name: 'Retry loading courses' })).toBeVisible();
 });
+
+test('league setup checks course availability and requests in place without losing details', async ({ page }) => {
+  await mockAdmin(page);
+  await page.route('http://127.0.0.1:3310/api/courses?*', route => route.fulfill({ json: [
+    { id: 12, name: 'Local Course', club: { name: 'Local Club', location: 'Test City, IN' }, tees: [] },
+  ] }));
+  await page.goto('/leagues/create');
+  await page.getByLabel('League Name', { exact: true }).fill('Course Check League');
+  await page.getByRole('combobox', { name: 'Find your course' }).fill('Local');
+  await page.getByRole('option', { name: /Local Course/ }).click();
+  await expect(page.getByText('Course available. Continue with your league setup.')).toBeVisible();
+  await page.getByRole('button', { name: 'Request a missing course' }).click();
+  await expect(page.getByRole('dialog', { name: 'Request a course' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(page.getByLabel('League Name', { exact: true })).toHaveValue('Course Check League');
+  await page.getByRole('button', { name: 'Next →' }).click();
+  await expect(page.getByRole('heading', { name: 'Add Players', exact: true })).toBeVisible();
+});

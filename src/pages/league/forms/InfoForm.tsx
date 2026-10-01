@@ -1,3 +1,4 @@
+import CourseSetupCheck from "@/features/courses/CourseSetupCheck";
 import { Input, Select, SelectableInfoCard } from "@/components/form";
 import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
@@ -39,10 +40,11 @@ export default function InfoForm({
         subTitle={
           isEditing
             ? "Update league details and settings."
-            : "Build the foundation of your tournament season. Complete the sections below to initialize your league."
+            : "Check your course, then choose your league settings."
         }
       />
 
+      {!isEditing && <CourseSetupCheck />}
       <div className="mt-6 space-y-3">
         {/* General Info */}
         <Card>

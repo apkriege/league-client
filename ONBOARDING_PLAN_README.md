@@ -58,3 +58,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 ### 5. Course query states — complete
 - Shared loading/error/empty messaging and retry in course directory and both event builders.
 - Verification: 6 browser regressions passed, including failed request/retry and single/series failure states; typecheck/lint/diff check passed.
+
+### 6. Course check during league setup — complete
+- Search course/club/location and request a missing course in a lazy-loaded dialog before roster entry; setup can continue while requests are pending.
+- Verification: 7 browser regressions passed including course selection, opening/closing requests, preserving form details, and continuing setup. Typecheck/lint/diff check passed; 11 backend course-request/upload tests passed after allowing local HTTP test sockets.
