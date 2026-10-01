@@ -17,6 +17,7 @@ import {
 type ScoringModeFieldsProps = {
   format: CompetitionModel;
   onModeChange?: () => void;
+  collapseAdvanced?: boolean;
 };
 
 const maximumRuleOptions = [
@@ -25,7 +26,8 @@ const maximumRuleOptions = [
   { value: "net-double-bogey", label: "Net double bogey" },
 ];
 
-export default function ScoringModeFields({ format, onModeChange }: ScoringModeFieldsProps) {
+export default function ScoringModeFields({ format, onModeChange, collapseAdvanced = false }: ScoringModeFieldsProps) {
+  const AdvancedContainer = collapseAdvanced ? "details" : "div";
   const methods = useFormContext();
   const rawMode = methods.watch("scoringMode");
   const mode = deriveScoringMode({
@@ -184,6 +186,9 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
         </details>
       )}
 
+      <AdvancedContainer className={collapseAdvanced ? "rounded-xl border border-slate-200 p-4" : undefined}>
+        {collapseAdvanced && <summary className="cursor-pointer text-sm font-bold text-slate-700">Advanced scoring settings</summary>}
+        <div className={collapseAdvanced ? "mt-4 space-y-4" : "space-y-4"}>
       {(mode === "best-ball" || mode === "four-ball-match") && (
         <div>
           <Input
@@ -265,6 +270,8 @@ export default function ScoringModeFields({ format, onModeChange }: ScoringModeF
           )}
         </div>
       )}
+        </div>
+      </AdvancedContainer>
     </div>
   );
 }

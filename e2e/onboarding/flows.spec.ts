@@ -230,3 +230,24 @@ test('getting-started actions are hidden for archived and unpaid leagues', async
   await expect(page.getByText('Season payment needs attention', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Get ready for your first round' })).toHaveCount(0);
 });
+
+test('tournaments start with a single event and advanced scoring preserves chosen values', async ({ page }) => {
+  await mockLeague(page, 'tournament');
+  await page.route('http://127.0.0.1:3310/api/courses?*', route => route.fulfill({ json: [
+    { id: 12, name: 'Local Course', numHoles: 18, tees: [], club: { name: 'Local Club' } },
+  ] }));
+  await page.goto('/league/1/events/create');
+  await expect(page.getByLabel('Event Name', { exact: true })).toBeVisible();
+  const points = page.getByLabel('Points per hole', { exact: true });
+  await expect(points).not.toBeVisible();
+  const summary = page.getByText('Advanced scoring settings', { exact: true });
+  await summary.click();
+  await points.fill('3');
+  await summary.click();
+  await expect(points).not.toBeVisible();
+  await summary.click();
+  await expect(points).toHaveValue('3');
+  await page.reload();
+  await summary.click();
+  await expect(points).toHaveValue('3');
+});

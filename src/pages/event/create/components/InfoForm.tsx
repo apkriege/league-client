@@ -396,6 +396,7 @@ export default function InfoForm() {
           <h3 className="text-lg font-bold">Scoring</h3>
           <p className="text-sm text-gray-500">Pick the format, then configure only what it needs.</p>
           <ScoringModeFields
+              collapseAdvanced
             format={isTeamFormat ? "team" : "individual"}
             onModeChange={clearFlightsForModeChange}
           />

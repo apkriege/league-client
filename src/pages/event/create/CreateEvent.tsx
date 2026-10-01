@@ -1,3 +1,4 @@
+import { getDefaultEventBuilder } from "./eventBuilderDefaults";
 import { useAppStore } from "@/stores/appStore";
 import { writeBrowserStorage } from "@/lib/browserStorage";
 import { clearEventSetupDraft, eventSetupDraftKey, readSetupDraft, isSetupFlights, isSetupLineups, isSetupTeams } from "./setupDraft";
@@ -62,7 +63,7 @@ function EventBuilder() {
   const { data: league, isLoading, isError, error } = useLeague(Number(leagueId));
   const userId = Number(useAppStore(state => state.user?.id));
   const storageKey = eventSetupDraftKey(userId, Number(leagueId));
-  const [wizardType, setWizardType] = useState<EventWizardType>(() => readSetupDraft<EventWizardType>(`${storageKey}:mode`, "multi") === "single" ? "single" : "multi");
+  const [wizardType, setWizardType] = useState<EventWizardType>(() => readSetupDraft<EventWizardType>(`${storageKey}:mode`, getDefaultEventBuilder(league?.type, league?.holeFormat), mode => mode === "single" || mode === "multi"));
   const [storageError, setStorageError] = useState(false);
 
   const mutation = useCreateLeagueEvent();
@@ -196,7 +197,7 @@ function EventBuilder() {
     <FormProvider {...eventForm}>
       <PageHeader
         title="Create Event"
-        subTitle="Fill in the event details, configure teams if needed, and set up flights before submitting."
+        subTitle="Choose a course and date, then arrange your players into flights."
       />
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
@@ -281,5 +282,7 @@ function EventBuilder() {
 export default function CreateEvent() {
   const { leagueId } = useParams();
   const userId = useAppStore(state => state.user?.id);
+  const leagueQuery = useLeague(Number(leagueId));
+  if (leagueQuery.isLoading) return <LoadingState>Loading league…</LoadingState>;
   return <EventBuilder key={`${userId}:${leagueId}`} />;
 }

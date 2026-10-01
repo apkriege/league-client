@@ -669,6 +669,7 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
             <h3 className="text-lg font-bold">Scoring</h3>
             <p className="text-sm text-gray-500">Pick the format once for the full series.</p>
             <ScoringModeFields
+              collapseAdvanced
               format={isTeamFormat ? "team" : "individual"}
               onModeChange={() => setSchedule([])}
             />

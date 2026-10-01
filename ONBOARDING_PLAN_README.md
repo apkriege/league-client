@@ -80,3 +80,8 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 ### 9. Getting-started checklist — complete
 - Derived next action schedules the first playable event, finishes missing flights, or opens scoring. Invitations are optional. Guidance retires once scoring begins and is hidden for archived/unpaid leagues; intelligence appears once results exist.
 - Verification: 3 progression tests, 2 dashboard browser tests including archived/payment-due restrictions, typecheck/lint/diff check passed.
+
+### 10. Simpler first-event setup — complete
+- Tournament/mixed leagues default to single events; fixed-hole seasons keep recurring setup; an explicit saved choice takes precedence.
+- Creation pages progressively disclose points/allowances; required mode-specific rules remain visible. Existing edit-page disclosure remains unchanged.
+- Verification: 14 builder/scoring tests, 3 browser regressions for defaults/disclosure/value persistence and event drafts, typecheck/lint/diff check passed.
