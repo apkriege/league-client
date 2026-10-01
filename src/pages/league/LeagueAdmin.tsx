@@ -1,3 +1,4 @@
+import LeagueGettingStarted from "@/features/leagues/components/LeagueGettingStarted";
 import LoadingState from "@/components/layout/LoadingState";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
@@ -301,6 +302,8 @@ export default function LeagueAdmin() {
         />
       )}
 
+      {!isReadOnly && <LeagueGettingStarted leagueId={Number(leagueId)} events={events ?? []} hasRecordedScores={Boolean(league?.hasRecordedScores)} hasLinkedPlayer={(league?.players ?? []).some((player: { userId?: number | null }) => Boolean(player.userId))} />}
+
       {isReadOnly && (
         <div className={`rounded-xl border px-4 py-3 ${
           leagueBillingStatus === "payment_due"
@@ -451,11 +454,11 @@ export default function LeagueAdmin() {
         </div>
       </div>
 
-      <CommissionerInsights
+      {Boolean(league?.hasRecordedScores) && <CommissionerInsights
         league={league}
         events={Array.isArray(events) ? events : []}
         metrics={metrics}
-      />
+      />}
 
       <section className="space-y-3">
         <SectionHeader

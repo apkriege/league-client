@@ -112,9 +112,10 @@ test('course loading errors offer retry and do not masquerade as an empty direct
 async function mockLeague(page: Page, type = 'season') {
   await mockAdmin(page);
   const league = { id: 1, adminId: 901, name: 'Test League', type, format: 'individual', holeFormat: '18',
-    startDate: '2026-01-01', endDate: '2027-01-01', players: [], teams: [], events: [] };
+    startDate: '2026-01-01', endDate: '2027-01-01', players: [], teams: [], events: [], entitlement: { status: 'trialing', requiredGolfers: 8, trialEventCount: 0, trialEventLimit: 3 } };
   await page.route('http://127.0.0.1:3310/api/admin/leagues', route => route.fulfill({ json: [league] }));
   await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: league }));
+  return league;
 }
 
 test('both event builders expose course errors and retry', async ({ page }) => {
@@ -208,4 +209,24 @@ test('roster import previews valid rows, rejects duplicates, and appends with di
   await dialog.getByLabel('Spreadsheet rows').fill(source);
   await expect(dialog.getByRole('alert')).toContainText('duplicate');
   await expect(dialog.getByRole('button', { name: /Import \d+ players/ })).toBeDisabled();
+});
+
+test('new admin dashboard prioritizes the first event', async ({ page }) => {
+  await mockLeague(page);
+  await page.goto('/league/1/admin');
+  await expect(page.getByRole('heading', { name: 'Get ready for your first round' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Create your first event' })).toHaveAttribute('href', '/league/1/events/create');
+  await expect(page.getByRole('heading', { name: 'Operations Check' })).toHaveCount(0);
+});
+
+test('getting-started actions are hidden for archived and unpaid leagues', async ({ page }) => {
+  const league = await mockLeague(page);
+  await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, seasonStatus: 'archived' } }));
+  await page.goto('/league/1/admin');
+  await expect(page.getByText('Past season — read only', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Get ready for your first round' })).toHaveCount(0);
+  await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, entitlement: null } }));
+  await page.reload();
+  await expect(page.getByText('Season payment needs attention', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Get ready for your first round' })).toHaveCount(0);
 });

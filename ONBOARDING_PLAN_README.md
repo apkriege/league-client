@@ -76,3 +76,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 - Paste spreadsheet cells or upload CSV/TSV with preview; require valid names/gender/stored handicap (-10..54); reject duplicate names/emails and malformed/oversized inputs; append unique IDs. Partial rosters remain supported by existing league rules.
 - Verification: 15 parser tests; browser preview/import/duplicate/ID regression; client typecheck/lint; 3 real database onboarding tests passed including partial-roster trial creation, rejected out-of-range handicap, and preserved negative handicap.
 - Added an explicit backend onboarding-test typecheck because the existing server typecheck excludes test files; it passes. Corrected a new test's entitlement lookup before commit.
+
+### 9. Getting-started checklist — complete
+- Derived next action schedules the first playable event, finishes missing flights, or opens scoring. Invitations are optional. Guidance retires once scoring begins and is hidden for archived/unpaid leagues; intelligence appears once results exist.
+- Verification: 3 progression tests, 2 dashboard browser tests including archived/payment-due restrictions, typecheck/lint/diff check passed.
