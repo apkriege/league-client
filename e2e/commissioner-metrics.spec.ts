@@ -36,6 +36,11 @@ async function checkMetrics(page: Page, mobile: boolean) {
   expect((await intelligence.boundingBox())!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   await intelligence.screenshot({ path: `/tmp/commissioner-metrics-${mobile ? 'mobile' : 'desktop'}.png` });
   await expect(page.getByText('Overview', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Next Event', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Opening Round', exact: true })).toHaveCount(1);
+  await page.getByRole('button', { name: 'New Event', exact: true }).click();
+  await expect(page).toHaveURL(/\/events\/create$/);
+  await page.goto('/league/1/admin');
   const communication = page.getByRole('region', { name: 'League communication' });
   const sections = communication.locator(':scope > div');
   await expect(sections).toHaveCount(2);

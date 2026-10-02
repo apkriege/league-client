@@ -15,7 +15,7 @@ import {
 } from "@/components/league/AdminOpsPanels";
 import LeagueAnnouncementsPanel from "@/components/league/LeagueAnnouncementsPanel";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
-import { formatEventDate, getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
+import { getEventLocalDate, sortEventsByDate } from "@/utils/eventDate";
 import { formatTime } from "@/utils/format";
 import { useToast } from "@/context/useToast";
 import { getScoringModeLabel } from "@/features/scoring/scoringModes";
@@ -195,10 +195,8 @@ export default function LeagueAdmin() {
   }
 
   const needsScores = events?.filter((e: any) => e.status === "active") ?? [];
-  const upcoming = events?.filter((e: any) => e.status === "upcoming") ?? [];
   const sortedEvents = sortEventsByDate(events ?? []);
   const totalEvents = events?.length ?? 0;
-  const nextEvent = upcoming[0] ?? null;
   const role = String(user?.role || "").toUpperCase();
   const isSuperAdmin = role === "SUPER";
   const ownsLeague = Number(league?.adminId) === Number(user?.id);
@@ -303,7 +301,7 @@ export default function LeagueAdmin() {
           <p className="mt-1 text-xs leading-5 opacity-80">
             {leagueBillingStatus === "payment_due"
               ? "A refund or dispute left this season underpaid. Results remain visible, but changes are blocked until payment is restored."
-              : "Historical players, events, scores, and announcements are locked. Renew the league to manage the next season."}
+              : "Historical players, events, scores, and announcements are locked."}
           </p>
           {leagueBillingStatus === "payment_due" && ownsLeague && (
             <button
@@ -417,7 +415,7 @@ export default function LeagueAdmin() {
           <div>
             <p className="text-sm font-bold tracking-tight text-gray-900">Communication tools</p>
             <p className="mt-0.5 text-xs font-medium text-gray-500">
-              Manage profile claims and league announcements.
+              Invite players and manage announcements.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -437,19 +435,15 @@ export default function LeagueAdmin() {
         {/* Score entry — active events first */}
         {needsScores.length > 0 && (
           <section className="space-y-3">
-            <SectionHeader
-              title="Scoring"
-              description="Active rounds that need scores entered or reviewed."
-            />
             <div className="bg-white border border-blue-200 rounded-xl shadow-sm overflow-hidden">
               <PanelBar className="bg-blue-50/70">
                 <Zap size={14} className="text-blue-600" strokeWidth={2.5} />
                 <div>
                   <h3 className="text-sm font-black tracking-tight text-gray-900">
-                    Ready to Score
+                    Scoring
                   </h3>
                   <p className="text-xs font-medium text-blue-700/70">
-                    Active rounds waiting for score entry
+                    Active rounds
                   </p>
                 </div>
                 <span className="ml-auto rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
@@ -475,9 +469,6 @@ export default function LeagueAdmin() {
           <div className="flex items-center justify-between mb-2">
             <div className="space-y-1">
               <SectionLabel>Events</SectionLabel>
-              <p className="text-sm font-medium text-gray-500">
-                Upcoming, completed, and canceled rounds
-              </p>
             </div>
             <button
               onClick={() => navigate(`/league/${leagueId}/events/create`)}
@@ -487,77 +478,6 @@ export default function LeagueAdmin() {
               New Event
             </button>
           </div>
-
-          {nextEvent && (
-            <SurfaceCard>
-              <PanelBar>
-                <CalendarDays size={14} className="text-blue-400" strokeWidth={2.5} />
-                <h3 className="text-sm font-black tracking-tight text-gray-900">Next Event</h3>
-              </PanelBar>
-              <div className="px-4 py-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  {/* Date badge */}
-                  <div className="flex flex-col items-center justify-center bg-slate-900/5 border border-slate-900/10 rounded-lg px-3 py-2 min-w-14 text-center">
-                    <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">
-                      {formatEventDate(nextEvent.startsAt, { month: "short" }, "en-US", nextEvent.timeZone)}
-                    </span>
-                    <span className="text-2xl font-black text-slate-900 leading-none">
-                      {formatEventDate(nextEvent.startsAt, { day: "numeric" }, "en-US", nextEvent.timeZone)}
-                    </span>
-                    <span className="text-[9px] text-gray-400 font-medium">
-                      {formatEventDate(nextEvent.startsAt, { weekday: "short" }, "en-US", nextEvent.timeZone)}
-                    </span>
-                  </div>
-                  <div>
-                    <Link
-                      to={`/league/${leagueId}/events/${nextEvent.id}`}
-                      className="font-semibold text-gray-800 hover:underline"
-                    >
-                      {nextEvent.name}
-                    </Link>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <MapPin size={11} className="text-gray-400" strokeWidth={2} />
-                      <span className="text-xs text-gray-400">{getEventRouteLabel(nextEvent)}</span>
-                      {nextEvent.tee?.name && (
-                        <>
-                          <span className="text-gray-300">&bull;</span>
-                          <span className="text-xs text-gray-400">{nextEvent.tee.name} tees</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      {nextEvent.startsAt && (
-                        <span className="flex items-center gap-1 text-[10px] text-gray-400">
-                          <Clock size={10} className="text-gray-300" />
-                          {formatTime(nextEvent.startsAt, nextEvent.timeZone)}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1 text-[10px] text-gray-400">
-                        <Flag size={10} className="text-gray-300" />
-                        {nextEvent.holes} holes
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => navigate(`/league/${leagueId}/events/${nextEvent.id}/edit`)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
-                  >
-                    <Edit size={12} strokeWidth={2.5} />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => navigate(`/league/${leagueId}/events/${nextEvent.id}/scores`)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-900/90 transition-colors"
-                  >
-                    <ClipboardList size={12} strokeWidth={2.5} />
-                    Enter Scores
-                  </button>
-                </div>
-              </div>
-            </SurfaceCard>
-          )}
 
           {totalEvents === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
@@ -586,10 +506,7 @@ export default function LeagueAdmin() {
       </div>
 
       <div>
-        <SectionHeader
-          title="Activity"
-          description="Recent administrative changes and league operations."
-        />
+        <SectionLabel>Activity</SectionLabel>
         <div className="mt-3">
           <AuditLogPanel leagueId={Number(leagueId)} />
         </div>
@@ -601,19 +518,6 @@ export default function LeagueAdmin() {
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.18em]">{children}</h2>
-  );
-}
-
-function SectionHeader({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="flex items-end justify-between gap-3pb-2">
-      <div>
-        <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-400">
-          {title}
-        </h2>
-        <p className="mt-1 text-sm font-medium text-gray-500">{description}</p>
-      </div>
-    </div>
   );
 }
 

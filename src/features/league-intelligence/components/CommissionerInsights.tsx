@@ -28,7 +28,7 @@ export default function CommissionerInsights({
     <IntelligenceShell
       kicker="Commissioner intelligence"
       title="Operations Check"
-      description="A prioritized scan of billing, participation, scoring, scheduling, and renewal readiness."
+      description="League status and items needing attention."
       aside={insight.health === "ready" ? (
         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-bold text-emerald-300">
           <CheckCircle2 size={13} /> Ready
