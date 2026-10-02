@@ -39,15 +39,20 @@ export function InsightMetric({
   label,
   value,
   detail,
+  children,
 }: {
   label: string;
   value: ReactNode;
   detail: string;
+  children?: ReactNode;
 }) {
   return (
     <div className="px-4 py-3.5">
       <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <p className="mt-1 text-lg font-black tracking-tight text-slate-900">{value}</p>
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-lg font-black tracking-tight text-slate-900">{value}</p>
+        {children}
+      </div>
       <p className="mt-0.5 text-[10px] leading-4 text-slate-500">{detail}</p>
     </div>
   );

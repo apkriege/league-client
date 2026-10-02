@@ -14,6 +14,8 @@ async function checkMetrics(page: Page, mobile: boolean) {
   const trial = intelligence.getByText('Trial remaining', { exact: true }).locator('..');
   await expect(trial).toContainText('2');
   await expect(trial).toContainText('scored events left');
+  await expect(trial.getByRole('button', { name: 'Activate League', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(1);
   await expect(intelligence.getByText('Events completed', { exact: true }).locator('..')).toContainText('1 / 2');
   await expect(intelligence.getByText('Next event', { exact: true }).locator('..')).toContainText('Opening Round');
   await expect(intelligence.getByText('Season remaining', { exact: true }).locator('..')).toContainText('days');
@@ -32,6 +34,27 @@ async function checkMetrics(page: Page, mobile: boolean) {
   await expect(sections.nth(0)).toContainText('View-only league code');
   await expect(sections.nth(1)).toContainText('Communication tools');
   await communication.screenshot({ path: `/tmp/admin-communication-${mobile ? 'mobile' : 'desktop'}.png` });
+  let checkoutPayload: unknown;
+  let releaseCheckout = () => {};
+  await page.route('http://127.0.0.1:3310/api/payments/checkout-session', async route => {
+    checkoutPayload = route.request().postDataJSON();
+    await new Promise<void>(resolve => { releaseCheckout = resolve; });
+    await route.fulfill({ status: 500, json: { message: 'Checkout unavailable' } });
+  });
+  await trial.getByRole('button', { name: 'Activate League', exact: true }).click();
+  await expect(trial.getByRole('button', { name: 'Preparing Checkout...', exact: true })).toBeDisabled();
+  await expect.poll(() => checkoutPayload).toMatchObject({ purpose: 'league_capacity', leagueId: 1, requestedGolfers: 8 });
+  releaseCheckout();
+  await expect(trial.getByRole('button', { name: 'Activate League', exact: true })).toBeEnabled();
+  await expect(page).toHaveURL(/\/league\/1\/admin$/);
+  await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, adminId: 999 } }));
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Operations Check', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(0);
+  await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, entitlement: { ...league.entitlement, status: 'paid', paidGolfers: 8 } } }));
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Operations Check', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(0);
 }
 
 test('commissioner stat boxes show useful operational metrics', async ({ page }) => checkMetrics(page, false));

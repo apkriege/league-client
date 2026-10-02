@@ -338,10 +338,6 @@ export default function LeagueAdmin() {
               ? "Activate this league to score another event. Your existing scores and schedule remain available."
               : "Only an event's first saved score counts. You can continue scheduling and correct scores from trial events."}
           </p>
-          {ownsLeague && <button type="button" disabled={restorePayment.isPending}
-            onClick={activateLeaguePayment} className="mt-3 min-h-10 rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white disabled:opacity-60">
-            {restorePayment.isPending ? "Preparing Checkout..." : "Activate League"}
-          </button>}
         </div>
       )}
 
@@ -411,6 +407,8 @@ export default function LeagueAdmin() {
         league={league}
         events={Array.isArray(events) ? events : []}
         metrics={metrics}
+        onActivateLeague={leagueBillingStatus === "trial" && ownsLeague ? activateLeaguePayment : undefined}
+        activationPending={restorePayment.isPending}
       />
 
       <section aria-label="League communication" className="space-y-3">

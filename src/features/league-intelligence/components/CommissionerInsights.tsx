@@ -1,4 +1,5 @@
-import { AlertTriangle, CheckCircle2, ClipboardCheck } from "lucide-react";
+import Button from "@/components/layout/Button";
+import { AlertTriangle, CheckCircle2, ChevronRight, ClipboardCheck } from "lucide-react";
 import { buildCommissionerMetrics } from "../commissionerMetrics";
 import { buildCommissionerInsights } from "../commissionerInsights";
 import type {
@@ -12,10 +13,14 @@ export default function CommissionerInsights({
   league,
   events,
   metrics,
+  onActivateLeague,
+  activationPending = false,
 }: {
   league: LeagueAdminInput;
   events: IntelligenceEvent[];
   metrics?: LeagueIntelligenceMetrics;
+  onActivateLeague?: () => Promise<void>;
+  activationPending?: boolean;
 }) {
   const insight = buildCommissionerInsights({ league, events, metrics });
   const statMetrics = buildCommissionerMetrics(league, events);
@@ -35,7 +40,17 @@ export default function CommissionerInsights({
       )}
     >
       <div className="grid grid-cols-2 divide-x divide-y divide-slate-100 bg-white lg:grid-cols-4 lg:divide-y-0">
-        {statMetrics.map(metric => <InsightMetric key={metric.label} {...metric} />)}
+        {statMetrics.map((metric, index) => (
+          <InsightMetric key={metric.label} {...metric}>
+            {index === 0 && onActivateLeague && (
+              <Button variant="default" size="xs" disabled={activationPending} onClick={() => void onActivateLeague()}
+                sx={{ minWidth: 0, px: 0, gap: 0.25, color: "text.secondary" }}>
+                {activationPending ? "Preparing Checkout..." : "Activate League"}
+                {!activationPending && <ChevronRight size={12} />}
+              </Button>
+            )}
+          </InsightMetric>
+        ))}
       </div>
       {insight.items.length === 0 ? (
         <div className="flex items-center justify-center gap-2 border-t border-slate-200 px-5 py-5 text-xs font-semibold text-emerald-700">
