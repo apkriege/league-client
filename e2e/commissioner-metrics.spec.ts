@@ -12,6 +12,11 @@ async function checkMetrics(page: Page, mobile: boolean) {
   const intelligence = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Operations Check', exact: true }) });
   await expect(intelligence).toBeVisible();
   await expect(page.getByText(/Free trial ·/)).toHaveCount(0);
+  const titleRow = page.getByRole('heading', { name: 'Thursday League', exact: true }).locator('..').locator('..');
+  await expect(titleRow.getByRole('button', { name: 'Edit League', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Renew for Next Season/ })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Renew for Next Season', exact: true })).toHaveCount(0);
+  await titleRow.screenshot({ path: `/tmp/admin-title-${mobile ? 'mobile' : 'desktop'}.png` });
   const trial = intelligence.getByText('Trial remaining', { exact: true }).locator('..');
   await expect(trial).toContainText('2');
   await expect(trial).toContainText('scored events left');

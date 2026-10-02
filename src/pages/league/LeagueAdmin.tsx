@@ -35,7 +35,6 @@ import {
   MapPin,
   Plus,
   RotateCw,
-  RefreshCw,
   Timer,
   Trash2,
   User,
@@ -55,10 +54,6 @@ import PaymentReturnNotice from "@/features/payments/components/PaymentReturnNot
 import CommissionerInsights from "@/features/league-intelligence/components/CommissionerInsights";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  canCreateNextSeason,
-  NEXT_SEASON_DISABLED_MESSAGE,
-} from "@/features/leagues/seasonRenewal";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   upcoming: {
@@ -229,11 +224,6 @@ export default function LeagueAdmin() {
       show(error instanceof Error ? error.message : "Unable to start checkout.", "error");
     }
   };
-  const nextSeasonAvailable = canCreateNextSeason({
-    endDate: league?.endDate,
-    events: events ?? [],
-  });
-
   const handleDeleteEvent = (event: any) => {
     if (isReadOnly) {
       show("This season is read-only.", "warning");
@@ -275,7 +265,16 @@ export default function LeagueAdmin() {
 
   return (
     <div className="space-y-7">
-      <PageHeader title={league?.name ?? "League"} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><PageHeader title={league?.name ?? "League"} /></div>
+        {!isReadOnly && <button
+          onClick={() => navigate(`/league/${leagueId}/edit`)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
+        >
+          <Edit size={12} strokeWidth={2.5} />
+          Edit League
+        </button>}
+      </div>
 
       {(isConfirmingPayment || paymentReturnMessage) && (
         <PaymentReturnNotice
@@ -319,6 +318,7 @@ export default function LeagueAdmin() {
         </div>
       )}
 
+      {(league?.renewedFromLeague || league?.renewedLeague || (isSuperAdmin && league?.renewedFromLeagueId)) && (
       <div className="-mt-1 flex flex-wrap justify-end gap-2">
         {league?.renewedFromLeague && (
           <Link
@@ -328,40 +328,14 @@ export default function LeagueAdmin() {
             Previous Season
           </Link>
         )}
-        {league?.renewedLeague ? (
+        {league?.renewedLeague && (
           <Link
             to={`/league/${league.renewedLeague.id}/admin`}
             className="flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 transition-colors hover:bg-sky-100"
           >
             Next Season
           </Link>
-        ) : String(league?.type).toLowerCase() === "season" && ownsLeague && nextSeasonAvailable ? (
-          <Link
-            to={`/leagues/create?renewFrom=${league.id}`}
-            className="flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 transition-colors hover:bg-sky-100"
-          >
-            <RefreshCw size={12} strokeWidth={2.5} />
-            Renew for Next Season
-          </Link>
-        ) : String(league?.type).toLowerCase() === "season" && ownsLeague ? (
-          <button
-            type="button"
-            disabled
-            aria-label={`Renew for Next Season. ${NEXT_SEASON_DISABLED_MESSAGE}`}
-            title={NEXT_SEASON_DISABLED_MESSAGE}
-            className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400"
-          >
-            <RefreshCw size={12} strokeWidth={2.5} />
-            Renew for Next Season
-          </button>
-        ) : null}
-        {!isReadOnly && <button
-          onClick={() => navigate(`/league/${leagueId}/edit`)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
-        >
-          <Edit size={12} strokeWidth={2.5} />
-          Edit League
-        </button>}
+        )}
         {isSuperAdmin && league?.renewedFromLeagueId && (
           <button
             type="button"
@@ -379,7 +353,7 @@ export default function LeagueAdmin() {
           </button>
         )}
       </div>
-
+      )}
 
       <CommissionerInsights
         league={league}
