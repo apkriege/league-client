@@ -357,7 +357,7 @@ export default function LeagueAdmin() {
         league={league}
         events={Array.isArray(events) ? events : []}
         metrics={metrics}
-        onActivateLeague={leagueBillingStatus === "trial" && ownsLeague ? activateLeaguePayment : undefined}
+        onActivateLeague={!isReadOnly && leagueBillingStatus === "trial" && ownsLeague ? activateLeaguePayment : undefined}
         activationPending={restorePayment.isPending}
       />
 
@@ -457,6 +457,7 @@ export default function LeagueAdmin() {
                     event={event}
                     scoresHref={`/league/${leagueId}/events/${event.id}/scores`}
                     eventHref={`/league/${leagueId}/events/${event.id}`}
+                    isReadOnly={isReadOnly}
                   />
                 ))}
               </div>
@@ -470,13 +471,13 @@ export default function LeagueAdmin() {
             <div className="space-y-1">
               <SectionLabel>Events</SectionLabel>
             </div>
-            <button
+            {!isReadOnly && <button
               onClick={() => navigate(`/league/${leagueId}/events/create`)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-900/90 transition-colors"
             >
               <Plus size={12} strokeWidth={2.5} />
               New Event
-            </button>
+            </button>}
           </div>
 
           {totalEvents === 0 ? (
@@ -496,6 +497,7 @@ export default function LeagueAdmin() {
                   onScores={() => navigate(`/league/${leagueId}/events/${event.id}/scores`)}
                   onCancel={() => handleCancelEvent(event)}
                   onDelete={() => handleDeleteEvent(event)}
+                  isReadOnly={isReadOnly}
                   isCanceling={cancelEvent.isPending}
                   isDeleting={deleteEvent.isPending}
                 />
@@ -525,14 +527,16 @@ function ScoreEntryRow({
   event,
   scoresHref,
   eventHref,
+  isReadOnly,
 }: {
   event: any;
   scoresHref: string;
   eventHref: string;
+  isReadOnly: boolean;
 }) {
   const date = getEventLocalDate(event.startsAt, event.timeZone);
-  const canEnterScores = Boolean(event.canEnterScores);
-  const canOpenScores = canEnterScores || Boolean(event.canEditScores);
+  const canEnterScores = !isReadOnly && Boolean(event.canEnterScores);
+  const canOpenScores = canEnterScores || (!isReadOnly && Boolean(event.canEditScores));
   return (
     <div className="flex items-center gap-3 px-4 py-3.5">
       <div className="flex flex-col items-center justify-center bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5 min-w-12 text-center">
@@ -581,6 +585,7 @@ function AdminEventRow({
   onScores,
   onCancel,
   onDelete,
+  isReadOnly = false,
   isCanceling = false,
   isDeleting = false,
 }: {
@@ -590,6 +595,7 @@ function AdminEventRow({
   onScores: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  isReadOnly?: boolean;
   isCanceling?: boolean;
   isDeleting?: boolean;
 }) {
@@ -597,6 +603,7 @@ function AdminEventRow({
   const date = getEventLocalDate(event.startsAt, event.timeZone);
   const isCanceledEvent = String(event?.status || "").toLowerCase() === "canceled";
   const canEditEvent =
+    !isReadOnly &&
     String(event?.status || "").toLowerCase() !== "completed" &&
     !isCanceledEvent;
 
@@ -698,7 +705,7 @@ function AdminEventRow({
               </span>
             </Tooltip>
           )}
-          <Tooltip title="Delete event" placement="top" arrow>
+          {!isReadOnly && <Tooltip title="Delete event" placement="top" arrow>
             <span>
               <button
                 onClick={(e) => {
@@ -712,7 +719,7 @@ function AdminEventRow({
                 <Trash2 size={13} strokeWidth={2} />
               </button>
             </span>
-          </Tooltip>
+          </Tooltip>}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -720,7 +727,7 @@ function AdminEventRow({
             }}
             disabled={isCanceledEvent}
             className={`flex cursor-pointer items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-              !isCanceledEvent && (event.canEnterScores || event.canEditScores)
+              !isReadOnly && !isCanceledEvent && (event.canEnterScores || event.canEditScores)
                 ? "bg-slate-900 text-white hover:bg-slate-900/90 shadow-xs"
                 : "border border-gray-200 bg-white text-gray-700 hover:border-slate-900/30 hover:bg-slate-900/10 hover:text-slate-900 shadow-xs"
             }`}
@@ -729,9 +736,9 @@ function AdminEventRow({
             <ClipboardList size={12} strokeWidth={2} />
             {isCanceledEvent
               ? "Canceled"
-              : event.canEnterScores
+              : !isReadOnly && event.canEnterScores
                 ? "Scores"
-                : event.canEditScores
+                : !isReadOnly && event.canEditScores
                   ? "Edit Scores"
                   : "View Scores"}
           </button>

@@ -68,6 +68,13 @@ async function checkMetrics(page: Page, mobile: boolean) {
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Operations Check', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(0);
+  await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, seasonStatus: 'archived' } }));
+  await page.reload();
+  await expect(page.getByText('Past season — read only', { exact: true })).toBeVisible();
+  for (const name of ['New Event', 'Edit League', 'Edit event', 'Cancel event', 'Delete event']) {
+    await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
+  }
+  await expect(page.getByRole('button', { name: 'View Scores', exact: true }).first()).toBeEnabled();
 }
 
 test('commissioner stat boxes show useful operational metrics', async ({ page }) => checkMetrics(page, false));
