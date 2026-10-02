@@ -36,10 +36,8 @@ import {
   Plus,
   RotateCw,
   RefreshCw,
-  ShieldHalf,
   Timer,
   Trash2,
-  Trophy,
   User,
   Users,
   Zap,
@@ -202,13 +200,11 @@ export default function LeagueAdmin() {
     );
   }
 
-  const completed = events?.filter((e: any) => e.status === "completed") ?? [];
   const needsScores = events?.filter((e: any) => e.status === "active") ?? [];
   const upcoming = events?.filter((e: any) => e.status === "upcoming") ?? [];
   const sortedEvents = sortEventsByDate(events ?? []);
   const totalEvents = events?.length ?? 0;
   const totalPlayers = league?.players?.length ?? 0;
-  const totalTeams = league?.teams?.length ?? 0;
   const nextEvent = upcoming[0] ?? null;
   const role = String(user?.role || "").toUpperCase();
   const isSuperAdmin = role === "SUPER";
@@ -240,7 +236,6 @@ export default function LeagueAdmin() {
     events: events ?? [],
   });
 
-  const leader = metrics?.standings?.[0] ?? null;
   const handleDeleteEvent = (event: any) => {
     if (isReadOnly) {
       show("This season is read-only.", "warning");
@@ -282,9 +277,16 @@ export default function LeagueAdmin() {
 
   return (
     <div className="space-y-7">
-      <PageHeader
-        title={league?.name ?? "League"}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><PageHeader title={league?.name ?? "League"} /></div>
+        <Link
+          to={`/league/${leagueId}/players`}
+          className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        >
+          <Users size={13} />
+          {totalPlayers} {totalPlayers === 1 ? "player" : "players"}
+        </Link>
+      </div>
 
       {(isConfirmingPayment || paymentReturnMessage) && (
         <PaymentReturnNotice
@@ -404,52 +406,6 @@ export default function LeagueAdmin() {
         )}
       </div>
 
-      <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3.5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-black tracking-tight text-gray-900">View-only league code</p>
-            <p className="mt-0.5 text-xs font-medium text-blue-800/70">
-              Share this with users who only need to view this league.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <code className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-black tracking-[0.18em] text-blue-900">
-              {league?.viewerAccessCode || "—"}
-            </code>
-            <button
-              type="button"
-              disabled={!league?.viewerAccessCode}
-              onClick={() => {
-                navigator.clipboard?.writeText(String(league.viewerAccessCode));
-                show("League code copied.", "success");
-              }}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Copy size={13} />
-              Copy
-            </button>
-            <button
-              type="button"
-              disabled={rotateViewerCode.isPending || isReadOnly}
-              onClick={() => {
-                const confirmed = window.confirm(
-                  "Generate a new view-only code? The current code will stop working immediately."
-                );
-                if (!confirmed) return;
-                rotateViewerCode.mutate(undefined, {
-                  onSuccess: () => show("League access code rotated.", "success"),
-                  onError: (error: any) =>
-                    show(error?.message || "Unable to rotate the access code.", "error"),
-                });
-              }}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <RotateCw size={13} className={rotateViewerCode.isPending ? "animate-spin" : ""} />
-              Rotate
-            </button>
-          </div>
-        </div>
-      </div>
 
       <CommissionerInsights
         league={league}
@@ -457,58 +413,52 @@ export default function LeagueAdmin() {
         metrics={metrics}
       />
 
-      <section className="space-y-3">
-        <SectionHeader
-          title="Overview"
-          description="League health, participation, and current season position."
-        />
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {[
-            {
-              label: "Events",
-              value: `${completed.length} / ${totalEvents}`,
-              sub: "completed",
-              icon: <CalendarDays size={14} className="text-slate-900" />,
-              bg: "bg-slate-900/5 border-slate-900/10",
-            },
-            {
-              label: "Players",
-              value: totalPlayers,
-              sub: "members",
-              icon: <Users size={14} className="text-blue-400" />,
-              bg: "bg-blue-50 border-blue-100",
-            },
-            {
-              label: "Teams",
-              value: totalTeams,
-              sub: "in league",
-              icon: <ShieldHalf size={14} className="text-violet-400" />,
-              bg: "bg-violet-50 border-violet-100",
-            },
-            {
-              label: "Leader",
-              value: leader ? leader.name.split(" ")[0] : "—",
-              sub: leader ? `${leader.points} pts` : "no data yet",
-              icon: <Trophy size={14} className="text-amber-400" />,
-              bg: "bg-amber-50 border-amber-100",
-            },
-          ].map((stat, i) => (
-            <div
-              key={i}
-              className="bg-white border border-gray-200 rounded-xl px-4 py-3.5 shadow-sm flex items-center gap-3"
-            >
-              <div className={`p-2 rounded-md border ${stat.bg}`}>{stat.icon}</div>
-              <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.16em]">
-                  {stat.label}
-                </p>
-                <p className="mt-0.5 text-lg font-black text-gray-900 leading-tight">
-                  {stat.value}
-                </p>
-                <p className="mt-0.5 text-[10px] font-medium text-gray-400">{stat.sub}</p>
-              </div>
+      <section aria-label="League communication" className="space-y-3">
+        <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3.5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-black tracking-tight text-gray-900">View-only league code</p>
+              <p className="mt-0.5 text-xs font-medium text-blue-800/70">
+                Share this with users who only need to view this league.
+              </p>
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              <code className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-black tracking-[0.18em] text-blue-900">
+                {league?.viewerAccessCode || "—"}
+              </code>
+              <button
+                type="button"
+                disabled={!league?.viewerAccessCode}
+                onClick={() => {
+                  navigator.clipboard?.writeText(String(league.viewerAccessCode));
+                  show("League code copied.", "success");
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Copy size={13} />
+                Copy
+              </button>
+              <button
+                type="button"
+                disabled={rotateViewerCode.isPending || isReadOnly}
+                onClick={() => {
+                  const confirmed = window.confirm(
+                    "Generate a new view-only code? The current code will stop working immediately."
+                  );
+                  if (!confirmed) return;
+                  rotateViewerCode.mutate(undefined, {
+                    onSuccess: () => show("League access code rotated.", "success"),
+                    onError: (error: any) =>
+                      show(error?.message || "Unable to rotate the access code.", "error"),
+                  });
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RotateCw size={13} className={rotateViewerCode.isPending ? "animate-spin" : ""} />
+                Rotate
+              </button>
+            </div>
+          </div>
         </div>
         <div
           id="league-announcements"

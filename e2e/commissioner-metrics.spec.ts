@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function checkMetrics(page: Page, mobile: boolean) {
   await page.addInitScript(() => localStorage.setItem('app-store', JSON.stringify({ state: { user: { id: 901, role: 'ADMIN', firstName: 'Test', lastName: 'Admin', email: 'admin@test.com', leagues: [] }, leagueId: null, playerId: null }, version: 0 })));
-  const league = { id: 1, adminId: 901, name: 'Thursday League', type: 'season', format: 'individual', holeFormat: '18', startDate: '2026-01-01', endDate: '2099-12-31', players: [], teams: [], entitlement: { status: 'trialing', requiredGolfers: 8, paidGolfers: 0, refundedGolfers: 0, trialEventLimit: 3, trialEventCount: 1 } };
+  const league = { id: 1, adminId: 901, name: 'Thursday League', type: 'season', format: 'individual', holeFormat: '18', startDate: '2026-01-01', endDate: '2099-12-31', players: [{ id: 101, firstName: 'Pat', lastName: 'Golfer', type: 'player', gender: 'male', handicap: 12, email: '' }, { id: 102, firstName: 'Jo', lastName: 'Player', type: 'substitute', gender: 'female', handicap: 10, email: '' }], teams: [], entitlement: { status: 'trialing', requiredGolfers: 8, paidGolfers: 0, refundedGolfers: 0, trialEventLimit: 3, trialEventCount: 1 } };
   const events = [{ id: 11, name: 'Opening Round', startsAt: '2099-11-01T20:00:00Z', status: 'upcoming', type: 'regular', flights: [] }, { id: 12, name: 'Off week', startsAt: '2099-11-08T20:00:00Z', status: 'upcoming', type: 'off', flights: [] }, { id: 13, name: 'Finished Round', startsAt: '2026-01-01T20:00:00Z', status: 'completed', type: 'regular', flights: [] }, { id: 14, name: 'Canceled Round', startsAt: '2099-11-15T20:00:00Z', status: 'canceled', type: 'regular', flights: [] }];
   await page.route('http://127.0.0.1:3310/api/**', route => {
     const path = new URL(route.request().url()).pathname;
@@ -24,6 +24,14 @@ async function checkMetrics(page: Page, mobile: boolean) {
   expect(mobile ? third.y > first.y : third.y === first.y).toBe(true);
   expect((await intelligence.boundingBox())!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   await intelligence.screenshot({ path: `/tmp/commissioner-metrics-${mobile ? 'mobile' : 'desktop'}.png` });
+  await expect(page.getByRole('link', { name: '2 players', exact: true })).toHaveAttribute('href', '/league/1/players');
+  await expect(page.getByText('Overview', { exact: true })).toHaveCount(0);
+  const communication = page.getByRole('region', { name: 'League communication' });
+  const sections = communication.locator(':scope > div');
+  await expect(sections).toHaveCount(2);
+  await expect(sections.nth(0)).toContainText('View-only league code');
+  await expect(sections.nth(1)).toContainText('Communication tools');
+  await communication.screenshot({ path: `/tmp/admin-communication-${mobile ? 'mobile' : 'desktop'}.png` });
 }
 
 test('commissioner stat boxes show useful operational metrics', async ({ page }) => checkMetrics(page, false));
