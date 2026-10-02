@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 async function checkMetrics(page: Page, mobile: boolean) {
   await page.addInitScript(() => localStorage.setItem('app-store', JSON.stringify({ state: { user: { id: 901, role: 'ADMIN', firstName: 'Test', lastName: 'Admin', email: 'admin@test.com', leagues: [] }, leagueId: null, playerId: null }, version: 0 })));
   const league = { id: 1, adminId: 901, name: 'Thursday League', type: 'season', format: 'individual', holeFormat: '18', startDate: '2026-01-01', endDate: '2099-12-31', players: [], teams: [], entitlement: { status: 'trialing', requiredGolfers: 8, paidGolfers: 0, refundedGolfers: 0, trialEventLimit: 3, trialEventCount: 1 } };
-  const events = [{ id: 11, name: 'Opening Round', startsAt: '2099-11-01T20:00:00Z', status: 'upcoming', type: 'regular', flights: [] }, { id: 12, name: 'Off week', startsAt: '2099-11-08T20:00:00Z', status: 'upcoming', type: 'off', flights: [] }];
+  const events = [{ id: 11, name: 'Opening Round', startsAt: '2099-11-01T20:00:00Z', status: 'upcoming', type: 'regular', flights: [] }, { id: 12, name: 'Off week', startsAt: '2099-11-08T20:00:00Z', status: 'upcoming', type: 'off', flights: [] }, { id: 13, name: 'Finished Round', startsAt: '2026-01-01T20:00:00Z', status: 'completed', type: 'regular', flights: [] }, { id: 14, name: 'Canceled Round', startsAt: '2099-11-15T20:00:00Z', status: 'canceled', type: 'regular', flights: [] }];
   await page.route('http://127.0.0.1:3310/api/**', route => {
     const path = new URL(route.request().url()).pathname;
     return route.fulfill({ json: path === '/api/admin/leagues' ? [league] : path === '/api/leagues/1' ? league : path === '/api/leagues/1/events' ? events : [] });
@@ -14,7 +14,7 @@ async function checkMetrics(page: Page, mobile: boolean) {
   const trial = intelligence.getByText('Trial remaining', { exact: true }).locator('..');
   await expect(trial).toContainText('2');
   await expect(trial).toContainText('scored events left');
-  await expect(intelligence.getByText('Events remaining', { exact: true }).locator('..')).toContainText('1');
+  await expect(intelligence.getByText('Events completed', { exact: true }).locator('..')).toContainText('1 / 2');
   await expect(intelligence.getByText('Next event', { exact: true }).locator('..')).toContainText('Opening Round');
   await expect(intelligence.getByText('Season remaining', { exact: true }).locator('..')).toContainText('days');
   const boxes = intelligence.locator('.grid').first().locator(':scope > div');

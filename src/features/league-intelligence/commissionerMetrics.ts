@@ -12,8 +12,14 @@ export function buildCommissionerMetrics(
   const billingStatus = getLeagueBillingStatus(league);
   const trialLimit = league.entitlement?.trialEventLimit ?? TRIAL_EVENT_LIMIT;
   const trialUsed = league.entitlement?.trialEventCount ?? 0;
-  const remaining = events.filter(event =>
+  const scheduled = events.filter(event =>
     String(event.type ?? "").toLowerCase() !== "off" &&
+    !["canceled", "cancelled"].includes(String(event.status ?? "").toLowerCase()),
+  );
+  const completed = scheduled.filter(event =>
+    ["complete", "completed"].includes(String(event.status ?? "").toLowerCase()),
+  ).length;
+  const remaining = scheduled.filter(event =>
     ["upcoming", "active"].includes(String(event.status ?? "").toLowerCase()),
   );
   const nextEvent = sortEventsByDate(remaining.filter(event =>
@@ -32,7 +38,7 @@ export function buildCommissionerMetrics(
       detail: billingStatus === "trial" ? "scored events left"
         : billingStatus === "active" ? "Paid season" : billingStatus === "exempt" ? "No trial limit" : "Activation required",
     },
-    { label: "Events remaining", value: remaining.length, detail: "upcoming or in progress" },
+    { label: "Events completed", value: `${completed} / ${scheduled.length}`, detail: "completed / total" },
     {
       label: "Next event",
       value: nextEvent ? formatEventDate(nextEvent.startsAt, { month: "short", day: "numeric" }, "en-US", nextEvent.timeZone) : "—",
