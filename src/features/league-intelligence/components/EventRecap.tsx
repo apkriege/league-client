@@ -4,31 +4,52 @@ import type { EventInsightInput } from "../types";
 
 const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
 
-type EventOverview = {
-  players: number;
-  grossSkins: number;
-  netSkins: number;
-  holes: number;
-  startSide: "front" | "back";
+const formatted = (value: number | null) => {
+  if (value == null) return "—";
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 };
 
-export default function EventRecap({
-  event,
-  overview,
-}: {
-  event: EventInsightInput;
-  overview: EventOverview;
-}) {
+export default function EventRecap({ event }: { event: EventInsightInput }) {
   const recap = buildEventRecap(event);
   if (!recap) return null;
   const participantLabel = event.metrics?.scores?.some((round) => round.teamId)
     ? "Teams"
     : "Players";
+  const participantCount = event.metrics?.scores?.length ?? 0;
+  const marginUnit = recap.fieldMetrics.winningMargin === 1
+    ? recap.fieldMetrics.winningMarginUnit.slice(0, -1)
+    : recap.fieldMetrics.winningMarginUnit;
   const overviewMetrics = [
-    { label: participantLabel, value: overview.players, detail: `scored ${participantLabel.toLowerCase()}` },
-    { label: "Gross skins", value: overview.grossSkins, detail: "winning holes" },
-    { label: "Net skins", value: overview.netSkins, detail: "winning holes" },
-    { label: "Holes", value: overview.holes, detail: `${overview.startSide} start` },
+    {
+      label: "Field avg net",
+      value: formatted(recap.fieldMetrics.averageNet),
+      detail: `${participantCount} scored ${participantLabel.toLowerCase()}`,
+    },
+    {
+      label: "Winning margin",
+      value: formatted(recap.fieldMetrics.winningMargin),
+      detail: recap.fieldMetrics.winningMargin == null
+        ? "Needs two scores"
+        : recap.fieldMetrics.winningMargin === 0
+          ? `Tied on ${recap.fieldMetrics.winningMarginUnit}`
+          : `${marginUnit} over second`,
+    },
+    {
+      label: "Par or better",
+      value: recap.fieldMetrics.parOrBetterRate == null
+        ? "—"
+        : `${recap.fieldMetrics.parOrBetterRate}%`,
+      detail: "gross hole scores",
+    },
+    {
+      label: "Toughest hole",
+      value: recap.fieldMetrics.toughestHole
+        ? `Hole ${recap.fieldMetrics.toughestHole.hole}`
+        : "—",
+      detail: recap.fieldMetrics.toughestHole
+        ? `${signed(recap.fieldMetrics.toughestHole.averageGrossToPar)} avg gross to par`
+        : "No hole data",
+    },
   ];
 
   return (

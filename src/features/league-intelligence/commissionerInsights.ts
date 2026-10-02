@@ -72,10 +72,6 @@ export function buildCommissionerInsights({
       ? [{ eventId: event.id, name: event.name }]
       : [];
   });
-  const handicapAnomalies = (metrics?.standings ?? []).filter(
-    (standing) =>
-      standing.handicapChange != null && Math.abs(Number(standing.handicapChange)) >= 5,
-  );
   const endDate = league.endDate ? new Date(league.endDate) : null;
   const daysToEnd = endDate ? Math.ceil((endDate.getTime() - now.getTime()) / dayMs) : null;
   const renewalNeeded =
@@ -94,25 +90,22 @@ export function buildCommissionerInsights({
     count: number;
   }> = [
     ...(unpaidGolfers > 0
-      ? [{ key: "billing", tone: "attention" as const, title: "Roster exceeds paid capacity", detail: `${unpaidGolfers} regular ${unpaidGolfers === 1 ? "golfer requires" : "golfers require"} billing coverage.`, count: unpaidGolfers }]
+      ? [{ key: "billing", tone: "attention" as const, title: "Roster exceeds paid capacity", detail: `${unpaidGolfers} ${unpaidGolfers === 1 ? "golfer needs" : "golfers need"} coverage. Review the roster or billing.`, count: unpaidGolfers }]
       : []),
     ...(missingScores.length > 0
-      ? [{ key: "scores", tone: "attention" as const, title: "Scores need attention", detail: `${missingScores.length} active or completed ${missingScores.length === 1 ? "event has" : "events have"} fewer rounds than assigned golfers.`, count: missingScores.length }]
+      ? [{ key: "scores", tone: "attention" as const, title: "Scores need attention", detail: `${missingScores.length} ${missingScores.length === 1 ? "event may have" : "events may have"} missing scores. Review score entry.`, count: missingScores.length }]
       : []),
     ...(unbalancedFlights.length > 0
-      ? [{ key: "flights", tone: "attention" as const, title: "Flight assignments need review", detail: `${unbalancedFlights.length} ${unbalancedFlights.length === 1 ? "event has" : "events have"} uneven flights or missing match opponents.`, count: unbalancedFlights.length }]
+      ? [{ key: "flights", tone: "attention" as const, title: "Flight assignments need review", detail: `${unbalancedFlights.length} ${unbalancedFlights.length === 1 ? "event has" : "events have"} uneven flights or missing opponents.`, count: unbalancedFlights.length }]
       : []),
     ...(inactiveGolfers.length > 0
-      ? [{ key: "participation", tone: "neutral" as const, title: "Participation follow-up", detail: `${inactiveGolfers.length} ${inactiveGolfers.length === 1 ? "golfer trails" : "golfers trail"} the league pace by at least two rounds.`, count: inactiveGolfers.length }]
+      ? [{ key: "participation", tone: "neutral" as const, title: "Participation follow-up", detail: `${inactiveGolfers.length} ${inactiveGolfers.length === 1 ? "golfer is" : "golfers are"} at least two rounds behind. Check absences or scores.`, count: inactiveGolfers.length }]
       : []),
     ...(scheduleGaps.length > 0
-      ? [{ key: "schedule", tone: "neutral" as const, title: "Long schedule gap", detail: `The largest break is ${Math.max(...scheduleGaps.map((gap) => gap.days))} days.`, count: scheduleGaps.length }]
-      : []),
-    ...(handicapAnomalies.length > 0
-      ? [{ key: "handicap", tone: "neutral" as const, title: "Handicap movement to review", detail: `${handicapAnomalies.length} ${handicapAnomalies.length === 1 ? "golfer has" : "golfers have"} moved by at least five strokes.`, count: handicapAnomalies.length }]
+      ? [{ key: "schedule", tone: "neutral" as const, title: "Long schedule gap", detail: `${Math.max(...scheduleGaps.map((gap) => gap.days))} days between events. Confirm or add an event.`, count: scheduleGaps.length }]
       : []),
     ...(renewalNeeded
-      ? [{ key: "renewal", tone: "attention" as const, title: "Next season is not prepared", detail: `${Math.max(0, Number(daysToEnd))} days remain before this season ends.`, count: 1 }]
+      ? [{ key: "renewal", tone: "attention" as const, title: "Next season is not prepared", detail: `${Math.max(0, Number(daysToEnd))} days remain. Review next season setup.`, count: 1 }]
       : []),
   ];
 
@@ -124,7 +117,6 @@ export function buildCommissionerInsights({
     unbalancedFlights,
     inactiveGolfers,
     scheduleGaps,
-    handicapAnomalies,
     renewalNeeded,
     daysToEnd,
   };

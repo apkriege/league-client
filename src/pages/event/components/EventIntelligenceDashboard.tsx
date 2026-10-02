@@ -64,7 +64,6 @@ export default function EventIntelligenceDashboard({
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const intelligenceEvent = useMemo(() => withSharedTeamScores(event), [event]);
   const dashboard = useMemo(() => buildEventDashboard(intelligenceEvent), [intelligenceEvent]);
-  const scores = intelligenceEvent.metrics?.scores ?? [];
   const handleTabKeyDown = (keyboardEvent: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(keyboardEvent.key)) return;
     keyboardEvent.preventDefault();
@@ -79,16 +78,7 @@ export default function EventIntelligenceDashboard({
 
   return (
     <section aria-label="Event intelligence" className="space-y-5">
-      <EventRecap
-        event={intelligenceEvent}
-        overview={{
-          players: scores.length,
-          grossSkins: event.metrics?.skins?.playerSkins?.length ?? 0,
-          netSkins: event.metrics?.skins?.playerNetSkins?.length ?? 0,
-          holes: event.holes,
-          startSide: event.startSide === "back" ? "back" : "front",
-        }}
-      />
+      <EventRecap event={intelligenceEvent} />
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-1.5 shadow-sm">
         <div className="grid grid-cols-4 gap-1" role="tablist" aria-label="Event intelligence views">

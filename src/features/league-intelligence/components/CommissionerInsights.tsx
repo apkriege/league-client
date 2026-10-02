@@ -1,5 +1,5 @@
 import Button from "@/components/layout/Button";
-import { AlertTriangle, CheckCircle2, ChevronRight, ClipboardCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, ClipboardCheck, Plus } from "lucide-react";
 import { buildCommissionerMetrics } from "../commissionerMetrics";
 import { buildCommissionerInsights } from "../commissionerInsights";
 import type {
@@ -51,16 +51,37 @@ export default function CommissionerInsights({
         </span>
       )}
     >
-      <div className="grid grid-cols-2 divide-x divide-y divide-slate-100 bg-white lg:grid-cols-4 lg:divide-y-0">
+      <div className="grid grid-cols-2 gap-px bg-slate-200 lg:grid-cols-4">
         {statMetrics.map((metric, index) => {
           const action = actions[index];
           return (
             <InsightMetric key={metric.label} {...metric}>
               {action && (
-                <Button variant="default" size="xs" disabled={action.pending} onClick={action.onClick}
-                  sx={{ minWidth: 0, px: 0, gap: 0.25, color: "text.secondary" }}>
+                <Button
+                  variant="default"
+                  size="xs"
+                  disabled={action.pending}
+                  onClick={action.onClick}
+                  sx={{
+                    minWidth: 0,
+                    minHeight: 22,
+                    px: 0.75,
+                    py: 0,
+                    gap: 0.375,
+                    border: "1px solid #bae6fd",
+                    backgroundColor: "#f0f9ff",
+                    color: "#0369a1",
+                    fontSize: "0.625rem",
+                    fontWeight: 700,
+                    lineHeight: 1.2,
+                    textAlign: "left",
+                    "&:hover": { backgroundColor: "#e0f2fe", borderColor: "#7dd3fc" },
+                    "&:focus-visible": { outline: "2px solid #059669", outlineOffset: "2px" },
+                  }}
+                >
+                  {index !== 0 && <Plus size={11} className="shrink-0" />}
                   {action.pending ? "Preparing Checkout..." : action.label}
-                  {!action.pending && <ChevronRight size={12} />}
+                  {index === 0 && !action.pending && <ChevronRight size={11} className="shrink-0" />}
                 </Button>
               )}
             </InsightMetric>

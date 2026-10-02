@@ -1,6 +1,5 @@
 import LoadingState from "@/components/layout/LoadingState";
 import SectionKicker from "@/components/layout/SectionKicker";
-import SummaryPill from "@/components/layout/SummaryPill";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import SectionIntro from "@/components/layout/SectionIntro";
@@ -14,14 +13,9 @@ import { formatTime } from "@/utils/format";
 import { useAppStore } from "@/stores/appStore";
 import { useToast } from "@/context/useToast";
 import {
-  Calendar,
-  Clock,
   Eye,
   Flag,
   ListOrdered,
-  MapPin,
-  Medal,
-  ShieldHalf,
   X,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -45,7 +39,6 @@ import useAnimatedDrawer from "@/hooks/useAnimatedDrawer";
 import {
   deriveScoringMode,
   getScoringFamilyForEvent,
-  getScoringModeLabel,
   isSharedTeamScoringMode,
 } from "@/features/scoring/scoringModes";
 import { getEventScoringHoles } from "@/pages/scores/scoringSetup";
@@ -143,6 +136,15 @@ export default function Event() {
   const canManageEvent = role === "ADMIN" || role === "SUPER";
   const isCanceledEvent = normalizedStatus === "canceled";
   const canModifyEvent = !isCanceledEvent && normalizedStatus !== "complete";
+  const eventDate = date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const eventTime = formatTime(event.startsAt, event.timeZone);
+  const routeLabel = getEventRouteLabel(event);
+  const teeLabel = getEventRouteTeeLabel(event);
   const handleDeleteEvent = () => {
     const confirmed = window.confirm(
       `Delete "${event.name}"? This removes it from the schedule and league event lists.`
@@ -176,38 +178,18 @@ export default function Event() {
 
   return (
     <div>
-      <PageHeader title={event.name || "Event Details"} />
-
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          <SummaryPill icon={<Calendar size={12} />}>
-            {date.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </SummaryPill>
-          <SummaryPill icon={<Clock size={12} />}>
-            {formatTime(event.startsAt, event.timeZone)}
-          </SummaryPill>
-          <SummaryPill icon={<MapPin size={12} />}>
-            {getEventRouteLabel(event)}
-            {getEventRouteTeeLabel(event) ? ` · ${getEventRouteTeeLabel(event)}` : ""}
-          </SummaryPill>
-          <SummaryPill icon={<ShieldHalf size={12} />} className="capitalize">
-            {event.format}
-          </SummaryPill>
-          <SummaryPill icon={<Medal size={12} />} className="capitalize">
-            {getScoringModeLabel(event)}
-          </SummaryPill>
-          <SummaryPill icon={status.icon} strong>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2.5">
+          <PageHeader title={event.name || "Event Details"} />
+          <span
+            className={`mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${status.className}`}
+          >
+            <span aria-hidden="true">{status.icon}</span>
             {status.label}
-          </SummaryPill>
+          </span>
         </div>
-
         {canManageEvent && (
-          <div className="shrink-0">
+          <div className="mb-2 shrink-0">
             <EventActionsMenu
               canModify={canModifyEvent}
               canPrint={!isCanceledEvent}
@@ -222,8 +204,14 @@ export default function Event() {
         )}
       </div>
 
-      <div className="mt-4">
-        <EventScoringSetup event={event} />
+      <div className="mt-3">
+        <EventScoringSetup
+          event={event}
+          date={eventDate}
+          time={eventTime}
+          course={routeLabel}
+          tee={teeLabel}
+        />
       </div>
 
       {(hasRounds || hasSharedTeamRounds) && (

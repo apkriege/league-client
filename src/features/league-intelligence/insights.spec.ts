@@ -188,6 +188,13 @@ describe("league intelligence", () => {
     expect(recap?.clutch).toMatchObject({ playerName: "Avery Green", toPar: -1 });
     expect(recap?.separationHole).toMatchObject({ hole: 2, spread: 3 });
     expect(recap?.relativeToPar).toMatchObject({ playerName: "Avery Green", netToPar: -1 });
+    expect(recap?.fieldMetrics).toEqual({
+      averageNet: 35.5,
+      winningMargin: 3,
+      winningMarginUnit: "points",
+      parOrBetterRate: 50,
+      toughestHole: { hole: 2, averageGrossToPar: 1.5 },
+    });
   });
 
   it("turns round data into hot-hand, matchup, momentum, and achievement stories", () => {
@@ -411,7 +418,7 @@ describe("league intelligence", () => {
 
     const insight = buildCommissionerInsights(input);
     expect(insight.items.map((item) => item.key)).toEqual(
-      expect.arrayContaining(["billing", "scores", "flights", "participation", "handicap", "renewal"]),
+      expect.arrayContaining(["billing", "scores", "flights", "participation", "renewal"]),
     );
     expect(buildCommissionerInsights({
       ...input,

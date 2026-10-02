@@ -364,72 +364,75 @@ export default function LeagueAdmin() {
         onCreateLeague={() => navigate("/leagues/create")}
       />
 
-      <section aria-label="League communication" className="space-y-3">
-        <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3.5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+      <section aria-label="League tools" className="space-y-2">
+        <SectionLabel>League Tools</SectionLabel>
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="bg-blue-50/70 px-4 py-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-black tracking-tight text-gray-900">View-only access</p>
+                <p className="mt-0.5 text-xs font-medium text-blue-800/70">
+                  Share this with users who only need to view this league.
+                </p>
+              </div>
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+                <code className="min-w-0 flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-center text-sm font-black tracking-[0.18em] text-blue-900 sm:flex-none">
+                  {league?.viewerAccessCode || "—"}
+                </code>
+                <button
+                  type="button"
+                  disabled={!league?.viewerAccessCode}
+                  onClick={() => {
+                    navigator.clipboard?.writeText(String(league.viewerAccessCode));
+                    show("League code copied.", "success");
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Copy size={13} />
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  disabled={rotateViewerCode.isPending || isReadOnly}
+                  onClick={() => {
+                    const confirmed = window.confirm(
+                      "Generate a new view-only code? The current code will stop working immediately."
+                    );
+                    if (!confirmed) return;
+                    rotateViewerCode.mutate(undefined, {
+                      onSuccess: () => show("League access code rotated.", "success"),
+                      onError: (error: any) =>
+                        show(error?.message || "Unable to rotate the access code.", "error"),
+                    });
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RotateCw size={13} className={rotateViewerCode.isPending ? "animate-spin" : ""} />
+                  Rotate
+                </button>
+              </div>
+            </div>
+          </div>
+          <div
+            id="league-announcements"
+            className="scroll-mt-24 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 px-4 py-3.5"
+          >
             <div>
-              <p className="text-sm font-black tracking-tight text-gray-900">View-only league code</p>
-              <p className="mt-0.5 text-xs font-medium text-blue-800/70">
-                Share this with users who only need to view this league.
+              <p className="text-sm font-bold tracking-tight text-gray-900">Communication tools</p>
+              <p className="mt-0.5 text-xs font-medium text-gray-500">
+                Invite players and manage announcements.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <code className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-black tracking-[0.18em] text-blue-900">
-                {league?.viewerAccessCode || "—"}
-              </code>
-              <button
-                type="button"
-                disabled={!league?.viewerAccessCode}
-                onClick={() => {
-                  navigator.clipboard?.writeText(String(league.viewerAccessCode));
-                  show("League code copied.", "success");
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Copy size={13} />
-                Copy
-              </button>
-              <button
-                type="button"
-                disabled={rotateViewerCode.isPending || isReadOnly}
-                onClick={() => {
-                  const confirmed = window.confirm(
-                    "Generate a new view-only code? The current code will stop working immediately."
-                  );
-                  if (!confirmed) return;
-                  rotateViewerCode.mutate(undefined, {
-                    onSuccess: () => show("League access code rotated.", "success"),
-                    onError: (error: any) =>
-                      show(error?.message || "Unable to rotate the access code.", "error"),
-                  });
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <RotateCw size={13} className={rotateViewerCode.isPending ? "animate-spin" : ""} />
-                Rotate
-              </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {!isReadOnly ? (
+                <>
+                  <InvitePlayersPanel leagueId={Number(leagueId)} players={league?.players ?? []} />
+                  <LeagueAnnouncementsPanel leagueId={Number(leagueId)} canManage />
+                </>
+              ) : (
+                <span className="text-xs font-semibold text-gray-500">Communication changes are locked.</span>
+              )}
             </div>
-          </div>
-        </div>
-        <div
-          id="league-announcements"
-          className="scroll-mt-24 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 shadow-sm"
-        >
-          <div>
-            <p className="text-sm font-bold tracking-tight text-gray-900">Communication tools</p>
-            <p className="mt-0.5 text-xs font-medium text-gray-500">
-              Invite players and manage announcements.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {!isReadOnly ? (
-              <>
-                <InvitePlayersPanel leagueId={Number(leagueId)} players={league?.players ?? []} />
-                <LeagueAnnouncementsPanel leagueId={Number(leagueId)} canManage />
-              </>
-            ) : (
-              <span className="text-xs font-semibold text-gray-500">Communication changes are locked.</span>
-            )}
           </div>
         </div>
       </section>
@@ -469,12 +472,10 @@ export default function LeagueAdmin() {
         )}
 
         {/* All events list */}
-        <section className="space-y-3 pt-5">
-          <div className="flex items-center justify-between mb-2">
-            <div className="space-y-1">
-              <SectionLabel>Events</SectionLabel>
-            </div>
-            {!isReadOnly && <button
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <SectionLabel>Events</SectionLabel>
+            {!isReadOnly && totalEvents > 0 && <button
               onClick={() => navigate(`/league/${leagueId}/events/create`)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-900/90 transition-colors"
             >
@@ -484,10 +485,35 @@ export default function LeagueAdmin() {
           </div>
 
           {totalEvents === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
-              <CalendarDays size={32} strokeWidth={1.5} className="mb-2 opacity-40" />
-              <p className="font-medium text-gray-500 text-sm">No events yet</p>
-              <p className="text-xs mt-1">Create the first event to get started.</p>
+            <div className="flex flex-col gap-4 rounded-xl border border-blue-200 bg-blue-50/70 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                  <CalendarDays size={17} strokeWidth={2.25} />
+                </span>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-700">
+                    {isReadOnly ? "Season schedule" : "First step"}
+                  </p>
+                  <p className="mt-0.5 text-sm font-black tracking-tight text-gray-900">
+                    {isReadOnly ? "No events were scheduled" : "Create your first event"}
+                  </p>
+                  <p className="mt-1 max-w-xl text-xs leading-5 text-gray-600">
+                    {isReadOnly
+                      ? "This season does not have any events."
+                      : "Add the first date to start building the schedule and prepare the league for scoring."}
+                  </p>
+                </div>
+              </div>
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/league/${leagueId}/events/create`)}
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-slate-800"
+                >
+                  <Plus size={13} strokeWidth={2.5} />
+                  Add First Event
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-3">

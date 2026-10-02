@@ -280,6 +280,19 @@ export default function Players() {
 
   const submitting =
     createPlayers.isPending || updatePlayer.isPending || createCheckoutSession.isPending;
+  const regularPlayerCount = league.players.filter(
+    (player: any) => String(player.type || "player").toLowerCase() === "player"
+  ).length;
+  const paidCapacity = getLeagueCapacity(league);
+  const pendingRegularPlayerCount = pendingPlayers.filter(
+    (player) => String(player.type || "player").toLowerCase() === "player"
+  ).length;
+  const pendingSubstituteCount = pendingPlayers.length - pendingRegularPlayerCount;
+  const availableRegularPlayerCapacity = Math.max(0, paidCapacity - regularPlayerCount);
+  const billablePendingPlayerCount = Math.max(
+    0,
+    pendingRegularPlayerCount - availableRegularPlayerCapacity
+  );
 
   const resetAndCloseModal = () => {
     if (searchParams.has("add")) {
@@ -332,15 +345,6 @@ export default function Players() {
 
   const missingRequiredFields = getMissingRequiredFields(form);
   const validateForm = missingRequiredFields.length === 0;
-  const hasCurrentPlayer = [
-    form.firstName,
-    form.lastName,
-    form.email,
-    form.phone,
-    form.gender,
-    form.handicap,
-  ].some((value) => value.trim() !== "");
-
   const addPlayerToBatch = () => {
     if (!validateForm) {
       show(`Required: ${missingRequiredFields.join(", ")}.`, "warning");
@@ -380,11 +384,6 @@ export default function Players() {
 
   const savePlayer = async () => {
     try {
-      const regularPlayerCount = league.players.filter(
-        (player: any) => player.type === "player"
-      ).length;
-      const paidCapacity = getLeagueCapacity(league);
-
       if (isEditMode && editingPlayerId) {
         if (!validateForm) {
           show(`Required: ${missingRequiredFields.join(", ")}.`, "warning");
@@ -411,22 +410,13 @@ export default function Players() {
         });
         show("Player updated", "success");
       } else {
-        if (hasCurrentPlayer && !validateForm) {
-          show(`Required: ${missingRequiredFields.join(", ")}.`, "warning");
-          return;
-        }
-        const playerForms = [...pendingPlayers, ...(hasCurrentPlayer ? [{ ...form }] : [])];
+        const playerForms = pendingPlayers;
         if (playerForms.length === 0) {
           show("Add at least one player.", "warning");
           return;
         }
         const payloads = playerForms.map(normalizePlayerForm);
-        const incomingRegularPlayers = payloads.filter((player) => player.type === "player").length;
-        const additionalRegularPlayers = Math.max(
-          0,
-          regularPlayerCount + incomingRegularPlayers - paidCapacity
-        );
-        if (additionalRegularPlayers > 0) {
+        if (billablePendingPlayerCount > 0) {
           window.localStorage.setItem(
             pendingPlayerKey(numericLeagueId),
             JSON.stringify({
@@ -437,7 +427,7 @@ export default function Players() {
             })
           );
           const checkoutStarted = await startCapacityCheckout(
-            paidCapacity + additionalRegularPlayers
+            Math.max(paidCapacity, regularPlayerCount + pendingRegularPlayerCount)
           );
           if (checkoutStarted) return;
         }
@@ -651,36 +641,43 @@ export default function Players() {
               </Button>
             </div>
             {pendingPlayers.length > 0 && (
-              <div className="mt-3 overflow-hidden rounded-xl border border-slate-200">
-                {pendingPlayers.map((player, index) => (
-                  <div
-                    key={`${player.firstName}-${player.lastName}-${index}`}
-                    className="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 last:border-b-0"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-semibold text-slate-900">
-                        {player.firstName} {player.lastName}
-                      </p>
-                      <p className="text-[10px] text-slate-500">
-                        {player.type === "sub" ? "Substitute" : "Regular player"} ·{" "}
-                        {player.gender === "female" ? "Women’s" : "Men’s"} ratings ·{" "}
-                        {handicapHoleCount}H HCP {formatHandicap(player.handicap)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      aria-label={`Remove ${player.firstName} ${player.lastName}`}
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() =>
-                        setPendingPlayers((players) =>
-                          players.filter((_player, playerIndex) => playerIndex !== index)
-                        )
-                      }
+              <div className="mt-3">
+                <div className="overflow-hidden rounded-xl border border-slate-200">
+                  {pendingPlayers.map((player, index) => (
+                    <div
+                      key={`${player.firstName}-${player.lastName}-${index}`}
+                      className="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 last:border-b-0"
                     >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                ))}
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-slate-900">
+                          {player.firstName} {player.lastName}
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          {player.type === "sub" ? "Substitute" : "Regular player"} ·{" "}
+                          {player.gender === "female" ? "Women’s" : "Men’s"} ratings ·{" "}
+                          {handicapHoleCount}H HCP {formatHandicap(player.handicap)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${player.firstName} ${player.lastName}`}
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() =>
+                          setPendingPlayers((players) =>
+                            players.filter((_player, playerIndex) => playerIndex !== index)
+                          )
+                        }
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-[10px] font-medium text-slate-500">
+                  {pendingRegularPlayerCount} {pendingRegularPlayerCount === 1 ? "player" : "players"}
+                  {pendingSubstituteCount > 0 && ` · ${pendingSubstituteCount} ${pendingSubstituteCount === 1 ? "sub" : "subs"} (no charge)`}
+                  {billablePendingPlayerCount > 0 && ` · ${billablePendingPlayerCount} ${billablePendingPlayerCount === 1 ? "player requires" : "players require"} billing`}
+                </p>
               </div>
             )}
           </div>
@@ -695,14 +692,16 @@ export default function Players() {
             onClick={savePlayer}
             disabled={
               submitting ||
-              (isEditMode ? !validateForm : pendingPlayers.length === 0 && !validateForm)
+              (isEditMode ? !validateForm : pendingPlayers.length === 0)
             }
           >
             {submitting
               ? "Saving..."
               : isEditMode
                 ? "Save"
-                : `Save ${pendingPlayers.length + (validateForm ? 1 : 0)} ${pendingPlayers.length + (validateForm ? 1 : 0) === 1 ? "Player" : "Players"}`}
+                : billablePendingPlayerCount > 0
+                  ? `Continue to Billing · ${billablePendingPlayerCount}`
+                : `Save ${pendingPlayers.length} ${pendingPlayers.length === 1 ? "Player" : "Players"}`}
           </Button>
         </div>
       </Modal>

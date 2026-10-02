@@ -47,12 +47,10 @@ export function InsightMetric({
   children?: ReactNode;
 }) {
   return (
-    <div className="px-4 py-3.5">
+    <div className="flex min-w-0 flex-col bg-white px-3.5 py-3">
       <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-lg font-black tracking-tight text-slate-900">{value}</p>
-        {children}
-      </div>
+      <p className="mt-0.5 text-lg font-black tracking-tight text-slate-900 tabular-nums">{value}</p>
+      {children && <div className="mt-1.5 flex flex-wrap items-center gap-2">{children}</div>}
       {detail && <p className="mt-0.5 text-[10px] leading-4 text-slate-500">{detail}</p>}
     </div>
   );

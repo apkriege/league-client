@@ -6,6 +6,8 @@ const name = (round: EventInsightRound) =>
 const points = (round: EventInsightRound) =>
   Number(round.pointsEarned || 0) + Number(round.matchPoints || 0);
 
+const roundOne = (value: number) => Math.round(value * 10) / 10;
+
 const scoreToPar = (round: EventInsightRound, holes?: number[]) => {
   const scores = (round.scores ?? []).filter((score) => !holes || holes.includes(score.hole));
   if (scores.length === 0) return null;
@@ -23,6 +25,34 @@ export function buildEventRecap(event: EventInsightInput) {
   );
   const winner = ranked[0];
   const runnerUp = ranked[1];
+  const validNetScores = rounds
+    .map((round) => Number(round.net))
+    .filter(Number.isFinite);
+  const holeScores = rounds.flatMap((round) =>
+    (round.scores ?? []).filter(
+      (score) =>
+        Number.isFinite(Number(score.hole)) &&
+        Number.isFinite(Number(score.gross)) &&
+        Number.isFinite(Number(score.par)),
+    ),
+  );
+  const grossByHole = new Map<number, { totalToPar: number; scores: number }>();
+  for (const score of holeScores) {
+    const hole = Number(score.hole);
+    const current = grossByHole.get(hole) ?? { totalToPar: 0, scores: 0 };
+    current.totalToPar += Number(score.gross) - Number(score.par);
+    current.scores += 1;
+    grossByHole.set(hole, current);
+  }
+  const toughestHole = [...grossByHole.entries()]
+    .map(([hole, result]) => ({
+      hole,
+      averageGrossToPar: roundOne(result.totalToPar / result.scores),
+    }))
+    .sort(
+      (left, right) =>
+        right.averageGrossToPar - left.averageGrossToPar || left.hole - right.hole,
+    )[0] ?? null;
   const allHoles = [...new Set(rounds.flatMap((round) => (round.scores ?? []).map((score) => score.hole)))].sort(
     (left, right) => left - right,
   );
@@ -96,6 +126,29 @@ export function buildEventRecap(event: EventInsightInput) {
     upset,
     pointsUsed: pointsEnabled,
     finishHoles,
+    fieldMetrics: {
+      averageNet:
+        validNetScores.length > 0
+          ? roundOne(validNetScores.reduce((total, score) => total + score, 0) / validNetScores.length)
+          : null,
+      winningMargin: runnerUp
+        ? roundOne(
+            pointsEnabled
+              ? points(winner) - points(runnerUp)
+              : Number(runnerUp.net) - Number(winner.net),
+          )
+        : null,
+      winningMarginUnit: pointsEnabled ? "points" : "strokes",
+      parOrBetterRate:
+        holeScores.length > 0
+          ? Math.round(
+              (holeScores.filter((score) => Number(score.gross) <= Number(score.par)).length /
+                holeScores.length) *
+                100,
+            )
+          : null,
+      toughestHole,
+    },
     summary: `${name(winner)} led ${event.name}${pointsEnabled ? ` with ${points(winner)} points` : ` at ${winner.net} net`}.${clutch ? ` ${clutch.playerName} produced the best closing stretch.` : ""}`,
   };
 }
