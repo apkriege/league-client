@@ -85,3 +85,8 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 - Tournament/mixed leagues default to single events; fixed-hole seasons keep recurring setup; an explicit saved choice takes precedence.
 - Creation pages progressively disclose points/allowances; required mode-specific rules remain visible. Existing edit-page disclosure remains unchanged.
 - Verification: 14 builder/scoring tests, 3 browser regressions for defaults/disclosure/value persistence and event drafts, typecheck/lint/diff check passed.
+
+### 11. Invitation management — complete
+- Explain missing emails, select eligible players, expose all invitation states, and resend from the drawer. Keyboard dismissal restores focus.
+- Backend serializes invitation changes; valid resends preserve links, expired links are replaced, and intentional emails receive distinct delivery keys.
+- Verification: 3 frontend state tests, 2 email tests, browser selection/resend/keyboard regression, 4 real-database integration tests including concurrent resends, expiry and authorization; client/server/test typechecks, lint and whitespace checks passed.

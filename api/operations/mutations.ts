@@ -17,7 +17,7 @@ export const useClaimInvitation = () => {
 export const useCreateLeagueInvitations = (leagueId: number) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { playerIds: number[] }) =>
+    mutationFn: (payload: { playerIds: number[]; resend?: boolean }) =>
       createLeagueInvitations(leagueId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["league", leagueId, "invitations"] });

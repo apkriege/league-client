@@ -1,3 +1,4 @@
+import { parseInvitations } from "@/features/invitations/invitationState";
 import apiClient from "../client";
 import type { LeagueAnnouncement } from "./types";
 
@@ -13,14 +14,14 @@ export async function claimInvitation(token: string) {
 
 export async function getLeagueInvitations(leagueId: number) {
   const response = await apiClient.get(`/leagues/${leagueId}/invitations`);
-  return response.data;
+  return parseInvitations(response.data);
 }
 
 export async function createLeagueInvitations(
   leagueId: number,
-  payload: { playerIds: number[] }
+  payload: { playerIds: number[]; resend?: boolean }
 ) {
-  const response = await apiClient.post(`/leagues/${leagueId}/invitations`, payload);
+  const response = await apiClient.post<{ delivery: Array<{ result: { status: string } }> }>(`/leagues/${leagueId}/invitations`, payload);
   return response.data;
 }
 

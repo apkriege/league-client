@@ -251,3 +251,34 @@ test('tournaments start with a single event and advanced scoring preserves chose
   await summary.click();
   await expect(points).toHaveValue('3');
 });
+
+test('invitations explain missing email, select all ready players, and resend pending links', async ({ page }) => {
+  const league = await mockLeague(page);
+  await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, players: [
+    { id: 1, firstName: 'Missing', lastName: 'Email' }, { id: 2, firstName: 'Ready', lastName: 'One', email: 'one@test.com' },
+    { id: 3, firstName: 'Ready', lastName: 'Two', email: 'two@test.com' }, { id: 4, firstName: 'Pending', lastName: 'Player', email: 'pending@test.com' },
+  ] } }));
+  const invitations = [{ id: 8, token: 'pending-token', email: 'pending@test.com', playerId: 4, status: 'pending', expiresAt: '2099-01-01' }];
+  const sent: Array<{ playerIds: number[]; resend?: boolean }> = [];
+  await page.route('http://127.0.0.1:3310/api/leagues/1/invitations', async route => {
+    if (route.request().method() === 'POST') { sent.push(route.request().postDataJSON()); await route.fulfill({ status: 201, json: { delivery: [{ result: { status: 'sent' } }] } }); }
+    else await route.fulfill({ json: invitations });
+  });
+  await page.goto('/league/1/admin');
+  await page.getByRole('button', { name: 'Player invitations', exact: true }).click();
+  const drawer = page.getByRole('dialog', { name: 'Player invitations' });
+  await expect(drawer.getByText('Missing email · 1', { exact: true })).toBeVisible();
+  await expect(drawer.getByRole('link', { name: 'Add player emails' })).toHaveAttribute('href', '/league/1/players');
+  await drawer.getByRole('button', { name: 'Select all' }).click();
+  await drawer.getByRole('button', { name: 'Send invitations', exact: true }).click();
+  await expect.poll(() => sent.length).toBe(1);
+  expect(sent[0].playerIds).toEqual([2, 3]);
+  await drawer.getByRole('button', { name: 'Resend email' }).click();
+  await expect.poll(() => sent.length).toBe(2);
+  expect(sent[1]).toEqual({ playerIds: [4], resend: true });
+  await expect(drawer.getByRole('button', { name: 'Resend email' })).toBeEnabled();
+  await drawer.getByRole('button', { name: 'Resend email' }).focus();
+  await page.keyboard.press('Escape');
+  await expect(drawer).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Player invitations', exact: true })).toBeFocused();
+});
