@@ -1,5 +1,4 @@
 import { getLeagueBillingStatus, TRIAL_EVENT_LIMIT } from "@/lib/billing";
-import { formatEventDate, sortEventsByDate } from "@/utils/eventDate";
 import type { IntelligenceEvent, LeagueAdminInput } from "./types";
 
 type CommissionerMetric = { label: string; value: string | number; detail: string };
@@ -19,12 +18,6 @@ export function buildCommissionerMetrics(
   const completed = scheduled.filter(event =>
     ["complete", "completed"].includes(String(event.status ?? "").toLowerCase()),
   ).length;
-  const remaining = scheduled.filter(event =>
-    ["upcoming", "active"].includes(String(event.status ?? "").toLowerCase()),
-  );
-  const nextEvent = sortEventsByDate(remaining.filter(event =>
-    new Date(event.startsAt).getTime() >= now.getTime(),
-  ))[0];
   const endTime = league.endDate ? new Date(league.endDate).getTime() : NaN;
   const daysRemaining = Number.isFinite(endTime)
     ? Math.max(0, Math.ceil((endTime - now.getTime()) / 86_400_000)) : null;
@@ -40,9 +33,9 @@ export function buildCommissionerMetrics(
     },
     { label: "Events completed", value: `${completed} / ${scheduled.length}`, detail: "completed / total" },
     {
-      label: "Next event",
-      value: nextEvent ? formatEventDate(nextEvent.startsAt, { month: "short", day: "numeric" }, "en-US", nextEvent.timeZone) : "—",
-      detail: nextEvent?.name ?? "No upcoming event",
+      label: "Total players",
+      value: league.players?.length ?? 0,
+      detail: "players and substitutes",
     },
     {
       label: "Season remaining",

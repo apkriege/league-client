@@ -39,7 +39,6 @@ import {
   Timer,
   Trash2,
   User,
-  Users,
   Zap,
 } from "lucide-react";
 import { getLeagueBillingStatus, getLeagueCapacity, TRIAL_EVENT_LIMIT } from "@/lib/billing";
@@ -204,7 +203,6 @@ export default function LeagueAdmin() {
   const upcoming = events?.filter((e: any) => e.status === "upcoming") ?? [];
   const sortedEvents = sortEventsByDate(events ?? []);
   const totalEvents = events?.length ?? 0;
-  const totalPlayers = league?.players?.length ?? 0;
   const nextEvent = upcoming[0] ?? null;
   const role = String(user?.role || "").toUpperCase();
   const isSuperAdmin = role === "SUPER";
@@ -277,16 +275,7 @@ export default function LeagueAdmin() {
 
   return (
     <div className="space-y-7">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><PageHeader title={league?.name ?? "League"} /></div>
-        <Link
-          to={`/league/${leagueId}/players`}
-          className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-        >
-          <Users size={13} />
-          {totalPlayers} {totalPlayers === 1 ? "player" : "players"}
-        </Link>
-      </div>
+      <PageHeader title={league?.name ?? "League"} />
 
       {(isConfirmingPayment || paymentReturnMessage) && (
         <PaymentReturnNotice

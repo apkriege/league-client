@@ -17,7 +17,7 @@ async function checkMetrics(page: Page, mobile: boolean) {
   await expect(trial.getByRole('button', { name: 'Activate League', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(1);
   await expect(intelligence.getByText('Events completed', { exact: true }).locator('..')).toContainText('1 / 2');
-  await expect(intelligence.getByText('Next event', { exact: true }).locator('..')).toContainText('Opening Round');
+  await expect(intelligence.getByText('Total players', { exact: true }).locator('..')).toContainText('2');
   await expect(intelligence.getByText('Season remaining', { exact: true }).locator('..')).toContainText('days');
   const boxes = intelligence.locator('.grid').first().locator(':scope > div');
   await expect(boxes).toHaveCount(4);
@@ -26,7 +26,6 @@ async function checkMetrics(page: Page, mobile: boolean) {
   expect(mobile ? third.y > first.y : third.y === first.y).toBe(true);
   expect((await intelligence.boundingBox())!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   await intelligence.screenshot({ path: `/tmp/commissioner-metrics-${mobile ? 'mobile' : 'desktop'}.png` });
-  await expect(page.getByRole('link', { name: '2 players', exact: true })).toHaveAttribute('href', '/league/1/players');
   await expect(page.getByText('Overview', { exact: true })).toHaveCount(0);
   const communication = page.getByRole('region', { name: 'League communication' });
   const sections = communication.locator(':scope > div');

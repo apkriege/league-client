@@ -26,24 +26,26 @@ describe("commissioner operational metrics", () => {
   ])("shows billing state for %s instead of a misleading trial balance", (status, paidGolfers, refundedGolfers, expected) => {
     expect(buildCommissionerMetrics({ ...league, entitlement: { ...entitlement, status, paidGolfers, refundedGolfers } }, [], now)[0].value).toBe(expected);
   });
-  it("counts completed events in the total, excludes off/canceled events, and finds the next event", () => {
+  it("counts completed events in the total and excludes off/canceled events", () => {
     const events = [event(4, "upcoming", "2026-06-10T20:00:00Z"), event(3, "upcoming", "2026-06-02T20:00:00Z"), event(2, "active", "2026-05-30T20:00:00Z"), event(5, "completed"), event(6, "complete"), event(7, "canceled"), event(8, "cancelled"), event(9, "upcoming", undefined, "off")];
     const result = buildCommissionerMetrics(league, events, now);
     expect(result[1].value).toBe("2 / 5");
-    expect(result[2]).toMatchObject({ value: "Jun 2", detail: "Round 3" });
     expect(events[0].id).toBe(4);
   });
   it("shows a finished schedule and excludes completed off days", () => {
     const result = buildCommissionerMetrics(league, [event(1, "completed"), event(2, "complete"), event(3, "completed", undefined, "off")], now);
     expect(result[1].value).toBe("2 / 2");
-    expect(result[2].value).toBe("—");
   });
-  it("formats the next event in its event timezone", () => {
-    expect(buildCommissionerMetrics(league, [{ ...event(1, "upcoming", "2026-06-02T01:00:00Z"), timeZone: "America/Indiana/Indianapolis" }], now)[2].value).toBe("Jun 1");
+  it("counts the whole roster including substitutes", () => {
+    const players = [
+      { id: 1, firstName: "Pat", lastName: "Golfer", type: "player" },
+      { id: 2, firstName: "Jo", lastName: "Player", type: "substitute" },
+    ];
+    expect(buildCommissionerMetrics({ ...league, players }, [], now)[2]).toMatchObject({ label: "Total players", value: 2 });
   });
   it("handles missing, expired and archived season data", () => {
     const empty = buildCommissionerMetrics({}, [], now);
-    expect(empty.map(metric => metric.value)).toEqual(["Inactive", "0 / 0", "—", "—"]);
+    expect(empty.map(metric => metric.value)).toEqual(["Inactive", "0 / 0", 0, "—"]);
     expect(buildCommissionerMetrics({ endDate: "bad" }, [], now)[3].value).toBe("—");
     expect(buildCommissionerMetrics({ endDate: "2026-05-31" }, [], now)[3].value).toBe("Ended");
     expect(buildCommissionerMetrics({ ...league, seasonStatus: "archived" }, [], now)[3].value).toBe("Archived");
