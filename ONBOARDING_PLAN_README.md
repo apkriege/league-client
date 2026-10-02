@@ -100,3 +100,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 - Persistent compact feedback identifies invalid league/event fields and restores focus; player fields show required/range errors, including keyboard focus for gender. Recurring setup validates each round using the shared event validator and exposes recovery feedback.
 - Blank and out-of-range handicaps now fail frontend validation, matching backend rules. Edited numeric handicaps are normalized for the input without changing their stored value. Removed duplicate validation toasts.
 - Verification: 32 validation tests, mobile add/edit-save/delete and league/single-event browser checks, recurring-generation recovery check, client typecheck/lint and backend test typecheck passed. Full backend integration suite passed 43 tests, including blank/null/range rejection and partial-roster creation.
+
+### 13. Score-draft clarity — complete
+- Compact status explains device-local saving and names the actual Submit Scores/Save Changes action needed to save to the league. Storage failures retain explicit recovery guidance across all five scoring forms.
+- Verification: 13 draft/status/score-validation tests, typecheck, lint and whitespace check passed. Scoring API integration checks passed in the 43-test suite; full browser scoring regression remains the final gate.

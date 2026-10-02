@@ -703,6 +703,7 @@ export const CreateFlightScores = ({
       <div className="p-4">
         <div className="mb-3">
           <ScoreDraftStatus
+            submitLabel={isEditMode ? "Save Changes" : "Submit Scores"}
             hasDraft={scoreDraft.hasDraft}
             storageError={scoreDraft.storageError}
             savedAt={scoreDraft.savedAt}
