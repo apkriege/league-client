@@ -104,3 +104,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 ### 13. Score-draft clarity — complete
 - Compact status explains device-local saving and names the actual Submit Scores/Save Changes action needed to save to the league. Storage failures retain explicit recovery guidance across all five scoring forms.
 - Verification: 13 draft/status/score-validation tests, typecheck, lint and whitespace check passed. Scoring API integration checks passed in the 43-test suite; full browser scoring regression remains the final gate.
+
+### 14. Clipboard feedback — complete
+- Await clipboard writes and disable repeated copy/rotation during writing; success appears only after confirmation. Failures show compact manual-copy guidance next to the selectable league code.
+- Verification: 3 clipboard tests, delayed-success/denied-permission browser regression, typecheck/lint and whitespace checks passed. No API contract changed.

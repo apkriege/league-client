@@ -333,3 +333,26 @@ test('series generation explains missing roster and focuses the recovery action'
   await expect(page.getByRole('alert').filter({ hasText: 'Add at least 2 players before generating.' })).toBeVisible();
   await expect(generate).toBeFocused();
 });
+
+test('league code copy waits for success and explains clipboard failure', async ({ page }) => {
+  const league = await mockLeague(page);
+  await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, viewerAccessCode: 'VIEW123' } }));
+  await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+    writeText: async (text: string) => {
+      await new Promise<void>(resolve => window.addEventListener('release-copy', () => resolve(), { once: true }));
+      localStorage.setItem('copied-code', text);
+    },
+  } }));
+  await page.goto('/league/1/admin');
+  await page.getByRole('button', { name: 'Copy', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Copying…', exact: true })).toBeDisabled();
+  await expect(page.getByText('League code copied.', { exact: true })).toHaveCount(0);
+  await page.evaluate(() => window.dispatchEvent(new Event('release-copy')));
+  await expect(page.getByText('League code copied.', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('copied-code'))).toBe('VIEW123');
+  await page.reload();
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => { throw new Error('Denied'); } } }));
+  await page.getByRole('button', { name: 'Copy', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Select the league code and copy it manually.');
+  await expect(page.getByText('League code copied.', { exact: true })).toHaveCount(0);
+});
