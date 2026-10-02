@@ -1,3 +1,6 @@
+import ValidationFeedback from "@/components/form/ValidationFeedback";
+import type { ValidationIssue } from "@/components/form/formValidation";
+import { getLeagueInfoIssue } from "./validation";
 import { readBrowserStorage, writeBrowserStorage, removeBrowserStorage } from "@/lib/browserStorage";
 import Players from "./forms/PlayersForm";
 import TeamsForm from "./forms/TeamsForm";
@@ -163,6 +166,7 @@ export default function CreateLeague() {
         Number.isInteger(savedStep) && savedStep >= 1 && savedStep <= 4 ? savedStep : 1;
     } catch { return 1; }
   });
+  const [validationIssue, setValidationIssue] = useState<ValidationIssue | null>(null);
   const [draftStorageError, setDraftStorageError] = useState(false);
   const [preferTrial, setPreferTrial] = useState(true);
   const [checkoutStatus, setCheckoutStatus] = useState(
@@ -383,7 +387,7 @@ export default function CreateLeague() {
 
     const { validationMessage, modeledData } = prepareLeagueData(leagueForm.getValues());
     if (validationMessage || !modeledData) {
-      show(validationMessage || "Review the league details and try again.", "error");
+      setValidationIssue({ field: "review", message: validationMessage || "Review the league details and try again." });
       return;
     }
     const bypassesLeaguePayment = Boolean(stripeState?.billing?.hasPendingLeagueBypass);
@@ -529,7 +533,8 @@ export default function CreateLeague() {
   }
 
   return (
-    <div>
+    <div data-validation-scope>
+      <ValidationFeedback issue={validationIssue} />
       <div ref={topRef} />
       {draftStorageError && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Draft saving is unavailable. Keep this page open until your league is created.</p>}
       {renewalSourceId > 0 && renewalTemplateQuery.data?.sourceLeague && (
@@ -576,7 +581,7 @@ export default function CreateLeague() {
                     ownerId={Number(user.id)}
                   />
                 )}
-                <InfoForm />
+                <InfoForm validationIssue={validationIssue} />
               </>
             )}
             {currentStep === 2 && <Players />}
@@ -616,6 +621,7 @@ export default function CreateLeague() {
               : undefined
           }
           onBack={() => {
+            setValidationIssue(null);
             goToStep(Math.max(1, currentStep - 1));
           }}
           onNext={() => {
@@ -630,10 +636,13 @@ export default function CreateLeague() {
               currentStepName,
             );
             if (validationMessage) {
-              show(validationMessage, "error");
+              const issue = currentStepName === "info" ? getLeagueInfoIssue(leagueForm.getValues()) : { field: currentStepName, message: validationMessage };
+              setValidationIssue(issue);
               return;
             }
 
+            setValidationIssue(null);
+            leagueForm.clearErrors();
             goToStep(currentStep + 1);
           }}
         />

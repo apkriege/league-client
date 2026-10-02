@@ -1,3 +1,6 @@
+import ValidationFeedback from "@/components/form/ValidationFeedback";
+import type { ValidationIssue } from "@/components/form/formValidation";
+import { getEventValidationIssue } from "../validation";
 import { readSetupDraft, isSetupSchedule } from "../setupDraft";
 import { writeBrowserStorage } from "@/lib/browserStorage";
 import CourseQueryState from "@/features/courses/CourseQueryState";
@@ -155,6 +158,8 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
   const [alternateStartSides, setAlternateStartSides] = useState(saved.alternateStartSides);
   const [statsPeriodMode, setStatsPeriodMode] = useState<"overall" | "halves">(saved.statsPeriodMode === "halves" ? "halves" : "overall");
   const [firstHalfEndDate, setFirstHalfEndDate] = useState(saved.firstHalfEndDate);
+  const [validationIssue, setValidationIssue] = useState<ValidationIssue | null>(null);
+  const reportValidation = (field: string, message: string) => setValidationIssue({ field, message });
   const [draftError, setDraftError] = useState(false);
   useEffect(() => {
     const ok = writeBrowserStorage(storageKey, JSON.stringify({ seriesName, startDate, endDate, frequency, selectedDays, schedule, alternateStartSides, statsPeriodMode, firstHalfEndDate }));
@@ -304,14 +309,14 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
 
   const handleGenerate = (doShuffle = false) => {
     if (ids.length < 2) {
-      show(`Add at least 2 ${format === "team" ? "teams" : "players"} before generating.`, "error");
+      reportValidation("schedule", `Add at least 2 ${format === "team" ? "teams" : "players"} before generating.`);
       return;
     }
     const sourceIds = doShuffle ? shuffleArray(ids) : ids;
     const rrData = generateRoundRobin(sourceIds);
     const dates = buildDates(resolvedStartDate, resolvedEndDate, selectedDays, frequency);
     if (!dates.length) {
-      show("Select at least one day of the week within the date range.", "error");
+      reportValidation("schedule", "Select at least one day of the week within the date range.");
       return;
     }
 
@@ -361,7 +366,7 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
 
   const handleSubmit = () => {
     if (!resolvedSchedule.length) {
-      show("Generate a schedule first.", "error");
+      reportValidation("schedule", "Generate a schedule first.");
       return;
     }
     const outsideLeagueDate = resolvedSchedule.find(
@@ -370,20 +375,25 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
         (leagueEndDate && round.date > leagueEndDate)
     );
     if (outsideLeagueDate) {
-      show("Event dates must stay within the league start and end dates.", "error");
+      reportValidation("schedule", "Event dates must stay within the league start and end dates.");
       return;
     }
     const shared = methods.getValues();
+    if (!seriesName.trim()) { reportValidation("seriesName", "Series name is required."); return; }
+    for (const round of resolvedSchedule) {
+      const issue = getEventValidationIssue({ ...shared, name: seriesName.trim(), date: round.date, flights: round.flights, teamLineups: round.teamLineups, teamPlayersPerEvent: requiredPlayers }, { showTeamsSection: !isSeasonLeague, leagueStartDate, leagueEndDate });
+      if (issue) { reportValidation(issue.field, issue.message); return; }
+    }
     if (shared.format === "team") {
       const sizeError = getTeamSizeError(scoringMode, requiredPlayers);
       if (sizeError) {
-        show(sizeError, "error");
+        reportValidation("teamPlayersPerEvent", sizeError);
         return;
       }
       for (const [index, round] of resolvedSchedule.entries()) {
         const lineupError = roundLineupError(round.flights, teams, players, round.teamLineups, requiredPlayers);
         if (lineupError) {
-          show(`Round ${index + 1}: ${lineupError}`, "error");
+          reportValidation("schedule", `Round ${index + 1}: ${lineupError}`);
           return;
         }
       }
@@ -394,10 +404,11 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
       firstHalfEndDate
     );
     if (statsPeriodMode === "halves" && !scoringPeriodsLocked && !halfScoringPeriods) {
-      show("Choose a first-half end date before the series end date.", "error");
+      reportValidation("firstHalfEndDate", "Choose a first-half end date before the series end date.");
       return;
     }
 
+    setValidationIssue(null);
     mutation.mutate(
       {
         leagueId: Number(leagueId),
@@ -451,7 +462,8 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
   if (coursesQuery.isLoading || coursesQuery.isError || !courses?.length) return <CourseQueryState {...coursesQuery} count={courses?.length ?? 0} onRetry={() => void coursesQuery.refetch()} />;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-validation-scope className="flex flex-col gap-6">
+      <ValidationFeedback issue={validationIssue} />
       {draftError && <p role="status" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">Series draft saving is unavailable. Keep this page open until events are created.</p>}
       {/* ── Event Settings + Scoring ── */}
       <div className="flex flex-col gap-6 xl:flex-row">
@@ -505,6 +517,8 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
               </div>
 
               <AutocompleteSelect
+                name="courseId"
+                error={validationIssue?.field === "courseId" ? validationIssue.message : undefined}
                 label="Course"
                 placeholder="Search by course, club, or location"
                 options={courseOptions}
@@ -735,6 +749,8 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
 
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
           <Input
+            name="seriesName"
+            error={validationIssue?.field === "seriesName" ? validationIssue.message : undefined}
             label="Series Name"
             value={seriesName}
             onChange={(e) => setSeriesName(e.target.value)}
@@ -797,6 +813,7 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
             {statsPeriodMode === "halves" && (
               <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
                 <DateInput
+                  name="firstHalfEndDate"
                   label="1st Half Ends"
                   value={firstHalfEndDate}
                   min={resolvedStartDate}
@@ -873,7 +890,7 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
         )}
 
         <div className="flex gap-2 mt-2">
-          <Button type="button" variant="primary" onClick={() => handleGenerate(false)}>
+          <Button type="button" variant="primary" name="schedule" onClick={() => { setValidationIssue(null); handleGenerate(false); }}>
             <RefreshCw size={12} className="mr-2" />
             Generate Schedule
           </Button>

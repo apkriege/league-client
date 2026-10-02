@@ -56,6 +56,8 @@ test('mobile roster fields fit and edit/delete have accessible touch targets', a
   expect((await edit.boundingBox())?.height).toBeGreaterThanOrEqual(44);
   await edit.click();
   await expect(firstName).toHaveValue('Mobile');
+  await page.getByRole('button', { name: 'Update Player', exact: true }).click();
+  await expect(edit).toBeVisible();
   await page.getByRole('button', { name: 'Delete Mobile Golfer' }).click();
   await expect(edit).toHaveCount(0);
 });
@@ -282,4 +284,52 @@ test('invitations explain missing email, select all ready players, and resend pe
   await page.keyboard.press('Escape');
   await expect(drawer).not.toBeVisible();
   await expect(page.getByRole('button', { name: 'Player invitations', exact: true })).toBeFocused();
+});
+
+test('league and player validation stays visible and focuses invalid fields', async ({ page }) => {
+  await mockAdmin(page);
+  await page.goto('/leagues/create');
+  await page.getByRole('button', { name: 'Next →' }).click();
+  await expect(page.getByLabel('League Name', { exact: true })).toBeFocused();
+  await expect(page.getByLabel('League Name', { exact: true })).toHaveAttribute('aria-invalid', 'true');
+  await page.getByLabel('League Name', { exact: true }).fill('Validation League');
+  await page.getByRole('button', { name: 'Next →' }).click();
+  await page.getByRole('button', { name: 'Save Player', exact: true }).click();
+  await expect(page.getByLabel('First Name', { exact: true })).toBeFocused();
+  await expect(page.getByLabel('First Name', { exact: true })).toHaveAttribute('aria-invalid', 'true');
+  await page.getByLabel('First Name', { exact: true }).fill('Valid');
+  await page.getByLabel('Last Name', { exact: true }).fill('Player');
+  await page.getByLabel('18-Hole Handicap', { exact: true }).fill('55');
+  await page.getByRole('button', { name: 'Save Player', exact: true }).click();
+  await expect(page.getByLabel('18-Hole Handicap', { exact: true })).toBeFocused();
+  await expect(page.getByText('Enter a handicap from -10 to 54.', { exact: true })).toBeVisible();
+  await page.getByLabel('18-Hole Handicap', { exact: true }).fill('0');
+  await page.getByRole('button', { name: 'Save Player', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Gender', exact: true })).toBeFocused();
+  await page.getByRole('combobox', { name: 'Gender', exact: true }).click();
+  await page.getByRole('option', { name: 'Male', exact: true }).click();
+  await page.getByRole('button', { name: 'Save Player', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Edit Valid Player' })).toBeVisible();
+});
+
+test('single event validation focuses missing name then course and allows correction', async ({ page }) => {
+  await mockLeague(page, 'tournament');
+  await page.route('http://127.0.0.1:3310/api/courses?*', route => route.fulfill({ json: [{ id: 12, name: 'Test Course', numHoles: 18, tees: [{ id: 21, name: 'White', holes: [] }] }] }));
+  await page.goto('/league/1/events/create');
+  await page.getByRole('button', { name: 'Create Event', exact: true }).click();
+  await expect(page.getByLabel('Event Name', { exact: true })).toBeFocused();
+  await page.getByLabel('Event Name', { exact: true }).fill('Validation Event');
+  await page.getByRole('button', { name: 'Create Event', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Course', exact: true })).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Course', exact: true })).toHaveAttribute('aria-invalid', 'true');
+});
+
+test('series generation explains missing roster and focuses the recovery action', async ({ page }) => {
+  await mockLeague(page);
+  await page.route('http://127.0.0.1:3310/api/courses?*', route => route.fulfill({ json: [{ id: 12, name: 'Test Course', numHoles: 18, tees: [{ id: 21, name: 'White' }] }] }));
+  await page.goto('/league/1/events/create');
+  const generate = page.getByRole('button', { name: 'Generate Schedule', exact: true });
+  await generate.click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Add at least 2 players before generating.' })).toBeVisible();
+  await expect(generate).toBeFocused();
 });

@@ -28,23 +28,6 @@ const defaultPlayer = {
   handicap: "",
 };
 
-const getMissingRequiredFields = (player: any) => {
-  const missing: string[] = [];
-  const handicap =
-    player?.handicap != null && String(player.handicap).trim() !== ""
-      ? Number(player.handicap)
-      : NaN;
-
-  if (!String(player?.firstName || "").trim()) missing.push("first name");
-  if (!String(player?.lastName || "").trim()) missing.push("last name");
-  if (!["male", "female"].includes(String(player?.gender || ""))) {
-    missing.push("gender");
-  }
-  if (!Number.isFinite(handicap)) missing.push("handicap");
-
-  return missing;
-};
-
 export default function PlayersForm() {
   const { show } = useToast();
   const [isEdit, setIsEdit] = useState(false);
@@ -63,12 +46,6 @@ export default function PlayersForm() {
   });
 
   const onSubmit = (data: any) => {
-    const missingRequiredFields = getMissingRequiredFields(data);
-    if (missingRequiredFields.length > 0) {
-      show(`Required: ${missingRequiredFields.join(", ")}.`, "warning");
-      return;
-    }
-
     const playerData = {
       ...data,
       firstName: String(data.firstName).trim(),
@@ -96,7 +73,7 @@ export default function PlayersForm() {
   };
 
   const editPlayer = (player: any) => {
-    playerForm.reset(player);
+    playerForm.reset({ ...player, handicap: String(player.handicap ?? "") });
     setIsEdit(true);
   };
 
@@ -215,23 +192,25 @@ export default function PlayersForm() {
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-3">
           <Controller
             name="firstName"
+            rules={{ validate: value => value.trim() ? true : "First name is required." }}
             control={playerForm.control}
-            render={({ field }) => (
-              <Input label="First Name" placeholder="Enter first name" {...field} />
+            render={({ field, fieldState }) => (
+              <Input error={fieldState.error?.message} label="First Name" placeholder="Enter first name" {...field} />
             )}
           />
           <Controller
             name="lastName"
+            rules={{ validate: value => value.trim() ? true : "Last name is required." }}
             control={playerForm.control}
-            render={({ field }) => (
-              <Input label="Last Name" placeholder="Enter last name" {...field} />
+            render={({ field, fieldState }) => (
+              <Input error={fieldState.error?.message} label="Last Name" placeholder="Enter last name" {...field} />
             )}
           />
           <Controller
             name="email"
             control={playerForm.control}
-            render={({ field }) => (
-              <Input label="Email (optional)" placeholder="Enter email" {...field} />
+            render={({ field, fieldState }) => (
+              <Input error={fieldState.error?.message} label="Email (optional)" placeholder="Enter email" {...field} />
             )}
           />
         </div>
@@ -239,13 +218,14 @@ export default function PlayersForm() {
           <Controller
             name="phone"
             control={playerForm.control}
-            render={({ field }) => <Input label="Phone" placeholder="Enter phone" {...field} />}
+            render={({ field, fieldState }) => <Input error={fieldState.error?.message} label="Phone" placeholder="Enter phone" {...field} />}
           />
           <Controller
             name="type"
             control={playerForm.control}
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <Select
+                error={fieldState.error?.message}
                 label="Type"
                 options={[
                   { label: "Player", value: "player" },
@@ -258,9 +238,11 @@ export default function PlayersForm() {
           />
           <Controller
             name="handicap"
+            rules={{ validate: value => String(value ?? "").trim() !== "" && Number.isFinite(Number(value)) && Number(value) >= -10 && Number(value) <= 54 ? true : "Enter a handicap from -10 to 54." }}
             control={playerForm.control}
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <Input
+                error={fieldState.error?.message}
                 label={`${handicapHoleCount}-Hole Handicap`}
                 placeholder={`Enter ${handicapHoleCount}-hole handicap`}
                 type="number"
@@ -271,9 +253,11 @@ export default function PlayersForm() {
           />
           <Controller
             name="gender"
+            rules={{ validate: value => ["male", "female"].includes(value) ? true : "Select a gender." }}
             control={playerForm.control}
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <Select
+                error={fieldState.error?.message}
                 label="Gender"
                 options={[
                   { label: "Male", value: "male" },

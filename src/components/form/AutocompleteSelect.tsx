@@ -18,6 +18,8 @@ const filterOptions = createFilterOptions<AutocompleteOption>({
 
 type AutocompleteSelectProps = {
   label?: string;
+  name?: string;
+  error?: string;
   placeholder?: string;
   options: AutocompleteOption[];
   value?: string | number;
@@ -31,6 +33,8 @@ type AutocompleteSelectProps = {
 
 export default function AutocompleteSelect({
   label,
+  name,
+  error,
   placeholder = "Search and select...",
   options,
   value,
@@ -90,7 +94,7 @@ export default function AutocompleteSelect({
           );
         }}
         renderInput={(params) => (
-          <TextField {...params} placeholder={placeholder} size="small" />
+          <TextField {...params} name={name} error={Boolean(error)} helperText={error} placeholder={placeholder} size="small" />
         )}
         sx={{
           "& .MuiInputBase-root": { minHeight: 35, fontSize: "0.75rem", py: 0 },

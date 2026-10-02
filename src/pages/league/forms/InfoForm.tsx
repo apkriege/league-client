@@ -1,3 +1,4 @@
+import { getFieldError, type ValidationIssue } from "@/components/form/formValidation";
 import CourseSetupCheck from "@/features/courses/CourseSetupCheck";
 import { Input, Select, SelectableInfoCard } from "@/components/form";
 import Card from "@/components/layout/Card";
@@ -20,11 +21,13 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 type InfoFormProps = {
   competitiveSettingsLocked?: boolean;
   isEditing?: boolean;
+  validationIssue?: ValidationIssue | null;
 };
 
 export default function InfoForm({
   competitiveSettingsLocked = false,
   isEditing = false,
+  validationIssue,
 }: InfoFormProps) {
   const leagueForm = useFormContext();
   const startDate = leagueForm.watch("startDate");
@@ -53,8 +56,8 @@ export default function InfoForm({
             <Controller
               name="name"
               control={leagueForm.control}
-              render={({ field }) => (
-                <Input
+              render={({ field, fieldState }) => (
+                <Input error={validationIssue?.field === field.name ? validationIssue.message : getFieldError(fieldState.error)}
                   label="League Name"
                   placeholder="Enter league name"
                   {...field}
@@ -65,8 +68,8 @@ export default function InfoForm({
             <Controller
               name="description"
               control={leagueForm.control}
-              render={({ field }) => (
-                <Input
+              render={({ field, fieldState }) => (
+                <Input error={validationIssue?.field === field.name ? validationIssue.message : getFieldError(fieldState.error)}
                   label="Description"
                   placeholder="Enter league description"
                   className="w-full"
@@ -78,8 +81,8 @@ export default function InfoForm({
               <Controller
                 name="startDate"
                 control={leagueForm.control}
-                render={({ field }) => (
-                  <Input
+                render={({ field, fieldState }) => (
+                  <Input error={validationIssue?.field === field.name ? validationIssue.message : getFieldError(fieldState.error)}
                     type="date"
                     label="Start Date"
                     placeholder="YYYY-MM-DD"
@@ -102,8 +105,8 @@ export default function InfoForm({
               <Controller
                 name="endDate"
                 control={leagueForm.control}
-                render={({ field }) => (
-                  <Input
+                render={({ field, fieldState }) => (
+                  <Input error={validationIssue?.field === field.name ? validationIssue.message : getFieldError(fieldState.error)}
                     type="date"
                     label="End Date"
                     placeholder="YYYY-MM-DD"
@@ -186,8 +189,9 @@ export default function InfoForm({
               <Controller
                 name="teamRosterSize"
                 control={leagueForm.control}
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <Select
+                    error={getFieldError(fieldState.error)}
                     label="Maximum golfers per team"
                     value={Number(field.value || 4)}
                     options={[1, 2, 3, 4].map((value) => ({ value, label: String(value) }))}
@@ -204,8 +208,9 @@ export default function InfoForm({
               <Controller
                 name="teamPlayersPerEvent"
                 control={leagueForm.control}
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <Select
+                    error={getFieldError(fieldState.error)}
                     label="Default golfers playing per team"
                     value={Number(field.value || 2)}
                     options={Array.from(
@@ -260,29 +265,29 @@ export default function InfoForm({
             <Controller
               name="contactFirstName"
               control={leagueForm.control}
-              render={({ field }) => (
-                <Input label="First Name" placeholder="Enter contact first name" {...field} />
+              render={({ field, fieldState }) => (
+                <Input error={validationIssue?.field === field.name ? validationIssue.message : getFieldError(fieldState.error)} label="First Name" placeholder="Enter contact first name" {...field} />
               )}
             />
             <Controller
               name="contactLastName"
               control={leagueForm.control}
-              render={({ field }) => (
-                <Input label="Last Name" placeholder="Enter contact last name" {...field} />
+              render={({ field, fieldState }) => (
+                <Input error={validationIssue?.field === field.name ? validationIssue.message : getFieldError(fieldState.error)} label="Last Name" placeholder="Enter contact last name" {...field} />
               )}
             />
             <Controller
               name="contactEmail"
               control={leagueForm.control}
-              render={({ field }) => (
-                <Input label="Email" placeholder="Enter contact email" {...field} />
+              render={({ field, fieldState }) => (
+                <Input error={validationIssue?.field === field.name ? validationIssue.message : getFieldError(fieldState.error)} label="Email" placeholder="Enter contact email" {...field} />
               )}
             />
             <Controller
               name="contactPhone"
               control={leagueForm.control}
-              render={({ field }) => (
-                <Input label="Phone" placeholder="Enter contact phone" {...field} />
+              render={({ field, fieldState }) => (
+                <Input error={validationIssue?.field === field.name ? validationIssue.message : getFieldError(fieldState.error)} label="Phone" placeholder="Enter contact phone" {...field} />
               )}
             />
           </div>

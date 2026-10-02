@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateEventForm } from "./validation";
+import { getEventValidationIssue, validateEventForm } from "./validation";
 
 const validEvent = {
   name: "Week 1",
@@ -197,4 +197,10 @@ describe("event form validation", () => {
       ),
     ).toMatch(/points per hole.*whole number/i);
   });
+});
+
+it.each([
+  [{ name: "" }, "name"], [{ courseId: "" }, "courseId"], [{ teeId: "" }, "teeId"], [{ flights: [] }, "flights"], [{ interval: 0 }, "interval"],
+])("identifies the invalid event field", (changes, field) => {
+  expect(getEventValidationIssue({ ...validEvent, ...changes }, { showTeamsSection: false })?.field).toBe(field);
 });
