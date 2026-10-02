@@ -9,7 +9,7 @@ async function checkMetrics(page: Page, mobile: boolean) {
     return route.fulfill({ json: path === '/api/admin/leagues' ? [league] : path === '/api/leagues/1' ? league : path === '/api/leagues/1/events' ? events : [] });
   });
   await page.goto('/league/1/admin');
-  const intelligence = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Operations Check', exact: true }) });
+  const intelligence = page.locator('section').filter({ has: page.getByRole('heading', { name: 'League Intelligence', exact: true }) });
   await expect(intelligence).toBeVisible();
   await expect(page.getByText(/Free trial ·/)).toHaveCount(0);
   const titleRow = page.getByRole('heading', { name: 'Thursday League', exact: true }).locator('..').locator('..');
@@ -62,11 +62,11 @@ async function checkMetrics(page: Page, mobile: boolean) {
   await expect(page).toHaveURL(/\/league\/1\/admin$/);
   await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, adminId: 999 } }));
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Operations Check', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'League Intelligence', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(0);
   await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, entitlement: { ...league.entitlement, status: 'paid', paidGolfers: 8 } } }));
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Operations Check', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'League Intelligence', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(0);
   await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, seasonStatus: 'archived' } }));
   await page.reload();

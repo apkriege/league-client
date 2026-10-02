@@ -26,8 +26,8 @@ export default function CommissionerInsights({
   const statMetrics = buildCommissionerMetrics(league, events);
   return (
     <IntelligenceShell
-      kicker="Commissioner intelligence"
-      title="Operations Check"
+      kicker="Commissioner overview"
+      title="League Intelligence"
       description="League status and items needing attention."
       aside={insight.health === "ready" ? (
         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-bold text-emerald-300">
