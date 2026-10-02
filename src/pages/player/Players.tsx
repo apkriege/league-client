@@ -14,7 +14,7 @@ import { confirmCheckoutSession } from "@api/payments";
 import { useQueryClient } from "@tanstack/react-query";
 import { SquarePen, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import Table from "@/components/Table";
 import { useAppStore } from "@/stores/appStore";
 import Chip from "@mui/material/Chip";
@@ -82,6 +82,7 @@ export default function Players() {
   const canManagePlayers = role === "ADMIN" || role === "SUPER";
   const { show } = useToast();
   const { leagueId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const numericLeagueId = Number(leagueId);
   const { data: league, isLoading, isError, error } = useLeague(numericLeagueId);
   const createPlayers = useCreatePlayers();
@@ -91,7 +92,7 @@ export default function Players() {
   const queryClient = useQueryClient();
   const checkoutReturnStartedRef = useRef(false);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(() => canManagePlayers && searchParams.get("add") === "1");
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -281,6 +282,12 @@ export default function Players() {
     createPlayers.isPending || updatePlayer.isPending || createCheckoutSession.isPending;
 
   const resetAndCloseModal = () => {
+    if (searchParams.has("add")) {
+      setSearchParams((params) => {
+        params.delete("add");
+        return params;
+      }, { replace: true });
+    }
     setIsModalOpen(false);
     setIsEditMode(false);
     setEditingPlayerId(null);

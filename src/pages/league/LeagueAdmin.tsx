@@ -359,6 +359,9 @@ export default function LeagueAdmin() {
         metrics={metrics}
         onActivateLeague={!isReadOnly && leagueBillingStatus === "trial" && ownsLeague ? activateLeaguePayment : undefined}
         activationPending={restorePayment.isPending}
+        onAddEvents={!isReadOnly ? () => navigate(`/league/${leagueId}/events/create`) : undefined}
+        onAddPlayers={!isReadOnly ? () => navigate(`/league/${leagueId}/players?add=1`) : undefined}
+        onCreateLeague={() => navigate("/leagues/create")}
       />
 
       <section aria-label="League communication" className="space-y-3">

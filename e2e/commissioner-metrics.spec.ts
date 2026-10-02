@@ -23,11 +23,14 @@ async function checkMetrics(page: Page, mobile: boolean) {
   await expect(intelligence.getByText('completed / total', { exact: true })).toHaveCount(0);
   await expect(intelligence.getByText('players and substitutes', { exact: true })).toHaveCount(0);
   await expect(intelligence.getByText('until season end', { exact: true })).toHaveCount(0);
-  await expect(trial.getByRole('button', { name: 'Activate League', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(1);
+  await expect(trial.getByRole('button', { name: 'Activate', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Activate', exact: true })).toHaveCount(1);
   await expect(intelligence.getByText('Events completed', { exact: true }).locator('..')).toContainText('1 / 2');
   await expect(intelligence.getByText('Total players', { exact: true }).locator('..')).toContainText('2');
   await expect(intelligence.getByText('Season remaining', { exact: true }).locator('..')).toContainText('days');
+  await expect(intelligence.getByText('Events completed', { exact: true }).locator('..').getByRole('button', { name: 'Add Events', exact: true })).toBeVisible();
+  await expect(intelligence.getByText('Total players', { exact: true }).locator('..').getByRole('button', { name: 'Add Players', exact: true })).toBeVisible();
+  await expect(intelligence.getByText('Season remaining', { exact: true }).locator('..').getByRole('button', { name: 'Create New League', exact: true })).toBeVisible();
   const boxes = intelligence.locator('.grid').first().locator(':scope > div');
   await expect(boxes).toHaveCount(4);
   const first = (await boxes.nth(0).boundingBox())!;
@@ -38,6 +41,16 @@ async function checkMetrics(page: Page, mobile: boolean) {
   await expect(page.getByText('Overview', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Next Event', exact: true })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Opening Round', exact: true })).toHaveCount(1);
+  await intelligence.getByRole('button', { name: 'Add Players', exact: true }).click();
+  await expect(page).toHaveURL(/\/players\?add=1$/);
+  await expect(page.getByRole('heading', { name: 'Add Players', exact: true })).toBeVisible();
+  await page.goto('/league/1/admin');
+  await intelligence.getByRole('button', { name: 'Add Events', exact: true }).click();
+  await expect(page).toHaveURL(/\/events\/create$/);
+  await page.goto('/league/1/admin');
+  await intelligence.getByRole('button', { name: 'Create New League', exact: true }).click();
+  await expect(page).toHaveURL(/\/leagues\/create$/);
+  await page.goto('/league/1/admin');
   await page.getByRole('button', { name: 'New Event', exact: true }).click();
   await expect(page).toHaveURL(/\/events\/create$/);
   await page.goto('/league/1/admin');
@@ -54,24 +67,24 @@ async function checkMetrics(page: Page, mobile: boolean) {
     await new Promise<void>(resolve => { releaseCheckout = resolve; });
     await route.fulfill({ status: 500, json: { message: 'Checkout unavailable' } });
   });
-  await trial.getByRole('button', { name: 'Activate League', exact: true }).click();
+  await trial.getByRole('button', { name: 'Activate', exact: true }).click();
   await expect(trial.getByRole('button', { name: 'Preparing Checkout...', exact: true })).toBeDisabled();
   await expect.poll(() => checkoutPayload).toMatchObject({ purpose: 'league_capacity', leagueId: 1, requestedGolfers: 8 });
   releaseCheckout();
-  await expect(trial.getByRole('button', { name: 'Activate League', exact: true })).toBeEnabled();
+  await expect(trial.getByRole('button', { name: 'Activate', exact: true })).toBeEnabled();
   await expect(page).toHaveURL(/\/league\/1\/admin$/);
   await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, adminId: 999 } }));
   await page.reload();
   await expect(page.getByRole('heading', { name: 'League Intelligence', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Activate', exact: true })).toHaveCount(0);
   await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, entitlement: { ...league.entitlement, status: 'paid', paidGolfers: 8 } } }));
   await page.reload();
   await expect(page.getByRole('heading', { name: 'League Intelligence', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Activate', exact: true })).toHaveCount(0);
   await page.route('http://127.0.0.1:3310/api/leagues/1', route => route.fulfill({ json: { ...league, seasonStatus: 'archived' } }));
   await page.reload();
   await expect(page.getByText('Past season — read only', { exact: true })).toBeVisible();
-  for (const name of ['New Event', 'Edit League', 'Edit event', 'Cancel event', 'Delete event']) {
+  for (const name of ['New Event', 'Add Events', 'Add Players', 'Activate', 'Edit League', 'Edit event', 'Cancel event', 'Delete event']) {
     await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
   }
   await expect(page.getByRole('button', { name: 'View Scores', exact: true }).first()).toBeEnabled();

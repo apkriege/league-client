@@ -14,6 +14,9 @@ export default function CommissionerInsights({
   events,
   metrics,
   onActivateLeague,
+  onAddEvents,
+  onAddPlayers,
+  onCreateLeague,
   activationPending = false,
 }: {
   league: LeagueAdminInput;
@@ -21,9 +24,18 @@ export default function CommissionerInsights({
   metrics?: LeagueIntelligenceMetrics;
   onActivateLeague?: () => Promise<void>;
   activationPending?: boolean;
+  onAddEvents?: () => void;
+  onAddPlayers?: () => void;
+  onCreateLeague?: () => void;
 }) {
   const insight = buildCommissionerInsights({ league, events, metrics });
   const statMetrics = buildCommissionerMetrics(league, events);
+  const actions = [
+    onActivateLeague ? { label: "Activate", onClick: () => void onActivateLeague(), pending: activationPending } : undefined,
+    onAddEvents ? { label: "Add Events", onClick: onAddEvents, pending: false } : undefined,
+    onAddPlayers ? { label: "Add Players", onClick: onAddPlayers, pending: false } : undefined,
+    onCreateLeague ? { label: "Create New League", onClick: onCreateLeague, pending: false } : undefined,
+  ];
   return (
     <IntelligenceShell
       kicker="Commissioner overview"
@@ -40,17 +52,20 @@ export default function CommissionerInsights({
       )}
     >
       <div className="grid grid-cols-2 divide-x divide-y divide-slate-100 bg-white lg:grid-cols-4 lg:divide-y-0">
-        {statMetrics.map((metric, index) => (
-          <InsightMetric key={metric.label} {...metric}>
-            {index === 0 && onActivateLeague && (
-              <Button variant="default" size="xs" disabled={activationPending} onClick={() => void onActivateLeague()}
-                sx={{ minWidth: 0, px: 0, gap: 0.25, color: "text.secondary" }}>
-                {activationPending ? "Preparing Checkout..." : "Activate League"}
-                {!activationPending && <ChevronRight size={12} />}
-              </Button>
-            )}
-          </InsightMetric>
-        ))}
+        {statMetrics.map((metric, index) => {
+          const action = actions[index];
+          return (
+            <InsightMetric key={metric.label} {...metric}>
+              {action && (
+                <Button variant="default" size="xs" disabled={action.pending} onClick={action.onClick}
+                  sx={{ minWidth: 0, px: 0, gap: 0.25, color: "text.secondary" }}>
+                  {action.pending ? "Preparing Checkout..." : action.label}
+                  {!action.pending && <ChevronRight size={12} />}
+                </Button>
+              )}
+            </InsightMetric>
+          );
+        })}
       </div>
       {insight.items.length === 0 ? (
         <div className="flex items-center justify-center gap-2 border-t border-slate-200 px-5 py-5 text-xs font-semibold text-emerald-700">
