@@ -43,7 +43,7 @@ export function InsightMetric({
 }: {
   label: string;
   value: ReactNode;
-  detail: string;
+  detail?: string;
   children?: ReactNode;
 }) {
   return (
@@ -53,7 +53,7 @@ export function InsightMetric({
         <p className="text-lg font-black tracking-tight text-slate-900">{value}</p>
         {children}
       </div>
-      <p className="mt-0.5 text-[10px] leading-4 text-slate-500">{detail}</p>
+      {detail && <p className="mt-0.5 text-[10px] leading-4 text-slate-500">{detail}</p>}
     </div>
   );
 }

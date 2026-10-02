@@ -13,7 +13,7 @@ const event = (id: number, status: string, startsAt = "2026-06-03T20:00:00Z", ty
 describe("commissioner operational metrics", () => {
   it("uses scored-event trial allowance, separately from the remaining schedule", () => {
     const result = buildCommissionerMetrics(league, [event(1, "upcoming"), event(2, "active")], now);
-    expect(result[0]).toMatchObject({ label: "Trial remaining", value: 2, detail: "scored events left" });
+    expect(result[0]).toMatchObject({ label: "Trial remaining", value: 2 });
     expect(result[1].value).toBe("0 / 2");
     expect(result[3].value).toBe("10 days");
   });

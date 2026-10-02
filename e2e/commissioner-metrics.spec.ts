@@ -19,7 +19,10 @@ async function checkMetrics(page: Page, mobile: boolean) {
   await titleRow.screenshot({ path: `/tmp/admin-title-${mobile ? 'mobile' : 'desktop'}.png` });
   const trial = intelligence.getByText('Trial remaining', { exact: true }).locator('..');
   await expect(trial).toContainText('2');
-  await expect(trial).toContainText('scored events left');
+  await expect(intelligence.getByText('scored events left', { exact: true })).toHaveCount(0);
+  await expect(intelligence.getByText('completed / total', { exact: true })).toHaveCount(0);
+  await expect(intelligence.getByText('players and substitutes', { exact: true })).toHaveCount(0);
+  await expect(intelligence.getByText('until season end', { exact: true })).toHaveCount(0);
   await expect(trial.getByRole('button', { name: 'Activate League', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Activate League', exact: true })).toHaveCount(1);
   await expect(intelligence.getByText('Events completed', { exact: true }).locator('..')).toContainText('1 / 2');
