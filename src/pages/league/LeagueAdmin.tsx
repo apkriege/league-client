@@ -41,7 +41,7 @@ import {
   User,
   Zap,
 } from "lucide-react";
-import { getLeagueBillingStatus, getLeagueCapacity, TRIAL_EVENT_LIMIT } from "@/lib/billing";
+import { getLeagueBillingStatus, getLeagueCapacity } from "@/lib/billing";
 import { Link, useNavigate, useParams } from "react-router";
 import Tooltip from "@mui/material/Tooltip";
 import { useAppStore } from "@/stores/appStore";
@@ -316,17 +316,6 @@ export default function LeagueAdmin() {
               {restorePayment.isPending ? "Preparing Checkout..." : "Restore Season Payment"}
             </button>
           )}
-        </div>
-      )}
-
-      {leagueBillingStatus === "trial" && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-slate-900">
-          <p className="font-black">Free trial · {Number(league?.entitlement?.trialEventCount || 0)} of {Number(league?.entitlement?.trialEventLimit || TRIAL_EVENT_LIMIT)} scored events used</p>
-          <p className="mt-1 text-sm text-slate-600">
-            {Number(league?.entitlement?.trialEventCount || 0) >= Number(league?.entitlement?.trialEventLimit || TRIAL_EVENT_LIMIT)
-              ? "Activate this league to score another event. Your existing scores and schedule remain available."
-              : "Only an event's first saved score counts. You can continue scheduling and correct scores from trial events."}
-          </p>
         </div>
       )}
 

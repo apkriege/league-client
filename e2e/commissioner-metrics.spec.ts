@@ -11,6 +11,7 @@ async function checkMetrics(page: Page, mobile: boolean) {
   await page.goto('/league/1/admin');
   const intelligence = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Operations Check', exact: true }) });
   await expect(intelligence).toBeVisible();
+  await expect(page.getByText(/Free trial ·/)).toHaveCount(0);
   const trial = intelligence.getByText('Trial remaining', { exact: true }).locator('..');
   await expect(trial).toContainText('2');
   await expect(trial).toContainText('scored events left');
