@@ -11,7 +11,7 @@ interface ModalProps {
   onClose: () => void;
   onSubmit?: () => void;
   position?: "center" | "top";
-  width?: "default" | "half" | "compact";
+  width?: "default" | "half";
 }
 
 export default function Modal({
@@ -35,7 +35,7 @@ export default function Modal({
         },
         "& .MuiDialog-paper": {
           mt: position === "top" ? { xs: 2, sm: 4 } : undefined,
-          width: width === "half" ? { xs: "calc(100% - 32px)", sm: "50vw" } : { xs: "calc(100% - 32px)", sm: width === "compact" ? "min(90vw, 520px)" : "min(90vw, 720px)" },
+          width: width === "half" ? { xs: "calc(100% - 32px)", sm: "50vw" } : { xs: "calc(100% - 32px)", sm: "min(90vw, 720px)" },
           maxHeight: "90vh",
         },
       }}

@@ -22,8 +22,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { readBrowserStorage } from "@/lib/browserStorage";
-import { clearCreateLeagueDraft, getCreateLeagueDraftStorageKey } from "./leagueDraft";
+import { clearCreateLeagueDraft } from "./leagueDraft";
 import { confirmCheckoutSession } from "@api/payments";
 import PaymentReturnNotice from "@/features/payments/components/PaymentReturnNotice";
 import { clearCheckoutReturnFromUrl, getCheckoutReturn } from "@/features/payments/checkoutReturn";
@@ -41,7 +40,6 @@ import {
 
 export default function Leagues() {
   const { user } = useAppStore();
-  const hasSavedDraft = Boolean(readBrowserStorage(getCreateLeagueDraftStorageKey(Number(user?.id))));
   const role = String(user?.role || "").toUpperCase();
   const canManageLeagues = role === "ADMIN" || role === "SUPER";
   const adminLeaguesQuery = useAdminLeagues(canManageLeagues);
@@ -167,13 +165,6 @@ export default function Leagues() {
           </Link>
         </div>
       )}
-      {canManageLeagues && hasSavedDraft && (
-        <button type="button" className="mt-3 self-start rounded-full border border-slate-200 px-3 py-2 text-xs font-bold" onClick={() => {
-          if (!window.confirm("Discard the saved league setup and start fresh?")) return;
-          clearCreateLeagueDraft(Number(user?.id));
-          window.location.assign("/leagues/create");
-        }}>Start a fresh league</button>
-      )}
       {checkoutStatus && (isConfirmingCheckout || checkoutReturnMessage) && (
         <PaymentReturnNotice
           isChecking={isConfirmingCheckout}
@@ -212,13 +203,14 @@ export default function Leagues() {
           <Link
             to="/leagues/create"
             className="block h-full"
+            onClick={() => clearCreateLeagueDraft(Number(user?.id))}
           >
             <Card className="bg-slate-900 h-full flex items-center justify-center cursor-pointer hover:bg-slate-900/95 transition-colors">
               <div className="flex flex-col items-center justify-center text-center">
                 <div className=" bg-gray-200 p-3 rounded-full mb-3 mt-3">
                   <Plus size={24} />
                 </div>
-                <p className="text-lg font-semibold mb-2">{hasSavedDraft ? "Resume League Setup" : "Create New League"}</p>
+                <p className="text-lg font-semibold mb-2">Create New League</p>
                 <p className="text-xs text-gray-500 w-2/3 text-center mb-2">
                   Set up a new league and invite players
                 </p>

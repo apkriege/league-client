@@ -1,5 +1,5 @@
-import CourseQueryState from "@/features/courses/CourseQueryState";
 import Table, { type Column } from "@/components/Table";
+import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
 import { useAppStore } from "@/stores/appStore";
 import { useCoursesWithTees } from "@api/courses/queries";
@@ -41,8 +41,7 @@ const getCityAndState = (location: string | null | undefined) => {
 export default function Courses() {
   const navigate = useNavigate();
   const { user } = useAppStore();
-  const coursesQuery = useCoursesWithTees();
-  const { data: courses = [] } = coursesQuery;
+  const { data: courses = [], isLoading } = useCoursesWithTees();
   const role = String(user?.role || "").toUpperCase();
   const isSuperAdmin = role === "SUPER";
   const canRequestCourse = role === "ADMIN" || isSuperAdmin;
@@ -203,8 +202,10 @@ export default function Courses() {
 
       {canRequestCourse && <CourseRequestPanel />}
 
-      {coursesQuery.isLoading || coursesQuery.isError || rows.length === 0 ? (
-        <CourseQueryState {...coursesQuery} count={rows.length} onRetry={() => void coursesQuery.refetch()} />
+      {isLoading ? (
+        <Card>
+          <p className="text-sm text-gray-500">Loading courses...</p>
+        </Card>
       ) : (
         <Table
           data={rows}

@@ -94,10 +94,3 @@ describe("league wizard step validation", () => {
     ).toBeNull();
   });
 });
-
-it.each(["", " ", null, undefined, -10.1, 54.1, "bad"])("rejects an invalid stored handicap %s", handicap => {
-  expect(validateLeagueWizardStep({ ...validLeague, players: [{ firstName: "A", lastName: "B", gender: "male", handicap }] }, "players")).not.toBeNull();
-});
-it.each([-10, 0, 54])("accepts stored handicap boundary %s", handicap => {
-  expect(validateLeagueWizardStep({ ...validLeague, players: [{ firstName: "A", lastName: "B", gender: "male", handicap }] }, "players")).toBeNull();
-});

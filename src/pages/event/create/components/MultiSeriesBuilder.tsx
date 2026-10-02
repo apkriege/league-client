@@ -1,14 +1,8 @@
-import ValidationFeedback from "@/components/form/ValidationFeedback";
-import type { ValidationIssue } from "@/components/form/formValidation";
-import { getEventValidationIssue } from "../validation";
-import { readSetupDraft, isSetupSchedule } from "../setupDraft";
-import { writeBrowserStorage } from "@/lib/browserStorage";
-import CourseQueryState from "@/features/courses/CourseQueryState";
 import Button from "@/components/layout/Button";
 import ScoringPeriodDivider from "@/components/league/ScoringPeriodDivider";
 import { useState, useCallback, useEffect, useMemo, Fragment } from "react";
 import { useFormContext } from "react-hook-form";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import dayjs from "dayjs";
 import {
   CalendarDays,
@@ -76,13 +70,12 @@ type SeriesRound = ScheduleRound & { teamLineups: TeamLineup[] };
 // Component
 // ---------------------------------------------------------------------------
 
-export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageKey: string; onCreated: () => void }) {
+export default function MultiSeriesBuilder() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
   const { show } = useToast();
   const { data: league } = useLeague(Number(leagueId));
-  const coursesQuery = useCoursesWithTees();
-  const courses = coursesQuery.data;
+  const { data: courses } = useCoursesWithTees();
   const methods = useFormContext();
   const leagueStartDate = getEventDateInputValue(league?.startDate);
   const leagueEndDate = getEventDateInputValue(league?.endDate);
@@ -135,36 +128,32 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
   // Number of rounds needed for a full round-robin
   const rrRounds = ids.length >= 2 ? (ids.length % 2 === 0 ? ids.length - 1 : ids.length) : 0;
 
+  // Series config state
+  const defaultStartDate = dayjs().add(7, "day").format("YYYY-MM-DD");
+  const [seriesName, setSeriesName] = useState("Weekly Series");
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(
+    dayjs()
+      .add(7 + 7 * 7, "day")
+      .format("YYYY-MM-DD")
+  );
+  const [frequency, setFrequency] = useState<"weekly" | "biweekly">("weekly");
+  const [selectedDays, setSelectedDays] = useState<number[]>([dayjs(defaultStartDate).day()]);
+  const [schedule, setSchedule] = useState<SeriesRound[]>([]);
+  const [highlightId, setHighlightId] = useState<number | null>(null);
+  const [alternateStartSides, setAlternateStartSides] = useState(false);
   const existingScoringPeriods = useMemo(
     () => (Array.isArray(league?.scoringPeriods) ? league.scoringPeriods : []),
     [league]
   );
-  // Series config state
-  const defaultStartDate = dayjs().add(7, "day").format("YYYY-MM-DD");
-  const emptySchedule: SeriesRound[] = [];
-  const [saved] = useState(() => readSetupDraft(storageKey, {
-    seriesName: "Weekly Series", startDate: defaultStartDate, endDate: dayjs().add(56, "day").format("YYYY-MM-DD"),
-    frequency: "weekly", selectedDays: [dayjs(defaultStartDate).day()], schedule: emptySchedule, alternateStartSides: false,
-    statsPeriodMode: existingScoringPeriods.length === 2 ? "halves" : "overall",
-    firstHalfEndDate: existingScoringPeriods.length === 2 ? getEventDateInputValue(existingScoringPeriods[0]?.endDate) : "",
-  }, draft => isSetupSchedule(draft.schedule)));
-  const [seriesName, setSeriesName] = useState(saved.seriesName);
-  const [startDate, setStartDate] = useState(saved.startDate);
-  const [endDate, setEndDate] = useState(saved.endDate);
-  const [frequency, setFrequency] = useState<"weekly" | "biweekly">(saved.frequency === "biweekly" ? "biweekly" : "weekly");
-  const [selectedDays, setSelectedDays] = useState<number[]>(saved.selectedDays);
-  const [schedule, setSchedule] = useState<SeriesRound[]>(saved.schedule);
-  const [highlightId, setHighlightId] = useState<number | null>(null);
-  const [alternateStartSides, setAlternateStartSides] = useState(saved.alternateStartSides);
-  const [statsPeriodMode, setStatsPeriodMode] = useState<"overall" | "halves">(saved.statsPeriodMode === "halves" ? "halves" : "overall");
-  const [firstHalfEndDate, setFirstHalfEndDate] = useState(saved.firstHalfEndDate);
-  const [validationIssue, setValidationIssue] = useState<ValidationIssue | null>(null);
-  const reportValidation = (field: string, message: string) => setValidationIssue({ field, message });
-  const [draftError, setDraftError] = useState(false);
-  useEffect(() => {
-    const ok = writeBrowserStorage(storageKey, JSON.stringify({ seriesName, startDate, endDate, frequency, selectedDays, schedule, alternateStartSides, statsPeriodMode, firstHalfEndDate }));
-    if (!ok) queueMicrotask(() => setDraftError(true));
-  }, [storageKey, seriesName, startDate, endDate, frequency, selectedDays, schedule, alternateStartSides, statsPeriodMode, firstHalfEndDate]);
+  const [statsPeriodMode, setStatsPeriodMode] = useState<"overall" | "halves">(() =>
+    existingScoringPeriods.length === 2 ? "halves" : "overall"
+  );
+  const [firstHalfEndDate, setFirstHalfEndDate] = useState(() =>
+    existingScoringPeriods.length === 2
+      ? getEventDateInputValue(existingScoringPeriods[0]?.endDate)
+      : ""
+  );
   const hasUnsupportedScoringPeriods =
     existingScoringPeriods.length > 0 && existingScoringPeriods.length !== 2;
   const scoringPeriodsLocked =
@@ -232,7 +221,6 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
   }, [fixedEventHoleCount, isNineHoleCourse, methods]);
 
   useEffect(() => {
-    if (!courses) return;
     if (!usesTwoNineRoute) {
       if (secondCourseId) methods.setValue("secondCourseId", "", { shouldDirty: true });
       if (secondTeeId) methods.setValue("secondTeeId", "", { shouldDirty: true });
@@ -260,7 +248,6 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
     secondTeeId,
     selectedSecondCourse,
     usesTwoNineRoute,
-    courses,
   ]);
 
   const sharedStartSide = methods.watch("startSide") === "back" ? "back" : "front";
@@ -273,7 +260,6 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
   const eventCount = generatedDates.length;
 
   const mutation = useCreateLeagueEvents(() => {
-    onCreated();
     show(`${resolvedSchedule.length} events created!`, "success");
     navigate(`/league/${leagueId}/admin`);
   });
@@ -309,14 +295,14 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
 
   const handleGenerate = (doShuffle = false) => {
     if (ids.length < 2) {
-      reportValidation("schedule", `Add at least 2 ${format === "team" ? "teams" : "players"} before generating.`);
+      show(`Add at least 2 ${format === "team" ? "teams" : "players"} before generating.`, "error");
       return;
     }
     const sourceIds = doShuffle ? shuffleArray(ids) : ids;
     const rrData = generateRoundRobin(sourceIds);
     const dates = buildDates(resolvedStartDate, resolvedEndDate, selectedDays, frequency);
     if (!dates.length) {
-      reportValidation("schedule", "Select at least one day of the week within the date range.");
+      show("Select at least one day of the week within the date range.", "error");
       return;
     }
 
@@ -366,7 +352,7 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
 
   const handleSubmit = () => {
     if (!resolvedSchedule.length) {
-      reportValidation("schedule", "Generate a schedule first.");
+      show("Generate a schedule first.", "error");
       return;
     }
     const outsideLeagueDate = resolvedSchedule.find(
@@ -375,25 +361,20 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
         (leagueEndDate && round.date > leagueEndDate)
     );
     if (outsideLeagueDate) {
-      reportValidation("schedule", "Event dates must stay within the league start and end dates.");
+      show("Event dates must stay within the league start and end dates.", "error");
       return;
     }
     const shared = methods.getValues();
-    if (!seriesName.trim()) { reportValidation("seriesName", "Series name is required."); return; }
-    for (const round of resolvedSchedule) {
-      const issue = getEventValidationIssue({ ...shared, name: seriesName.trim(), date: round.date, flights: round.flights, teamLineups: round.teamLineups, teamPlayersPerEvent: requiredPlayers }, { showTeamsSection: !isSeasonLeague, leagueStartDate, leagueEndDate });
-      if (issue) { reportValidation(issue.field, issue.message); return; }
-    }
     if (shared.format === "team") {
       const sizeError = getTeamSizeError(scoringMode, requiredPlayers);
       if (sizeError) {
-        reportValidation("teamPlayersPerEvent", sizeError);
+        show(sizeError, "error");
         return;
       }
       for (const [index, round] of resolvedSchedule.entries()) {
         const lineupError = roundLineupError(round.flights, teams, players, round.teamLineups, requiredPlayers);
         if (lineupError) {
-          reportValidation("schedule", `Round ${index + 1}: ${lineupError}`);
+          show(`Round ${index + 1}: ${lineupError}`, "error");
           return;
         }
       }
@@ -404,11 +385,10 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
       firstHalfEndDate
     );
     if (statsPeriodMode === "halves" && !scoringPeriodsLocked && !halfScoringPeriods) {
-      reportValidation("firstHalfEndDate", "Choose a first-half end date before the series end date.");
+      show("Choose a first-half end date before the series end date.", "error");
       return;
     }
 
-    setValidationIssue(null);
     mutation.mutate(
       {
         leagueId: Number(leagueId),
@@ -459,12 +439,8 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
   // Render
   // ---------------------------------------------------------------------------
 
-  if (coursesQuery.isLoading || coursesQuery.isError || !courses?.length) return <CourseQueryState {...coursesQuery} count={courses?.length ?? 0} onRetry={() => void coursesQuery.refetch()} />;
-
   return (
-    <div data-validation-scope className="flex flex-col gap-6">
-      <ValidationFeedback issue={validationIssue} />
-      {draftError && <p role="status" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">Series draft saving is unavailable. Keep this page open until events are created.</p>}
+    <div className="flex flex-col gap-6">
       {/* ── Event Settings + Scoring ── */}
       <div className="flex flex-col gap-6 xl:flex-row">
         <div className="flex w-full flex-col gap-5 xl:w-2/3">
@@ -517,8 +493,6 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
               </div>
 
               <AutocompleteSelect
-                name="courseId"
-                error={validationIssue?.field === "courseId" ? validationIssue.message : undefined}
                 label="Course"
                 placeholder="Search by course, club, or location"
                 options={courseOptions}
@@ -551,7 +525,12 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
                     Play the first nine twice
                   </label>
                 ) : <span />}
-
+                <Link
+                  to="/courses"
+                  className="text-[10px] font-medium text-sky-700 hover:text-sky-900 hover:underline"
+                >
+                  Can't find your course?
+                </Link>
               </div>
 
               {methods.watch("courseId") && teeOptions.length > 0 && (
@@ -683,7 +662,6 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
             <h3 className="text-lg font-bold">Scoring</h3>
             <p className="text-sm text-gray-500">Pick the format once for the full series.</p>
             <ScoringModeFields
-              collapseAdvanced
               format={isTeamFormat ? "team" : "individual"}
               onModeChange={() => setSchedule([])}
             />
@@ -749,8 +727,6 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
 
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
           <Input
-            name="seriesName"
-            error={validationIssue?.field === "seriesName" ? validationIssue.message : undefined}
             label="Series Name"
             value={seriesName}
             onChange={(e) => setSeriesName(e.target.value)}
@@ -813,7 +789,6 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
             {statsPeriodMode === "halves" && (
               <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
                 <DateInput
-                  name="firstHalfEndDate"
                   label="1st Half Ends"
                   value={firstHalfEndDate}
                   min={resolvedStartDate}
@@ -890,7 +865,7 @@ export default function MultiSeriesBuilder({ storageKey, onCreated }: { storageK
         )}
 
         <div className="flex gap-2 mt-2">
-          <Button type="button" variant="primary" name="schedule" onClick={() => { setValidationIssue(null); handleGenerate(false); }}>
+          <Button type="button" variant="primary" onClick={() => handleGenerate(false)}>
             <RefreshCw size={12} className="mr-2" />
             Generate Schedule
           </Button>

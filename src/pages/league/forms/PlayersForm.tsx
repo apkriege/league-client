@@ -1,5 +1,4 @@
-import type { ImportedPlayer } from "@/features/leagues/rosterImport";
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 import { Controller, useForm, useFormContext } from "react-hook-form";
 
 import Input from "@/components/form/Input";
@@ -16,8 +15,6 @@ import PageHeader from "@/components/layout/PageHeader";
 import { getHandicapHoleCount } from "@/features/leagues/leagueHoleFormat";
 import { formatHandicap } from "@/utils/handicap";
 
-const RosterImportDialog = lazy(() => import("@/features/leagues/components/RosterImportDialog"));
-
 const defaultPlayer = {
   firstName: "",
   lastName: "",
@@ -28,10 +25,26 @@ const defaultPlayer = {
   handicap: "",
 };
 
+const getMissingRequiredFields = (player: any) => {
+  const missing: string[] = [];
+  const handicap =
+    player?.handicap != null && String(player.handicap).trim() !== ""
+      ? Number(player.handicap)
+      : NaN;
+
+  if (!String(player?.firstName || "").trim()) missing.push("first name");
+  if (!String(player?.lastName || "").trim()) missing.push("last name");
+  if (!["male", "female"].includes(String(player?.gender || ""))) {
+    missing.push("gender");
+  }
+  if (!Number.isFinite(handicap)) missing.push("handicap");
+
+  return missing;
+};
+
 export default function PlayersForm() {
   const { show } = useToast();
   const [isEdit, setIsEdit] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
 
   const { watch, setValue } = useFormContext();
   const players = watch("players") || [];
@@ -46,6 +59,12 @@ export default function PlayersForm() {
   });
 
   const onSubmit = (data: any) => {
+    const missingRequiredFields = getMissingRequiredFields(data);
+    if (missingRequiredFields.length > 0) {
+      show(`Required: ${missingRequiredFields.join(", ")}.`, "warning");
+      return;
+    }
+
     const playerData = {
       ...data,
       firstName: String(data.firstName).trim(),
@@ -73,7 +92,7 @@ export default function PlayersForm() {
   };
 
   const editPlayer = (player: any) => {
-    playerForm.reset({ ...player, handicap: String(player.handicap ?? "") });
+    playerForm.reset(player);
     setIsEdit(true);
   };
 
@@ -154,12 +173,16 @@ export default function PlayersForm() {
       label: "Actions",
       render: (_value: any, row: any) => (
         <div className="flex items-center gap-2">
-          <button type="button" aria-label={`Edit ${row.firstName} ${row.lastName}`} onClick={() => editPlayer(row)} className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-emerald-600">
-            <SquarePen size={18} aria-hidden="true" />
-          </button>
-          <button type="button" aria-label={`Delete ${row.firstName} ${row.lastName}`} onClick={() => removePlayer(row.id)} className="flex h-11 w-11 items-center justify-center rounded-xl text-red-600 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-600">
-            <Trash2 size={18} aria-hidden="true" />
-          </button>
+          <SquarePen
+            size={16}
+            className="cursor-pointer text-blue-400"
+            onClick={() => editPlayer(row)}
+          />
+          <Trash2
+            size={18}
+            className="cursor-pointer text-red-400"
+            onClick={() => removePlayer(row.id)}
+          />
         </div>
       ),
     },
@@ -176,56 +199,44 @@ export default function PlayersForm() {
         } Enter each player's ${handicapHoleCount}-hole handicap.`}
       />
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-slate-500">Start with at least one player. Add more later from Players; team leagues also need at least one team.</p>
-        <Button type="button" onClick={() => setImportOpen(true)}>Import players</Button>
-      </div>
-      {importOpen && <Suspense fallback={<p role="status">Loading import…</p>}><RosterImportDialog players={players} handicapHoleCount={handicapHoleCount} onClose={() => setImportOpen(false)} onImport={(imported: ImportedPlayer[]) => {
-        const firstId = Math.max(0, ...players.map((player: { id: number }) => Number(player.id))) + 1;
-        setValue("players", [...players, ...imported.map((player, index) => ({ ...player, id: firstId + index }))], { shouldDirty: true });
-        show(`${imported.length} players added.`, "success");
-      }} /></Suspense>}
       <Card className="mt-6">
         <SectionKicker className="mb-3">
           {isEdit ? "Edit Player" : "Add Player"}
         </SectionKicker>
-        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-3 items-end gap-2">
           <Controller
             name="firstName"
-            rules={{ validate: value => value.trim() ? true : "First name is required." }}
             control={playerForm.control}
-            render={({ field, fieldState }) => (
-              <Input error={fieldState.error?.message} label="First Name" placeholder="Enter first name" {...field} />
+            render={({ field }) => (
+              <Input label="First Name" placeholder="Enter first name" {...field} />
             )}
           />
           <Controller
             name="lastName"
-            rules={{ validate: value => value.trim() ? true : "Last name is required." }}
             control={playerForm.control}
-            render={({ field, fieldState }) => (
-              <Input error={fieldState.error?.message} label="Last Name" placeholder="Enter last name" {...field} />
+            render={({ field }) => (
+              <Input label="Last Name" placeholder="Enter last name" {...field} />
             )}
           />
           <Controller
             name="email"
             control={playerForm.control}
-            render={({ field, fieldState }) => (
-              <Input error={fieldState.error?.message} label="Email (optional)" placeholder="Enter email" {...field} />
+            render={({ field }) => (
+              <Input label="Email (optional)" placeholder="Enter email" {...field} />
             )}
           />
         </div>
-        <div className="mt-4 grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-5 items-end gap-2">
           <Controller
             name="phone"
             control={playerForm.control}
-            render={({ field, fieldState }) => <Input error={fieldState.error?.message} label="Phone" placeholder="Enter phone" {...field} />}
+            render={({ field }) => <Input label="Phone" placeholder="Enter phone" {...field} />}
           />
           <Controller
             name="type"
             control={playerForm.control}
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <Select
-                error={fieldState.error?.message}
                 label="Type"
                 options={[
                   { label: "Player", value: "player" },
@@ -238,11 +249,9 @@ export default function PlayersForm() {
           />
           <Controller
             name="handicap"
-            rules={{ validate: value => String(value ?? "").trim() !== "" && Number.isFinite(Number(value)) && Number(value) >= -10 && Number(value) <= 54 ? true : "Enter a handicap from -10 to 54." }}
             control={playerForm.control}
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <Input
-                error={fieldState.error?.message}
                 label={`${handicapHoleCount}-Hole Handicap`}
                 placeholder={`Enter ${handicapHoleCount}-hole handicap`}
                 type="number"
@@ -253,11 +262,9 @@ export default function PlayersForm() {
           />
           <Controller
             name="gender"
-            rules={{ validate: value => ["male", "female"].includes(value) ? true : "Select a gender." }}
             control={playerForm.control}
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <Select
-                error={fieldState.error?.message}
                 label="Gender"
                 options={[
                   { label: "Male", value: "male" },
@@ -272,7 +279,7 @@ export default function PlayersForm() {
             type="button"
             variant="primary"
             size="md"
-            className="mb-1 min-h-11"
+            className="mb-1"
             onClick={playerForm.handleSubmit(onSubmit)}
           >
             {isEdit ? "Update Player" : "Save Player"}

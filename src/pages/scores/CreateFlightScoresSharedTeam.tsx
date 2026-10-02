@@ -192,7 +192,6 @@ export function CreateFlightScoresSharedTeam({
       </PanelBar>
       <div className="p-4 sm:p-5">
         <ScoreDraftStatus
-            submitLabel={isEditMode ? "Save Changes" : "Submit Scores"}
           hasDraft={scoreDraft.hasDraft}
           storageError={scoreDraft.storageError}
           savedAt={scoreDraft.savedAt}

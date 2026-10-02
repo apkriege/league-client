@@ -1,5 +1,3 @@
-import { copyText } from "@/lib/clipboard";
-import LeagueGettingStarted from "@/features/leagues/components/LeagueGettingStarted";
 import LoadingState from "@/components/layout/LoadingState";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
@@ -96,8 +94,6 @@ export default function LeagueAdmin() {
   const queryClient = useQueryClient();
   const restorePayment = useCreateCheckoutSession();
   const paymentReturnStartedRef = useRef(false);
-  const [isCopying, setIsCopying] = useState(false);
-  const [copyFailed, setCopyFailed] = useState(false);
   const [paymentReturnMessage, setPaymentReturnMessage] = useState<string | null>(null);
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
   const [paymentConfirmationAttempt, setPaymentConfirmationAttempt] = useState(0);
@@ -305,8 +301,6 @@ export default function LeagueAdmin() {
         />
       )}
 
-      {!isReadOnly && <LeagueGettingStarted leagueId={Number(leagueId)} events={events ?? []} hasRecordedScores={Boolean(league?.hasRecordedScores)} hasLinkedPlayer={(league?.players ?? []).some((player: { userId?: number | null }) => Boolean(player.userId))} />}
-
       {isReadOnly && (
         <div className={`rounded-xl border px-4 py-3 ${
           leagueBillingStatus === "payment_due"
@@ -419,32 +413,24 @@ export default function LeagueAdmin() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <code aria-label="League access code" className="select-all rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-black tracking-[0.18em] text-blue-900">
+            <code className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-black tracking-[0.18em] text-blue-900">
               {league?.viewerAccessCode || "—"}
             </code>
             <button
               type="button"
-              disabled={!league?.viewerAccessCode || isCopying || rotateViewerCode.isPending}
-              onClick={async () => {
-                setIsCopying(true);
-                setCopyFailed(false);
-                try {
-                  await copyText(String(league.viewerAccessCode));
-                  show("League code copied.", "success");
-                } catch {
-                  setCopyFailed(true);
-                } finally {
-                  setIsCopying(false);
-                }
+              disabled={!league?.viewerAccessCode}
+              onClick={() => {
+                navigator.clipboard?.writeText(String(league.viewerAccessCode));
+                show("League code copied.", "success");
               }}
               className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Copy size={13} />
-              {isCopying ? "Copying…" : "Copy"}
+              Copy
             </button>
             <button
               type="button"
-              disabled={rotateViewerCode.isPending || isCopying || isReadOnly}
+              disabled={rotateViewerCode.isPending || isReadOnly}
               onClick={() => {
                 const confirmed = window.confirm(
                   "Generate a new view-only code? The current code will stop working immediately."
@@ -463,14 +449,13 @@ export default function LeagueAdmin() {
             </button>
           </div>
         </div>
-        {copyFailed && <p role="alert" className="mt-2 text-xs text-amber-800">Unable to copy. Select the league code and copy it manually.</p>}
       </div>
 
-      {Boolean(league?.hasRecordedScores) && <CommissionerInsights
+      <CommissionerInsights
         league={league}
         events={Array.isArray(events) ? events : []}
         metrics={metrics}
-      />}
+      />
 
       <section className="space-y-3">
         <SectionHeader

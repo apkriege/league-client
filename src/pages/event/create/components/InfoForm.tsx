@@ -1,5 +1,3 @@
-import { getFieldError, type ValidationIssue } from "@/components/form/formValidation";
-import CourseQueryState from "@/features/courses/CourseQueryState";
 import {
   AutocompleteSelect,
   DateInput,
@@ -15,7 +13,7 @@ import { getEventDateInputValue } from "@/utils/eventDate";
 import { User, Users } from "lucide-react";
 import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useToast } from "@/context/useToast";
 import {
   getFixedEventHoleCount,
@@ -25,13 +23,11 @@ import { createCourseAutocompleteOptions } from "../courseAutocompleteOptions";
 import ScoringModeFields from "@/features/scoring/components/ScoringModeFields";
 import MuiCheckbox from "@mui/material/Checkbox";
 
-export default function InfoForm({ validationIssue }: { validationIssue?: ValidationIssue | null }) {
+export default function InfoForm() {
   const { leagueId } = useParams();
-  const coursesQuery = useCoursesWithTees();
-  const courses = coursesQuery.data;
+  const { data: courses } = useCoursesWithTees();
   const { data: league } = useLeague(Number(leagueId));
   const methods = useFormContext();
-  const fieldError = (name: string) => validationIssue?.field === name ? validationIssue.message : getFieldError(methods.formState.errors[name]);
   const { show } = useToast();
   const leagueStartDate = getEventDateInputValue(league?.startDate);
   const leagueEndDate = getEventDateInputValue(league?.endDate);
@@ -87,7 +83,6 @@ export default function InfoForm({ validationIssue }: { validationIssue?: Valida
   }, [fixedEventHoleCount, isNineHoleCourse, methods]);
 
   useEffect(() => {
-    if (!courses) return;
     if (!usesTwoNineRoute) {
       if (secondCourseId) methods.setValue("secondCourseId", "", { shouldDirty: true });
       if (secondTeeId) methods.setValue("secondTeeId", "", { shouldDirty: true });
@@ -115,10 +110,9 @@ export default function InfoForm({ validationIssue }: { validationIssue?: Valida
     secondTeeId,
     selectedSecondCourse,
     usesTwoNineRoute,
-    courses,
   ]);
 
-  if (coursesQuery.isLoading || coursesQuery.isError || !courses?.length) return <CourseQueryState {...coursesQuery} count={courses?.length ?? 0} onRetry={() => void coursesQuery.refetch()} />;
+  if (!courses) return null;
 
   const courseOptions = createCourseAutocompleteOptions(availableCourses);
 
@@ -182,13 +176,11 @@ export default function InfoForm({ validationIssue }: { validationIssue?: Valida
           <div className="mt-4 flex flex-col gap-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
-                error={fieldError("name")}
                 label="Event Name"
                 placeholder="e.g. January Open"
                 {...methods.register("name", { required: "Event name is required" })}
               />
               <DateInput
-                error={fieldError("date")}
                 label="Event Date"
                 min={leagueStartDate || undefined}
                 max={leagueEndDate || undefined}
@@ -252,8 +244,6 @@ export default function InfoForm({ validationIssue }: { validationIssue?: Valida
               Set up the details for your event, including date, time, and format.
             </p>
             <AutocompleteSelect
-              name="courseId"
-              error={fieldError("courseId")}
               label={usesTwoNineRoute ? "First Nine" : "Course"}
               placeholder="Search by course, club, or location"
               options={courseOptions}
@@ -286,16 +276,19 @@ export default function InfoForm({ validationIssue }: { validationIssue?: Valida
                   Play the first nine twice
                 </label>
               ) : <span />}
-
+              <Link
+                to="/courses"
+                className="text-[10px] font-medium text-sky-700 hover:text-sky-900 hover:underline"
+              >
+                Can&apos;t find your course?
+              </Link>
             </div>
           </div>
           {methods.watch("courseId") && (
             <div className="w-full">
               <div>
                 <Label text="Tee" />
-                {fieldError("teeId") && <p className="text-sm text-red-700">{fieldError("teeId")}</p>}
                 <ToggleCards
-                  validationField="teeId"
                   value={methods.watch("teeId")}
                   onChange={(value) => {
                     const previousTeeId = methods.getValues("teeId");
@@ -347,7 +340,6 @@ export default function InfoForm({ validationIssue }: { validationIssue?: Valida
                 {secondCourseId ? (
                   <div>
                     <Label text="Tee" />
-                {fieldError("teeId") && <p className="text-sm text-red-700">{fieldError("teeId")}</p>}
                     <ToggleCards
                       value={methods.watch("secondTeeId")}
                       onChange={(value) => methods.setValue("secondTeeId", value, { shouldDirty: true })}
@@ -373,7 +365,6 @@ export default function InfoForm({ validationIssue }: { validationIssue?: Valida
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <Input
-              error={fieldError("interval")}
               label="Interval (minutes)"
               type="number"
               min={1}
@@ -387,7 +378,6 @@ export default function InfoForm({ validationIssue }: { validationIssue?: Valida
               })}
             />
             <Input
-              error={fieldError("startTime")}
               label="Start Time"
               type="time"
               {...methods.register("startTime", { required: "Start time is required" })}
@@ -406,11 +396,10 @@ export default function InfoForm({ validationIssue }: { validationIssue?: Valida
         <Card>
           <h3 className="text-lg font-bold">Scoring</h3>
           <p className="text-sm text-gray-500">Pick the format, then configure only what it needs.</p>
-          <div data-validation-field="scoringConfig"><ScoringModeFields
-              collapseAdvanced
+          <ScoringModeFields
             format={isTeamFormat ? "team" : "individual"}
             onModeChange={clearFlightsForModeChange}
-          /></div>
+          />
         </Card>
       </div>
     </div>

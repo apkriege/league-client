@@ -1,4 +1,3 @@
-import { getSafeReturnPath } from "@/lib/returnPath";
 import { verifyEmail } from "@api/auth";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { normalizeAuthUser } from "@/lib/authUser";
@@ -41,7 +40,10 @@ export default function VerifyEmail() {
         const redirectTo = String(response.data?.redirectTo || "/leagues/create");
         setState({
           status: "verified",
-          redirectTo: getSafeReturnPath(redirectTo, "/leagues/create"),
+          redirectTo:
+            redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+              ? redirectTo
+              : "/leagues/create",
         });
       })
       .catch((error: unknown) => {

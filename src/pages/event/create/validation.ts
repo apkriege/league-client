@@ -1,4 +1,3 @@
-import type { ValidationIssue } from "@/components/form/formValidation";
 import { getEventDateInputValue } from "@/utils/eventDate";
 import {
   SCORING_MODES,
@@ -73,61 +72,61 @@ function validateFlights(flights: unknown[], format: string, scoringFamily: stri
   return null;
 }
 
-export function getEventValidationIssue(
+export function validateEventForm(
   data: any,
   options: { showTeamsSection: boolean; leagueStartDate?: unknown; leagueEndDate?: unknown }
-): ValidationIssue | null {
-  if (isBlank(data.name)) return { field: "name", message: "Event name is required." };
-  if (isBlank(data.date)) return { field: "date", message: "Event date is required." };
+) {
+  if (isBlank(data.name)) return "Event name is required.";
+  if (isBlank(data.date)) return "Event date is required.";
   const eventDate = getEventDateInputValue(data.date);
   const leagueStartDate = getEventDateInputValue(options.leagueStartDate);
   const leagueEndDate = getEventDateInputValue(options.leagueEndDate);
   if (leagueStartDate && eventDate < leagueStartDate) {
-    return { field: "date", message: "Event date cannot be before the league start date." };
+    return "Event date cannot be before the league start date.";
   }
   if (leagueEndDate && eventDate > leagueEndDate) {
-    return { field: "date", message: "Event date cannot be after the league end date." };
+    return "Event date cannot be after the league end date.";
   }
-  if (isBlank(data.startTime)) return { field: "startTime", message: "Start time is required." };
+  if (isBlank(data.startTime)) return "Start time is required.";
   if (!Number.isInteger(Number(data.interval)) || Number(data.interval) < 1 || Number(data.interval) > 180) {
-    return { field: "interval", message: "Interval must be a whole number from 1 to 180 minutes." };
+    return "Interval must be a whole number from 1 to 180 minutes.";
   }
-  if (!isPositiveNumber(data.courseId)) return { field: "courseId", message: "Please select a course." };
-  if (!isPositiveNumber(data.teeId)) return { field: "teeId", message: "Please select a tee." };
+  if (!isPositiveNumber(data.courseId)) return "Please select a course.";
+  if (!isPositiveNumber(data.teeId)) return "Please select a tee.";
   if (!["front", "back"].includes(String(data.startSide || ""))) {
-    return { field: "startSide", message: "Please select a starting side." };
+    return "Please select a starting side.";
   }
-  if (![9, 18].includes(Number(data.holes))) return { field: "holes", message: "Please select 9 or 18 holes." };
+  if (![9, 18].includes(Number(data.holes))) return "Please select 9 or 18 holes.";
   const hasSecondCourse = isPositiveNumber(data.secondCourseId);
   const hasSecondTee = isPositiveNumber(data.secondTeeId);
-  if (hasSecondCourse !== hasSecondTee) return { field: "secondCourseId", message: "Select both the second nine and its tee." };
+  if (hasSecondCourse !== hasSecondTee) return "Select both the second nine and its tee.";
   if (Number(data.holes) === 18 && data.repeatFirstNine === false && !hasSecondCourse) {
-    return { field: "secondCourseId", message: "Select a course and tee for the second nine." };
+    return "Select a course and tee for the second nine.";
   }
 
   const format = String(data.format || "").toLowerCase();
-  if (!["individual", "team"].includes(format)) return { field: "format", message: "Please select an event format." };
+  if (!["individual", "team"].includes(format)) return "Please select an event format.";
   const scoringMode = deriveScoringMode(data);
   const scoringFamily = getScoringFamily(scoringMode);
   if (!SCORING_MODES[scoringMode].models.includes(format as CompetitionModel)) {
-    return { field: "format", message: `${SCORING_MODES[scoringMode].label} is not available for ${format} events.` };
+    return `${SCORING_MODES[scoringMode].label} is not available for ${format} events.`;
   }
 
   const scoringConfig = data.scoringConfig;
   const allowance = Number(scoringConfig?.handicapAllowance ?? 1);
   if (!Number.isFinite(allowance) || allowance < 0 || allowance > 1) {
-    return { field: "scoringConfig.handicapAllowance", message: "Handicap allowance must be between 0 and 1." };
+    return "Handicap allowance must be between 0 and 1.";
   }
   if (scoringMode === "maximum-score") {
     const rule = scoringConfig?.maximumScore;
     if (!rule || !["fixed", "relative-to-par", "net-double-bogey"].includes(rule.type)) {
-      return { field: "scoringConfig.maximumScore", message: "Please select a maximum-score rule." };
+      return "Please select a maximum-score rule.";
     }
     if (rule.type === "fixed" && !isPositiveNumber(rule.strokes)) {
-      return { field: "scoringConfig.maximumScore.strokes", message: "Maximum strokes must be at least 1." };
+      return "Maximum strokes must be at least 1.";
     }
     if (rule.type === "relative-to-par" && !isNonNegativeNumber(rule.strokesOverPar)) {
-      return { field: "scoringConfig.maximumScore.strokesOverPar", message: "Strokes over par must be 0 or higher." };
+      return "Strokes over par must be 0 or higher.";
     }
   }
   if (scoringMode === "stableford") {
@@ -136,31 +135,31 @@ export function getEventValidationIssue(
       !scale ||
       Object.values(scale).some((points) => !isNonNegativeNumber(points))
     ) {
-      return { field: "scoringConfig.stablefordPointScale", message: "Stableford point values must be 0 or higher." };
+      return "Stableford point values must be 0 or higher.";
     }
   }
 
   if (scoringFamily === "match") {
-    if (!isNonNegativeInteger(data.ptsPerHole)) return { field: "ptsPerHole", message: "Points per hole must be a whole number of 0 or higher." };
-    if (!isNonNegativeInteger(data.ptsPerMatch)) return { field: "ptsPerMatch", message: "Points per match must be a whole number of 0 or higher." };
-    if (!isNonNegativeInteger(data.ptsPerTeamWin)) return { field: "ptsPerTeamWin", message: "Points per team win must be a whole number of 0 or higher." };
+    if (!isNonNegativeInteger(data.ptsPerHole)) return "Points per hole must be a whole number of 0 or higher.";
+    if (!isNonNegativeInteger(data.ptsPerMatch)) return "Points per match must be a whole number of 0 or higher.";
+    if (!isNonNegativeInteger(data.ptsPerTeamWin)) return "Points per team win must be a whole number of 0 or higher.";
   }
 
   if (scoringFamily === "stroke" && data.pointsEnabled !== false && !isBlank(data.strokePoints)) {
     if (parseStrokePoints(data.strokePoints).length === 0) {
-      return { field: "strokePoints", message: "Stroke points must be comma-separated numbers, or left blank." };
+      return "Stroke points must be comma-separated numbers, or left blank.";
     }
   }
 
   if (format === "team") {
     const teams = Array.isArray(data.teams) ? data.teams : [];
-    if (teams.length < 2) return { field: "teams", message: "Team events require at least two teams." };
+    if (teams.length < 2) return "Team events require at least two teams.";
 
     if (options.showTeamsSection) {
       const invalidTeam = teams.find(
         (team: any) => isBlank(team?.name) || !Array.isArray(team?.players) || team.players.length === 0
       );
-      if (invalidTeam) return { field: "teams", message: "Each team needs a name and at least one player." };
+      if (invalidTeam) return "Each team needs a name and at least one player.";
     }
     const requiredPlayers = getRequiredTeamPlayers(
       scoringMode,
@@ -168,7 +167,7 @@ export function getEventValidationIssue(
       data.leagueTeamPlayersPerEvent,
     );
     const sizeError = getTeamSizeError(scoringMode, requiredPlayers);
-    if (sizeError) return { field: "teamPlayersPerEvent", message: sizeError };
+    if (sizeError) return sizeError;
 
     const teamsById = new Map(teams.map((team: any) => [Number(team.id), team]));
     const lineupsByTeamId = new Map(
@@ -188,22 +187,18 @@ export function getEventValidationIssue(
       const rosterIds = Array.isArray(team?.players) ? team.players.map(Number) : [];
       const selected = lineupsByTeamId.get(teamId) ?? (rosterIds.length === requiredPlayers ? rosterIds : []);
       if (selected.length !== requiredPlayers || new Set(selected).size !== selected.length) {
-        return { field: "teamLineups", message: `${team?.name || `Team ${teamId}`} must have exactly ${requiredPlayers} selected players.` };
+        return `${team?.name || `Team ${teamId}`} must have exactly ${requiredPlayers} selected players.`;
       }
       for (const playerId of selected) {
-        if (selectedAcrossTeams.has(playerId)) return { field: "teamLineups", message: "A golfer cannot play for more than one team in the same event." };
+        if (selectedAcrossTeams.has(playerId)) return "A golfer cannot play for more than one team in the same event.";
         selectedAcrossTeams.add(playerId);
       }
     }
   }
 
   const flights = Array.isArray(data.flights) ? data.flights : [];
-  if (flights.length === 0) return { field: "flights", message: "Please add at least one flight." };
+  if (flights.length === 0) return "Please add at least one flight.";
   const flightError = validateFlights(flights, format, scoringFamily);
-  if (flightError) return { field: "flights", message: flightError };
+  if (flightError) return flightError;
   return null;
-}
-
-export function validateEventForm(...args: Parameters<typeof getEventValidationIssue>) {
-  return getEventValidationIssue(...args)?.message ?? null;
 }

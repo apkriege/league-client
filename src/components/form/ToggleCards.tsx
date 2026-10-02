@@ -6,7 +6,6 @@ type ToggleOption = {
 };
 
 type ToggleCardsProps = {
-  validationField?: string;
   value: string;
   onChange: (value: string) => void;
   options: ToggleOption[];
@@ -16,7 +15,6 @@ type ToggleCardsProps = {
 
 export default function ToggleCards({
   value,
-  validationField,
   onChange,
   options,
   className = "",
@@ -24,7 +22,6 @@ export default function ToggleCards({
 }: ToggleCardsProps) {
   return (
     <div
-      data-validation-field={validationField}
       className={`grid gap-2 rounded-2xl border border-black/5 bg-white/70 p-1 text-gray-700 ${className}`}
       style={{ gridTemplateColumns: `repeat(${Math.max(options.length, 1)}, minmax(0, 1fr))` }}
     >

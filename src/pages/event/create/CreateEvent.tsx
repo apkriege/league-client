@@ -1,15 +1,8 @@
-import ValidationFeedback from "@/components/form/ValidationFeedback";
-import { getFieldError, type ValidationIssue } from "@/components/form/formValidation";
-import { getDefaultEventBuilder } from "./eventBuilderDefaults";
-import { useAppStore } from "@/stores/appStore";
-import { writeBrowserStorage } from "@/lib/browserStorage";
-import { clearEventSetupDraft, eventSetupDraftKey, readSetupDraft, isSetupFlights, isSetupLineups, isSetupTeams } from "./setupDraft";
-import CourseRequestDialog from "@/features/courses/CourseRequestDialog";
 import Button from "@/components/layout/Button";
 import LoadingState from "@/components/layout/LoadingState";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import InfoForm from "./components/InfoForm";
 import TeamsForm from "./components/TeamsForm";
@@ -23,7 +16,7 @@ import { Flag, ShieldHalf } from "lucide-react";
 import WizardType, { type EventWizardType } from "./components/WizardType";
 import MultiSeriesBuilder from "./components/MultiSeriesBuilder";
 import { DEFAULT_STROKE_POINTS } from "./constants";
-import { getEventValidationIssue } from "./validation";
+import { validateEventForm } from "./validation";
 import {
   getFixedEventHoleCount,
   normalizeLeagueHoleFormat,
@@ -58,21 +51,17 @@ const defaultValues = {
   flights: [],
 };
 
-function EventBuilder() {
+export default function CreateEvent() {
   const navigate = useNavigate();
   const { leagueId } = useParams();
   const { show } = useToast();
   const { data: league, isLoading, isError, error } = useLeague(Number(leagueId));
-  const userId = Number(useAppStore(state => state.user?.id));
-  const storageKey = eventSetupDraftKey(userId, Number(leagueId));
-  const [wizardType, setWizardType] = useState<EventWizardType>(() => readSetupDraft<EventWizardType>(`${storageKey}:mode`, getDefaultEventBuilder(league?.type, league?.holeFormat), mode => mode === "single" || mode === "multi"));
-  const [validationIssue, setValidationIssue] = useState<ValidationIssue | null>(null);
-  const [storageError, setStorageError] = useState(false);
+  const [wizardType, setWizardType] = useState<EventWizardType>("multi");
 
   const mutation = useCreateLeagueEvent();
 
   const eventForm = useForm({
-    defaultValues: readSetupDraft(storageKey, defaultValues, draft => isSetupFlights(draft.flights) && isSetupLineups(draft.teamLineups) && isSetupTeams(draft.teams)),
+    defaultValues: defaultValues,
   });
 
   const format = useWatch({ control: eventForm.control, name: "format" });
@@ -82,18 +71,9 @@ function EventBuilder() {
   const isMixedHoleLeague = leagueHoleFormat === "mixed";
   const activeWizardType = isMixedHoleLeague ? "single" : wizardType;
 
-  const previousScoring = useRef({ format, scoringMode });
   useEffect(() => {
-    if (previousScoring.current.format !== format || previousScoring.current.scoringMode !== scoringMode) {
-      eventForm.setValue("flights", [], { shouldDirty: true });
-      previousScoring.current = { format, scoringMode };
-    }
+    eventForm.setValue("flights", [], { shouldDirty: true });
   }, [eventForm, format, scoringMode]);
-
-  useEffect(() => eventForm.subscribe({ formState: { values: true }, callback: ({ values }) => {
-    const draft = { ...values, courseId: String(values.courseId ?? ""), teeId: String(values.teeId ?? ""), secondCourseId: String(values.secondCourseId ?? ""), secondTeeId: String(values.secondTeeId ?? "") };
-    setStorageError(!writeBrowserStorage(storageKey, JSON.stringify(draft)));
-  } }), [eventForm, storageKey]);
 
   useEffect(() => {
     if (!fixedEventHoleCount) return;
@@ -127,49 +107,38 @@ function EventBuilder() {
     }
   }, [league, eventForm]);
 
-  const submitForm = eventForm.handleSubmit((data) => {
+  const handleSubmit = eventForm.handleSubmit((data) => {
     const parsedLeagueId = Number(leagueId);
     if (!parsedLeagueId) {
       show("Missing or invalid league ID. Reload and try again.", "error");
       return;
     }
 
-    const issue = getEventValidationIssue(data, {
+    const validationMessage = validateEventForm(data, {
       showTeamsSection,
       leagueStartDate: league?.startDate,
       leagueEndDate: league?.endDate,
     });
-    if (issue) {
-      setValidationIssue(issue);
+    if (validationMessage) {
+      show(validationMessage, "error");
       return;
     }
 
-    setValidationIssue(null);
-    eventForm.clearErrors();
     mutation.mutate(
       { leagueId: parsedLeagueId, data },
       {
         onSuccess: () => {
-          clearEventSetupDraft(userId, Number(leagueId));
           navigate(`/league/${leagueId}/admin`);
         },
         onError: (error: unknown) => {
-          const message = getApiErrorMessage(error, "Unable to create the event. Please try again.");
-          setValidationIssue({ field: "submit", message });
-          show(message, "error");
+          show(getApiErrorMessage(error, "Unable to create the event. Please try again."), "error");
         },
       }
     );
   }, (errors) => {
-    const [field, error] = Object.entries(errors)[0] ?? ["name", undefined];
-    const message = getFieldError(error) ?? "Please fix the required event fields.";
-    setValidationIssue({ field, message });
+    const firstError = Object.values(errors)[0] as any;
+    show(firstError?.message || "Please fix the required event fields.", "error");
   });
-
-  const handleSubmit = () => {
-    eventForm.clearErrors();
-    void submitForm();
-  };
 
   if (isLoading) {
     return (
@@ -208,25 +177,16 @@ function EventBuilder() {
 
   return (
     <FormProvider {...eventForm}>
-      <div data-validation-scope>
-      <ValidationFeedback issue={validationIssue} />
       <PageHeader
         title="Create Event"
-        subTitle="Choose a course and date, then arrange your players into flights."
+        subTitle="Fill in the event details, configure teams if needed, and set up flights before submitting."
       />
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-        <p role="status" className={`text-sm ${storageError ? "text-amber-800" : "text-slate-500"}`}>{storageError ? "Draft saving is unavailable. Keep this page open until your event is created." : "Setup is saved on this device. You can return to finish later."}</p>
-        <CourseRequestDialog />
-      </div>
       <div className="flex flex-col gap-6 pb-6 mt-6">
         <div>
           <WizardType
             wizardType={activeWizardType}
-            setWizardType={(next) => {
-              setWizardType(next);
-              if (!writeBrowserStorage(`${storageKey}:mode`, JSON.stringify(next))) setStorageError(true);
-            }}
+            setWizardType={setWizardType}
             allowMulti={!isMixedHoleLeague}
           />
         </div>
@@ -234,7 +194,7 @@ function EventBuilder() {
         {activeWizardType === "single" && (
           <>
             <div>
-              <InfoForm validationIssue={validationIssue} />
+              <InfoForm />
             </div>
 
             {/* Teams — only for non-season team leagues */}
@@ -248,14 +208,14 @@ function EventBuilder() {
                     Teams
                   </h2>
                 </div>
-                <div data-validation-field="teams"><TeamsForm /></div>
+                <TeamsForm />
               </div>
             )}
 
-            {format === "team" ? <div data-validation-field="teamLineups"><TeamLineupsForm /></div> : null}
+            {format === "team" ? <TeamLineupsForm /> : null}
 
             {/* Flights */}
-            <div data-validation-field="flights">
+            <div>
               <div className="flex items-center gap-2 mb-3">
                 <div className="bg-slate-900 rounded-md p-1.5">
                   <Flag size={12} className="text-white" />
@@ -288,17 +248,8 @@ function EventBuilder() {
           </>
         )}
 
-        {activeWizardType === "multi" && <MultiSeriesBuilder onCreated={() => clearEventSetupDraft(userId, Number(leagueId))} storageKey={`${storageKey}:series`} />}
-      </div>
+        {activeWizardType === "multi" && <MultiSeriesBuilder />}
       </div>
     </FormProvider>
   );
-}
-
-export default function CreateEvent() {
-  const { leagueId } = useParams();
-  const userId = useAppStore(state => state.user?.id);
-  const leagueQuery = useLeague(Number(leagueId));
-  if (leagueQuery.isLoading) return <LoadingState>Loading league…</LoadingState>;
-  return <EventBuilder key={`${userId}:${leagueId}`} />;
 }

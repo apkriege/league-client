@@ -1,7 +1,3 @@
-import ValidationFeedback from "@/components/form/ValidationFeedback";
-import type { ValidationIssue } from "@/components/form/formValidation";
-import { getLeagueInfoIssue } from "./validation";
-import { readBrowserStorage, writeBrowserStorage, removeBrowserStorage } from "@/lib/browserStorage";
 import Players from "./forms/PlayersForm";
 import TeamsForm from "./forms/TeamsForm";
 import ReviewForm from "./forms/ReviewForm";
@@ -71,9 +67,7 @@ const getDefaultEndDate = (startDate = getDefaultStartDate()) => {
   return addCalendarYear(startDate);
 };
 
-const createDefaultLeagueData = (): CreateLeagueFormData => {
-  const startDate = getDefaultStartDate();
-  return ({
+const createDefaultLeagueData = (): CreateLeagueFormData => ({
   name: "",
   description: "",
   numPlayers: 0,
@@ -86,15 +80,14 @@ const createDefaultLeagueData = (): CreateLeagueFormData => {
   contactLastName: "",
   contactEmail: "",
   contactPhone: "",
-  startDate,
-  endDate: getDefaultEndDate(startDate),
+  startDate: getDefaultStartDate(),
+  endDate: getDefaultEndDate(),
   players: [],
   teams: [],
   renewedFromLeagueId: null as number | null,
   billingDraftKey: crypto.randomUUID(),
   scoringPeriods: [],
-  });
-};
+});
 
 const modelLeagueData = (league: any) => {
   const { players, teams, access: _legacyAccess, ...info } = league;
@@ -158,16 +151,7 @@ export default function CreateLeague() {
     refetch: refetchStripeState,
   } = useStripeState(Boolean(user));
 
-  const [step, setStep] = useState(() => {
-    try {
-      const draft = JSON.parse(readBrowserStorage(draftStorageKey) || "null");
-      const savedStep = Number(readBrowserStorage(`${draftStorageKey}:step`));
-      return draft && Number(draft.renewedFromLeagueId || 0) === renewalSourceId &&
-        Number.isInteger(savedStep) && savedStep >= 1 && savedStep <= 4 ? savedStep : 1;
-    } catch { return 1; }
-  });
-  const [validationIssue, setValidationIssue] = useState<ValidationIssue | null>(null);
-  const [draftStorageError, setDraftStorageError] = useState(false);
+  const [step, setStep] = useState(1);
   const [preferTrial, setPreferTrial] = useState(true);
   const [checkoutStatus, setCheckoutStatus] = useState(
     () => getCheckoutReturn(window.location.search).checkout,
@@ -185,7 +169,7 @@ export default function CreateLeague() {
 
   useEffect(() => {
     const freshDefaultLeagueData = createDefaultLeagueData();
-    const draft = readBrowserStorage(draftStorageKey);
+    const draft = window.localStorage.getItem(draftStorageKey);
     if (!draft) {
       if (renewalSourceId) return;
       if (user) {
@@ -202,14 +186,13 @@ export default function CreateLeague() {
 
     try {
       const parsed = JSON.parse(draft);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Invalid draft");
       const draftRenewalSourceId = Number(parsed?.renewedFromLeagueId || 0);
       if (renewalSourceId && draftRenewalSourceId !== renewalSourceId) {
-        removeBrowserStorage(draftStorageKey);
+        window.localStorage.removeItem(draftStorageKey);
         return;
       }
       if (!renewalSourceId && draftRenewalSourceId) {
-        removeBrowserStorage(draftStorageKey);
+        window.localStorage.removeItem(draftStorageKey);
         return;
       }
       const { access: _legacyAccess, ...parsedDraft } = parsed ?? {};
@@ -244,7 +227,7 @@ export default function CreateLeague() {
       });
       if (renewalSourceId) renewalTemplateAppliedRef.current = true;
     } catch {
-      removeBrowserStorage(draftStorageKey);
+      window.localStorage.removeItem(draftStorageKey);
     }
   }, [draftStorageKey, leagueForm, renewalSourceId, user]);
 
@@ -274,7 +257,7 @@ export default function CreateLeague() {
     const unsubscribe = leagueForm.subscribe({
       formState: { values: true },
       callback: ({ values }) => {
-        setDraftStorageError(!writeBrowserStorage(draftStorageKey, JSON.stringify(values)));
+        window.localStorage.setItem(draftStorageKey, JSON.stringify(values));
       },
     });
 
@@ -284,10 +267,10 @@ export default function CreateLeague() {
   const createLeagueAndOpenAdmin = useCallback(
     async (modeledData: any) => {
       const league = await createLeague.mutateAsync(modeledData);
-      clearCreateLeagueDraft(Number(user?.id));
+      window.localStorage.removeItem(draftStorageKey);
       navigate(`/league/${league.id}/admin`);
     },
-    [createLeague, navigate, user?.id],
+    [createLeague, draftStorageKey, navigate],
   );
 
   useEffect(() => {
@@ -387,7 +370,7 @@ export default function CreateLeague() {
 
     const { validationMessage, modeledData } = prepareLeagueData(leagueForm.getValues());
     if (validationMessage || !modeledData) {
-      setValidationIssue({ field: "review", message: validationMessage || "Review the league details and try again." });
+      show(validationMessage || "Review the league details and try again.", "error");
       return;
     }
     const bypassesLeaguePayment = Boolean(stripeState?.billing?.hasPendingLeagueBypass);
@@ -476,9 +459,7 @@ export default function CreateLeague() {
 
   const goToStep = (nextStep: number) => {
     setCheckoutStatus(null);
-    const resolvedStep = Math.max(1, Math.min(steps.length, nextStep));
-    setStep(resolvedStep);
-    if (!writeBrowserStorage(`${draftStorageKey}:step`, String(resolvedStep))) setDraftStorageError(true);
+    setStep(Math.max(1, Math.min(steps.length, nextStep)));
   };
 
   const handleClearPreviousSeason = () => {
@@ -533,10 +514,8 @@ export default function CreateLeague() {
   }
 
   return (
-    <div data-validation-scope>
-      <ValidationFeedback issue={validationIssue} />
+    <div>
       <div ref={topRef} />
-      {draftStorageError && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Draft saving is unavailable. Keep this page open until your league is created.</p>}
       {renewalSourceId > 0 && renewalTemplateQuery.data?.sourceLeague && (
         <div className="mb-4 gap-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-950 sm:flex sm:items-center sm:justify-between">
           <div>
@@ -581,7 +560,7 @@ export default function CreateLeague() {
                     ownerId={Number(user.id)}
                   />
                 )}
-                <InfoForm validationIssue={validationIssue} />
+                <InfoForm />
               </>
             )}
             {currentStep === 2 && <Players />}
@@ -621,7 +600,6 @@ export default function CreateLeague() {
               : undefined
           }
           onBack={() => {
-            setValidationIssue(null);
             goToStep(Math.max(1, currentStep - 1));
           }}
           onNext={() => {
@@ -636,13 +614,10 @@ export default function CreateLeague() {
               currentStepName,
             );
             if (validationMessage) {
-              const issue = currentStepName === "info" ? getLeagueInfoIssue(leagueForm.getValues()) : { field: currentStepName, message: validationMessage };
-              setValidationIssue(issue);
+              show(validationMessage, "error");
               return;
             }
 
-            setValidationIssue(null);
-            leagueForm.clearErrors();
             goToStep(currentStep + 1);
           }}
         />
