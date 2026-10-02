@@ -1,3 +1,4 @@
+import type { SeasonEntitlement } from "@/lib/billing";
 import type { TeamProfile } from "@api/teams/types";
 
 export type IntelligenceStanding = {
@@ -120,6 +121,7 @@ export type IntelligenceFlightTeam = {
 };
 
 export type IntelligenceEvent = {
+  type?: string;
   id: number;
   name: string;
   startsAt: string;
@@ -245,12 +247,7 @@ export type EventRoundStory = {
 
 export type LeagueAdminInput = {
   endDate?: string;
-  entitlement?: {
-    requiredGolfers: number;
-    paidGolfers: number;
-    refundedGolfers: number;
-    status: string;
-  } | null;
+  entitlement?: SeasonEntitlement | null;
   seasonStatus?: string;
   renewedLeague?: { id: number } | null;
   players?: LeagueRosterPlayer[];

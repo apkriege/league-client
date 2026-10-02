@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle2, ClipboardCheck } from "lucide-react";
+import { buildCommissionerMetrics } from "../commissionerMetrics";
 import { buildCommissionerInsights } from "../commissionerInsights";
 import type {
   IntelligenceEvent,
@@ -17,6 +18,7 @@ export default function CommissionerInsights({
   metrics?: LeagueIntelligenceMetrics;
 }) {
   const insight = buildCommissionerInsights({ league, events, metrics });
+  const statMetrics = buildCommissionerMetrics(league, events);
   return (
     <IntelligenceShell
       kicker="Commissioner intelligence"
@@ -33,10 +35,7 @@ export default function CommissionerInsights({
       )}
     >
       <div className="grid grid-cols-2 divide-x divide-y divide-slate-100 bg-white lg:grid-cols-4 lg:divide-y-0">
-        <InsightMetric label="Missing scores" value={insight.missingScores.length} detail="events flagged" />
-        <InsightMetric label="Flight checks" value={insight.unbalancedFlights.length} detail="events flagged" />
-        <InsightMetric label="Participation" value={insight.inactiveGolfers.length} detail="golfers behind pace" />
-        <InsightMetric label="Renewal" value={insight.renewalNeeded ? "Action due" : "On track"} detail={insight.daysToEnd == null ? "No end date" : `${Math.max(0, insight.daysToEnd)} days remaining`} />
+        {statMetrics.map(metric => <InsightMetric key={metric.label} {...metric} />)}
       </div>
       {insight.items.length === 0 ? (
         <div className="flex items-center justify-center gap-2 border-t border-slate-200 px-5 py-5 text-xs font-semibold text-emerald-700">
