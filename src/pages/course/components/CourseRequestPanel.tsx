@@ -12,7 +12,7 @@ import { Link } from "react-router";
 import ManualCourseRequestForm from "./ManualCourseRequestForm";
 import ScorecardImageInput from "./ScorecardImageInput";
 
-export default function CourseRequestPanel() {
+export default function CourseRequestPanel({ embedded = false }: { embedded?: boolean }) {
   const { show } = useToast();
   const directory = useCourseDirectorySelection();
   const requestCourse = useRequestCourse();
@@ -74,8 +74,8 @@ export default function CourseRequestPanel() {
 
   return (
     <>
-      <div className="mb-5 rounded-2xl border border-blue-200 bg-blue-50/70 p-4">
-        <div className="flex items-start gap-3">
+      <div className={embedded ? "mb-4" : "mb-5 rounded-2xl border border-blue-200 bg-blue-50/70 p-4"}>
+        {!embedded && <div className="flex items-start gap-3">
           <div className="rounded-xl border border-blue-200 bg-white p-2.5 text-blue-700">
             <MailPlus size={16} />
           </div>
@@ -88,8 +88,9 @@ export default function CourseRequestPanel() {
               added.
             </p>
           </div>
-        </div>
+        </div>}
 
+        {embedded && <p className="text-xs text-slate-500">Search by name, verify the location, then request your course.</p>}
         <div className="mt-4 grid grid-cols-1 gap-2.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <Input
             dense

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { useCoursesWithTees } from "@api/courses/queries";
 import AutocompleteSelect from "@/components/form/AutocompleteSelect";
 import CourseQueryState from "./CourseQueryState";
@@ -12,16 +13,21 @@ export default function CourseSetupCheck() {
     value: course.id, label: [course.name, course.club?.name, course.club?.location].filter(Boolean).join(" · "),
   }));
   return (
-    <section className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div>
-        <h2 className="text-lg font-bold text-slate-950">Check your course</h2>
-        <p className="mt-1 text-sm text-slate-500">Confirm your course is available before building your roster. You’ll select the course and tees when scheduling events.</p>
-      </div>
-      <CourseQueryState {...query} count={courses.length} onRetry={() => void query.refetch()} />
-      {!query.isLoading && !query.isError && courses.length > 0 && <AutocompleteSelect label="Find your course" placeholder="Search course, club, or location" options={options} value={courseId} onChange={(value) => setCourseId(value ?? "")} noResultsText="No matching courses" />}
-      {courseId && <p role="status" className="text-sm font-medium text-emerald-700">Course available. Continue with your league setup.</p>}
+    <section aria-label="Course availability" className="mt-4 flex flex-col items-start sm:flex-row gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <details className="group w-full min-w-0 sm:w-auto sm:flex-1">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-xs font-bold text-slate-700 sm:min-h-8">
+          <ChevronDown size={14} className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+          Check your course
+          <span className="font-medium text-slate-400">Optional</span>
+        </summary>
+        <div className="mt-3 max-w-xl space-y-3">
+          <p className="text-xs text-slate-500">Choose courses and tees when scheduling events. Requests can stay pending while you finish setup.</p>
+          <CourseQueryState {...query} count={courses.length} onRetry={() => void query.refetch()} />
+          {!query.isLoading && !query.isError && courses.length > 0 && <AutocompleteSelect label="Find your course" placeholder="Search course, club, or location" options={options} value={courseId} onChange={(value) => setCourseId(value ?? "")} noResultsText="No matching courses" />}
+          {courseId && <p role="status" className="text-xs font-medium text-emerald-700">Course available. Continue with your league setup.</p>}
+        </div>
+      </details>
       <CourseRequestDialog />
-      <p className="text-sm text-slate-500">You can continue setup while a course request is pending.</p>
     </section>
   );
 }

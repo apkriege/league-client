@@ -22,7 +22,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 8. **Roster import and partial-roster guidance.** Paste spreadsheet rows or upload CSV/TSV; preview, validate required fields and numbers, detect duplicates, append with unique IDs; make clear more players can be added later. Native Excel files are not required; export as CSV or paste cells.
 9. **Getting-started checklist.** Prioritize the first event, player invitations, and score entry; derive completion from actual league data; respect historical/read-only leagues.
 10. **Simpler first-event setup.** Tournament defaults to single event; season retains recurring scheduling; progressively disclose scoring settings while preserving chosen values.
-11. **Invitation management.** Explain missing emails, ready/pending/claimed states; select all; resend via existing revoke/create operations with delivery feedback; show all invitations; handle errors.
+11. **Invitation management.** Explain missing emails, ready/pending/claimed states; select all; resend while preserving valid links, with delivery feedback; show all invitations; handle errors.
 12. **Inline validation.** Show field errors and focus first invalid field in league/player/event setup; preserve existing domain validators and enforce required data.
 13. **Score-draft clarity.** Explain device-local drafts and explicit submission; preserve storage-error messaging.
 14. **Clipboard feedback.** Await copy; show success only when successful; explain fallback on failure.
@@ -35,7 +35,7 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 
 ## Progress
 
-- Plan created; implementation pending.
+- Implementing and verifying the sequence below.
 
 ### 1. League draft preservation — complete
 - My Leagues resumes existing setup; explicit fresh-start confirmation preserves a draft when canceled.
@@ -90,3 +90,8 @@ Implement one item at a time, verify it, review its diff, and commit it before s
 - Explain missing emails, select eligible players, expose all invitation states, and resend from the drawer. Keyboard dismissal restores focus.
 - Backend serializes invitation changes; valid resends preserve links, expired links are replaced, and intentional emails receive distinct delivery keys.
 - Verification: 3 frontend state tests, 2 email tests, browser selection/resend/keyboard regression, 4 real-database integration tests including concurrent resends, expiry and authorization; client/server/test typechecks, lint and whitespace checks passed.
+
+### UI correction from user feedback — complete
+- Replaced predefined design instructions in the workspace AGENTS.md with the user's compact existing-app direction; committed a reusable prompt in docs/UI_DESIGN_PROMPT.md.
+- Reduced onboarding additions to a compact expandable course row and checklist; reused existing buttons, narrowed new dialogs/drawers, reduced nested card/copy density and invitation/import row spacing.
+- Verification: 6 focused browser regressions passed. Desktop/mobile layout checks and screenshot inspection caught and corrected cramped mobile course content; final layout check passed. Typecheck/lint passed.

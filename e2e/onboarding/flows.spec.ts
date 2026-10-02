@@ -134,6 +134,7 @@ test('league setup checks course availability and requests in place without losi
   ] }));
   await page.goto('/leagues/create');
   await page.getByLabel('League Name', { exact: true }).fill('Course Check League');
+  await page.locator('summary').filter({ hasText: 'Check your course' }).click();
   await page.getByRole('combobox', { name: 'Find your course' }).fill('Local');
   await page.getByRole('option', { name: /Local Course/ }).click();
   await expect(page.getByText('Course available. Continue with your league setup.')).toBeVisible();

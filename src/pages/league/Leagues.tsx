@@ -168,7 +168,7 @@ export default function Leagues() {
         </div>
       )}
       {canManageLeagues && hasSavedDraft && (
-        <button type="button" className="mt-4 self-start rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold" onClick={() => {
+        <button type="button" className="mt-3 self-start rounded-full border border-slate-200 px-3 py-2 text-xs font-bold" onClick={() => {
           if (!window.confirm("Discard the saved league setup and start fresh?")) return;
           clearCreateLeagueDraft(Number(user?.id));
           window.location.assign("/leagues/create");
