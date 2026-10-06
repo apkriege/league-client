@@ -2,6 +2,7 @@ import { ShieldHalf, Swords, Zap } from "lucide-react";
 import { Link } from "react-router";
 import type { buildEventDashboard } from "@/features/league-intelligence/eventDashboard";
 import type { EventInsightInput } from "@/features/league-intelligence/types";
+import { getScoringFamilyForEvent } from "@/features/scoring/scoringModes";
 import { SkinsList, type SkinsDrawerContent } from "./EventSkins";
 import {
   EventInsightBadge,
@@ -27,10 +28,11 @@ export default function EventMatchupsPanel({
 }) {
   const grossSkins = event.metrics?.skins?.playerSkins ?? [];
   const netSkins = event.metrics?.skins?.playerNetSkins ?? [];
+  const isMatchPlay = getScoringFamilyForEvent(event) === "match";
 
   return (
     <div className="space-y-4">
-      {(dashboard.matchups.length > 0 || dashboard.teamMatchups.length > 0) ? (
+      {isMatchPlay && ((dashboard.matchups.length > 0 || dashboard.teamMatchups.length > 0) ? (
         <EventInsightSection
           title="Matchup theater"
           description="Assigned battles scored hole by hole, including lead changes and final separation"
@@ -103,7 +105,7 @@ export default function EventMatchupsPanel({
         >
           <EventInsightEmpty>This event does not have completed assigned matchups.</EventInsightEmpty>
         </EventInsightSection>
-      )}
+      ))}
 
       <EventInsightSection
         title="Skins board"

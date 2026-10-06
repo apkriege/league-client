@@ -4,6 +4,7 @@ import PlayerNameLink from "./PlayerNameLink";
 import { memo, useMemo } from "react";
 import { calculateRoundScoreStats, type HoleScoreMode } from "../eventRoundStats";
 import { formatHandicap } from "@/utils/handicap";
+import { HoleScoreHeader } from "@/pages/scores/components/ScoreTableCell";
 
 type EventScore = {
   hole: number | string;
@@ -31,6 +32,7 @@ type EventRound = {
 
 type EventRoundsTableProps = {
   rounds: EventRound[];
+  scoringHoles?: Array<{ num: number; par?: number | null; hcp?: number | null; handicap?: number | null }>;
   participantLabel?: "Player" | "Team";
   highlightedHolesByPlayer?: Record<number, number[]>;
   highlightUnderPar?: boolean;
@@ -49,6 +51,7 @@ const getRoundPoints = (round: EventRound) =>
 
 function EventRoundsTable({
   rounds,
+  scoringHoles,
   participantLabel = "Player",
   highlightedHolesByPlayer,
   highlightUnderPar = true,
@@ -119,7 +122,13 @@ function EventRoundsTable({
             <tr className="section-kicker border-b border-slate-200 bg-slate-50/90">
               <th className="py-3 pl-5 text-left">{participantLabel}</th>
               {holes.map((hole) => (
-                <th key={hole} className="py-3 text-center">{hole}</th>
+                scoringHoles ? (
+                  <HoleScoreHeader
+                    key={hole}
+                    hole={scoringHoles.find((entry) => entry.num === hole) ?? { num: hole }}
+                    className="py-3 normal-case tracking-normal"
+                  />
+                ) : <th key={hole} className="py-3 text-center">{hole}</th>
               ))}
               <th className="py-3 text-right">Gross</th>
               <th className={`py-3 text-right ${showRoundStats ? "" : "pr-5"}`}>Net</th>

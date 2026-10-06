@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router";
 import EventFlightsPreview from "./components/EventFlightsPreview";
 import EventActionsMenu from "./components/EventActionsMenu";
@@ -272,6 +273,7 @@ export default function Event() {
                 </div>
                 <EventRoundsTable
                   rounds={isSharedTeamMode ? event.teamRounds ?? [] : event.metrics.scores}
+                  scoringHoles={getEventScoringHoles(event)}
                   participantLabel={isSharedTeamMode ? "Team" : "Player"}
                   holeScoreKey={roundScoreMode}
                   showRoundStats
@@ -293,7 +295,7 @@ export default function Event() {
         )}
       </div>
 
-      {scorecardDrawer.isMounted && (
+      {scorecardDrawer.isMounted && createPortal(
         <div className="fixed inset-0 z-50">
           <button
             type="button"
@@ -345,10 +347,11 @@ export default function Event() {
               )}
             </div>
           </aside>
-        </div>
+        </div>,
+        document.body,
       )}
 
-      {skinsDrawer.isMounted && skinsDrawer.content && (
+      {skinsDrawer.isMounted && skinsDrawer.content && createPortal(
         <div className="fixed inset-0 z-50">
           <button
             type="button"
@@ -395,7 +398,8 @@ export default function Event() {
               />
             </div>
           </aside>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

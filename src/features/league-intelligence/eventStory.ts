@@ -1,4 +1,5 @@
 import { buildEventRecap } from "./eventRecap";
+import { getScoringFamilyForEvent } from "@/features/scoring/scoringModes";
 import type {
   EventInsightInput,
   EventInsightRound,
@@ -30,8 +31,11 @@ const toPar = (scores: EventInsightScore[], mode: "gross" | "net") =>
   scores.reduce((total, score) => total + Number(score[mode]) - Number(score.par), 0);
 
 const buildHotHand = (
-  rounds: EventInsightRound[],
+  event: EventInsightInput,
 ): { highlight: EventStoryHighlight; playerName: string } | null => {
+  const rounds = (event.metrics?.scores ?? []).filter(
+    (round) => event.holes == null || sortedScores(round).length === event.holes,
+  );
   const candidates = rounds
     .map((round) => {
       const scores = sortedScores(round);
@@ -61,14 +65,15 @@ const buildHotHand = (
   if (!hot) return null;
 
   if (hot.underPar === 0) {
+    const lowGross = [...candidates].sort((left, right) => left.gross - right.gross)[0];
     return {
-      playerName: hot.name,
+      playerName: lowGross.name,
       highlight: {
         kind: "hot",
         label: "Scoring pace",
-        title: `${hot.name} set the number`,
-        detail: `${hot.gross} gross was the lowest card in the field.`,
-        stat: `${hot.gross} gross`,
+        title: `${lowGross.name} set the number`,
+        detail: `${lowGross.gross} gross was the lowest card in the field.`,
+        stat: `${lowGross.gross} gross`,
       },
     };
   }
@@ -117,6 +122,7 @@ const analyzeBattle = (
   left: EventInsightRound,
   right: EventInsightRound,
   assigned: boolean,
+  matchPlay: boolean,
 ): BattleCandidate | null => {
   const rightByHole = new Map(sortedScores(right).map((score) => [Number(score.hole), score]));
   const shared = sortedScores(left).flatMap((leftScore) => {
@@ -130,7 +136,8 @@ const analyzeBattle = (
   let leadChanges = 0;
   let tightHoles = 0;
   for (const hole of shared) {
-    runningDifference += Number(hole.left.net) - Number(hole.right.net);
+    const difference = Number(hole.left.net) - Number(hole.right.net);
+    runningDifference += matchPlay ? Math.sign(difference) : difference;
     if (Math.abs(runningDifference) <= 1) tightHoles += 1;
     const leader = Math.sign(runningDifference);
     if (leader !== 0 && previousLeader !== 0 && leader !== previousLeader) leadChanges += 1;
@@ -140,7 +147,7 @@ const analyzeBattle = (
   return {
     left,
     right,
-    finalMargin: Math.abs(Number(left.net) - Number(right.net)),
+    finalMargin: Math.abs(runningDifference),
     leadChanges,
     sharedHoles: shared.length,
     tightHoles,
@@ -160,7 +167,9 @@ const buildPlayerBattle = (event: EventInsightInput): EventStoryHighlight | null
       const key = [Number(left.playerId), Number(right.playerId)]
         .sort((a, b) => a - b)
         .join(":");
-      const candidate = analyzeBattle(left, right, assignedKeys.has(key));
+      if (!assignedKeys.has(key)) continue;
+      if (event.holes != null && (sortedScores(left).length !== event.holes || sortedScores(right).length !== event.holes)) continue;
+      const candidate = analyzeBattle(left, right, true, getScoringFamilyForEvent(event) === "match");
       if (candidate) candidates.push(candidate);
     }
   }
@@ -179,11 +188,13 @@ const buildPlayerBattle = (event: EventInsightInput): EventStoryHighlight | null
   const marginDetail =
     battle.finalMargin === 0
       ? "finished level"
-      : `finished ${plural(battle.finalMargin, "net stroke")} apart`;
+      : getScoringFamilyForEvent(event) === "match"
+        ? `finished ${plural(battle.finalMargin, "hole")} apart`
+        : `finished ${plural(battle.finalMargin, "net stroke")} apart`;
   const tensionDetail =
     battle.leadChanges > 0
       ? `The lead changed ${battle.leadChanges === 1 ? "once" : `${battle.leadChanges} times`} and they ${marginDetail}.`
-      : `${battle.tightHoles} of ${battle.sharedHoles} scored holes stayed within one stroke before they ${marginDetail}.`;
+      : `${battle.tightHoles} of ${battle.sharedHoles} scored holes stayed within one ${getScoringFamilyForEvent(event) === "match" ? "hole" : "stroke"} before they ${marginDetail}.`;
 
   return {
     kind: "battle",
@@ -195,7 +206,7 @@ const buildPlayerBattle = (event: EventInsightInput): EventStoryHighlight | null
         ? plural(battle.leadChanges, "lead change")
         : battle.finalMargin === 0
           ? "Dead even"
-          : `${battle.finalMargin}-stroke finish`,
+          : `${battle.finalMargin}-${getScoringFamilyForEvent(event) === "match" ? "hole" : "stroke"} finish`,
   };
 };
 
@@ -221,11 +232,13 @@ const buildTeamBattle = (event: EventInsightInput): EventStoryHighlight | null =
   };
 };
 
-const buildMomentum = (rounds: EventInsightRound[]): EventStoryHighlight | null => {
+const buildMomentum = (event: EventInsightInput): EventStoryHighlight | null => {
+  const rounds = event.metrics?.scores ?? [];
   const candidates = rounds
     .flatMap((round) => {
       const scores = sortedScores(round);
-      if (scores.length < 6) return [];
+      if (scores.length < 6 || (event.holes != null && scores.length !== event.holes)) return [];
+      if (scores.some((score, index) => index > 0 && score.hole !== scores[index - 1].hole + 1)) return [];
       const opening = scores.slice(0, 3);
       const closing = scores.slice(-3);
       const openingToPar = toPar(opening, "net");
@@ -245,27 +258,14 @@ const buildMomentum = (rounds: EventInsightRound[]): EventStoryHighlight | null 
     );
 
   const momentum = candidates[0];
-  if (!momentum) return null;
+  if (!momentum || momentum.improvement <= 0) return null;
 
-  if (momentum.improvement > 0) {
-    return {
+  return {
       kind: "momentum",
       label: "Momentum swing",
       title: `${playerName(momentum.round)} flipped the script`,
       detail: `The closing three played ${plural(momentum.improvement, "stroke")} better than the opening three (${signed(momentum.closingToPar)} to par).`,
       stat: `${momentum.improvement}-stroke swing`,
-    };
-  }
-
-  const strongestFinish = [...candidates].sort(
-    (left, right) => left.closingToPar - right.closingToPar,
-  )[0];
-  return {
-    kind: "momentum",
-    label: "Closing kick",
-    title: `${playerName(strongestFinish.round)} finished strongest`,
-    detail: `No one improved on the opening pace, but ${signed(strongestFinish.closingToPar)} across the closing three led the field.`,
-    stat: `${signed(strongestFinish.closingToPar)} closing 3`,
   };
 };
 
@@ -343,9 +343,9 @@ export function buildEventStory(
   const recap = providedRecap ?? buildEventRecap(event);
   if (!recap || rounds.length === 0) return null;
 
-  const hotHand = buildHotHand(rounds);
+  const hotHand = buildHotHand(event);
   const battle = buildTeamBattle(event) ?? buildPlayerBattle(event);
-  const momentum = buildMomentum(rounds);
+  const momentum = buildMomentum(event);
   const achievement = buildAchievement(event);
   const highlights = [hotHand?.highlight, battle, momentum, achievement].filter(
     (highlight): highlight is EventStoryHighlight => highlight != null,

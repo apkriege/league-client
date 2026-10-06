@@ -1,5 +1,6 @@
-import { Award, Crosshair, Flame, RotateCcw, ShieldCheck, Sparkles, TrendingUp, Zap } from "lucide-react";
+import { Award, Crosshair, RotateCcw, ShieldCheck } from "lucide-react";
 import { Link } from "react-router";
+import { FieldScoringComparison, HoleDifficulty } from "./EventFieldPerformance";
 import type { buildEventDashboard, EventAward } from "@/features/league-intelligence/eventDashboard";
 import {
   EventInsightBadge,
@@ -12,29 +13,10 @@ type EventDashboard = ReturnType<typeof buildEventDashboard>;
 const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
 
 const awardIcon: Record<EventAward["id"], typeof Award> = {
-  hot: Flame,
-  closer: TrendingUp,
   bounceback: RotateCcw,
   control: ShieldCheck,
-  skins: Zap,
-  surge: Sparkles,
 };
 
-const distributionLabel = {
-  eagles: "Eagles",
-  birdies: "Birdies",
-  pars: "Pars",
-  bogeys: "Bogeys",
-  doubleBogeys: "Double+",
-};
-
-const distributionTone = {
-  eagles: "bg-violet-500",
-  birdies: "bg-emerald-500",
-  pars: "bg-blue-500",
-  bogeys: "bg-amber-500",
-  doubleBogeys: "bg-red-400",
-};
 
 export default function EventPerformancePanel({
   dashboard,
@@ -52,13 +34,13 @@ export default function EventPerformancePanel({
     <div className="space-y-4">
       <EventInsightSection
         title="Round awards"
-        description="Recognition earned from specific scoring behaviors—not arbitrary badges"
+        description="Recovery and consistency beyond the leaderboard"
         action={<EventInsightBadge>{dashboard.awards.length} earned</EventInsightBadge>}
       >
         {dashboard.awards.length === 0 ? (
           <EventInsightEmpty>Completed hole scores unlock round awards.</EventInsightEmpty>
         ) : (
-          <div className="grid gap-px bg-slate-100 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-px bg-slate-100 sm:grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
             {dashboard.awards.map((award) => {
               const Icon = awardIcon[award.id];
               return (
@@ -93,7 +75,7 @@ export default function EventPerformancePanel({
 
       <EventInsightSection
         title={`${participantLabel} impact board`}
-        description="How each card was built: scoring bursts, control, recovery, damage, and finish"
+        description="Net vs field: negative is better. Hole stats use gross scores; closing three uses net."
         action={<Crosshair size={15} className="text-emerald-600" />}
       >
         {dashboard.players.length === 0 ? (
@@ -105,13 +87,14 @@ export default function EventPerformancePanel({
                 <tr>
                   <th className="px-4 py-2.5 sm:px-5">{participantLabel}</th>
                   <th className="px-2 py-2.5 text-right">Net</th>
-                  <th className="px-2 py-2.5 text-right">Points</th>
-                  <th className="px-2 py-2.5 text-right">Red</th>
-                  <th className="px-2 py-2.5 text-right">Par+</th>
-                  <th className="px-2 py-2.5 text-right">Bounce</th>
-                  <th className="px-2 py-2.5 text-right">Control</th>
-                  <th className="px-2 py-2.5 text-right">Double+</th>
-                  <th className="px-4 py-2.5 text-right sm:px-5">Closing 3</th>
+                  <th className="px-2 py-2.5 text-right">Net vs field</th>
+                  {dashboard.pointsEnabled && <th className="px-2 py-2.5 text-right">Points</th>}
+                  <th className="px-2 py-2.5 text-right">Birdies+</th>
+                  <th className="px-2 py-2.5 text-right">Par or better</th>
+                  <th className="px-2 py-2.5 text-right">Recovery</th>
+                  <th className="px-2 py-2.5 text-right">Par streak</th>
+                  <th className="px-2 py-2.5 text-right">Double bogeys+</th>
+                  <th className="px-4 py-2.5 text-right sm:px-5">Closing 3 net</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -130,10 +113,11 @@ export default function EventPerformancePanel({
                       </div>
                     </td>
                     <td className="px-2 py-3 text-right font-black tabular-nums text-slate-900">{player.net}</td>
-                    <td className="px-2 py-3 text-right font-black tabular-nums text-slate-900">{player.points}</td>
+                    <td className="px-2 py-3 text-right font-bold tabular-nums text-slate-700">{player.netVsField == null ? "—" : signed(player.netVsField)}</td>
+                    {dashboard.pointsEnabled && <td className="px-2 py-3 text-right font-black tabular-nums text-slate-900">{player.points}</td>}
                     <td className="px-2 py-3 text-right font-bold tabular-nums text-emerald-700">{player.redNumbers}</td>
-                    <td className="px-2 py-3 text-right tabular-nums text-slate-600">{player.parOrBetter}</td>
-                    <td className="px-2 py-3 text-right tabular-nums text-slate-600">{player.bounceBacks}</td>
+                    <td className="px-2 py-3 text-right tabular-nums text-slate-600" title={`${player.parOrBetter} of ${player.scoredHoles} scored holes`}>{player.parOrBetterRate == null ? "—" : `${player.parOrBetterRate}%`}</td>
+                    <td className="px-2 py-3 text-right tabular-nums text-slate-600" title="Gross par or better immediately after an over-par hole">{player.recoveryOpportunities ? `${player.bounceBacks}/${player.recoveryOpportunities}` : "—"}</td>
                     <td className="px-2 py-3 text-right tabular-nums text-slate-600">{player.longestControlStreak}</td>
                     <td className="px-2 py-3 text-right tabular-nums text-red-500">{player.doublesOrWorse}</td>
                     <td className="px-4 py-3 text-right font-bold tabular-nums text-slate-700 sm:px-5">
@@ -147,73 +131,9 @@ export default function EventPerformancePanel({
         )}
       </EventInsightSection>
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
-        <EventInsightSection
-          title="Field scoring fingerprint"
-          description="This event compared with a typical league event this season"
-        >
-          {dashboard.fieldComparison.length === 0 ? (
-            <EventInsightEmpty>Season comparison data is still building.</EventInsightEmpty>
-          ) : (
-            <div className="grid gap-px bg-slate-100 sm:grid-cols-2 xl:grid-cols-1">
-              {dashboard.fieldComparison.map((metric) => {
-                const scale = Math.max(1, metric.event, metric.usual);
-                const differenceIsFavorable = metric.key === "bogeys" || metric.key === "doubleBogeys"
-                  ? metric.difference < 0
-                  : metric.difference > 0;
-                return (
-                  <div key={metric.key} className="bg-white px-4 py-3.5 sm:px-5">
-                    <div className="flex items-end justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">{distributionLabel[metric.key]}</p>
-                        <p className="text-[9px] text-slate-400">Typical event: {metric.usual}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-black leading-none tabular-nums text-slate-950">{metric.event}</p>
-                        <p className={`mt-1 text-[9px] font-bold ${metric.difference === 0 ? "text-slate-400" : differenceIsFavorable ? "text-emerald-700" : "text-amber-700"}`}>
-                          {signed(metric.difference)} vs usual
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                      <div className={`h-full rounded-full ${distributionTone[metric.key]}`} style={{ width: `${Math.max(4, (metric.event / scale) * 100)}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </EventInsightSection>
-
-        <EventInsightSection
-          title="Hole personality map"
-          description="Field average gross to par, with opportunity and damage markers"
-        >
-          {dashboard.holes.length === 0 ? (
-            <EventInsightEmpty>Hole profiles appear from complete scorecards.</EventInsightEmpty>
-          ) : (
-            <div className="grid grid-cols-3 gap-2 p-4 sm:grid-cols-6 xl:grid-cols-3">
-              {dashboard.holes.map((hole) => {
-                const tone = hole.averageGrossToPar <= 0
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : hole.averageGrossToPar <= 1
-                    ? "border-slate-200 bg-slate-50 text-slate-700"
-                    : "border-amber-200 bg-amber-50 text-amber-800";
-                return (
-                  <div
-                    key={hole.hole}
-                    className={`rounded-xl border p-2.5 text-center ${tone}`}
-                    title={`${hole.scores} scores · ${hole.birdiesOrBetter} birdies or better · ${hole.doublesOrWorse} doubles or worse`}
-                  >
-                    <p className="text-[9px] font-black uppercase tracking-wide opacity-60">Hole {hole.hole}</p>
-                    <p className="mt-1 text-base font-black tabular-nums">{signed(hole.averageGrossToPar)}</p>
-                    <p className="text-[8px] opacity-60">Par {hole.par}</p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </EventInsightSection>
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <FieldScoringComparison metrics={dashboard.fieldComparison} />
+        <HoleDifficulty holes={dashboard.holes} />
       </div>
     </div>
   );

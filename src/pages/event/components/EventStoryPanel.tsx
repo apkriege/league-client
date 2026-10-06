@@ -16,8 +16,6 @@ const highlightStyle: Record<EventStoryHighlightKind, { icon: typeof Flame; tone
   achievement: { icon: Sparkles, tone: "text-violet-600", surface: "from-violet-50" },
 };
 
-const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
-
 export default function EventStoryPanel({
   event,
   dashboard,
@@ -30,37 +28,37 @@ export default function EventStoryPanel({
     dashboard.decisiveSwing
       ? {
           icon: Crosshair,
-          label: "Decisive swing",
+          label: "Biggest swing",
           value: `Hole ${dashboard.decisiveSwing.hole}`,
           detail: `${dashboard.decisiveSwing.winner} gained ${dashboard.decisiveSwing.strokes} net ${dashboard.decisiveSwing.strokes === 1 ? "stroke" : "strokes"} on ${dashboard.decisiveSwing.runnerUp}.`,
           tone: "text-emerald-600",
         }
       : null,
-    dashboard.hardestHole
+    dashboard.mostDoubleBogeys
       ? {
           icon: AlertTriangle,
-          label: "Field test",
-          value: `Hole ${dashboard.hardestHole.hole}`,
-          detail: `${signed(dashboard.hardestHole.averageGrossToPar)} average gross to par made it the hardest hole.`,
+          label: "Most double bogeys",
+          value: `Hole ${dashboard.mostDoubleBogeys.hole}`,
+          detail: `${dashboard.mostDoubleBogeys.doublesOrWorse} of ${dashboard.mostDoubleBogeys.scores} gross scores were double bogey or worse.`,
           tone: "text-amber-600",
         }
       : null,
     dashboard.opportunityHole
       ? {
           icon: Sparkles,
-          label: "Green light",
+          label: "Most birdies",
           value: `Hole ${dashboard.opportunityHole.hole}`,
-          detail: `${dashboard.opportunityHole.birdiesOrBetter} gross red ${dashboard.opportunityHole.birdiesOrBetter === 1 ? "number was" : "numbers were"} made there.`,
+          detail: `${dashboard.opportunityHole.birdiesOrBetter} of ${dashboard.opportunityHole.scores} gross scores were birdie or better.`,
           tone: "text-violet-600",
         }
       : null,
-    dashboard.chaosHole
+    dashboard.mostParOrBetter
       ? {
-          icon: Flame,
-          label: "Chaos hole",
-          value: `Hole ${dashboard.chaosHole.hole}`,
-          detail: `A ${dashboard.chaosHole.grossRange}-stroke field range created the widest split.`,
-          tone: "text-orange-600",
+          icon: Crosshair,
+          label: "Most pars or better",
+          value: `Hole ${dashboard.mostParOrBetter.hole}`,
+          detail: `${Math.round(dashboard.mostParOrBetter.parOrBetter / dashboard.mostParOrBetter.scores * 100)}% at gross par or better (${dashboard.mostParOrBetter.parOrBetter} of ${dashboard.mostParOrBetter.scores}).`,
+          tone: "text-emerald-600",
         }
       : null,
   ].filter((moment): moment is NonNullable<typeof moment> => moment != null);
@@ -72,15 +70,10 @@ export default function EventStoryPanel({
         description="The result, the pressure, and the moments that shaped the event"
         action={<EventInsightBadge><BookOpen size={10} /> Post-round story</EventInsightBadge>}
       >
-        {!story ? (
+        {!story || story.highlights.length === 0 ? (
           <EventInsightEmpty>Complete hole scores to unlock the event story.</EventInsightEmpty>
         ) : (
-          <>
-            <div className="border-b border-slate-100 bg-slate-950 px-5 py-5 text-white sm:px-6">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300">Headline</p>
-              <p className="mt-2 max-w-3xl text-base font-black leading-6">{story.headline}</p>
-            </div>
-            <div className="grid gap-px bg-slate-100 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-px bg-slate-100 sm:grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
               {story.highlights.map((highlight) => {
                 const style = highlightStyle[highlight.kind];
                 const Icon = style.icon;
@@ -101,27 +94,28 @@ export default function EventStoryPanel({
                 );
               })}
             </div>
-          </>
         )}
       </EventInsightSection>
 
       <EventInsightSection
         title="Defining holes"
-        description="Where separation, opportunity, and volatility showed up"
+        description="Where players gained strokes, scored well, or ran into trouble"
         action={<Crosshair size={15} className="text-emerald-600" />}
       >
         {moments.length === 0 ? (
           <EventInsightEmpty>Hole-by-hole scores unlock the defining moments.</EventInsightEmpty>
         ) : (
-          <div className="grid gap-px bg-slate-100 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-px bg-slate-100 sm:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
             {moments.map((moment) => {
               const Icon = moment.icon;
               return (
-                <article key={moment.label} className="bg-white p-4 sm:p-5">
-                  <Icon size={15} className={moment.tone} strokeWidth={2.5} />
-                  <p className="mt-4 text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">{moment.label}</p>
-                  <p className="mt-1 text-lg font-black text-slate-950">{moment.value}</p>
-                  <p className="mt-1 text-[10px] leading-4 text-slate-500">{moment.detail}</p>
+                <article key={moment.label} className="bg-white px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Icon size={13} className={`shrink-0 ${moment.tone}`} strokeWidth={2.5} />
+                    <p className="text-[9px] font-black uppercase tracking-wide text-slate-400">{moment.label}</p>
+                    <p className="ml-auto shrink-0 text-xs font-black text-slate-950">{moment.value}</p>
+                  </div>
+                  <p className="mt-2 text-[10px] leading-4 text-slate-500">{moment.detail}</p>
                 </article>
               );
             })}

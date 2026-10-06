@@ -217,6 +217,7 @@ export type EventInsightInput = {
     scoreDistribution?: {
       thisEvent: EventScoreDistribution;
       seasonAvg: EventScoreDistribution;
+      seasonTotals?: EventScoreDistribution;
     };
   };
 };

@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Activity, BookOpen, Swords, Trophy } from "lucide-react";
+import { Activity, BookOpen, Swords, Trophy, Zap } from "lucide-react";
 import EventRecap from "@/features/league-intelligence/components/EventRecap";
 import { buildEventDashboard } from "@/features/league-intelligence/eventDashboard";
+import { getScoringFamilyForEvent } from "@/features/scoring/scoringModes";
 import type { SkinsDrawerContent } from "./EventSkins";
 import EventMatchupsPanel from "./EventMatchupsPanel";
 import EventPerformancePanel from "./EventPerformancePanel";
@@ -64,15 +65,27 @@ export default function EventIntelligenceDashboard({
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const intelligenceEvent = useMemo(() => withSharedTeamScores(event), [event]);
   const dashboard = useMemo(() => buildEventDashboard(intelligenceEvent), [intelligenceEvent]);
+  const isMatchPlay = getScoringFamilyForEvent(intelligenceEvent) === "match";
+  const visibleViews = isMatchPlay
+    ? views
+    : views.map((item) => item.id === "matchups"
+      ? {
+          ...item,
+          label: "Skins",
+          shortLabel: "Skins",
+          description: "Gross and net winning holes",
+          icon: Zap,
+        }
+      : item);
   const handleTabKeyDown = (keyboardEvent: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(keyboardEvent.key)) return;
     keyboardEvent.preventDefault();
     const nextIndex = keyboardEvent.key === "Home"
       ? 0
       : keyboardEvent.key === "End"
-        ? views.length - 1
-        : (index + (keyboardEvent.key === "ArrowRight" ? 1 : -1) + views.length) % views.length;
-    setView(views[nextIndex].id);
+        ? visibleViews.length - 1
+        : (index + (keyboardEvent.key === "ArrowRight" ? 1 : -1) + visibleViews.length) % visibleViews.length;
+    setView(visibleViews[nextIndex].id);
     tabRefs.current[nextIndex]?.focus();
   };
 
@@ -82,7 +95,7 @@ export default function EventIntelligenceDashboard({
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-1.5 shadow-sm">
         <div className="grid grid-cols-4 gap-1" role="tablist" aria-label="Event intelligence views">
-          {views.map((item, index) => {
+          {visibleViews.map((item, index) => {
             const Icon = item.icon;
             const active = view === item.id;
             return (
@@ -115,7 +128,7 @@ export default function EventIntelligenceDashboard({
         </div>
       </div>
 
-      {views.map((item) => (
+      {visibleViews.map((item) => (
         <div
           key={item.id}
           id={`event-intelligence-${item.id}`}

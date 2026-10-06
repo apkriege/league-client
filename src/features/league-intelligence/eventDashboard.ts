@@ -4,6 +4,7 @@ import type {
   EventInsightScore,
   InsightTone,
 } from "./types";
+import { getScoringFamilyForEvent } from "@/features/scoring/scoringModes";
 
 export type EventPlayerImpact = {
   playerId: number;
@@ -16,8 +17,12 @@ export type EventPlayerImpact = {
   netToPar: number;
   redNumbers: number;
   parOrBetter: number;
+  parOrBetterRate: number | null;
   doublesOrWorse: number;
   bounceBacks: number;
+  recoveryOpportunities: number;
+  scoredHoles: number;
+  netVsField: number | null;
   longestControlStreak: number;
   closingToPar: number | null;
   openingToPar: number | null;
@@ -32,11 +37,25 @@ export type EventHoleProfile = {
   grossRange: number;
   birdiesOrBetter: number;
   doublesOrWorse: number;
+  parOrBetter: number;
   scores: number;
 };
 
+export function buildHoleDifficultyRows(holes: EventHoleProfile[], order: "difficulty" | "hole") {
+  return [...holes]
+    .sort((a, b) => order === "difficulty"
+      ? b.averageGrossToPar - a.averageGrossToPar || a.hole - b.hole
+      : a.hole - b.hole)
+    .map((hole) => ({
+      ...hole,
+      averageGrossScore: roundOne(hole.par + hole.averageGrossToPar),
+      parOrBetterRate: hole.scores ? Math.round(hole.parOrBetter / hole.scores * 100) : null,
+      doubleBogeyRate: hole.scores ? Math.round(hole.doublesOrWorse / hole.scores * 100) : null,
+    }));
+}
+
 export type EventAward = {
-  id: "hot" | "closer" | "bounceback" | "control" | "skins" | "surge";
+  id: "bounceback" | "control";
   label: string;
   title: string;
   detail: string;
@@ -63,7 +82,6 @@ export type EventTeamMatchup = {
 };
 
 const roundOne = (value: number) => Math.round(value * 10) / 10;
-const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
 const playerName = (round: EventInsightRound) =>
   `${round.player.firstName} ${round.player.lastName}`.trim();
 const points = (round: EventInsightRound) =>
@@ -108,11 +126,17 @@ function countBounceBacks(scores: EventInsightScore[]) {
   }).length;
 }
 
-function buildPlayerImpact(rounds: EventInsightRound[]): EventPlayerImpact[] {
+function buildPlayerImpact(rounds: EventInsightRound[], expectedHoles?: number): EventPlayerImpact[] {
+  const isComplete = (scores: EventInsightScore[]) => scores.length > 0 &&
+    (expectedHoles == null || scores.length === expectedHoles) &&
+    scores.every((score, index) => index === 0 || score.hole === scores[index - 1].hole + 1);
+  const completeRounds = rounds.filter((round) => isComplete(validScores(round)) && Number.isFinite(round.net));
+  const fieldAverage = completeRounds.length ? completeRounds.reduce((sum, round) => sum + Number(round.net), 0) / completeRounds.length : null;
   return rounds.map((round) => {
     const scores = validScores(round);
-    const opening = scores.length >= 6 ? scores.slice(0, 3) : [];
-    const closing = scores.length >= 6 ? scores.slice(-3) : [];
+    const complete = isComplete(scores);
+    const opening = complete && scores.length >= 6 ? scores.slice(0, 3) : [];
+    const closing = complete && scores.length >= 6 ? scores.slice(-3) : [];
     const openingToPar = opening.length ? scoreToPar(opening, "net") : null;
     const closingToPar = closing.length ? scoreToPar(closing, "net") : null;
     return {
@@ -126,8 +150,12 @@ function buildPlayerImpact(rounds: EventInsightRound[]): EventPlayerImpact[] {
       netToPar: scoreToPar(scores, "net"),
       redNumbers: scores.filter((score) => score.gross < score.par).length,
       parOrBetter: scores.filter((score) => score.gross <= score.par).length,
+      parOrBetterRate: scores.length ? Math.round(scores.filter((score) => score.gross <= score.par).length / scores.length * 100) : null,
       doublesOrWorse: scores.filter((score) => score.gross >= score.par + 2).length,
       bounceBacks: countBounceBacks(scores),
+      recoveryOpportunities: scores.slice(1).filter((score, index) => score.hole === scores[index].hole + 1 && scores[index].gross > scores[index].par).length,
+      scoredHoles: scores.length,
+      netVsField: complete && Number.isFinite(round.net) && fieldAverage != null ? roundOne(Number(round.net) - fieldAverage) : null,
       longestControlStreak: longestControlStreak(scores),
       closingToPar,
       openingToPar,
@@ -160,6 +188,7 @@ function buildHoleProfiles(rounds: EventInsightRound[]): EventHoleProfile[] {
         grossRange: Math.max(...grossScores) - Math.min(...grossScores),
         birdiesOrBetter: grossToPar.filter((value) => value < 0).length,
         doublesOrWorse: grossToPar.filter((value) => value >= 2).length,
+        parOrBetter: grossToPar.filter((value) => value <= 0).length,
         scores: scores.length,
       };
     })
@@ -202,7 +231,7 @@ function buildMatchups(event: EventInsightInput, rounds: EventInsightRound[]): E
       if (difference < 0) leftWins += 1;
       else if (difference > 0) rightWins += 1;
       else ties += 1;
-      running += difference;
+      running += getScoringFamilyForEvent(event) === "match" ? Math.sign(difference) : difference;
       const leader = Math.sign(running);
       if (leader !== 0 && previousLeader !== 0 && leader !== previousLeader) leadChanges += 1;
       if (leader !== 0) previousLeader = leader;
@@ -256,42 +285,20 @@ function buildTeamMatchups(event: EventInsightInput): EventTeamMatchup[] {
   }).sort((left, right) => left.margin - right.margin);
 }
 
-function buildAwards(event: EventInsightInput, players: EventPlayerImpact[]): EventAward[] {
+function buildAwards(players: EventPlayerImpact[]): EventAward[] {
   if (players.length === 0) return [];
   const awards: EventAward[] = [];
   const push = (award: EventAward) => awards.push(award);
-  const hot = [...players].sort(
-    (a, b) => b.redNumbers - a.redNumbers || a.grossToPar - b.grossToPar,
-  )[0];
-  const closer = [...players]
-    .filter((player) => player.closingToPar != null)
-    .sort((a, b) => Number(a.closingToPar) - Number(b.closingToPar))[0];
   const bounceback = [...players].sort(
-    (a, b) => b.bounceBacks - a.bounceBacks || a.netToPar - b.netToPar,
+    (a, b) => (b.recoveryOpportunities ? b.bounceBacks / b.recoveryOpportunities : 0) - (a.recoveryOpportunities ? a.bounceBacks / a.recoveryOpportunities : 0) || b.bounceBacks - a.bounceBacks || a.netToPar - b.netToPar,
   )[0];
   const control = [...players].sort(
     (a, b) => b.longestControlStreak - a.longestControlStreak || a.grossToPar - b.grossToPar,
   )[0];
-  const surge = [...players]
-    .filter((player) => player.finishSwing != null && player.finishSwing > 0)
-    .sort((a, b) => Number(b.finishSwing) - Number(a.finishSwing))[0];
-  const skinCounts = new Map<number, number>();
-  for (const skin of [
-    ...(event.metrics?.skins?.playerSkins ?? []),
-    ...(event.metrics?.skins?.playerNetSkins ?? []),
-  ]) {
-    skinCounts.set(skin.playerId, (skinCounts.get(skin.playerId) ?? 0) + 1);
-  }
-  const skinLeader = [...skinCounts.entries()].sort((a, b) => b[1] - a[1])[0];
-  const skinPlayer = skinLeader ? players.find((player) => player.playerId === skinLeader[0]) : null;
 
-  if (hot.redNumbers > 0) push({ id: "hot", label: "Hot hand", title: hot.name, detail: "Created the most gross red numbers in the field.", stat: `${hot.redNumbers} red`, playerId: hot.playerId, teamId: hot.teamId, tone: "attention" });
-  if (closer) push({ id: "closer", label: "Closer", title: closer.name, detail: "Owned the best net closing-three stretch.", stat: `${signed(Number(closer.closingToPar))} closing`, playerId: closer.playerId, teamId: closer.teamId, tone: "positive" });
-  if (bounceback.bounceBacks > 0) push({ id: "bounceback", label: "Bounce-back artist", title: bounceback.name, detail: "Answered the most over-par holes with par or better.", stat: `${bounceback.bounceBacks} responses`, playerId: bounceback.playerId, teamId: bounceback.teamId, tone: "positive" });
+  if (bounceback.bounceBacks > 0) push({ id: "bounceback", label: "Best recovery", title: bounceback.name, detail: "Highest rate of following an over-par hole with gross par or better.", stat: `${bounceback.bounceBacks}/${bounceback.recoveryOpportunities} recovered`, playerId: bounceback.playerId, teamId: bounceback.teamId, tone: "positive" });
   if (control.longestControlStreak > 0) push({ id: "control", label: "Steady hand", title: control.name, detail: "Put together the longest gross par-or-better run.", stat: `${control.longestControlStreak} holes`, playerId: control.playerId, teamId: control.teamId, tone: "neutral" });
-  if (skinPlayer && skinLeader) push({ id: "skins", label: "Skin collector", title: skinPlayer.name, detail: "Claimed the event's largest combined gross and net haul.", stat: `${skinLeader[1]} skins`, playerId: skinPlayer.playerId, teamId: skinPlayer.teamId, tone: "attention" });
-  if (surge) push({ id: "surge", label: "Biggest surge", title: surge.name, detail: "Improved the most from the opening three to the closing three.", stat: `${surge.finishSwing} strokes`, playerId: surge.playerId, teamId: surge.teamId, tone: "positive" });
-  return awards.slice(0, 6);
+  return awards;
 }
 
 function rankPlayers(players: EventPlayerImpact[], usePoints: boolean) {
@@ -309,6 +316,7 @@ function buildDecisiveSwing(
 ) {
   if (players.length < 2) return null;
   const ranked = rankPlayers(players, usePoints);
+  if (usePoints ? ranked[0].points === ranked[1].points : ranked[0].net === ranked[1].net) return null;
   const winnerRound = rounds.find((round) => round.playerId === ranked[0].playerId);
   const runnerRound = rounds.find((round) => round.playerId === ranked[1].playerId);
   if (!winnerRound || !runnerRound) return null;
@@ -332,7 +340,7 @@ function buildDecisiveSwing(
 
 export function buildEventDashboard(event: EventInsightInput) {
   const rounds = event.metrics?.scores ?? [];
-  const players = buildPlayerImpact(rounds);
+  const players = buildPlayerImpact(rounds, event.holes);
   const usePoints = event.pointsEnabled !== false && players.some((player) => player.points > 0);
   const holes = buildHoleProfiles(rounds);
   const hardestHole = [...holes].sort(
@@ -340,29 +348,43 @@ export function buildEventDashboard(event: EventInsightInput) {
   )[0] ?? null;
   const opportunityHole = [...holes]
     .filter((hole) => hole.birdiesOrBetter > 0)
-    .sort((a, b) => b.birdiesOrBetter - a.birdiesOrBetter || a.averageGrossToPar - b.averageGrossToPar)[0] ?? null;
+    .sort((a, b) => b.birdiesOrBetter - a.birdiesOrBetter || a.averageGrossToPar - b.averageGrossToPar || a.hole - b.hole)[0] ?? null;
   const chaosHole = [...holes].sort(
     (a, b) => b.grossRange - a.grossRange || b.doublesOrWorse - a.doublesOrWorse,
   )[0] ?? null;
+  const mostDoubleBogeys = [...holes]
+    .filter((hole) => hole.doublesOrWorse > 0)
+    .sort((a, b) => b.doublesOrWorse - a.doublesOrWorse || a.hole - b.hole)[0] ?? null;
+  const mostParOrBetter = [...holes].sort(
+    (a, b) => b.parOrBetter / b.scores - a.parOrBetter / a.scores || b.scores - a.scores || a.hole - b.hole,
+  )[0] ?? null;
   const distribution = event.metrics?.scoreDistribution;
+  const distributionRate = (values: NonNullable<typeof distribution>["thisEvent"], key: "eagles" | "birdies" | "pars" | "bogeys" | "doubleBogeys") => {
+    const total = Object.values(values).reduce((sum, value) => sum + Number(value || 0), 0);
+    const count = Number(values[key] || 0) + (key === "doubleBogeys" ? Number(values.tripleBogeys || 0) : key === "birdies" ? Number(values.eagles || 0) : 0);
+    return total > 0 ? roundOne(count / total * 100) : 0;
+  };
 
   return {
+    pointsEnabled: event.pointsEnabled !== false,
     players: rankPlayers(players, usePoints),
     holes,
     hardestHole,
     opportunityHole,
     chaosHole,
+    mostDoubleBogeys,
+    mostParOrBetter,
     matchups: buildMatchups(event, rounds),
     teamMatchups: buildTeamMatchups(event),
-    awards: buildAwards(event, players),
+    awards: buildAwards(players),
     decisiveSwing: buildDecisiveSwing(players, rounds, usePoints),
-    fieldComparison: distribution
-      ? (["eagles", "birdies", "pars", "bogeys", "doubleBogeys"] as const).map((key) => ({
+    fieldComparison: distribution && Object.values(distribution.seasonTotals ?? distribution.seasonAvg).some((value) => value > 0) && Object.values(distribution.thisEvent).some((value) => value > 0)
+      ? (["birdies", "pars", "bogeys", "doubleBogeys"] as const).map((key) => ({
           key,
-          event: Number(distribution.thisEvent[key] || 0),
-          usual: Number(distribution.seasonAvg[key] || 0),
+          event: distributionRate(distribution.thisEvent, key),
+          usual: distributionRate(distribution.seasonTotals ?? distribution.seasonAvg, key),
           difference: roundOne(
-            Number(distribution.thisEvent[key] || 0) - Number(distribution.seasonAvg[key] || 0),
+            distributionRate(distribution.thisEvent, key) - distributionRate(distribution.seasonTotals ?? distribution.seasonAvg, key),
           ),
         }))
       : [],
