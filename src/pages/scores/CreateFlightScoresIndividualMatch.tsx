@@ -28,7 +28,7 @@ import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
 import {
   getEventScoringHoles,
-  getPlayerHandicapIndex,
+  getPreviewHandicap,
   getPlayerScoringHoles,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
@@ -42,6 +42,7 @@ export const CreateFlightScoresIndividualMatch = ({
   isEditMode,
   onFlightPlayersUpdated,
   onSaveSuccess,
+  onTrialExpired,
   onCancel,
 }: any) => {
   const { leagueId, eventId } = useParams();
@@ -53,7 +54,7 @@ export const CreateFlightScoresIndividualMatch = ({
   const allPlayersById = new Map(allPlayers.map((p: any) => [Number(p.playerId), p]));
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    return getPlayerHandicapIndex(playerEntry);
+    return getPreviewHandicap(playerEntry, getPlayerScoringHoles(event, playerEntry), watchedPlayers?.[playerEntry.playerId]?.scores ?? []);
   };
 
   // Prefer the persisted flight pairing, then pair any unassigned players by position.
@@ -89,6 +90,29 @@ export const CreateFlightScoresIndividualMatch = ({
     opponentMap.set(Number(p2.playerId), p1);
   }
 
+  const methods = useForm({
+    defaultValues: {
+      players: allPlayers.reduce((acc: any, p: any) => {
+        const playerScores = isEditMode
+          ? holes.map((hole: any, holeIdx: number) => {
+              const roundScores = p?.player?.rounds?.[0]?.scores ?? [];
+              const scoreByHole = roundScores.find(
+                (s: any) => Number(s?.hole) === Number(hole?.num)
+              );
+              const score = scoreByHole?.gross ?? roundScores?.[holeIdx]?.gross;
+              return score ? String(score) : "";
+            })
+          : Array.from({ length: holes.length }, () => "");
+        acc[p.playerId] = { scores: playerScores };
+        return acc;
+      }, {}),
+    },
+  });
+
+  const createMutation = useCreateEventScores(onTrialExpired);
+  const updateMutation = useUpdateEventScores(onTrialExpired);
+  const updateFlightPlayersMutation = useUpdateFlightPlayers();
+  const watchedPlayers = useWatch({ control: methods.control, name: "players" });
   // Pops between each matched pair
   const popsByPlayerId = new Map<number, Map<number, number>>();
   const netPopsByPlayerId = new Map<number, Map<number, number>>();
@@ -116,29 +140,6 @@ export const CreateFlightScoresIndividualMatch = ({
   const popsForHole = (playerId: number, holeNum: number) =>
     popsByPlayerId.get(Number(playerId))?.get(holeNum) || 0;
 
-  const methods = useForm({
-    defaultValues: {
-      players: allPlayers.reduce((acc: any, p: any) => {
-        const playerScores = isEditMode
-          ? holes.map((hole: any, holeIdx: number) => {
-              const roundScores = p?.player?.rounds?.[0]?.scores ?? [];
-              const scoreByHole = roundScores.find(
-                (s: any) => Number(s?.hole) === Number(hole?.num)
-              );
-              const score = scoreByHole?.gross ?? roundScores?.[holeIdx]?.gross;
-              return score ? String(score) : "";
-            })
-          : Array.from({ length: holes.length }, () => "");
-        acc[p.playerId] = { scores: playerScores };
-        return acc;
-      }, {}),
-    },
-  });
-
-  const createMutation = useCreateEventScores();
-  const updateMutation = useUpdateEventScores();
-  const updateFlightPlayersMutation = useUpdateFlightPlayers();
-  const watchedPlayers = useWatch({ control: methods.control, name: "players" });
   const scoreDraft = useScoreDraft({
     methods,
     leagueId,
@@ -172,6 +173,8 @@ export const CreateFlightScoresIndividualMatch = ({
   };
 
   const getPlayerNetScore = (playerId: number) => {
+    const entry = allPlayers.find((player: { playerId: number }) => Number(player.playerId) === Number(playerId));
+    if (!Number.isFinite(getEffectiveHandicap(entry))) return "—";
     const playerEntry = allPlayersById.get(playerId);
     const scores = watchedPlayers?.[playerId]?.scores ?? [];
     return getPlayerScoringHoles(event, playerEntry).reduce(
@@ -371,7 +374,7 @@ export const CreateFlightScoresIndividualMatch = ({
         <tr className="text-sm">
           <ScorecardIdentityCell
             primary={`${p.firstName} ${p.lastName}`}
-            secondary={<PlayerHandicapSummary entry={player} />}
+            secondary={<PlayerHandicapSummary entry={player} previewHandicap={getEffectiveHandicap(player)} />}
             action={
               <PlayerSwapControl
                 currentPlayerId={Number(player.playerId)}

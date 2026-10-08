@@ -22,6 +22,7 @@ import {
 import HandicapStrokeIndicator from "./components/HandicapStrokeIndicator";
 import {
   getEventScoringHoles,
+  getPlayerHandicapIndex,
 } from "./scoringSetup";
 import { calculateStrokeplayPops } from "./util";
 import { buildSharedTeamHandicapSetups } from "./sharedTeamSetup";
@@ -42,6 +43,7 @@ type SharedTeamScoreProps = {
   eventPlayerIds?: number[];
   onFlightPlayersUpdated?: () => unknown;
   onSaveSuccess?: () => void;
+  onTrialExpired?: (message: string) => void;
   onCancel?: () => void;
 };
 
@@ -53,7 +55,7 @@ type TeamAssignment = {
 type PlayerAssignment = {
   playerId: number;
   teamId?: number | null;
-  player?: { firstName?: string; lastName?: string; handicap?: number; gender?: string };
+  player?: { firstName?: string; lastName?: string; handicap?: number | null; gender?: string };
 };
 
 type TeamRound = {
@@ -66,11 +68,19 @@ type SharedScoreForm = {
   teams: Array<{ teamId: number; scores: Array<number | ""> }>;
 };
 
-export function CreateFlightScoresSharedTeam({
+export function CreateFlightScoresSharedTeam(props: SharedTeamScoreProps) {
+  if ((props.flight.players ?? []).some((entry) => !Number.isFinite(getPlayerHandicapIndex(entry)))) {
+    return <SurfaceCard className="p-4"><p className="text-xs text-slate-600">Shared team cards need a handicap for each player. Add a starting handicap or complete an individual round first.</p><Button className="mt-3" onClick={props.onCancel}>Back</Button></SurfaceCard>;
+  }
+  return <SharedTeamScoreEntry {...props} />;
+}
+
+function SharedTeamScoreEntry({
   flight,
   event,
   isEditMode,
   onSaveSuccess,
+  onTrialExpired,
   onCancel,
 }: SharedTeamScoreProps) {
   const { leagueId, eventId } = useParams();
@@ -98,8 +108,8 @@ export function CreateFlightScoresSharedTeam({
     },
   });
   const watchedTeams = useWatch({ control: methods.control, name: "teams" });
-  const createMutation = useCreateEventScores();
-  const updateMutation = useUpdateEventScores();
+  const createMutation = useCreateEventScores(onTrialExpired);
+  const updateMutation = useUpdateEventScores(onTrialExpired);
   const scoreDraft = useScoreDraft({
     methods,
     leagueId,

@@ -25,7 +25,7 @@ const metrics: LeagueIntelligenceMetrics = {
 };
 
 describe("league dashboard", () => {
-  it("builds race pressure, recent form, category boards, rivalries, and earned achievements", () => {
+  it("builds race pressure, recent form, category boards, rivalries, and personal scoring patterns", () => {
     const dashboard = buildLeagueDashboard(metrics);
 
     expect(dashboard.playerRace.rows.map((row) => [row.name, row.gap])).toEqual([
@@ -58,13 +58,9 @@ describe("league dashboard", () => {
       label: "Instant classic",
       meetings: 3,
     });
-    expect(dashboard.achievements.map((achievement) => achievement.id)).toEqual([
-      "iron",
-      "birdies",
-      "pace",
-      "mover",
-      "striker",
-      "match",
+    expect(dashboard.playerHighlights.map((highlight) => [highlight.playerId, highlight.kind])).toEqual([
+      [1, "improvement"],
+      [3, "consistency"],
     ]);
   });
 

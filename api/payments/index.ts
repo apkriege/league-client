@@ -38,10 +38,10 @@ export const getStripeState = async () => {
   return response.data;
 };
 
-export const redeemPaymentBypassCode = async (code: string) => {
+export const redeemPaymentBypassCode = async (code: string, leagueId?: number) => {
   const response = await apiClient.post<{ message: string; billing: any }>(
     "/payments/bypass-code",
-    { code }
+    { code, ...(leagueId === undefined ? {} : { leagueId }) }
   );
   return response.data;
 };

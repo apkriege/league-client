@@ -1,3 +1,4 @@
+import { isValidStartingHandicap, parseStartingHandicap } from "@/features/leagues/handicapSettings";
 import { useState } from "react";
 import { Controller, useForm, useFormContext } from "react-hook-form";
 
@@ -27,17 +28,12 @@ const defaultPlayer = {
 
 const getMissingRequiredFields = (player: any) => {
   const missing: string[] = [];
-  const handicap =
-    player?.handicap != null && String(player.handicap).trim() !== ""
-      ? Number(player.handicap)
-      : NaN;
-
   if (!String(player?.firstName || "").trim()) missing.push("first name");
   if (!String(player?.lastName || "").trim()) missing.push("last name");
   if (!["male", "female"].includes(String(player?.gender || ""))) {
     missing.push("gender");
   }
-  if (!Number.isFinite(handicap)) missing.push("handicap");
+  if (!isValidStartingHandicap(player?.handicap)) missing.push("handicap");
 
   return missing;
 };
@@ -51,7 +47,7 @@ export default function PlayersForm() {
   const teams = watch("teams") || [];
   const leagueType = String(watch("type") || "").toLowerCase();
   const leagueFormat = String(watch("format") || "").toLowerCase();
-  const handicapHoleCount = getHandicapHoleCount(watch("holeFormat"));
+  const handicapHoleCount = Number(watch("handicapHoleBasis")) || getHandicapHoleCount(watch("holeFormat"));
   const hasTeamsStep = leagueType === "season" && leagueFormat === "team";
 
   const playerForm = useForm({
@@ -73,7 +69,7 @@ export default function PlayersForm() {
       phone: String(data.phone || "").trim(),
       type: String(data.type || "player").trim().toLowerCase(),
       gender: String(data.gender).trim().toLowerCase(),
-      handicap: Number(data.handicap),
+      handicap: parseStartingHandicap(data.handicap),
     };
 
     if (isEdit) {
@@ -92,7 +88,7 @@ export default function PlayersForm() {
   };
 
   const editPlayer = (player: any) => {
-    playerForm.reset(player);
+    playerForm.reset({ ...player, handicap: player.handicap == null ? "" : String(player.handicap) });
     setIsEdit(true);
   };
 
@@ -196,7 +192,7 @@ export default function PlayersForm() {
           hasTeamsStep
             ? " Add players to your league and assign them to teams in the next step."
             : " Add players to your league and continue to review."
-        } Enter each player's ${handicapHoleCount}-hole handicap.`}
+        } Starting ${handicapHoleCount}-hole handicaps are optional; the first complete individual round establishes one.`}
       />
 
       <Card className="mt-6">
@@ -252,8 +248,8 @@ export default function PlayersForm() {
             control={playerForm.control}
             render={({ field }) => (
               <Input
-                label={`${handicapHoleCount}-Hole Handicap`}
-                placeholder={`Enter ${handicapHoleCount}-hole handicap`}
+                label={`${handicapHoleCount}-Hole Handicap (optional)`}
+                placeholder="Calculated after first round"
                 type="number"
                 step="0.1"
                 {...field}

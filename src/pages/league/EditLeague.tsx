@@ -1,3 +1,4 @@
+import { defaultHandicapSettings, type HandicapSettings } from "@/features/leagues/handicapSettings";
 import LoadingState from "@/components/layout/LoadingState";
 import Button from "@/components/layout/Button";
 import { useEffect } from "react";
@@ -18,7 +19,7 @@ import {
 } from "@/features/leagues/leagueHoleFormat";
 import { getLeagueCapacity } from "@/lib/billing";
 
-type LeagueFormData = {
+type LeagueFormData = HandicapSettings & {
   id?: number;
   adminId?: number;
   name: string;
@@ -44,6 +45,7 @@ const defaultLeagueData: LeagueFormData = {
   numPlayers: 0,
   type: "season",
   holeFormat: "18",
+  ...defaultHandicapSettings,
   format: "team",
   teamRosterSize: 4,
   teamPlayersPerEvent: 2,
@@ -64,6 +66,11 @@ const mapLeagueToForm = (league: any): LeagueFormData => {
     numPlayers: getLeagueCapacity(league),
     type: String(league.type || "season").toLowerCase(),
     holeFormat: normalizeLeagueHoleFormat(league.holeFormat),
+    handicapBestRounds: league.handicapBestRounds ?? 6,
+    handicapWindow: league.handicapWindow ?? 8,
+    handicapMultiplier: league.handicapMultiplier ?? 1,
+    handicapHoleBasis: league.handicapHoleBasis ?? (league.holeFormat === "9" ? 9 : 18),
+    handicapHoleLimit: league.handicapHoleLimit ?? "handicap-adjusted",
     format: league.format ? String(league.format).toLowerCase() : null,
     teamRosterSize: Number(league.teamRosterSize || 4),
     teamPlayersPerEvent: Number(league.teamPlayersPerEvent || 2),

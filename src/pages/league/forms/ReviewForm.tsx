@@ -1,3 +1,4 @@
+import { handicapHoleLimits } from "@/features/leagues/handicapSettings";
 import PageHeader from "@/components/layout/PageHeader";
 import SectionKicker from "@/components/layout/SectionKicker";
 import { formatPhone } from "@/utils/format";
@@ -32,7 +33,7 @@ type LeaguePlayer = {
   email?: string;
   phone?: string;
   type?: string;
-  handicap?: number | string;
+  handicap?: number | string | null;
 };
 
 type LeagueTeam = {
@@ -69,7 +70,7 @@ export default function ReviewForm({
   const leagueType = String(leagueData?.type || "").toLowerCase();
   const leagueFormat = String(leagueData?.format || "").toLowerCase();
   const isTeamSeason = leagueType === "season" && leagueFormat === "team";
-  const handicapHoleCount = getHandicapHoleCount(leagueData?.holeFormat);
+  const handicapHoleCount = leagueData?.handicapHoleBasis ?? getHandicapHoleCount(leagueData?.holeFormat);
   const includedGolfers = Number(billing?.includedGolfers || 0);
   const allocatedGolfers = Number(billing?.allocatedGolfers || 0);
   const requestedGolfers = getLeagueBillableGolfers(players);
@@ -195,7 +196,12 @@ export default function ReviewForm({
                   {
                     icon: <Flag size={12} className="text-gray-400" />,
                     label: "Holes / Handicap",
-                    value: `${getLeagueHoleFormatLabel(leagueData?.holeFormat)} · ${handicapHoleCount}-hole HCP`,
+                    value: `${getLeagueHoleFormatLabel(leagueData?.holeFormat)} · ${handicapHoleCount}-hole HCP · Best ${leagueData?.handicapBestRounds ?? 6} of last ${leagueData?.handicapWindow ?? 8} · × ${Number(leagueData?.handicapMultiplier ?? 1).toFixed(2)}`,
+                  },
+                  {
+                    icon: <User size={12} className="text-gray-400" />,
+                    label: "Hole-score limit",
+                    value: handicapHoleLimits.find(({ value }) => value === (leagueData?.handicapHoleLimit ?? "handicap-adjusted"))?.label ?? "—",
                   },
                   {
                     icon: <User size={12} className="text-gray-400" />,

@@ -1,6 +1,7 @@
+import type { HandicapSettings } from "@/features/leagues/handicapSettings";
 import type { SeasonEntitlement } from "@/lib/billing";
 
-export type League = {
+export type League = Partial<HandicapSettings> & {
   id?: number;
   name: string;
   description: string;
@@ -56,7 +57,7 @@ export type Player = {
   email: string;
   type: "player" | "sub" | string;
   gender: "male" | "female";
-  handicap: number;
+  handicap: number | null;
   sourcePlayerId?: number;
 };
 

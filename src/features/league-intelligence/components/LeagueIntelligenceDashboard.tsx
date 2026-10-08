@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Activity, ChartNoAxesCombined, ListOrdered, Swords, Users } from "lucide-react";
 import { buildLeagueDashboard } from "../leagueDashboard";
+import { hasCompletedMatchPlayEvent } from "../leagueRivalryEligibility";
 import type {
   IntelligenceEvent,
   LeagueIntelligenceMetrics,
@@ -66,6 +67,8 @@ export default function LeagueIntelligenceDashboard({
 }) {
   const [view, setView] = useState<LeagueInsightView>("player-race");
   const dashboard = useMemo(() => buildLeagueDashboard(metrics), [metrics]);
+  const showRivalries = hasCompletedMatchPlayEvent(events);
+  const eligibleViews = baseViews.filter((item) => item.id !== "rivalries" || showRivalries);
   const views = dashboard.hasTeamRace
     ? [
         baseViews[0],
@@ -76,13 +79,14 @@ export default function LeagueIntelligenceDashboard({
           description: "Team podium, gaps and contenders",
           icon: Users,
         },
-        ...baseViews.slice(1),
+        ...eligibleViews.slice(1),
       ]
-    : baseViews;
-  const activeView = view === "team-race" && !dashboard.hasTeamRace ? "player-race" : view;
+    : eligibleViews;
+  const activeView = views.some((item) => item.id === view) ? view : "player-race";
+  const gridColumns = views.length === 5 ? "grid-cols-5" : views.length === 4 ? "grid-cols-4" : "grid-cols-3";
 
   return (
-    <section aria-label="League intelligence" className="space-y-5">
+    <section aria-label="League intelligence" className="space-y-4">
       <LeaguePulse
         metrics={metrics}
         events={events}
@@ -93,7 +97,7 @@ export default function LeagueIntelligenceDashboard({
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-1.5 shadow-sm">
         <div
-          className={`grid gap-1 ${dashboard.hasTeamRace ? "grid-cols-5" : "grid-cols-4"}`}
+          className={`grid gap-1 ${gridColumns}`}
           role="tablist"
           aria-label="League intelligence views"
         >
@@ -137,7 +141,7 @@ export default function LeagueIntelligenceDashboard({
         ) : null}
         {activeView === "form" ? <LeagueFormPanel dashboard={dashboard} leagueId={leagueId} /> : null}
         {activeView === "leaders" ? (
-          <LeagueLeadersPanel dashboard={dashboard} metrics={metrics} leagueId={leagueId} />
+          <LeagueLeadersPanel dashboard={dashboard} metrics={metrics} leagueId={leagueId} periodLabel={periodLabel} />
         ) : null}
         {activeView === "rivalries" ? <LeagueRivalriesPanel dashboard={dashboard} leagueId={leagueId} /> : null}
       </div>

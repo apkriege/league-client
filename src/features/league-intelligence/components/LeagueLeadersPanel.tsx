@@ -1,4 +1,4 @@
-import { Award, Crosshair, Medal, ShieldCheck, Zap } from "lucide-react";
+import { Activity, Medal, TrendingUp, Zap } from "lucide-react";
 import { Link } from "react-router";
 import type { buildLeagueDashboard, LeagueCategoryBoard } from "../leagueDashboard";
 import type { LeagueIntelligenceMetrics } from "../types";
@@ -21,11 +21,14 @@ export default function LeagueLeadersPanel({
   dashboard,
   metrics,
   leagueId,
+  periodLabel,
 }: {
   dashboard: LeagueDashboard;
   metrics?: LeagueIntelligenceMetrics;
   leagueId: number;
+  periodLabel: string;
 }) {
+  const highlights = dashboard.playerHighlights;
   const isTeamLeague = metrics?.standingsMode === "team";
   const grossSkins = metrics?.skins?.gross ?? [];
   const netSkins = metrics?.skins?.net ?? [];
@@ -114,16 +117,22 @@ export default function LeagueLeadersPanel({
         </div>
       </LeagueInsightSection>
 
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
         {dashboard.categoryBoards.map((board) => (
-          <LeagueInsightSection
+          <section
             key={board.id}
-            title={board.title}
-            description={board.description}
-            action={<Medal size={15} className="text-amber-500" />}
+            aria-label={board.title}
+            className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
           >
+            <div className="flex items-start justify-between gap-2 border-b border-slate-100 px-3 py-2.5">
+              <div className="min-w-0">
+                <h3 className="text-xs font-bold text-slate-900">{board.title}</h3>
+                <p className="mt-0.5 text-[10px] leading-4 text-slate-500">{board.description}</p>
+              </div>
+              <Medal size={13} className="mt-0.5 shrink-0 text-amber-500" />
+            </div>
             {board.rows.length === 0 ? (
-              <LeagueInsightEmpty>More scored rounds are needed for this leaderboard.</LeagueInsightEmpty>
+              <p className="px-3 py-4 text-[11px] leading-4 text-slate-500">More scored rounds are needed for this leaderboard.</p>
             ) : (
               <div className="divide-y divide-slate-100">
                 {board.rows.map((row, index) => {
@@ -134,9 +143,9 @@ export default function LeagueLeadersPanel({
                     <Link
                       key={`${board.id}-${row.id}`}
                       to={path}
-                      className="group grid grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition hover:bg-slate-50 sm:px-5"
+                      className="group grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 transition hover:bg-slate-50"
                     >
-                      <span className={`grid h-6 w-6 place-items-center rounded-lg text-[9px] font-black ${
+                      <span className={`grid h-5 w-5 place-items-center rounded-md text-[9px] font-black ${
                         index === 0 ? toneClass[board.tone] : "bg-slate-100 text-slate-500"
                       }`}>
                         {index + 1}
@@ -153,48 +162,48 @@ export default function LeagueLeadersPanel({
                 })}
               </div>
             )}
-          </LeagueInsightSection>
+          </section>
         ))}
       </div>
 
       <LeagueInsightSection
-        title="Achievement cabinet"
-        description="Meaningful season awards earned from participation, scoring, improvement, and match play"
-        action={<LeagueInsightBadge>{dashboard.achievements.length} unlocked</LeagueInsightBadge>}
+        title="Player highlights"
+        description={`${periodLabel} personal scoring patterns, compared with each player’s own recorded rounds. Scores use an 18-hole equivalent.`}
+        action={<LeagueInsightBadge>{highlights.length} highlights</LeagueInsightBadge>}
       >
-        {dashboard.achievements.length === 0 ? (
-          <LeagueInsightEmpty>Achievements unlock as completed rounds build the season story.</LeagueInsightEmpty>
+        {highlights.length === 0 ? (
+          <LeagueInsightEmpty>Highlights appear when at least three recorded rounds show a personal best, improvement streak, recovery, or consistent scoring.</LeagueInsightEmpty>
         ) : (
           <div className="grid gap-px bg-slate-100 sm:grid-cols-2 xl:grid-cols-3">
-            {dashboard.achievements.map((achievement, index) => (
+            {highlights.map((highlight, index) => (
               <Link
-                key={achievement.id}
-                to={`/league/${leagueId}/player/${achievement.playerId}`}
-                className="group bg-white p-4 transition hover:bg-emerald-50/30 sm:p-5"
+                key={highlight.playerId}
+                to={`/league/${leagueId}/player/${highlight.playerId}`}
+                className="group bg-white p-4 transition hover:bg-emerald-50/30 focus-visible:outline-2 focus-visible:outline-emerald-600 focus-visible:-outline-offset-2"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className={`grid h-8 w-8 place-items-center rounded-xl ${
                     index === 0
                       ? "bg-slate-950 text-amber-300"
-                      : achievement.tone === "attention"
+                      : highlight.tone === "attention"
                         ? "bg-amber-50 text-amber-600"
-                        : achievement.tone === "neutral"
+                        : highlight.tone === "neutral"
                           ? "bg-blue-50 text-blue-600"
                           : "bg-emerald-50 text-emerald-600"
                   }`}>
-                    {achievement.id === "striker" ? <ShieldCheck size={14} /> : achievement.id === "birdies" ? <Crosshair size={14} /> : <Award size={14} />}
+                    {highlight.kind === "consistency" ? <Activity size={14} /> : <TrendingUp size={14} />}
                   </span>
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[9px] font-black text-slate-600">
-                    {achievement.stat}
+                    {highlight.stat}
                   </span>
                 </div>
-                <p className="mt-4 text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
-                  {achievement.label}
+                <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                  {highlight.label}
                 </p>
                 <p className="mt-1 text-sm font-black text-slate-900 group-hover:text-emerald-700">
-                  {achievement.title}
+                  {highlight.title}
                 </p>
-                <p className="mt-1 text-[10px] leading-4 text-slate-500">{achievement.detail}</p>
+                <p className="mt-1 text-[11px] leading-5 text-slate-500">{highlight.detail}</p>
               </Link>
             ))}
           </div>

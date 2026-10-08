@@ -27,7 +27,7 @@ import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
 import {
   getEventScoringHoles,
-  getPlayerHandicapIndex,
+  getPreviewHandicap,
   getPlayerScoringHoles,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
@@ -47,6 +47,7 @@ export const CreateFlightScoresIndividualStroke = ({
   isEditMode,
   onFlightPlayersUpdated,
   onSaveSuccess,
+  onTrialExpired,
   onCancel,
 }: any) => {
   const { leagueId, eventId } = useParams();
@@ -58,26 +59,12 @@ export const CreateFlightScoresIndividualStroke = ({
   const [players, setPlayers] = useState<any[]>(flight.players ?? []);
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    return getPlayerHandicapIndex(playerEntry);
+    return getPreviewHandicap(playerEntry, getPlayerScoringHoles(event, playerEntry), watchedPlayers?.[playerEntry.playerId]?.scores ?? []);
   };
   const getHolesForPlayer = (playerId: number) => {
     const player = players.find((entry: any) => Number(entry.playerId) === Number(playerId));
     return getPlayerScoringHoles(event, player);
   };
-
-  // Per-hole handicap stroke allocation for each player
-  const popsByPlayerId = new Map<number, Map<number, number>>();
-  const allowance = Number(event?.scoringConfig?.handicapAllowance ?? 1);
-  for (const player of players) {
-    const hcp = Math.round(getEffectiveHandicap(player) * allowance);
-    popsByPlayerId.set(
-      Number(player.playerId),
-      calculateStrokeplayPops(hcp, getPlayerScoringHoles(event, player)),
-    );
-  }
-
-  const popsForHole = (playerId: number, holeNum: number) =>
-    popsByPlayerId.get(Number(playerId))?.get(holeNum) || 0;
 
   const methods = useForm({
     defaultValues: {
@@ -98,10 +85,24 @@ export const CreateFlightScoresIndividualStroke = ({
     },
   });
 
-  const createMutation = useCreateEventScores();
-  const updateMutation = useUpdateEventScores();
+  const createMutation = useCreateEventScores(onTrialExpired);
+  const updateMutation = useUpdateEventScores(onTrialExpired);
   const updateFlightPlayersMutation = useUpdateFlightPlayers();
   const watchedPlayers = useWatch({ control: methods.control, name: "players" });
+  // Per-hole handicap stroke allocation for each player
+  const popsByPlayerId = new Map<number, Map<number, number>>();
+  const allowance = Number(event?.scoringConfig?.handicapAllowance ?? 1);
+  for (const player of players) {
+    const hcp = Math.round(getEffectiveHandicap(player) * allowance);
+    popsByPlayerId.set(
+      Number(player.playerId),
+      calculateStrokeplayPops(hcp, getPlayerScoringHoles(event, player)),
+    );
+  }
+
+  const popsForHole = (playerId: number, holeNum: number) =>
+    popsByPlayerId.get(Number(playerId))?.get(holeNum) || 0;
+
   const scoreDraft = useScoreDraft({
     methods,
     leagueId,
@@ -135,6 +136,8 @@ export const CreateFlightScoresIndividualStroke = ({
   };
 
   const getPlayerNetScore = (playerId: number) => {
+    const entry = players.find((player: { playerId: number }) => Number(player.playerId) === Number(playerId));
+    if (!Number.isFinite(getEffectiveHandicap(entry))) return "—";
     if (scoringMode === "maximum-score") {
       const scores = watchedPlayers?.[playerId]?.scores ?? [];
       const rule = event?.scoringConfig?.maximumScore as MaximumScoreRule | undefined;
@@ -344,7 +347,7 @@ export const CreateFlightScoresIndividualStroke = ({
                       <tr key={player.playerId} className="text-sm">
                         <ScorecardIdentityCell
                           primary={`${p.firstName} ${p.lastName}`}
-                          secondary={<PlayerHandicapSummary entry={player} />}
+                          secondary={<PlayerHandicapSummary entry={player} previewHandicap={getEffectiveHandicap(player)} />}
                           action={
                             <PlayerSwapControl
                               currentPlayerId={Number(player.playerId)}
@@ -378,7 +381,7 @@ export const CreateFlightScoresIndividualStroke = ({
                           {getPlayerNetScore(Number(player.playerId))}
                         </ScoreValueCell>
                         <ScoreValueCell>
-                          {getPlayerStablefordPoints(Number(player.playerId))}
+                          {Number.isFinite(getEffectiveHandicap(player)) ? getPlayerStablefordPoints(Number(player.playerId)) : "—"}
                         </ScoreValueCell>
                       </tr>
                     );

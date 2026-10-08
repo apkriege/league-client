@@ -28,25 +28,28 @@ import ViewFlightScores from "./ViewFlightScores";
 import { deriveScoringMode, isSharedTeamScoringMode } from "@/features/scoring/scoringModes";
 import { getEventRouteLabel } from "@/features/courses/eventRoute";
 
+const TrialExpiredModal = lazy(() => import("@/features/payments/components/TrialExpiredModal"));
 const ScoreHistory = lazy(() => import("./components/ScoreHistory"));
 
 export default function EventScores() {
   const { leagueId, eventId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [trialMessage, setTrialMessage] = useState<string | null>(null);
   const [editingFlightIds, setEditingFlightIds] = useState<number[]>([]);
   const [selectedFlightId, setSelectedFlightId] = useState<number | null>(null);
 
   const {
     data: event,
     isLoading,
+    isFetchedAfterMount,
     isError,
     error,
     refetch: refetchEvent,
-  } = useLeagueEvent(Number(leagueId)!, Number(eventId)!);
+  } = useLeagueEvent(Number(leagueId)!, Number(eventId)!, true, true);
   const { data: leaguePlayers = [] } = useLeaguePlayers(Number(leagueId), Boolean(leagueId));
 
-  if (isLoading) {
+  if (isLoading || (!isFetchedAfterMount && !isError)) {
     return (
       <LoadingState>
         Loading event...
@@ -77,6 +80,16 @@ export default function EventScores() {
         actionLabel="Back to Events"
       />
     );
+  }
+
+  if (typeof event.trialLimitMessage === "string" && event.trialLimitMessage && event.canEnterScores) {
+    return <>
+      <PageHeader title={event.name || "Event Scores"} subTitle="Activate your league before entering scores." />
+      <Suspense fallback={<LoadingState>Loading checkout options...</LoadingState>}>
+        <TrialExpiredModal leagueId={Number(leagueId)}
+          backLabel="Back to league" onActivated={() => setTrialMessage(null)} onClose={() => navigate(`/league/${leagueId}/admin`)} />
+      </Suspense>
+    </>;
   }
 
   const startEditFlight = (flightId: number) => {
@@ -164,6 +177,7 @@ export default function EventScores() {
         subTitle={getEventRouteLabel(event)}
       />
 
+      {trialMessage && <Suspense fallback={<LoadingState>Loading checkout options...</LoadingState>}><TrialExpiredModal leagueId={Number(leagueId)} onActivated={() => setTrialMessage(null)} onClose={() => setTrialMessage(null)} /></Suspense>}
       {canEditScores && <Suspense fallback={null}><ScoreHistory leagueId={Number(leagueId)} eventId={Number(eventId)} /></Suspense>}
 
       {/* Metrics bar */}
@@ -288,7 +302,8 @@ export default function EventScores() {
                       {isReadOnly && !isCompleted ? "View Only" : "Completed"}
                     </span>
                   </div>
-                  {canEditScores && (
+                  {trialMessage && <Suspense fallback={<LoadingState>Loading checkout options...</LoadingState>}><TrialExpiredModal leagueId={Number(leagueId)} onActivated={() => setTrialMessage(null)} onClose={() => setTrialMessage(null)} /></Suspense>}
+      {canEditScores && (
                     <button
                       onClick={() => startEditFlight(flight.id)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
@@ -315,6 +330,7 @@ export default function EventScores() {
                   eventPlayerIds={eventPlayerIds}
                   isEditMode={isCompleted || isEditing}
                   onFlightPlayersUpdated={refetchEvent}
+                  onTrialExpired={setTrialMessage}
                   onSaveSuccess={() => handleFlightSaveSuccess(flight.id)}
                   onCancel={() => stopEditFlight(flight.id)}
                 />

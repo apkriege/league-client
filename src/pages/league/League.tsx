@@ -1,6 +1,5 @@
 import LoadingState from "@/components/layout/LoadingState";
 import DataSection from "@/components/layout/DataSection";
-import SummaryPill from "@/components/layout/SummaryPill";
 import PanelBar from "@/components/layout/PanelBar";
 import SurfaceCard from "@/components/layout/SurfaceCard";
 import PageHeader from "@/components/layout/PageHeader";
@@ -16,13 +15,11 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiError";
 import { sortEventsByDate } from "@/utils/eventDate";
 import { formatHandicap } from "@/utils/handicap";
 import LeagueEventRow from "./components/LeagueEventRow";
+import LeagueSummary from "./components/LeagueSummary";
 import dayjs from "dayjs";
 import {
   BarChart2,
   CalendarDays,
-  Flag,
-  MapPin,
-  Medal,
   Plus,
   TrendingDown,
   TrendingUp,
@@ -391,33 +388,21 @@ export default function League() {
   }
 
   return (
-    <div className="pb-10">
+    <div className="pb-6">
       <PageHeader title={league?.name ?? "League"} />
 
-      <div className="mb-8 mt-5 flex flex-wrap gap-2.5">
-        {league?.startDate && league?.endDate && (
-          <SummaryPill icon={<CalendarDays size={12} />}>
-            {formatDate(league.startDate)} → {formatDate(league.endDate)}
-          </SummaryPill>
-        )}
-        {league?.format && (
-          <SummaryPill icon={<Flag size={12} />} className="capitalize">
-            {league.format}
-          </SummaryPill>
-        )}
-        {league?.type && (
-          <SummaryPill icon={<Medal size={12} />} className="capitalize">
-            {league.type}
-          </SummaryPill>
-        )}
-        {league?.contactFirstName && (
-          <SummaryPill icon={<MapPin size={12} />}>
-            {league.contactFirstName} {league.contactLastName}
-          </SummaryPill>
-        )}
+      <div className="mb-5 mt-3">
+        <LeagueSummary
+          season={league?.startDate && league?.endDate
+            ? `${formatDate(league.startDate)} → ${formatDate(league.endDate)}`
+            : undefined}
+          format={league?.format}
+          type={league?.type}
+          contact={[league?.contactFirstName, league?.contactLastName].filter(Boolean).join(" ")}
+        />
       </div>
 
-      <div className="space-y-9">
+      <div className="space-y-6">
         <div className="space-y-4">
           {scoringPeriods.length > 0 && (
             <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50/80 p-1.5 shadow-sm">
@@ -471,7 +456,7 @@ export default function League() {
 
         {metrics && (
           <section
-            className={`space-y-9 transition-opacity ${metricsIsFetching ? "opacity-60" : ""}`}
+            className={`space-y-6 transition-opacity ${metricsIsFetching ? "opacity-60" : ""}`}
           >
             <DataSection title="Detailed Standings" icon={<Trophy size={16} strokeWidth={2.5} />}>
               <div className="space-y-4">
@@ -562,7 +547,7 @@ export default function League() {
           }
         >
           {totalEvents === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center text-slate-400">
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-slate-400">
               <CalendarDays size={32} strokeWidth={1.5} className="mb-2 opacity-40" />
               <p className="font-medium text-gray-500 text-sm">No events yet</p>
               {isAdmin && <p className="text-xs mt-1">Create your first event to get started.</p>}

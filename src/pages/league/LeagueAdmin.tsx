@@ -40,7 +40,7 @@ import {
   User,
   Zap,
 } from "lucide-react";
-import { getLeagueBillingStatus, getLeagueCapacity } from "@/lib/billing";
+import { getLeagueBillingStatus, getLeagueCapacity, TRIAL_EVENT_LIMIT } from "@/lib/billing";
 import { Link, useNavigate, useParams } from "react-router";
 import Tooltip from "@mui/material/Tooltip";
 import { useAppStore } from "@/stores/appStore";
@@ -52,8 +52,10 @@ import { confirmCheckoutSession } from "@api/payments";
 import { clearCheckoutReturnFromUrl, getCheckoutReturn } from "@/features/payments/checkoutReturn";
 import PaymentReturnNotice from "@/features/payments/components/PaymentReturnNotice";
 import CommissionerInsights from "@/features/league-intelligence/components/CommissionerInsights";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+
+const TrialExpiredModal = lazy(() => import("@/features/payments/components/TrialExpiredModal"));
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   upcoming: {
@@ -84,6 +86,7 @@ export default function LeagueAdmin() {
   const { show } = useToast();
   const { user } = useAppStore();
   const queryClient = useQueryClient();
+  const [isActivationOpen, setIsActivationOpen] = useState(false);
   const restorePayment = useCreateCheckoutSession();
   const paymentReturnStartedRef = useRef(false);
   const [paymentReturnMessage, setPaymentReturnMessage] = useState<string | null>(null);
@@ -263,6 +266,11 @@ export default function LeagueAdmin() {
 
   return (
     <div className="space-y-7">
+      {isActivationOpen && <Suspense fallback={<LoadingState>Loading checkout options...</LoadingState>}>
+        <TrialExpiredModal leagueId={Number(leagueId)}
+          title={(league.entitlement?.trialEventCount ?? 0) >= (league.entitlement?.trialEventLimit ?? TRIAL_EVENT_LIMIT) ? "Your free trial is over" : "Activate your league"}
+          backLabel="Back to league" onClose={() => setIsActivationOpen(false)} onActivated={() => setIsActivationOpen(false)} />
+      </Suspense>}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><PageHeader title={league?.name ?? "League"} /></div>
         {!isReadOnly && <button
@@ -357,8 +365,7 @@ export default function LeagueAdmin() {
         league={league}
         events={Array.isArray(events) ? events : []}
         metrics={metrics}
-        onActivateLeague={!isReadOnly && leagueBillingStatus === "trial" && ownsLeague ? activateLeaguePayment : undefined}
-        activationPending={restorePayment.isPending}
+        onActivateLeague={!isReadOnly && leagueBillingStatus === "trial" && ownsLeague ? () => setIsActivationOpen(true) : undefined}
         onAddEvents={!isReadOnly ? () => navigate(`/league/${leagueId}/events/create`) : undefined}
         onAddPlayers={!isReadOnly ? () => navigate(`/league/${leagueId}/players?add=1`) : undefined}
         onCreateLeague={() => navigate("/leagues/create")}

@@ -22,7 +22,7 @@ export default function CommissionerInsights({
   league: LeagueAdminInput;
   events: IntelligenceEvent[];
   metrics?: LeagueIntelligenceMetrics;
-  onActivateLeague?: () => Promise<void>;
+  onActivateLeague?: () => void | Promise<void>;
   activationPending?: boolean;
   onAddEvents?: () => void;
   onAddPlayers?: () => void;

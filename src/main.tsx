@@ -5,7 +5,7 @@ import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react
 import { ToastProvider } from "@/context/ToastContext";
 import ToastContainer from "@/components/layout/ToastContainer";
 import RootErrorBoundary from "@/components/route/RootErrorBoundary";
-import { getApiErrorMessage } from "@/lib/apiError";
+import { getApiErrorMessage, isTrialEventLimitError } from "@/lib/apiError";
 import { emitToast } from "@/lib/toastEvents";
 import { applySeoForPath } from "@/lib/seo";
 import { router } from "./router";
@@ -26,7 +26,9 @@ const ReactQueryDevtools = import.meta.env.DEV
 // Create a TanStack Query client
 const queryClient = new QueryClient({
   mutationCache: new MutationCache({
-    onError: (error) => {
+    onError: (error, _variables, _context, mutation) => {
+      if (mutation.meta?.errorHandledLocally) return;
+      if (mutation.meta?.handlesTrialLimit && isTrialEventLimitError(error)) return;
       emitToast(getApiErrorMessage(error, "Unable to save changes. Please try again."), "error");
     },
   }),

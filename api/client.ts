@@ -18,6 +18,7 @@ interface ApiResponse<T = any> {
 
 // API Error wrapper
 interface ApiErrorResponse {
+  code?: string;
   message: string;
   status?: number;
   errors?: any;
@@ -75,6 +76,7 @@ class ApiClient {
     const errorResponse: ApiErrorResponse = {
       message: "An unexpected error occurred",
       status: error.response?.status,
+      code: typeof responseData?.code === "string" ? responseData.code : undefined,
     };
 
     if (error.response) {

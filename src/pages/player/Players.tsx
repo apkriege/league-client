@@ -1,3 +1,4 @@
+import { isValidStartingHandicap, parseStartingHandicap } from "@/features/leagues/handicapSettings";
 import PageHeader from "@/components/layout/PageHeader";
 import PageState from "@/components/layout/PageState";
 import Modal from "@/components/layout/Modal";
@@ -61,17 +62,16 @@ const normalizePlayerForm = (playerForm: PlayerForm) => ({
       ? "substitute"
       : String(playerForm.type || "player").toLowerCase(),
   gender: playerForm.gender,
-  handicap: Number(playerForm.handicap),
+  handicap: parseStartingHandicap(playerForm.handicap),
 });
 
 const getMissingRequiredFields = (form: typeof EMPTY_FORM) => {
   const missing: string[] = [];
-  const handicapNum = Number(form.handicap);
 
   if (!form.firstName.trim()) missing.push("first name");
   if (!form.lastName.trim()) missing.push("last name");
   if (!['male', 'female'].includes(form.gender)) missing.push("gender");
-  if (!form.handicap.trim() || !Number.isFinite(handicapNum)) missing.push("handicap");
+  if (!isValidStartingHandicap(form.handicap)) missing.push("handicap");
 
   return missing;
 };
@@ -269,7 +269,7 @@ export default function Players() {
     );
   }
 
-  const handicapHoleCount = getHandicapHoleCount(league.holeFormat);
+  const handicapHoleCount = league.handicapHoleBasis ?? getHandicapHoleCount(league.holeFormat);
 
   const p = [...league.players].sort((a: any, b: any) => {
     if (a.type === b.type) {
@@ -621,7 +621,7 @@ export default function Players() {
             onChange={(e) => onChange("gender", e.target.value)}
           />
           <Input
-            label={`${handicapHoleCount}-Hole Handicap`}
+            label={`${handicapHoleCount}-Hole Handicap (optional)`}
             type="number"
             step="0.1"
             value={form.handicap}

@@ -12,7 +12,7 @@ export function sortPlayersByName(players: any[]) {
 }
 
 export function buildSwappedPlayerEntry(baseEntry: any, replacement: any) {
-  const handicapIndex = Number(replacement?.handicap);
+  const handicapIndex = replacement?.handicap == null || replacement.handicap === "" ? NaN : Number(replacement.handicap);
   return {
     ...baseEntry,
     playerId: Number(replacement.id),

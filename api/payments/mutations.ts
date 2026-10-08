@@ -22,8 +22,12 @@ export const useCreateCheckoutSession = () => {
 export const useRedeemPaymentBypassCode = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: redeemPaymentBypassCode,
-    onSuccess: async () => {
+    mutationKey: ["payment-access-code"],
+    meta: { errorHandledLocally: true },
+    mutationFn: (input: string | { code: string; leagueId: number }) => typeof input === "string"
+      ? redeemPaymentBypassCode(input) : redeemPaymentBypassCode(input.code, input.leagueId),
+    onSuccess: async (_result, input) => {
+      if (typeof input !== "string") await queryClient.invalidateQueries({ queryKey: ["league", input.leagueId] });
       await queryClient.invalidateQueries({ queryKey: ["stripe-state"] });
     },
     retry: false,

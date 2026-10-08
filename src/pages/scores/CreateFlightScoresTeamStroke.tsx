@@ -28,7 +28,7 @@ import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
 import {
   getEventScoringHoles,
-  getPlayerHandicapIndex,
+  getPreviewHandicap,
   getPlayerScoringHoles,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
@@ -48,6 +48,7 @@ export const CreateFlightScoresTeamStroke = ({
   isEditMode,
   onFlightPlayersUpdated,
   onSaveSuccess,
+  onTrialExpired,
   onCancel,
 }: any) => {
   const { leagueId, eventId } = useParams();
@@ -74,42 +75,6 @@ export const CreateFlightScoresTeamStroke = ({
     return getPlayerScoringHoles(event, player);
   };
 
-  const popsByPlayerId = new Map<number, Map<number, number>>();
-  const netPopsByPlayerId = new Map<number, Map<number, number>>();
-  const allowance =
-    scoringMode === "best-ball" || scoringMode === "four-ball-match"
-      ? Number(event?.scoringConfig?.handicapAllowance ?? (scoringMode === "four-ball-match" ? 0.9 : 1))
-      : 1;
-  const playingHandicaps = new Map(
-    players.map((player) => [
-      Number(player.playerId),
-      Math.round(getPlayerHandicapIndex(player) * allowance),
-    ])
-  );
-  const relativeBaseline =
-    scoringMode === "four-ball-match" && playingHandicaps.size > 0
-      ? Math.min(...playingHandicaps.values())
-      : 0;
-  for (const player of players) {
-    const playerId = Number(player.playerId);
-    const playingHandicap = Number(playingHandicaps.get(playerId));
-    const hcp = playingHandicap - relativeBaseline;
-    popsByPlayerId.set(
-      playerId,
-      calculateStrokeplayPops(hcp, getPlayerScoringHoles(event, player)),
-    );
-    netPopsByPlayerId.set(
-      playerId,
-      calculateStrokeplayPops(
-        scoringMode === "four-ball-match" ? getPlayerHandicapIndex(player) : playingHandicap,
-        getPlayerScoringHoles(event, player),
-      ),
-    );
-  }
-
-  const popsForHole = (playerId: number, holeNum: number) =>
-    popsByPlayerId.get(Number(playerId))?.get(holeNum) || 0;
-
   const methods = useForm({
     defaultValues: {
       players: players.reduce((acc: any, p: any) => {
@@ -129,10 +94,47 @@ export const CreateFlightScoresTeamStroke = ({
     },
   });
 
-  const createMutation = useCreateEventScores();
-  const updateMutation = useUpdateEventScores();
+  const createMutation = useCreateEventScores(onTrialExpired);
+  const updateMutation = useUpdateEventScores(onTrialExpired);
   const updateFlightPlayersMutation = useUpdateFlightPlayers();
   const watchedPlayers = useWatch({ control: methods.control, name: "players" });
+  const popsByPlayerId = new Map<number, Map<number, number>>();
+  const netPopsByPlayerId = new Map<number, Map<number, number>>();
+  const allowance =
+    scoringMode === "best-ball" || scoringMode === "four-ball-match"
+      ? Number(event?.scoringConfig?.handicapAllowance ?? (scoringMode === "four-ball-match" ? 0.9 : 1))
+      : 1;
+  const playingHandicaps = new Map(
+    players.map((player) => [
+      Number(player.playerId),
+      Math.round(getPreviewHandicap(player, getPlayerScoringHoles(event, player), watchedPlayers?.[player.playerId]?.scores ?? []) * allowance),
+    ])
+  );
+  const hasPendingHandicaps = [...playingHandicaps.values()].some((handicap) => !Number.isFinite(handicap));
+  const relativeBaseline =
+    scoringMode === "four-ball-match" && playingHandicaps.size > 0
+      ? Math.min(...playingHandicaps.values())
+      : 0;
+  for (const player of players) {
+    const playerId = Number(player.playerId);
+    const playingHandicap = Number(playingHandicaps.get(playerId));
+    const hcp = playingHandicap - relativeBaseline;
+    popsByPlayerId.set(
+      playerId,
+      calculateStrokeplayPops(hcp, getPlayerScoringHoles(event, player)),
+    );
+    netPopsByPlayerId.set(
+      playerId,
+      calculateStrokeplayPops(
+        scoringMode === "four-ball-match" ? getPreviewHandicap(player, getPlayerScoringHoles(event, player), watchedPlayers?.[player.playerId]?.scores ?? []) : playingHandicap,
+        getPlayerScoringHoles(event, player),
+      ),
+    );
+  }
+
+  const popsForHole = (playerId: number, holeNum: number) =>
+    popsByPlayerId.get(Number(playerId))?.get(holeNum) || 0;
+
   const scoreDraft = useScoreDraft({
     methods,
     leagueId,
@@ -166,6 +168,7 @@ export const CreateFlightScoresTeamStroke = ({
   };
 
   const getPlayerNetScore = (playerId: number) => {
+    if (!Number.isFinite(playingHandicaps.get(playerId))) return "—";
     return getHolesForPlayer(playerId).reduce(
       (total: number, _hole: any, index: number) =>
         total + (getPlayerNetAtHole(playerId, index) ?? 0),
@@ -174,6 +177,7 @@ export const CreateFlightScoresTeamStroke = ({
   };
 
   const getPlayerNetAtHole = (playerId: number, holeIdx: number) => {
+    if (!Number.isFinite(playingHandicaps.get(playerId))) return null;
     const gross = Number(watchedPlayers?.[playerId]?.scores?.[holeIdx] ?? 0);
     if (!gross) return null;
     const playerHole = getHolesForPlayer(playerId)[holeIdx];
@@ -251,6 +255,7 @@ export const CreateFlightScoresTeamStroke = ({
   };
 
   const getTeamFormatTotal = (team: 1 | 2) => {
+    if (hasPendingHandicaps) return "—";
     return holes.reduce((sum: number, _hole: any, holeIdx: number) => {
       return sum + getTeamMetricAtHole(team, holeIdx);
     }, 0);
@@ -388,7 +393,7 @@ export const CreateFlightScoresTeamStroke = ({
       <tr key={player.playerId} className="text-sm">
         <ScorecardIdentityCell
           primary={`${p.firstName} ${p.lastName}`}
-          secondary={<PlayerHandicapSummary entry={player} />}
+          secondary={<PlayerHandicapSummary entry={player} previewHandicap={getPreviewHandicap(player, getPlayerScoringHoles(event, player), watchedPlayers?.[player.playerId]?.scores ?? [])} />}
           action={
             <PlayerSwapControl
               currentPlayerId={Number(player.playerId)}
@@ -435,7 +440,7 @@ export const CreateFlightScoresTeamStroke = ({
       <td className="p-3 text-xs font-bold">{teamName} {teamMetricLabel}</td>
       {holes.map((hole: any, holeIdx: number) => (
         <ScoreValueCell key={hole.num} className="p-2">
-          {getTeamMetricAtHole(team, holeIdx)}
+          {hasPendingHandicaps ? "—" : getTeamMetricAtHole(team, holeIdx)}
         </ScoreValueCell>
       ))}
       <td />

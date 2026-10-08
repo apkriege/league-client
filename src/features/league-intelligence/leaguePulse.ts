@@ -1,3 +1,4 @@
+import { hasCompletedMatchPlayEvent } from "./leagueRivalryEligibility";
 import type {
   InsightTone,
   IntelligenceEvent,
@@ -154,7 +155,7 @@ export function buildLeaguePulse({
     .map((team) => ({ ...team, pointsPerEvent: roundOne(team.points / team.eventsPlayed) }))
     .sort((left, right) => right.pointsPerEvent - left.pointsPerEvent)[0];
   const hotPlayer = findHotPlayer(metrics);
-  const rivalry = findRivalry(metrics);
+  const rivalry = hasCompletedMatchPlayEvent(events) ? findRivalry(metrics) : null;
   const maxRounds = Math.max(0, ...playerStandings.map((standing) => standing.rounds));
   const standingById = new Map(playerStandings.map((standing) => [standing.playerId, standing]));
   const behindParticipation = regularRoster.filter((player) => {
@@ -177,20 +178,6 @@ export function buildLeaguePulse({
         ? `${hotPlayer.improvingStreak} improving`
         : `${formatNumber(hotPlayer.recentAverage)} net`,
       playerId: hotPlayer.playerId,
-    });
-  }
-
-  if (leader && runnerUp && leadGap != null) {
-    spotlights.push({
-      kind: "race",
-      tone: leadGap <= 2 ? "attention" : "neutral",
-      label: "Race pressure",
-      title: leadGap <= 2 ? "The title race is wide open" : `${leader.name} has the inside track`,
-      detail: `${runnerUp.name} sits ${formatNumber(leadGap)} points behind the lead.`,
-      stat: `${formatNumber(leadGap)} pt gap`,
-      ...(metrics?.standingsMode === "team"
-        ? { teamId: "teamId" in leader ? leader.teamId : undefined }
-        : { playerId: "playerId" in leader ? leader.playerId : undefined }),
     });
   }
 

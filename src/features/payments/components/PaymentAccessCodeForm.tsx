@@ -7,15 +7,20 @@ import { KeyRound } from "lucide-react";
 import { useState } from "react";
 
 interface PaymentAccessCodeFormProps {
+  leagueId?: number;
+  disabled?: boolean;
   onRedeemed?: () => void | Promise<unknown>;
 }
 
-export default function PaymentAccessCodeForm({ onRedeemed }: PaymentAccessCodeFormProps) {
+export default function PaymentAccessCodeForm({ onRedeemed, leagueId, disabled = false }: PaymentAccessCodeFormProps) {
+  const [codeError, setCodeError] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const redeemCode = useRedeemPaymentBypassCode();
   const { show } = useToast();
 
   const redeem = async () => {
+    if (disabled || redeemCode.isPending) return;
+    setCodeError(null);
     const normalizedCode = code.trim();
     if (!normalizedCode) {
       show("Enter your payment access code.", "warning");
@@ -23,12 +28,12 @@ export default function PaymentAccessCodeForm({ onRedeemed }: PaymentAccessCodeF
     }
 
     try {
-      const result = await redeemCode.mutateAsync(normalizedCode);
+      const result = await redeemCode.mutateAsync(leagueId === undefined ? normalizedCode : {code:normalizedCode,leagueId});
       setCode("");
       show(result.message, "success");
       await onRedeemed?.();
     } catch (error) {
-      show(getApiErrorMessage(error, "Unable to apply payment access code."), "error");
+      setCodeError(getApiErrorMessage(error, "Unable to apply payment access code."));
     }
   };
 
@@ -45,7 +50,8 @@ export default function PaymentAccessCodeForm({ onRedeemed }: PaymentAccessCodeF
           placeholder="Enter access code"
           value={code}
           autoComplete="off"
-          onChange={(event) => setCode(event.target.value)}
+          disabled={disabled || redeemCode.isPending}
+          onChange={(event) => { setCode(event.target.value); setCodeError(null); }}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
@@ -58,12 +64,13 @@ export default function PaymentAccessCodeForm({ onRedeemed }: PaymentAccessCodeF
           type="button"
           size="sm"
           variant="secondary"
-          disabled={redeemCode.isPending}
+          disabled={disabled || redeemCode.isPending}
           onClick={() => void redeem()}
         >
           {redeemCode.isPending ? "Applying..." : "Apply"}
         </Button>
       </div>
+      {codeError && <p role="alert" className="mt-2 text-xs text-red-700">{codeError}</p>}
     </div>
   );
 }

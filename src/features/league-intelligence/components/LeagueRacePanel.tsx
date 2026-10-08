@@ -74,7 +74,7 @@ export default function LeagueRacePanel({
                   </span>
                 </span>
               </div>
-              <p className="relative mt-4 truncate text-sm font-black text-slate-900 transition group-hover:text-emerald-700">
+              <p className="relative mt-3 truncate text-sm font-black text-slate-900 transition group-hover:text-emerald-700">
                 {entry.name}
               </p>
               <p className="relative mt-1 text-[10px] text-slate-500">
@@ -141,17 +141,19 @@ export default function LeagueRacePanel({
           </div>
         </LeagueInsightSection>
 
-        <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
+        <div className="grid self-start gap-3 sm:grid-cols-3 xl:grid-cols-1">
           {[
             { icon: Trophy, label: "Lead margin", value: leadGap == null ? "—" : formatNumber(leadGap), detail: "points over second", tone: "text-amber-600" },
             { icon: Gauge, label: "Contender line", value: formatNumber(contenderThreshold), detail: "points from first", tone: "text-emerald-600" },
             { icon: Users, label: "Live contenders", value: String(contenders), detail: `of ${rows.length} ranked`, tone: "text-blue-600" },
           ].map((metric) => (
-            <div key={metric.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <metric.icon size={15} className={metric.tone} strokeWidth={2.5} />
-              <p className="mt-4 text-2xl font-black tabular-nums text-slate-950">{metric.value}</p>
+            <div key={metric.label} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+              <metric.icon size={15} className={`mt-1 shrink-0 ${metric.tone}`} strokeWidth={2.5} />
+              <div className="min-w-0">
+              <p className="text-xl font-black tabular-nums text-slate-950">{metric.value}</p>
               <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">{metric.label}</p>
               <p className="mt-0.5 text-[10px] text-slate-400">{metric.detail}</p>
+              </div>
             </div>
           ))}
         </div>

@@ -1,3 +1,4 @@
+import { defaultHandicapSettings, type HandicapSettings } from "@/features/leagues/handicapSettings";
 import Players from "./forms/PlayersForm";
 import TeamsForm from "./forms/TeamsForm";
 import ReviewForm from "./forms/ReviewForm";
@@ -35,7 +36,7 @@ import { addCalendarYear } from "@/features/leagues/seasonDates";
 import { useAdminLeagues } from "@api/admin/queries";
 import PreviousSeasonPicker from "@/features/leagues/components/PreviousSeasonPicker";
 
-type CreateLeagueFormData = {
+type CreateLeagueFormData = HandicapSettings & {
   name: string;
   description: string;
   numPlayers: number;
@@ -73,6 +74,7 @@ const createDefaultLeagueData = (): CreateLeagueFormData => ({
   numPlayers: 0,
   type: "season",
   holeFormat: "18",
+  ...defaultHandicapSettings,
   format: "individual",
   teamRosterSize: 4,
   teamPlayersPerEvent: 2,

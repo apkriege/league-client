@@ -133,7 +133,7 @@ export type PlayerIntelligence = {
     rounds: number;
     averageToPar: number | null;
     averagePoints: number | null;
-    handicap: number;
+    handicap: number | null;
   }>;
   headToHead: {
     wins: number;
@@ -165,13 +165,41 @@ export type PlayerIntelligence = {
   }>;
 };
 
+export type HandicapCalculation = {
+  policy: string;
+  basis: 9 | 18;
+  status: "unknown" | "provisional" | "calculated" | "manual";
+  eligibleRounds: number;
+  bestRounds: number;
+  historyWindow: number;
+  holeLimit: import("@/features/leagues/handicapSettings").HandicapHoleLimit;
+  entries: HandicapEntry[];
+  usedEntries: HandicapEntry[];
+  average: number | null;
+  maximumAdjustment: number;
+  multiplier: number;
+  index: number | null;
+  overrides: number;
+  storedHandicap: number | null;
+  sourceRounds: Array<{
+    id: number; eventId: number; differential: number; holes: 9 | 18; playedAt: string;
+    eventName: string; gross: number; net: number | null; adjustedGross: number; rating: number; slope: number;
+  }>;
+};
+
+export type HandicapEntry = {
+  roundIds: number[];
+  differential: number;
+  playedAt: string;
+};
+
 export type PlayerStatsResponse = {
   player: {
     id: number;
     firstName: string;
     lastName: string;
-    handicap: number;
-    startingHandicap: number;
+    handicap: number | null;
+    startingHandicap: number | null;
     seasonPoints: number;
     seasonRank: number | null;
     type: string;
@@ -195,11 +223,12 @@ export type PlayerStatsResponse = {
     totalBogeys: number;
     totalDoubleBogeys: number;
     totalTripleBogeys: number;
-    startingHandicap: number;
-    currentHandicap: number;
-    handicapChange: number;
+    startingHandicap: number | null;
+    currentHandicap: number | null;
+    handicapChange: number | null;
   } | null;
   rounds: PlayerRound[];
   handicapHoleBasis: number;
+  handicapCalculation: HandicapCalculation;
   intelligence: PlayerIntelligence;
 };

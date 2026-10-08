@@ -115,7 +115,7 @@ export default function LeaguePulse({
       <div className="pointer-events-none absolute -right-14 -top-20 h-64 w-64 rounded-full bg-emerald-400/15 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-blue-500/15 blur-3xl" />
 
-      <div className="relative grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+      <div className="relative grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
           <div className="flex items-center gap-2 text-emerald-300">
             <BrainCircuit size={15} strokeWidth={2.5} />
@@ -187,7 +187,7 @@ export default function LeaguePulse({
             return (
               <article
                 key={`${spotlight.kind}-${spotlight.title}`}
-                className="bg-slate-950/70 px-5 py-4"
+                className="bg-slate-950/70 px-4 py-3.5"
               >
                 <div
                   className={`flex items-center justify-between gap-2 ${toneClass[spotlight.tone]}`}

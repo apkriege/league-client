@@ -77,7 +77,7 @@ describe("league intelligence", () => {
         { id: 4, firstName: "Sam", lastName: "Sub", type: "substitute" },
       ],
       events: [
-        { id: 1, name: "Opening Night", startsAt: "2026-06-01T22:00:00.000Z", status: "completed" },
+        { id: 1, name: "Opening Night", startsAt: "2026-06-01T22:00:00.000Z", status: "completed", scoringMode: "match-play" },
         { id: 2, name: "Week Two", startsAt: "2026-06-20T22:00:00.000Z", status: "upcoming" },
       ],
       metrics: {
@@ -108,9 +108,9 @@ describe("league intelligence", () => {
     expect(pulse.hotPlayer).toMatchObject({ name: "Avery Green", improvement: 2.5, improvingStreak: 3 });
     expect(pulse.spotlights.map((spotlight) => spotlight.kind)).toEqual([
       "hot",
-      "race",
       "rivalry",
       "birdies",
+      "improvement",
     ]);
     expect(pulse.behindParticipation.map((player) => player.id)).toEqual([3]);
     expect(pulse.nextEvent?.name).toBe("Week Two");

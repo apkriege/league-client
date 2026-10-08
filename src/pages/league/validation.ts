@@ -1,3 +1,4 @@
+import { validateHandicapSettings, isValidStartingHandicap, type HandicapSettings } from "@/features/leagues/handicapSettings";
 import { addCalendarYear } from "@/features/leagues/seasonDates";
 
 const isBlank = (value: unknown) => value == null || String(value).trim() === "";
@@ -15,7 +16,7 @@ type LeagueTeamInput = {
   players?: unknown;
 };
 
-type LeagueFormInput = {
+type LeagueFormInput = Partial<Record<keyof HandicapSettings, unknown>> & {
   name?: unknown;
   type?: unknown;
   holeFormat?: unknown;
@@ -60,6 +61,8 @@ export function validateLeagueInfo(data: LeagueFormInput) {
       return "Players per team event must be between 1 and the team roster size.";
     }
   }
+  const handicapError = validateHandicapSettings(data);
+  if (handicapError) return handicapError;
   if (isBlank(data.contactFirstName)) return "Contact first name is required.";
   if (isBlank(data.contactLastName)) return "Contact last name is required.";
   if (isBlank(data.contactEmail)) return "Contact email is required.";
@@ -93,10 +96,10 @@ export function validateLeaguePlayers(data: LeagueFormInput, requirePlayers = tr
       isBlank(player?.firstName) ||
       isBlank(player?.lastName) ||
       !["male", "female"].includes(String(player?.gender || "").toLowerCase()) ||
-      !Number.isFinite(Number(player?.handicap))
+      !isValidStartingHandicap(player?.handicap)
   );
   if (invalidPlayer) {
-    return "Each player needs a first name, last name, gender, and handicap.";
+    return "Each player needs a first name, last name, and gender. A supplied starting handicap must be between -10 and 54.";
   }
 
   return null;

@@ -54,11 +54,12 @@ export const useLeagueEvents = (leagueId: number, enabled = true) => {
   });
 };
 
-export const useLeagueEvent = (leagueId: number, eventId: number, enabled = true) => {
+export const useLeagueEvent = (leagueId: number, eventId: number, enabled = true, refreshOnEntry = false) => {
   return useQuery({
     queryKey: ["league", leagueId, "event", eventId],
     queryFn: async () => getLeagueEvent(leagueId, eventId),
     enabled: enabled && !!leagueId && !!eventId,
+    refetchOnMount: refreshOnEntry ? "always" : true,
   });
 };
 

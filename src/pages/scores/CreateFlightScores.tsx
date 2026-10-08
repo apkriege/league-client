@@ -32,7 +32,7 @@ import { validateHoleScores } from "./scoreValidation";
 import { formatTime } from "@/utils/format";
 import {
   getEventScoringHoles,
-  getPlayerHandicapIndex,
+  getPreviewHandicap,
   getPlayerScoringHoles,
 } from "./scoringSetup";
 import PlayerHandicapSummary from "./components/PlayerHandicapSummary";
@@ -46,6 +46,7 @@ export const CreateFlightScores = ({
   isEditMode,
   onFlightPlayersUpdated,
   onSaveSuccess,
+  onTrialExpired,
   onCancel,
 }: any) => {
   const { leagueId, eventId } = useParams();
@@ -58,7 +59,7 @@ export const CreateFlightScores = ({
   const { t1Id, t2Id, team1: sortedTeam1, team2: sortedTeam2 } = sortFlightTeamsByHandicap(flight);
 
   const getEffectiveHandicap = (playerEntry: any) => {
-    return getPlayerHandicapIndex(playerEntry);
+    return getPreviewHandicap(playerEntry, getPlayerScoringHoles(event, playerEntry), watchedPlayers?.[playerEntry.playerId]?.scores ?? []);
   };
 
   const getSavedOpponentId = (playerEntry: any) => {
@@ -247,6 +248,32 @@ export const CreateFlightScores = ({
     }
   };
 
+  const methods = useForm({
+    defaultValues: {
+      players: flight.players.reduce((acc: any, p: any) => {
+        const playerScores = isEditMode
+          ? holes.map((hole: any, holeIdx: number) => {
+              const roundScores = p?.player?.rounds?.[0]?.scores ?? [];
+              const scoreByHole = roundScores.find(
+                (scoreEntry: any) => Number(scoreEntry?.hole) === Number(hole?.num)
+              );
+              const score = scoreByHole?.gross ?? roundScores?.[holeIdx]?.gross;
+              return score ? String(score) : "";
+            })
+          : Array.from({ length: holes.length }, () => "");
+
+        acc[p.playerId] = {
+          scores: playerScores,
+        };
+        return acc;
+      }, {}),
+    },
+  });
+
+  const createMutation = useCreateEventScores(onTrialExpired);
+  const updateMutation = useUpdateEventScores(onTrialExpired);
+  const updateFlightPlayersMutation = useUpdateFlightPlayers();
+  const watchedPlayers = methods.watch("players");
   const matchupCount = Math.min(activeTeam1.length, activeTeam2.length);
   const popsByPlayerId = new Map<number, Map<number, number>>();
   const netPopsByPlayerId = new Map<number, Map<number, number>>();
@@ -283,32 +310,6 @@ export const CreateFlightScores = ({
     popsByPlayerId.set(Number(right.playerId), rightPops);
   }
 
-  const methods = useForm({
-    defaultValues: {
-      players: flight.players.reduce((acc: any, p: any) => {
-        const playerScores = isEditMode
-          ? holes.map((hole: any, holeIdx: number) => {
-              const roundScores = p?.player?.rounds?.[0]?.scores ?? [];
-              const scoreByHole = roundScores.find(
-                (scoreEntry: any) => Number(scoreEntry?.hole) === Number(hole?.num)
-              );
-              const score = scoreByHole?.gross ?? roundScores?.[holeIdx]?.gross;
-              return score ? String(score) : "";
-            })
-          : Array.from({ length: holes.length }, () => "");
-
-        acc[p.playerId] = {
-          scores: playerScores,
-        };
-        return acc;
-      }, {}),
-    },
-  });
-
-  const createMutation = useCreateEventScores();
-  const updateMutation = useUpdateEventScores();
-  const updateFlightPlayersMutation = useUpdateFlightPlayers();
-  const watchedPlayers = methods.watch("players");
   const scoreDraft = useScoreDraft({
     methods,
     leagueId,
@@ -346,6 +347,8 @@ export const CreateFlightScores = ({
   };
 
   const getPlayerNetScore = (playerId: number) => {
+    const entry = allPlayers.find((player: { playerId: number }) => Number(player.playerId) === Number(playerId));
+    if (!Number.isFinite(getEffectiveHandicap(entry))) return "—";
     const playerEntry = getPlayerEntry(playerId);
     const scores = watchedPlayers?.[playerId]?.scores ?? [];
     return getPlayerScoringHoles(event, playerEntry).reduce(
@@ -582,7 +585,7 @@ export const CreateFlightScores = ({
       <tr key={player.playerId} className="text-sm">
         <ScorecardIdentityCell
           primary={`${p.firstName} ${p.lastName}`}
-          secondary={<PlayerHandicapSummary entry={player} />}
+          secondary={<PlayerHandicapSummary entry={player} previewHandicap={getEffectiveHandicap(player)} />}
           action={
             !isEditingSwap ? (
               <button

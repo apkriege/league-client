@@ -87,9 +87,8 @@ export const sortFlightTeamsByHandicap = (flight: any) => {
   const t2Id = flight.teams?.[1]?.teamId;
 
   const getSortHandicap = (playerEntry: any) => {
-    const playerHandicap = Number(
-      playerEntry?.handicapIndex ?? playerEntry?.player?.handicap,
-    );
+    const raw = Object.hasOwn(playerEntry, "handicapIndex") ? playerEntry.handicapIndex : playerEntry?.player?.handicap;
+    const playerHandicap = raw == null ? NaN : Number(raw);
     if (Number.isFinite(playerHandicap)) {
       return playerHandicap;
     }

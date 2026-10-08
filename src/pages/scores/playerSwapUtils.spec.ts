@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { buildSwappedPlayerEntry } from "./playerSwapUtils";
 
 describe("buildSwappedPlayerEntry", () => {
+  it("keeps an unknown replacement distinct from scratch", () => {
+    expect(buildSwappedPlayerEntry({}, {id:20,handicap:null}).handicapIndex).toBeNull();
+    expect(buildSwappedPlayerEntry({}, {id:20,handicap:0}).handicapIndex).toBe(0);
+  });
   it("uses the replacement's stored handicap for score-entry setup", () => {
     const entry = buildSwappedPlayerEntry(
       { id: 1, playerId: 10, teamId: 3, handicapIndex: 4 },

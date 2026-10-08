@@ -1,3 +1,4 @@
+import { getApiErrorMessage, isTrialEventLimitError } from "@/lib/apiError";
 import { invalidateResults } from "@/lib/invalidateResults";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -195,10 +196,11 @@ export const useCancelLeagueEvent = (onSuccess?: any) => {
 };
 
 // Scores
-export const useCreateEventScores = () => {
+export const useCreateEventScores = (onTrialExpired?: (message: string) => void) => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { handlesTrialLimit: Boolean(onTrialExpired) },
     mutationFn: async ({
       leagueId,
       eventId,
@@ -228,15 +230,20 @@ export const useCreateEventScores = () => {
       });
     },
     onError: (error) => {
+      if (onTrialExpired && isTrialEventLimitError(error)) {
+        onTrialExpired(getApiErrorMessage(error));
+        return;
+      }
       console.error("Failed to submit event scores:", error);
     },
   });
 };
 
-export const useUpdateEventScores = () => {
+export const useUpdateEventScores = (onTrialExpired?: (message: string) => void) => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { handlesTrialLimit: Boolean(onTrialExpired) },
     mutationFn: async ({
       leagueId,
       eventId,
@@ -264,6 +271,10 @@ export const useUpdateEventScores = () => {
       });
     },
     onError: (error) => {
+      if (onTrialExpired && isTrialEventLimitError(error)) {
+        onTrialExpired(getApiErrorMessage(error));
+        return;
+      }
       console.error("Failed to update event scores:", error);
     },
   });

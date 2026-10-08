@@ -1,4 +1,5 @@
-import type { InsightTone, LeagueIntelligenceMetrics } from "./types";
+import { buildPlayerHighlights } from "./playerHighlights";
+import type { LeagueIntelligenceMetrics } from "./types";
 
 export type LeagueFormStatus = "hot" | "steady" | "cooling";
 
@@ -40,16 +41,6 @@ export type LeagueCategoryBoard = {
     value: string;
     detail: string;
   }>;
-};
-
-export type LeagueAchievement = {
-  id: string;
-  label: string;
-  title: string;
-  detail: string;
-  stat: string;
-  tone: InsightTone;
-  playerId: number;
 };
 
 export type LeagueRivalry = {
@@ -254,7 +245,7 @@ function buildCategoryBoards(metrics?: LeagueIntelligenceMetrics): LeagueCategor
       "Handicap strokes gained",
       "emerald",
       [...players]
-        .filter((player) => player.handicapChange != null && player.handicapChange < 0)
+        .filter((player) => player.rounds >= 2 && player.handicapChange != null && player.handicapChange < 0)
         .sort((a, b) => Number(a.handicapChange) - Number(b.handicapChange)),
       (player) => `${formatNumber(Math.abs(Math.min(0, Number(player.handicapChange))))}`,
       () => "handicap strokes cut",
@@ -288,67 +279,6 @@ function buildRivalries(metrics?: LeagueIntelligenceMetrics): LeagueRivalry[] {
     );
 }
 
-function buildAchievements(metrics?: LeagueIntelligenceMetrics): LeagueAchievement[] {
-  const players = (metrics?.standings ?? []).filter((player) => player.rounds > 0);
-  if (players.length === 0) return [];
-  const achievements: LeagueAchievement[] = [];
-  const add = (
-    id: string,
-    label: string,
-    title: string,
-    detail: string,
-    stat: string,
-    playerId: number,
-    tone: InsightTone = "positive",
-  ) => achievements.push({ id, label, title, detail, stat, playerId, tone });
-  const ironGolfer = [...players].sort((a, b) => b.rounds - a.rounds || b.points - a.points)[0];
-  const birdieMachine = [...players].sort(
-    (a, b) =>
-      Number(b.birdies || 0) - Number(a.birdies || 0) ||
-      Number(b.birdies || 0) / b.rounds - Number(a.birdies || 0) / a.rounds,
-  )[0];
-  const pointsPace = [...players].sort(
-    (a, b) => b.points / b.rounds - a.points / a.rounds,
-  )[0];
-  const biggestMover = [...players]
-    .filter((player) => player.handicapChange != null && player.handicapChange < 0)
-    .sort((a, b) => Number(a.handicapChange) - Number(b.handicapChange))[0];
-  const pureStriker = [...players]
-    .filter((player) => player.rounds >= 2)
-    .sort((a, b) => a.avgGross - b.avgGross || b.rounds - a.rounds)[0];
-  const matchBoss = (metrics?.headToHead ?? [])
-    .reduce<Array<{ playerId: number; name: string; wins: number; matches: number }>>((rows, matchup) => {
-      const existing = rows.find((row) => row.playerId === matchup.playerId);
-      const matches = matchup.wins + matchup.losses + matchup.ties;
-      if (existing) {
-        existing.wins += matchup.wins;
-        existing.matches += matches;
-      } else {
-        rows.push({ playerId: matchup.playerId, name: matchup.playerName, wins: matchup.wins, matches });
-      }
-      return rows;
-    }, [])
-    .filter((player) => player.matches >= 2)
-    .sort((a, b) => b.wins / b.matches - a.wins / a.matches || b.matches - a.matches)[0];
-
-  add("iron", "Always there", ironGolfer.name, "Sets the league standard for showing up.", `${ironGolfer.rounds} rounds`, ironGolfer.playerId, "neutral");
-  if (Number(birdieMachine.birdies || 0) > 0) {
-    add("birdies", "Birdie machine", birdieMachine.name, "Creates more red numbers than anyone.", `${birdieMachine.birdies} birdies`, birdieMachine.playerId);
-  }
-  add("pace", "Points machine", pointsPace.name, "Produces the most points each time out.", `${formatNumber(roundOne(pointsPace.points / pointsPace.rounds))} per round`, pointsPace.playerId);
-  if (biggestMover) {
-    add("mover", "Most improved", biggestMover.name, "Has made the biggest handicap leap.", `${formatNumber(Math.abs(Number(biggestMover.handicapChange)))} HCP cut`, biggestMover.playerId);
-  }
-  if (pureStriker) {
-    add("striker", "Pure striker", pureStriker.name, "Owns the league's lowest average gross score.", `${pureStriker.avgGross.toFixed(1)} gross`, pureStriker.playerId, "neutral");
-  }
-  if (matchBoss) {
-    add("match", "Match boss", matchBoss.name, "Has the strongest head-to-head win rate.", `${Math.round((matchBoss.wins / matchBoss.matches) * 100)}% wins`, matchBoss.playerId, "attention");
-  }
-
-  return achievements;
-}
-
 export function buildLeagueDashboard(metrics?: LeagueIntelligenceMetrics) {
   const form = buildForm(metrics);
   const playerRace = buildRace(metrics?.standings ?? [], "player");
@@ -361,7 +291,7 @@ export function buildLeagueDashboard(metrics?: LeagueIntelligenceMetrics) {
     recentWinners: form.recentWinners,
     categoryBoards: buildCategoryBoards(metrics),
     rivalries: buildRivalries(metrics),
-    achievements: buildAchievements(metrics),
+    playerHighlights: buildPlayerHighlights(metrics),
     formCounts: {
       hot: form.rows.filter((row) => row.status === "hot").length,
       steady: form.rows.filter((row) => row.status === "steady").length,

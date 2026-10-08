@@ -1,3 +1,4 @@
+import { useHandicapBasis } from "./useHandicapBasis";
 import { Input, Select, SelectableInfoCard } from "@/components/form";
 import Card from "@/components/layout/Card";
 import PageHeader from "@/components/layout/PageHeader";
@@ -10,6 +11,7 @@ import {
   getMaximumLeagueEndDate,
   parseLeagueDateInput,
 } from "../leagueDates";
+import HandicapSettingsForm from "./HandicapSettingsForm";
 import { addCalendarYear } from "@/features/leagues/seasonDates";
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
@@ -26,6 +28,7 @@ export default function InfoForm({
   isEditing = false,
 }: InfoFormProps) {
   const leagueForm = useFormContext();
+  const setHandicapBasis = useHandicapBasis();
   const startDate = leagueForm.watch("startDate");
   const isSeason = leagueForm.watch("type") === "season";
   const startDateInput = getLeagueDateInputValue(startDate);
@@ -226,29 +229,39 @@ export default function InfoForm({
           <div className="grid grid-cols-3 gap-2">
             <SelectableInfoCard
               title="9 Holes"
-              description="Every event is 9 holes. Player entries and ongoing calculations use a 9-hole handicap."
+              description="Every event is 9 holes."
               icon={<Flag size={16} className="text-slate-900" />}
               active={leagueForm.watch("holeFormat") === "9"}
-              disabled={competitiveSettingsLocked}
-              onClick={() => leagueForm.setValue("holeFormat", "9", { shouldDirty: true })}
+              disabled={isEditing}
+              onClick={() => {
+                leagueForm.setValue("holeFormat", "9", { shouldDirty: true });
+                setHandicapBasis(9);
+              }}
             />
             <SelectableInfoCard
               title="18 Holes"
-              description="Every event is 18 holes. Player entries and calculations use an 18-hole handicap."
+              description="Every event is 18 holes."
               icon={<Flag size={16} className="text-slate-900" />}
               active={leagueForm.watch("holeFormat") === "18"}
-              disabled={competitiveSettingsLocked}
-              onClick={() => leagueForm.setValue("holeFormat", "18", { shouldDirty: true })}
+              disabled={isEditing}
+              onClick={() => {
+                leagueForm.setValue("holeFormat", "18", { shouldDirty: true });
+                setHandicapBasis(18);
+              }}
             />
             <SelectableInfoCard
               title="Mixed 9/18"
-              description="Events may be 9 or 18 holes and must be added manually. Handicaps use the 18-hole value."
+              description="Events may be 9 or 18 holes and must be added manually."
               icon={<Repeat2 size={16} className="text-slate-900" />}
               active={leagueForm.watch("holeFormat") === "mixed"}
-              disabled={competitiveSettingsLocked}
-              onClick={() => leagueForm.setValue("holeFormat", "mixed", { shouldDirty: true })}
+              disabled={isEditing}
+              onClick={() => {
+                leagueForm.setValue("holeFormat", "mixed", { shouldDirty: true });
+                setHandicapBasis(18);
+              }}
             />
           </div>
+          <HandicapSettingsForm locked={isEditing} />
         </Card>
 
         {/* Contact */}
